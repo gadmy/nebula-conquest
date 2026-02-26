@@ -6452,33 +6452,40 @@ const _supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let currentUser = null;
 let currentProfile = null;
 
+let authHandled = false;
+
+async function handleSession(session) {
+    if (authHandled) return;
+    authHandled = true;
+    currentUser = session.user;
+    const profile = await loadProfile(currentUser.id);
+    if (profile) {
+        currentProfile = profile;
+        enterGame();
+    } else {
+        showPseudoStep();
+    }
+}
+
 async function initAuth() {
+    _supa.auth.onAuthStateChange(async (event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+            await handleSession(session);
+        }
+        if (event === 'SIGNED_OUT') {
+            currentUser = null;
+            currentProfile = null;
+            authHandled = false;
+            showAuthScreen();
+        }
+    });
+
     const { data: { session } } = await _supa.auth.getSession();
     if (session) {
-        currentUser = session.user;
-        const profile = await loadProfile(currentUser.id);
-        if (profile) {
-            currentProfile = profile;
-            enterGame();
-        } else {
-            showPseudoStep();
-        }
+        await handleSession(session);
     } else {
         showAuthScreen();
     }
-
-    _supa.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            currentUser = session.user;
-            const profile = await loadProfile(currentUser.id);
-            if (profile) {
-                currentProfile = profile;
-                enterGame();
-            } else {
-                showPseudoStep();
-            }
-        }
-    });
 }
 
 function showAuthScreen() {
