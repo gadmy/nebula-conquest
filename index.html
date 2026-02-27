@@ -1389,6 +1389,22 @@ canvas#gameCanvas.grabbing {
             <button id="evoDensity">💎 Density <div class="stat-current" id="evoDensityCur"></div></button>
         </div>
     </div>
+</div>
+<div id="spawnPopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(10,8,30,0.92); border:1px solid rgba(167,139,250,0.4); border-radius:10px; padding:16px 22px; pointer-events:auto; z-index:1000; text-align:center; font-family:'Exo 2',sans-serif; min-width:200px; box-shadow:0 0 30px rgba(100,70,180,0.3);">
+        <div id="spawnPopupName" style="font-family:'Orbitron',sans-serif; font-size:14px; color:#E9D5FF; letter-spacing:1px; margin-bottom:8px;"></div>
+        <div id="spawnPopupPreview" style="margin:8px auto;"></div>
+        <div style="display:flex; gap:12px; justify-content:center; font-size:11px; color:rgba(200,200,220,0.7); margin:8px 0;">
+            <span>🌿 Flore: <strong id="spawnPopupFlore" style="color:#4ADE80;"></strong></span>
+            <span>🐾 Faune: <strong id="spawnPopupFaune" style="color:#FF6B6B;"></strong></span>
+        </div>
+        <div style="font-size:10px; color:rgba(200,200,220,0.5); margin-bottom:10px;">
+            Rayon: <span id="spawnPopupRadius"></span> · Max spores: <span id="spawnPopupMax"></span>
+        </div>
+        <button id="spawnPopupBtn" class="btn" style="font-size:13px; padding:8px 24px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.5); color:#4ADE80; letter-spacing:2px; cursor:pointer;">✦ APPARAÎTRE ✦</button>
+        <div style="margin-top:6px;">
+            <span id="spawnPopupClose" style="font-size:9px; color:rgba(200,200,220,0.4); cursor:pointer; letter-spacing:1px;">✕ FERMER</span>
+        </div>
+    </div>
     <div id="nidPanel" style="display:none; position:absolute; top:48px; left:290px; font-family:'Exo 2',sans-serif; font-size:11px; background:rgba(10,8,30,0.75); border:1px solid rgba(34,197,94,0.3); border-radius:6px; padding:8px 12px; pointer-events:auto; min-width:220px;">
         <div style="font-family:'Orbitron',sans-serif; font-size:9px; color:#4ADE80; letter-spacing:1px; text-align:center; margin-bottom:5px;">🏰 NIDIFICATION 🏰</div>
         <div id="nidSystemName" style="font-size:10px; color:#E9D5FF; text-align:center; margin-bottom:5px;"></div>
@@ -1489,6 +1505,8 @@ canvas#gameCanvas.grabbing {
      - Perte d'une planète du système → nidification annulée
      - Événements journal : planète mère choisie, nidification effectuée, nidification perdue
      - Feedback visuel des boutons Off/Nid/Biome (vert/bleu/violet)
+     - Sacrifices multiplicité + nidification partagent la production (plafond 80%)
+     - Pseudo du joueur affiché dans le classement en jeu
    v2.4.6 | 2026-02-27 | Multijoueur complet
      - Bouton MULTIJOUEUR sur l'écran titre
      - Écran lobby : liste des parties ouvertes en temps réel
@@ -3212,6 +3230,7 @@ function setPhase(phase) {
             document.getElementById('spawnBanner').classList.remove('hidden');
             break;
         case 'game':
+            document.getElementById('spawnPopup').style.display = 'none';
             document.getElementById('gameCanvas').style.display = 'block';
             document.getElementById('spawnBanner').classList.add('hidden');
             document.getElementById('gameHud').style.display = 'block';
@@ -3753,12 +3772,13 @@ function updateScoreBoard() {
 // ─────────────────────────────────────────────
 // SPAWN — Sélection de planète de départ
 // ─────────────────────────────────────────────
+let _spawnTarget = null;
+
 function handleSpawnClick(worldX, worldY) {
-    // Trouver la planète la plus proche du clic
     let closest = null;
     let closestDist = Infinity;
     for (const p of gameState.planets) {
-        if (p.owner !== null) continue; // déjà prise
+        if (p.owner !== null) continue;
         const dx = p.x - worldX;
         const dy = p.y - worldY;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -3767,26 +3787,59 @@ function handleSpawnClick(worldX, worldY) {
             closestDist = dist;
         }
     }
-
     if (!closest) return;
 
-    // Assigner au joueur local
     const slot = localSlot();
     const human = gameState.players[slot];
-    if (human.spawnPlanet) return; // Déjà choisi
-    closest.owner = slot;
-    closest.spores = closest.maxSpores * 0.5;
-    human.bodies = [closest];
-    human.spawnPlanet = closest;
-    if (gameState.isMulti) {
-        sendAction('spawn', { bodyName: closest.name });
-        return; // En multi, on attend que tous aient spawn
+    if (human.spawnPlanet) return;
+
+    // Centrer la caméra sur la planète
+    gameState.camera.x = closest.x;
+    gameState.camera.y = closest.y;
+    gameState.camera.zoom = Math.max(gameState.camera.zoom, 1.2);
+
+    // Afficher la popup d'info
+    _spawnTarget = closest;
+    const popup = document.getElementById('spawnPopup');
+    popup.style.display = 'block';
+    document.getElementById('spawnPopupName').textContent = closest.name;
+    document.getElementById('spawnPopupFlore').textContent = closest.flore;
+    document.getElementById('spawnPopupFaune').textContent = closest.faune;
+    document.getElementById('spawnPopupRadius').textContent = Math.floor(closest.radius);
+    document.getElementById('spawnPopupMax').textContent = closest.maxSpores;
+
+    // Image preview
+    const previewEl = document.getElementById('spawnPopupPreview');
+    previewEl.innerHTML = '';
+    if (closest._texture) {
+        const cvs = document.createElement('canvas');
+        cvs.width = 64; cvs.height = 64;
+        cvs.getContext('2d').drawImage(closest._texture, 0, 0, 64, 64);
+        cvs.style.borderRadius = '50%';
+        previewEl.appendChild(cvs);
     }
+}
 
-    // Spawn automatique des IAs (solo uniquement)
+function confirmSpawn() {
+    if (!_spawnTarget) return;
+    const slot = localSlot();
+    const human = gameState.players[slot];
+    if (human.spawnPlanet) return;
+    if (_spawnTarget.owner !== null) { _spawnTarget = null; document.getElementById('spawnPopup').style.display = 'none'; return; }
+
+    _spawnTarget.owner = slot;
+    _spawnTarget.spores = _spawnTarget.maxSpores * 0.5;
+    human.bodies = [_spawnTarget];
+    human.spawnPlanet = _spawnTarget;
+    document.getElementById('spawnPopup').style.display = 'none';
+
+    if (gameState.isMulti) {
+        sendAction('spawn', { bodyName: _spawnTarget.name });
+        _spawnTarget = null;
+        return;
+    }
+    _spawnTarget = null;
     autoSpawnAIs();
-
-    // Passer en jeu
     setPhase('game');
 }
 
@@ -4831,6 +4884,7 @@ function setupInput() {
                 gameState.launchPreview = [];
                 gameState.launchCameraLock = false;
                 openCodex(src);
+                followingBody = src;
                 justLaunched = true;
                 return;
             }
@@ -4933,7 +4987,12 @@ function setupInput() {
             if (!clickedJet) {
                 // Chercher un astre sous le clic
                 const body = findBodyAt(worldX, worldY);
-                if (body) openCodex(body);
+                if (body) {
+                    openCodex(body);
+                    followingBody = body;
+                    cam.x = body.x;
+                    cam.y = body.y;
+                }
                 else closeCodex();
             }
         }
@@ -5075,6 +5134,18 @@ function render() {
     drawJets(ctx);
 
     // ── Prévisualisation de lancement ──
+    // Recalculer la preview à chaque frame (la planète orbite même si la souris ne bouge pas)
+    if (gameState.launching && gameState.launchSource && performance.now() - (gameState.launchStartTime||0) > 150) {
+        const src = gameState.launchSource;
+        const dx = gameState.mouseWorldX - src.x;
+        const dy = gameState.mouseWorldY - src.y;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        if (len > 1) {
+            const player = gameState.players[src.owner];
+            const speed = 20 + (player ? player.stats.velocity * 6 : 0);
+            gameState.launchPreview = computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 400);
+        }
+    }
     drawLaunchPreview(ctx);
 
     // ── Impacts (LOD mid+) ──
@@ -6677,19 +6748,16 @@ function updateCameraFollow() {
     // Verrouillage caméra pendant le tir
     if (gameState.launchCameraLock && gameState.launchSource) {
         const cam = gameState.camera;
-        cam.x += (gameState.launchSource.x - cam.x) * 0.12;
-        cam.y += (gameState.launchSource.y - cam.y) * 0.12;
+        cam.x += (gameState.launchSource.x - cam.x) * 0.5;
+        cam.y += (gameState.launchSource.y - cam.y) * 0.5;
         return;
     }
     if (!followingBody) return;
-    // Si le body n'est plus au joueur, arrêter le suivi
-    if (followingBody.owner !== 0) {
-        followingBody = null;
-        return;
-    }
+    // Arrêter le suivi uniquement si le body n'existe plus
+    if (!followingBody) return;
     // Suivre en douceur
     const cam = gameState.camera;
-    const lerp = 0.08;
+    const lerp = 0.15;
     cam.x += (followingBody.x - cam.x) * lerp;
     cam.y += (followingBody.y - cam.y) * lerp;
 }
@@ -7778,6 +7846,9 @@ document.getElementById('uiZoomSlider').addEventListener('input', (e) => {
 });
 
 // ═══ Listeners MULTIPLICITÉ ═══
+document.body.appendChild(document.getElementById('spawnPopup'));
+document.getElementById('spawnPopupBtn').addEventListener('click', () => { playClickSound(); confirmSpawn(); });
+document.getElementById('spawnPopupClose').addEventListener('click', () => { playClickSound(); _spawnTarget = null; document.getElementById('spawnPopup').style.display = 'none'; });
 document.getElementById('evoSacrifice').addEventListener('input', (e) => {
     const human = gameState.players[0];
     if (human) human.multiSacrifice = parseInt(e.target.value);
