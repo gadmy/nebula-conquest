@@ -7477,10 +7477,13 @@ let isHost = false;
 let authHandled = false;
 
 async function handleSession(session) {
+    console.log('handleSession called, authHandled:', authHandled);
     if (authHandled) return;
     authHandled = true;
     currentUser = session.user;
+    console.log('handleSession user:', currentUser.id);
     const profile = await loadProfile(currentUser.id);
+    console.log('handleSession profile:', profile);
     if (profile) {
         currentProfile = profile;
         await loadPanelConfig();
