@@ -156,6 +156,27 @@ canvas#gameCanvas.grabbing {
     box-shadow: 0 0 20px rgba(140, 80, 220, 0.3);
 }
 
+/* ── Nidification ── */
+#nidPanel .nid-planet-btn {
+    font-family: 'Exo 2', sans-serif; font-size: 9px;
+    padding: 3px 8px; border-radius: 4px; cursor: pointer;
+    border: 1px solid rgba(34,197,94,0.4); color: #4ADE80;
+    background: rgba(34,197,94,0.15); transition: all 0.2s;
+}
+#nidPanel .nid-planet-btn:hover {
+    background: rgba(34,197,94,0.3); border-color: #4ADE80;
+}
+.mp-mother-badge {
+    font-family: 'Orbitron', sans-serif; font-size: 7px;
+    color: #FBBF24; background: rgba(234,179,8,0.2);
+    border: 1px solid rgba(234,179,8,0.4); border-radius: 3px;
+    padding: 1px 4px; cursor: pointer; transition: all 0.2s;
+    letter-spacing: 0.5px;
+}
+.mp-mother-badge:hover {
+    background: rgba(234,179,8,0.4); border-color: #FBBF24;
+}
+
 /* ── Lobby & Room ── */
 .room-slot {
     display: flex; align-items: center; gap: 10px;
@@ -1223,6 +1244,7 @@ canvas#gameCanvas.grabbing {
 <div id="lobbyScreen" class="screen hidden">
     <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:20px;">MULTIJOUEUR</h2>
     <div id="lobbyBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px; max-width:520px; margin:0 auto; max-height:60vh; overflow-y:auto;">
+        <button class="btn" id="btnQuickMatch" style="width:100%; margin-bottom:14px; font-size:15px; padding:12px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.6); color:#4ADE80; letter-spacing:3px;">▶ REJOINDRE UNE PARTIE</button>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <span style="color:#94A3B8; font-size:13px;">Parties ouvertes</span>
             <button class="btn" id="btnCreateRoom" style="font-size:12px; padding:8px 16px; background:rgba(34,197,94,0.2); border-color:rgba(34,197,94,0.5); color:#4ADE80;">+ CRÉER</button>
@@ -1367,6 +1389,21 @@ canvas#gameCanvas.grabbing {
             <button id="evoDensity">💎 Density <div class="stat-current" id="evoDensityCur"></div></button>
         </div>
     </div>
+    <div id="nidPanel" style="display:none; position:absolute; top:48px; left:290px; font-family:'Exo 2',sans-serif; font-size:11px; background:rgba(10,8,30,0.75); border:1px solid rgba(34,197,94,0.3); border-radius:6px; padding:8px 12px; pointer-events:auto; min-width:220px;">
+        <div style="font-family:'Orbitron',sans-serif; font-size:9px; color:#4ADE80; letter-spacing:1px; text-align:center; margin-bottom:5px;">🏰 NIDIFICATION 🏰</div>
+        <div id="nidSystemName" style="font-size:10px; color:#E9D5FF; text-align:center; margin-bottom:5px;"></div>
+        <div class="evo-bar-bg"><div class="evo-bar" id="nidBar" style="width:0%; background:linear-gradient(90deg,#15803d,#4ADE80);"></div></div>
+        <div id="nidInfo" style="font-size:9px; color:rgba(200,170,255,0.5); text-align:center; margin:4px 0;">0 / 5000 spores</div>
+        <div class="evo-sacrifice">
+            <label>Sacrifice</label>
+            <input type="range" id="nidSacrifice" min="0" max="50" value="0" step="5">
+            <span class="sac-val" id="nidSacVal">0%</span>
+        </div>
+        <div id="nidChoose" style="display:none; text-align:center; margin-top:6px; padding-top:6px; border-top:1px solid rgba(34,197,94,0.2);">
+            <div style="font-size:9px; color:#E9D5FF; margin-bottom:5px;">👑 CHOISIR LA PLANÈTE MÈRE 👑</div>
+            <div id="nidPlanetList" style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center;"></div>
+        </div>
+    </div>
     <div id="gameTimer">00:00</div>
     <div id="scoreBoard"></div>
 </div>
@@ -1443,7 +1480,16 @@ canvas#gameCanvas.grabbing {
    ══════════════════════════════════════════════════════════════════════
    DEV LOG
    ──────────────────────────────────────────────────────────────────────
-   v2.4.6 | 2026-02-27 | Multijoueur — Lobby & Rooms
+   v2.4.7 | 2026-02-27 | Nidification de système solaire
+     - Système complet conquis → panneau Nidification avec jauge sacrifice (5000 spores)
+     - Choix de la planète mère → couronne visuelle (emoji 👑)
+     - Planète mère + ses lunes invincibles aux attaques
+     - Bouton NIDIFIER dans panneau Mes Astres : aspire tous les spores du système
+     - Planète mère positionnée en premier dans la ligne du système
+     - Perte d'une planète du système → nidification annulée
+     - Événements journal : planète mère choisie, nidification effectuée, nidification perdue
+     - Feedback visuel des boutons Off/Nid/Biome (vert/bleu/violet)
+   v2.4.6 | 2026-02-27 | Multijoueur complet
      - Bouton MULTIJOUEUR sur l'écran titre
      - Écran lobby : liste des parties ouvertes en temps réel
      - Écran salle d'attente : slots joueurs, statut prêt, code room
@@ -1451,6 +1497,12 @@ canvas#gameCanvas.grabbing {
      - Supabase Realtime : sync automatique des joueurs dans la room
      - Bouton PRÊT et LANCER (hôte uniquement, quand tous prêts)
      - Tables game_rooms et game_room_players avec RLS
+     - Univers déterministe : seed partagé, PRNG mulberry32 sur toute la génération
+     - Sync actions en jeu via Supabase Broadcast (jets, spawn, multiplicité)
+     - Countdown 10s pour le spawn en multi, placement auto si pas choisi
+     - Joueurs identifiés par slot, contrôle local via localSlot()
+     - Pause désactivée en multijoueur
+     - Cleanup channels au retour menu
 
    v2.4.5 | 2026-02-27 | Panneaux UI — Scale, Snap & Reset
      - Zoom UI (slider taille) affecte désormais TOUS les panneaux (eventLog, codex, sporeCounter, scoreBoard)
@@ -1760,6 +1812,8 @@ canvas#gameCanvas.grabbing {
 const gameState = {
     // ── Machine à états ──
     phase: 'title',  // 'title' | 'config' | 'spawn' | 'game' | 'paused' | 'end'
+    isMulti: false,
+    multiSeed: null,
 
     // ── Canvas & rendu ──
     canvas: null,
@@ -2686,6 +2740,10 @@ function createSunTexture(sun) {
     sun._texture = c;
 }
 
+// PRNG global pour génération déterministe
+let _worldRng = null;
+function worldRandom() { return _worldRng ? _worldRng() : Math.random(); }
+
 // PRNG déterministe (mulberry32)
 function mulberry32(a) {
     return function() {
@@ -2704,9 +2762,9 @@ function generateName() {
     const prefixes = ['Zan','Kry','Vel','Xor','Neb','Thal','Aur','Pyx','Cel','Dra','Ith','Vor','Syn','Pal','Eri','Omi','Zet','Sig','Cor','Lyr'];
     const mids = ['a','o','u','i','e','an','on','ar','el','is','ax','um','al','en','os','ir'];
     const suffixes = ['th','ra','nis','xis','ton','ria','mus','pha','dis','lux','vyn','don','zar','mir','bus','tis'];
-    return prefixes[Math.floor(Math.random()*prefixes.length)]
-        + mids[Math.floor(Math.random()*mids.length)]
-        + suffixes[Math.floor(Math.random()*suffixes.length)];
+    return prefixes[Math.floor(worldRandom()*prefixes.length)]
+        + mids[Math.floor(worldRandom()*mids.length)]
+        + suffixes[Math.floor(worldRandom()*suffixes.length)];
 }
 
 
@@ -2715,6 +2773,9 @@ function generateName() {
 // ─────────────────────────────────────────────
 function generateUniverse() {
     const cfg = gameState.config;
+    const seed = gameState.multiSeed || Math.floor(Math.random() * 2147483647);
+    gameState.multiSeed = seed;
+    _worldRng = mulberry32(seed);
     const sunCount = cfg.sunCount;
 
     // ── Trou noir central ──
@@ -2735,19 +2796,19 @@ function generateUniverse() {
     const orbitSpacing = 750;
 
     for (let s = 0; s < sunCount; s++) {
-        const angle = Math.random() * Math.PI * 2;
-        const orbitR = baseOrbitRadius + s * orbitSpacing + (Math.random() - 0.5) * 200;
-        const speed = (0.02 + Math.random() * 0.015) / (1 + s * 0.15);
+        const angle = worldRandom() * Math.PI * 2;
+        const orbitR = baseOrbitRadius + s * orbitSpacing + (worldRandom() - 0.5) * 200;
+        const speed = (0.02 + worldRandom() * 0.015) / (1 + s * 0.15);
 
         const sun = {
             type: 'sun',
             name: generateName(),
-            radius: 25 + Math.random() * 20,
+            radius: 25 + worldRandom() * 20,
             orbitRadius: orbitR,
             orbitSpeed: speed,
             angle: angle,
             x: 0, y: 0,
-            color: ['#FFE44D','#FFB830','#FF8C42','#FF6B6B','#7CB9FF'][Math.floor(Math.random()*5)],
+            color: ['#FFE44D','#FFB830','#FF8C42','#FF6B6B','#7CB9FF'][Math.floor(worldRandom()*5)],
             planets: []
         };
 
@@ -2756,22 +2817,22 @@ function generateUniverse() {
         sun.y = Math.sin(sun.angle) * sun.orbitRadius;
 
         // ── Planètes pour ce soleil ──
-        const planetCount = 2 + Math.floor(Math.random() * 9); // 2-10
+        const planetCount = 2 + Math.floor(worldRandom() * 9); // 2-10
         const pBaseOrbit = sun.radius * 2.5 + 30;
-        const pSpacing = 35 + Math.random() * 25;
+        const pSpacing = 35 + worldRandom() * 25;
 
         for (let p = 0; p < planetCount; p++) {
-            const pOrbitR = pBaseOrbit + p * pSpacing + Math.random() * 20;
-            const pSpeed = (0.08 + Math.random() * 0.06) / (1 + p * 0.2);
-            const pAngle = Math.random() * Math.PI * 2;
-            const pRadius = 5 + Math.random() * 12;
+            const pOrbitR = pBaseOrbit + p * pSpacing + worldRandom() * 20;
+            const pSpeed = (0.08 + worldRandom() * 0.06) / (1 + p * 0.2);
+            const pAngle = worldRandom() * Math.PI * 2;
+            const pRadius = 5 + worldRandom() * 12;
 
             const planet = {
                 type: 'planet',
                 name: generateName(),
                 radius: pRadius,
-                flore: Math.floor(Math.random() * 101),
-                faune: Math.floor(Math.random() * 101),
+                flore: Math.floor(worldRandom() * 101),
+                faune: Math.floor(worldRandom() * 101),
                 _baseFaune: 0,
                 symbiosis: 0,
                 symOwnerTime: 0,
@@ -2795,20 +2856,20 @@ function generateUniverse() {
             planet.y = sun.y + Math.sin(planet.angle) * planet.orbitRadius;
 
             // ── Lunes (0-3, pas pour toutes) ──
-            const hasMoons = Math.random() > 0.4;
+            const hasMoons = worldRandom() > 0.4;
             if (hasMoons) {
-                const moonCount = 1 + Math.floor(Math.random() * 3);
+                const moonCount = 1 + Math.floor(worldRandom() * 3);
                 for (let m = 0; m < moonCount; m++) {
-                    const mOrbitR = planet.radius * 2 + 8 + m * 12 + Math.random() * 5;
-                    const mSpeed = 0.15 + Math.random() * 0.2;
-                    const mRadius = 2 + Math.random() * 4;
+                    const mOrbitR = planet.radius * 2 + 8 + m * 12 + worldRandom() * 5;
+                    const mSpeed = 0.15 + worldRandom() * 0.2;
+                    const mRadius = 2 + worldRandom() * 4;
 
                     const moon = {
                         type: 'moon',
                         name: generateName(),
                         radius: mRadius,
-                        flore: Math.floor(Math.random() * 51),
-                        faune: Math.floor(Math.random() * 61),
+                        flore: Math.floor(worldRandom() * 51),
+                        faune: Math.floor(worldRandom() * 61),
                         symbiosis: 0,
                         symOwnerTime: 0,
                         buildMode: 'off',
@@ -2817,7 +2878,7 @@ function generateUniverse() {
                         biomes: 0,
                         orbitRadius: mOrbitR,
                         orbitSpeed: mSpeed,
-                        angle: Math.random() * Math.PI * 2,
+                        angle: worldRandom() * Math.PI * 2,
                         parent: planet,
                         x: 0, y: 0,
                         owner: null,
@@ -2846,16 +2907,16 @@ function generateUniverse() {
 
     const clTypes = ['red', 'green', 'dark'];
     for (let c = 0; c < cleanerCount; c++) {
-        const angle = (c / cleanerCount) * Math.PI * 2 + Math.random() * 0.5;
-        const dist = 400 + Math.random() * 2000;
+        const angle = (c / cleanerCount) * Math.PI * 2 + worldRandom() * 0.5;
+        const dist = 400 + worldRandom() * 2000;
         gameState.cleaners.push({
             x: Math.cos(angle) * dist,
             y: Math.sin(angle) * dist,
-            vx: (Math.random() - 0.5) * 15,
-            vy: (Math.random() - 0.5) * 15,
+            vx: (worldRandom() - 0.5) * 15,
+            vy: (worldRandom() - 0.5) * 15,
             angle: angle,
             turnTimer: 0,
-            turnInterval: 4 + Math.random() * 6,
+            turnInterval: 4 + worldRandom() * 6,
             detectionRange: 200,
             fireRate: 1.5,
             fireTimer: 0,
@@ -2870,20 +2931,20 @@ function generateUniverse() {
         const beltTypes = ['dark', 'red', 'green'];
         for (const sun of gameState.suns) {
             const lastPlanet = sun.planets[sun.planets.length - 1];
-            const beltRadius = lastPlanet ? lastPlanet.orbitRadius + 150 + Math.random() * 80 : sun.radius * 6 + 120;
-            const asteroidCount = 4 + Math.floor(Math.random() * 7);
+            const beltRadius = lastPlanet ? lastPlanet.orbitRadius + 150 + worldRandom() * 80 : sun.radius * 6 + 120;
+            const asteroidCount = 4 + Math.floor(worldRandom() * 7);
             const rocks = [];
             for (let a = 0; a < asteroidCount; a++) {
-                const rockType = beltTypes[Math.floor(Math.random() * 3)];
-                const aAngle = (a / asteroidCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-                const rOff = (Math.random() - 0.5) * 25;
-                const rockCount = 3 + Math.floor(Math.random() * 4);
+                const rockType = beltTypes[Math.floor(worldRandom() * 3)];
+                const aAngle = (a / asteroidCount) * Math.PI * 2 + (worldRandom() - 0.5) * 0.4;
+                const rOff = (worldRandom() - 0.5) * 25;
+                const rockCount = 3 + Math.floor(worldRandom() * 4);
                 const subRocks = [];
                 for (let r = 0; r < rockCount; r++) {
                     // Base gris/marron/noir
-                    const baseR = 50 + Math.floor(Math.random() * 50);
-                    const baseG = 40 + Math.floor(Math.random() * 40);
-                    const baseB = 35 + Math.floor(Math.random() * 35);
+                    const baseR = 50 + Math.floor(worldRandom() * 50);
+                    const baseG = 40 + Math.floor(worldRandom() * 40);
+                    const baseB = 35 + Math.floor(worldRandom() * 35);
                     // Touche de couleur selon le type (1 rocher sur 3)
                     let cr = baseR, cg = baseG, cb = baseB;
                     if (r % 3 === 0) {
@@ -2892,9 +2953,9 @@ function generateUniverse() {
                         else { cr -= 10; cg += 50; cb -= 10; }
                     }
                     subRocks.push({
-                        offX: (Math.random() - 0.5) * 16,
-                        offY: (Math.random() - 0.5) * 16,
-                        size: 2 + Math.random() * 4,
+                        offX: (worldRandom() - 0.5) * 16,
+                        offY: (worldRandom() - 0.5) * 16,
+                        size: 2 + worldRandom() * 4,
                         color: `rgb(${Math.max(0,cr)},${Math.max(0,cg)},${Math.max(0,cb)})`
                     });
                 }
@@ -3125,6 +3186,11 @@ function setPhase(phase) {
         case 'title':
             document.getElementById('titleScreen').classList.remove('hidden');
             gameState.running = false;
+            gameState.isMulti = false;
+            gameState.multiSeed = null;
+            if (gameChannel) { _supa.removeChannel(gameChannel); gameChannel = null; }
+            if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
+            currentRoom = null; isHost = false;
             stopAmbiance();
             animateTitleScreen();
             break;
@@ -3163,6 +3229,7 @@ function setPhase(phase) {
 }
 
 function togglePause() {
+    if (gameState.isMulti) return;
     if (gameState.phase === 'game') {
         gameState.phase = 'paused';
         setPhase('paused');
@@ -3280,18 +3347,94 @@ function finishStartGame() {
 
     // Phase spawn
     setPhase('spawn');
+    if (gameState.isMulti) startSpawnCountdown();
+}
+
+let spawnCountdownInterval = null;
+
+function startSpawnCountdown() {
+    let remaining = 10;
+    const banner = document.getElementById('spawnBanner');
+    if (banner) banner.textContent = 'CHOISISSEZ VOTRE PLANÈTE — ' + remaining + 's';
+    spawnCountdownInterval = setInterval(() => {
+        remaining--;
+        if (banner) banner.textContent = 'CHOISISSEZ VOTRE PLANÈTE — ' + remaining + 's';
+        if (remaining <= 0) {
+            clearInterval(spawnCountdownInterval);
+            spawnCountdownInterval = null;
+            finishMultiSpawn();
+        }
+    }, 1000);
+}
+
+function finishMultiSpawn() {
+    const slot = localSlot();
+    const human = gameState.players[slot];
+    // Si le joueur n'a pas choisi, placer au hasard
+    if (!human.spawnPlanet) {
+        const free = gameState.planets.filter(p => p.owner === null);
+        if (free.length > 0) {
+            const pick = free[Math.floor(Math.random() * free.length)];
+            pick.owner = slot;
+            pick.spores = pick.maxSpores * 0.5;
+            human.bodies = [pick];
+            human.spawnPlanet = pick;
+            sendAction('spawn', { bodyName: pick.name });
+        }
+    }
+    // Placer les joueurs distants non spawn au hasard aussi
+    for (const player of gameState.players) {
+        if (!player.spawnPlanet) {
+            const free = gameState.planets.filter(p => p.owner === null);
+            if (free.length > 0) {
+                const pick = free[Math.floor(Math.random() * free.length)];
+                pick.owner = player.id;
+                pick.spores = pick.maxSpores * 0.5;
+                player.bodies = [pick];
+                player.spawnPlanet = pick;
+            }
+        }
+    }
+    setPhase('game');
 }
 
 function createPlayers() {
     gameState.players = [];
     const colors = [...gameState.teamColors];
 
-    // Joueur humain
+    if (gameState.isMulti && currentRoom) {
+        // Mode multi : créer les joueurs depuis les slots de la room
+        const roomPlayers = gameState._roomPlayers || [];
+        for (let i = 0; i < roomPlayers.length; i++) {
+            const rp = roomPlayers[i];
+            const isMe = (rp.slot_number === mySlot);
+            gameState.players.push({
+                id: rp.slot_number,
+                name: rp.pseudo,
+                color: rp.color,
+                isHuman: true,
+                isLocal: isMe,
+                stats: isMe ? { ...gameState.playerStats } : { growth: 3, velocity: 4, density: 3 },
+                bodies: [],
+                totalSpores: 0,
+                alive: true,
+                spawnPlanet: null,
+                multiTier: 0,
+                multiProgress: 0,
+                multiSacrifice: 0,
+                nidification: {}
+            });
+        }
+        return;
+    }
+
+    // Mode solo
     gameState.players.push({
         id: 0,
-        name: 'Joueur',
+        name: (currentProfile && currentProfile.pseudo) ? currentProfile.pseudo : 'Joueur',
         color: gameState.playerColor,
         isHuman: true,
+        isLocal: true,
         stats: { ...gameState.playerStats },
         bodies: [],
         totalSpores: 0,
@@ -3299,14 +3442,13 @@ function createPlayers() {
         spawnPlanet: null,
         multiTier: 0,
         multiProgress: 0,
-        multiSacrifice: 0
+        multiSacrifice: 0,
+        nidification: {}
     });
 
-    // Retirer la couleur du joueur humain
     const usedIdx = colors.indexOf(gameState.playerColor);
     if (usedIdx >= 0) colors.splice(usedIdx, 1);
 
-    // IAs
     for (let i = 1; i < gameState.config.playerCount; i++) {
         const aiColor = colors[i % colors.length];
         // Stats aléatoires pour les IAs (total = 10)
@@ -3327,7 +3469,8 @@ function createPlayers() {
             aiCooldown: gameState.config.difficulty === 'easy' ? 3 : gameState.config.difficulty === 'normal' ? 1.5 : 0.5,
             multiTier: 0,
             multiProgress: 0,
-            multiSacrifice: 0
+            multiSacrifice: 0,
+            nidification: {}
         });
     }
 }// ─────────────────────────────────────────────
@@ -3627,14 +3770,20 @@ function handleSpawnClick(worldX, worldY) {
 
     if (!closest) return;
 
-    // Assigner au joueur humain
-    const human = gameState.players[0];
-    closest.owner = 0;
+    // Assigner au joueur local
+    const slot = localSlot();
+    const human = gameState.players[slot];
+    if (human.spawnPlanet) return; // Déjà choisi
+    closest.owner = slot;
     closest.spores = closest.maxSpores * 0.5;
     human.bodies = [closest];
     human.spawnPlanet = closest;
+    if (gameState.isMulti) {
+        sendAction('spawn', { bodyName: closest.name });
+        return; // En multi, on attend que tous aient spawn
+    }
 
-    // Spawn automatique des IAs
+    // Spawn automatique des IAs (solo uniquement)
     autoSpawnAIs();
 
     // Passer en jeu
@@ -3987,17 +4136,22 @@ function updateSporeGeneration(dt) {
                 body.spores -= (body.spores - reducedMax) * 0.5 * dt;
             }
         } else {
-            // Multiplicité : sacrifice d'une partie de la production
-            const sacPct = (player.multiSacrifice || 0) / 100;
-            const sacAmount = rate * sacPct * dt;
-            const prodAmount = rate * (1 - sacPct) * dt;
+            // Répartir la production entre : jeu, multiplicité, nidification
+            const multiPct = (player.multiSacrifice || 0) / 100;
+            const nidRawPct = (player._nidSacrifice || 0) / 100;
+            // Plafonner le total à 80% max
+            const totalSac = Math.min(multiPct + nidRawPct, 0.8);
+            const multiSac = totalSac > 0 ? multiPct / (multiPct + nidRawPct) * totalSac : 0;
+            const nidSac = totalSac > 0 ? nidRawPct / (multiPct + nidRawPct) * totalSac : 0;
+            const prodPct = 1 - totalSac;
 
-            body.spores += prodAmount;
-            gameState.gameStats.sporesProduced += prodAmount;
+            const produced = rate * prodPct * dt;
+            body.spores += produced;
+            gameState.gameStats.sporesProduced += produced;
 
-            // Accumuler les spores sacrifiées dans la jauge multiplicité
-            if (sacPct > 0 && player.multiTier < 10) {
-                player.multiProgress += sacAmount;
+            // Accumuler multiplicité
+            if (multiSac > 0 && player.multiTier < 10) {
+                player.multiProgress += rate * multiSac * dt;
                 const tierCost = getMultiTierCost(player.multiTier);
                 if (player.multiProgress >= tierCost) {
                     player.multiProgress -= tierCost;
@@ -4005,6 +4159,17 @@ function updateSporeGeneration(dt) {
                         player._multiPending = true;
                     } else {
                         aiChooseMultiStat(player);
+                    }
+                }
+            }
+
+            // Accumuler nidification
+            if (nidSac > 0 && body.parent) {
+                const sunRef = body.type === 'planet' ? body.parent : (body.parent.parent || null);
+                if (sunRef && player.nidification[sunRef.name]) {
+                    const nid = player.nidification[sunRef.name];
+                    if (!nid.motherPlanet && nid.progress < 5000) {
+                        nid.progress += rate * nidSac * dt;
                     }
                 }
             }
@@ -4306,6 +4471,9 @@ function checkJetCollision(jet) {
 }
 
 function applyConquest(body, jet) {
+    // Invincibilité planète mère
+    if (body.invincible) return;
+
     // Density bonus : +5% puissance d'impact par point
     const densityBonus = 1 + (gameState.players[jet.owner]?.stats.density || 0) * 0.05;
     let attacking = jet.spores * densityBonus;
@@ -4354,6 +4522,27 @@ function applyConquest(body, jet) {
         body.buildProgress = 0;
         body.nids = 0;
         body.biomes = 0;
+
+        // Annuler nidification si une planète du système est perdue
+        if (oldOwner !== null && gameState.players[oldOwner]) {
+            const sunRef = body.type === 'planet' ? body.parent : (body.parent?.parent || null);
+            if (sunRef) {
+                const nid = gameState.players[oldOwner].nidification[sunRef.name];
+                if (nid) {
+                    // Si la planète mère elle-même est perdue, reset total
+                    if (nid.motherPlanet) {
+                        const mother = gameState.allBodies.find(b => b.name === nid.motherPlanet);
+                        if (mother) { mother.isMotherPlanet = false; mother.invincible = false; }
+                        // Retirer invincibilité des lunes
+                        for (const p of sunRef.planets) {
+                            for (const m of p.moons) { m.invincible = false; }
+                        }
+                    }
+                    delete gameState.players[oldOwner].nidification[sunRef.name];
+                    if (oldOwner === localSlot()) addEvent('mine', '💔', 'Nidification perdue : système ' + sunRef.name, body, gameState.players[oldOwner]?.color);
+                }
+            }
+        }
 
         if (gameState.players[jet.owner]) {
             gameState.players[jet.owner].bodies.push(body);
@@ -4615,7 +4804,7 @@ function setupInput() {
             // Chercher un astre possédé par le joueur humain
             const bodies = gameState.allBodies;
             for (const body of bodies) {
-                if (body.owner !== 0) continue;
+                if (body.owner !== localSlot()) continue;
                 const dx = body.x - wx;
                 const dy = body.y - wy;
                 if (Math.sqrt(dx*dx + dy*dy) < body.radius + 8) {
@@ -4651,6 +4840,7 @@ function setupInput() {
             const len = Math.sqrt(dx*dx + dy*dy);
             if (len > 10) {
                 launchJet(src, dx/len, dy/len);
+                if (gameState.isMulti) sendAction('jet', { srcName: src.name, dirX: dx/len, dirY: dy/len });
                 justLaunched = true;
                 
             }
@@ -4826,6 +5016,7 @@ function update(dt) {
         updateMyPlanets();
         updateHUD();
         updateMultiPanel();
+        updateNidPanel();
         checkVictoryAndElimination();
     }
     gameState.gameStats.timeElapsed += dt;
@@ -5322,6 +5513,15 @@ function drawPlanets(ctx) {
             ctx.arc(p.x, p.y, p.radius + 3, 0, Math.PI * 2);
             ctx.stroke();
             ctx.globalAlpha = 1;
+
+            // Couronne planète mère
+            if (p.isMotherPlanet) {
+                ctx.save();
+                ctx.font = (p.radius * 1.2) + 'px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('👑', p.x, p.y - p.radius - 5);
+                ctx.restore();
+            }
         }
 
         // Lunes
@@ -6173,6 +6373,109 @@ function hideEndScreen() {
 // ─────────────────────────────────────────────
 let followingBody = null;
 
+function selectMotherPlanet(sun, planet) {
+    const slot = localSlot();
+    const human = gameState.players[slot];
+    if (!human) return;
+
+    const nid = human.nidification[sun.name];
+    if (!nid || nid.progress < 5000) return;
+
+    // Marquer la planète mère
+    nid.motherPlanet = planet.name;
+    planet.isMotherPlanet = true;
+
+    // Rendre invincible : planète mère + ses lunes
+    planet.invincible = true;
+    for (const moon of planet.moons) {
+        if (moon.owner === slot) moon.invincible = true;
+    }
+
+    // Aspirer tous les spores du système vers la planète mère
+    performNidification(sun, planet, slot);
+
+    // Événement journal
+    addEvent('build', '👑', 'Planète mère : ' + planet.name + ' (système ' + sun.name + ')', planet, human.color);
+
+    // Cacher le choix
+    document.getElementById('nidChoose').style.display = 'none';
+    document.getElementById('nidPlanetList').dataset.sunName = '';
+}
+
+function performNidification(sun, motherPlanet, ownerSlot) {
+    let totalSpores = 0;
+    for (const planet of sun.planets) {
+        if (planet.owner !== ownerSlot) continue;
+        if (planet !== motherPlanet) {
+            totalSpores += planet.spores;
+            planet.spores = 0;
+        }
+        for (const moon of planet.moons) {
+            if (moon.owner !== ownerSlot) continue;
+            totalSpores += moon.spores;
+            moon.spores = 0;
+        }
+    }
+    motherPlanet.spores += totalSpores;
+
+    addEvent('build', '🏰', 'Nidification ' + sun.name + ' : ' + Math.floor(totalSpores) + ' spores rassemblées', motherPlanet, gameState.players[ownerSlot]?.color);
+}
+
+function updateNidPanel() {
+    const panel = document.getElementById('nidPanel');
+    const slot = localSlot();
+    const human = gameState.players[slot];
+    if (!human || !human.alive) { panel.style.display = 'none'; return; }
+
+    // Chercher le premier système complet sans planète mère
+    let targetSun = null;
+    for (const sun of gameState.suns) {
+        if (!isSystemComplete(sun, slot)) continue;
+        const nid = human.nidification[sun.name];
+        if (nid && nid.motherPlanet) continue;
+        targetSun = sun;
+        break;
+    }
+
+    if (!targetSun) { panel.style.display = 'none'; return; }
+
+    panel.style.display = 'block';
+    document.getElementById('nidSystemName').textContent = '☀ ' + targetSun.name;
+
+    // Init nid data si besoin
+    if (!human.nidification[targetSun.name]) {
+        human.nidification[targetSun.name] = { progress: 0, sacrifice: 0, sunName: targetSun.name };
+    }
+    const nid = human.nidification[targetSun.name];
+    const cost = 5000;
+
+    // Barre de progression
+    const pct = Math.min(100, (nid.progress / cost) * 100);
+    document.getElementById('nidBar').style.width = pct + '%';
+    document.getElementById('nidInfo').textContent = Math.floor(nid.progress) + ' / ' + cost + ' spores';
+
+    // Choix planète mère quand jauge pleine
+    const chooseEl = document.getElementById('nidChoose');
+    if (nid.progress >= cost) {
+        chooseEl.style.display = 'block';
+        const listEl = document.getElementById('nidPlanetList');
+        const planets = targetSun.planets.filter(p => p.owner === slot);
+        if (listEl.dataset.sunName !== targetSun.name) {
+            listEl.dataset.sunName = targetSun.name;
+            listEl.innerHTML = '';
+            for (const p of planets) {
+                const btn = document.createElement('span');
+                btn.className = 'nid-planet-btn';
+                btn.textContent = p.name;
+                btn.addEventListener('click', () => selectMotherPlanet(targetSun, p));
+                listEl.appendChild(btn);
+            }
+        }
+    } else {
+        chooseEl.style.display = 'none';
+    }
+}
+
 function isSystemComplete(sun, ownerID) {
     for (const planet of sun.planets) {
         if (planet.owner !== ownerID) return false;
@@ -6193,7 +6496,8 @@ function updateMyPlanets() {
     panel.style.display = 'block';
 
     // Récupérer les astres possédés
-    const myBodies = gameState.allBodies.filter(b => b.owner === 0);
+    const slot = localSlot();
+    const myBodies = gameState.allBodies.filter(b => b.owner === slot);
 
     // Grouper par système solaire
     const groups = {};
@@ -6225,7 +6529,7 @@ function updateMyPlanets() {
             const sunLabel = document.createElement('div');
             sunLabel.className = 'mp-sun-label';
             const sunRef = groupSuns[sunName];
-            const complete = sunRef && isSystemComplete(sunRef, 0);
+            const complete = sunRef && isSystemComplete(sunRef, slot);
             sunLabel.title = complete ? 'Système complet ! Bonus +3% de production actif' : 'Colonisez toutes les planètes et lunes de ce système pour un bonus +3% de production';
             sunLabel.innerHTML = '\u2600 ' + sunName + (complete ? '<span class="sys-complete" title="Système complet : +3% de vitesse de production de spores sur toutes les planètes et lunes"> ★ +3%</span>' : '');
             groupEl.appendChild(sunLabel);
@@ -6236,12 +6540,21 @@ function updateMyPlanets() {
             ['off','nid','biome'].forEach(mode => {
                 const btn = document.createElement('span');
                 btn.textContent = mode === 'off' ? 'Off' : mode === 'nid' ? 'Nid' : 'Biome';
-                btn.style.cssText = 'font-size:8px; padding:1px 5px; border-radius:3px; cursor:pointer; border:1px solid rgba(100,70,180,0.3); color:rgba(200,200,220,0.6); background:rgba(100,70,180,0.1); font-family:Exo 2,sans-serif;';
+                btn.style.cssText = 'font-size:8px; padding:1px 5px; border-radius:3px; cursor:pointer; border:1px solid rgba(100,70,180,0.3); color:rgba(200,200,220,0.6); background:rgba(100,70,180,0.1); font-family:Exo 2,sans-serif; transition:all 0.2s;';
+                btn.dataset.mode = mode;
                 btn.addEventListener('click', () => {
                     for (const b of bodies) {
                         b.buildMode = mode;
                         if (mode === 'off') b.buildProgress = 0;
                     }
+                    buildRow.querySelectorAll('span').forEach(s => {
+                        s.style.background = 'rgba(100,70,180,0.1)';
+                        s.style.color = 'rgba(200,200,220,0.6)';
+                        s.style.borderColor = 'rgba(100,70,180,0.3)';
+                    });
+                    if (mode === 'nid') { btn.style.background = 'rgba(34,197,94,0.3)'; btn.style.color = '#4ADE80'; btn.style.borderColor = 'rgba(34,197,94,0.6)'; }
+                    else if (mode === 'biome') { btn.style.background = 'rgba(59,130,246,0.3)'; btn.style.color = '#60A5FA'; btn.style.borderColor = 'rgba(59,130,246,0.6)'; }
+                    else { btn.style.background = 'rgba(100,70,180,0.25)'; btn.style.color = '#C8A0FF'; btn.style.borderColor = 'rgba(100,70,180,0.5)'; }
                 });
                 buildRow.appendChild(btn);
             });
@@ -6250,15 +6563,36 @@ function updateMyPlanets() {
             const rowEl = document.createElement('div');
             rowEl.className = 'mp-row';
 
+            // Trier : planète mère en premier
+            const nidData = human.nidification[sunName];
+            bodies.sort((a, b) => {
+                if (a.isMotherPlanet) return -1;
+                if (b.isMotherPlanet) return 1;
+                return 0;
+            });
+
             for (const body of bodies) {
                 const item = document.createElement('div');
                 item.className = 'mp-item';
                 item.dataset.bodyName = body.name;
 
+                // Bouton Nidification si planète mère
+                if (body.isMotherPlanet && nidData && nidData.motherPlanet === body.name) {
+                    const nidBtn = document.createElement('div');
+                    nidBtn.className = 'mp-mother-badge';
+                    nidBtn.textContent = '👑 NIDIFIER';
+                    nidBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const sunRef = groupSuns[sunName];
+                        if (sunRef) performNidification(sunRef, body, slot);
+                    });
+                    item.appendChild(nidBtn);
+                }
+
                 // Nom au-dessus
                 const nameEl = document.createElement('div');
                 nameEl.className = 'mp-name';
-                nameEl.textContent = body.name;
+                nameEl.textContent = (body.isMotherPlanet ? '👑 ' : '') + body.name;
                 item.appendChild(nameEl);
 
                 // Badge type
@@ -7448,17 +7782,24 @@ document.getElementById('evoSacrifice').addEventListener('input', (e) => {
     const human = gameState.players[0];
     if (human) human.multiSacrifice = parseInt(e.target.value);
 });
+document.getElementById('nidSacrifice').addEventListener('input', (e) => {
+    const human = gameState.players[localSlot()];
+    if (human) {
+        human._nidSacrifice = parseInt(e.target.value);
+        document.getElementById('nidSacVal').textContent = e.target.value + '%';
+    }
+});
 document.getElementById('evoGrowth').addEventListener('click', () => {
     const human = gameState.players[0];
-    if (human && human._multiPending) applyMultiChoice(human, 'growth');
+    if (human && human._multiPending) { applyMultiChoice(human, 'growth'); if (gameState.isMulti) sendAction('multi', { stat: 'growth' }); }
 });
 document.getElementById('evoVelocity').addEventListener('click', () => {
     const human = gameState.players[0];
-    if (human && human._multiPending) applyMultiChoice(human, 'velocity');
+    if (human && human._multiPending) { applyMultiChoice(human, 'velocity'); if (gameState.isMulti) sendAction('multi', { stat: 'velocity' }); }
 });
 document.getElementById('evoDensity').addEventListener('click', () => {
     const human = gameState.players[0];
-    if (human && human._multiPending) applyMultiChoice(human, 'density');
+    if (human && human._multiPending) { applyMultiChoice(human, 'density'); if (gameState.isMulti) sendAction('multi', { stat: 'density' }); }
 });
 
 // ═══════════════════════════════════════════════
@@ -7477,13 +7818,10 @@ let isHost = false;
 let authHandled = false;
 
 async function handleSession(session) {
-    console.log('handleSession called, authHandled:', authHandled);
     if (authHandled) return;
     authHandled = true;
     currentUser = session.user;
-    console.log('handleSession user:', currentUser.id);
     const profile = await loadProfile(currentUser.id);
-    console.log('handleSession profile:', profile);
     if (profile) {
         currentProfile = profile;
         await loadPanelConfig();
@@ -7533,16 +7871,14 @@ function enterGame() {
 
 async function loadProfile(userId) {
     try {
-    console.log('loadProfile START', userId);
     const { data, error } = await _supa
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
-    console.log('loadProfile RESULT:', data, error);
     if (error || !data) return null;
     return data;
-    } catch(e) { console.error('loadProfile CRASH:', e); return null; }
+    } catch(e) { return null; }
 }
 
 document.getElementById('btnAuthLogin').addEventListener('click', async () => {
@@ -7624,17 +7960,74 @@ document.getElementById('btnAuthPseudo').addEventListener('click', async () => {
 
 async function startMultiGame() {
     if (!isHost || !currentRoom) return;
-    // Vérifier que tous sont prêts
-    const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', currentRoom.id);
+    const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', currentRoom.id).order('slot_number');
     if (!players || players.length < 2 || !players.every(p => p.ready)) return;
-    // Passer la room en "playing"
-    await _supa.from('game_rooms').update({ status: 'playing' }).eq('id', currentRoom.id);
+    // Mettre à jour settings avec le vrai nombre de joueurs
+    const settings = { ...currentRoom.settings, playerCount: players.length };
+    await _supa.from('game_rooms').update({ status: 'playing', settings }).eq('id', currentRoom.id);
 }
 
-function onMultiGameStart(room) {
+let gameChannel = null;
+let mySlot = -1;
+function localSlot() { return gameState.isMulti ? mySlot : 0; }
+
+function setupGameChannel(roomId) {
+    if (gameChannel) _supa.removeChannel(gameChannel);
+    gameChannel = _supa.channel('game-' + roomId);
+    gameChannel.on('broadcast', { event: 'action' }, ({ payload }) => {
+        if (payload.slot === mySlot) return;
+        handleRemoteAction(payload);
+    });
+    gameChannel.subscribe();
+}
+
+function sendAction(type, data) {
+    if (!gameChannel || !gameState.isMulti) return;
+    gameChannel.send({ type: 'broadcast', event: 'action', payload: { slot: mySlot, type, ...data } });
+}
+
+function handleRemoteAction(payload) {
+    const player = gameState.players[payload.slot];
+    if (!player) return;
+    switch (payload.type) {
+        case 'spawn':
+            const body = gameState.allBodies.find(b => b.name === payload.bodyName);
+            if (body) { player.spawnPlanet = body; body.owner = payload.slot; body.spores = body.maxSpores * 0.5; player.bodies = [body]; }
+            break;
+        case 'jet':
+            const src = gameState.allBodies.find(b => b.name === payload.srcName);
+            if (src) launchJet(src, payload.dirX, payload.dirY);
+            break;
+        case 'multi':
+            applyMultiChoice(player, payload.stat);
+            break;
+    }
+}
+
+async function onMultiGameStart(room) {
     currentRoom = room;
-    // Pour l'instant : placeholder — on connectera le vrai startGame à l'étape D
-    console.log('Partie multi lancée ! Seed:', room.seed);
+    gameState.isMulti = true;
+    gameState.multiSeed = room.seed;
+    // Appliquer les settings de la room
+    const s = room.settings || {};
+    gameState.config.sunCount = s.sunCount || 4;
+    gameState.config.playerCount = s.playerCount || 4;
+    gameState.config.difficulty = s.difficulty || 'normal';
+    gameState.config.useIA = s.useIA !== false;
+    gameState.config.cleanerCount = s.cleanerCount || 3;
+    gameState.config.useAsteroids = s.useAsteroids !== false;
+    // Synchroniser les sliders UI
+    document.getElementById('cfgSuns').value = gameState.config.sunCount;
+    document.getElementById('cfgPlayers').value = gameState.config.playerCount;
+    // Charger les joueurs de la room et mon slot
+    const { data: rPlayers } = await _supa.from('game_room_players').select('*').eq('room_id', room.id).order('slot_number');
+    gameState._roomPlayers = rPlayers || [];
+    const me = rPlayers.find(p => p.player_id === currentUser.id);
+    mySlot = me ? me.slot_number : 0;
+    // Canal broadcast
+    setupGameChannel(room.id);
+    // Lancer la partie
+    startGame();
 }
 
 async function toggleReady() {
@@ -7660,7 +8053,9 @@ async function leaveRoom() {
 async function enterRoom(roomId) {
     setPhase('room');
     document.getElementById('roomCode').textContent = 'CODE : ' + roomId.substring(0, 8).toUpperCase();
-    document.getElementById('btnRoomStart').style.display = isHost ? 'inline-block' : 'none';
+    const isAuto = room.settings?.mode === 'auto';
+    document.getElementById('btnRoomStart').style.display = (isHost && !isAuto) ? 'inline-block' : 'none';
+    document.getElementById('btnRoomReady').style.display = isAuto ? 'none' : 'inline-block';
     // Charger les joueurs
     await refreshRoomSlots(roomId);
     // Subscribe Realtime sur la table game_room_players
@@ -7696,6 +8091,14 @@ async function refreshRoomSlots(roomId) {
         const allReady = players && players.length > 0 && players.every(p => p.ready);
         document.getElementById('btnRoomStart').style.opacity = allReady ? '1' : '0.4';
     }
+    // Auto-lancement pour les rooms auto quand pleine et tous prêts
+    if (currentRoom && currentRoom.settings?.mode === 'auto') {
+        const max = currentRoom.max_players;
+        const allReady = players && players.length >= max && players.every(p => p.ready);
+        if (allReady && isHost) {
+            startMultiGame();
+        }
+    }
 }
 
 async function joinRoom(roomId) {
@@ -7709,11 +8112,12 @@ async function joinRoom(roomId) {
     let slot = -1;
     for (let i = 0; i < room.max_players; i++) { if (!taken.includes(i)) { slot = i; break; } }
     if (slot === -1) { alert('Partie pleine.'); loadRoomList(); return; }
+    const autoReady = (room.settings?.mode === 'auto');
     const { error } = await _supa.from('game_room_players').insert({
         room_id: roomId, player_id: currentUser.id,
         pseudo: currentProfile.pseudo,
         color: gameState.playerColor || '#C8A0FF',
-        slot_number: slot, ready: false
+        slot_number: slot, ready: autoReady
     });
     if (error) { console.warn('Erreur join:', error); return; }
     currentRoom = room;
@@ -7721,18 +8125,39 @@ async function joinRoom(roomId) {
     enterRoom(roomId);
 }
 
-async function createRoom() {
-    console.log('createRoom', currentUser?.id, currentProfile?.pseudo);
-    if (!currentUser || !currentProfile) { console.warn('createRoom: pas connecté'); return; }
-    const settings = { sunCount: 4, difficulty: 'normal', useIA: true, cleanerCount: 3, useAsteroids: true };
+async function quickMatch() {
+    if (!currentUser || !currentProfile) return;
+    // Chercher une room auto en attente avec de la place
+    const { data: rooms } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: true }).limit(20);
+    if (rooms) {
+        for (const r of rooms) {
+            if ((r.settings?.mode) !== 'auto') continue;
+            const count = r.game_room_players?.[0]?.count || 0;
+            if (count < r.max_players) {
+                await joinRoom(r.id);
+                return;
+            }
+        }
+    }
+    // Aucune room dispo → en créer une avec paramètres aléatoires
+    const suns = 2 + Math.floor(Math.random() * 5); // 2-6
+    const players = 2 + Math.floor(Math.random() * 3); // 2-4
+    const diffs = ['easy', 'normal', 'brutal'];
+    const diff = diffs[Math.floor(Math.random() * 3)];
+    const autoSettings = { sunCount: suns, difficulty: diff, useIA: true, cleanerCount: 3, useAsteroids: Math.random() > 0.3 };
+    await createRoom('auto', autoSettings, players);
+}
+
+async function createRoom(mode = 'custom', settings = null, maxPlayers = 4) {
+    if (!currentUser || !currentProfile) return;
+    if (!settings) settings = { sunCount: 4, difficulty: 'normal', useIA: true, cleanerCount: 3, useAsteroids: true };
     const { data, error } = await _supa.from('game_rooms').insert({
         host_id: currentUser.id,
         host_pseudo: currentProfile.pseudo,
-        settings: settings,
-        max_players: 4,
+        settings: { ...settings, mode },
+        max_players: maxPlayers,
         status: 'waiting'
     }).select().single();
-    console.log('insert room result:', data, error);
     if (error) { console.warn('Erreur création room:', error); return; }
     currentRoom = data;
     isHost = true;
@@ -7756,7 +8181,9 @@ async function loadRoomList() {
     }
     list.innerHTML = data.map(r => {
         const count = r.game_room_players?.[0]?.count || 0;
-        return `<div class="lobby-room-row" onclick="joinRoom('${r.id}')"><div><span style="color:#E0E7FF; font-size:14px;">${r.host_pseudo}</span><br><span style="color:#64748B; font-size:11px;">${r.settings.sunCount || 4} soleils · ${r.max_players} joueurs</span></div><div style="text-align:right;"><span style="color:#4ADE80; font-family:'Orbitron',monospace; font-size:13px;">${count}/${r.max_players}</span><br><span style="color:#64748B; font-size:10px;">EN ATTENTE</span></div></div>`;
+        const isAuto = r.settings?.mode === 'auto';
+        const tag = isAuto ? '<span style="color:#FBBF24; font-size:10px;">AUTO</span> ' : '';
+        return `<div class="lobby-room-row" onclick="joinRoom('${r.id}')"><div>${tag}<span style="color:#E0E7FF; font-size:14px;">${isAuto ? 'Partie rapide' : r.host_pseudo}</span><br><span style="color:#64748B; font-size:11px;">${r.settings.sunCount || 4} soleils · ${r.max_players} joueurs</span></div><div style="text-align:right;"><span style="color:#4ADE80; font-family:'Orbitron',monospace; font-size:13px;">${count}/${r.max_players}</span><br><span style="color:#64748B; font-size:10px;">EN ATTENTE</span></div></div>`;
     }).join('');
 }
 
@@ -7767,6 +8194,10 @@ document.getElementById('btnMulti').addEventListener('click', () => {
 document.getElementById('btnLobbyBack').addEventListener('click', () => {
     playClickSound();
     fadeTransition(() => setPhase('title'));
+});
+document.getElementById('btnQuickMatch').addEventListener('click', () => {
+    playClickSound();
+    quickMatch();
 });
 document.getElementById('btnCreateRoom').addEventListener('click', () => {
     playClickSound();
