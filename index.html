@@ -7532,14 +7532,17 @@ function enterGame() {
 }
 
 async function loadProfile(userId) {
+    try {
+    console.log('loadProfile START', userId);
     const { data, error } = await _supa
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
-    console.log('loadProfile:', data, error);
+    console.log('loadProfile RESULT:', data, error);
     if (error || !data) return null;
     return data;
+    } catch(e) { console.error('loadProfile CRASH:', e); return null; }
 }
 
 document.getElementById('btnAuthLogin').addEventListener('click', async () => {
