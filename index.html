@@ -156,6 +156,33 @@ canvas#gameCanvas.grabbing {
     box-shadow: 0 0 20px rgba(140, 80, 220, 0.3);
 }
 
+/* ── Lobby & Room ── */
+.room-slot {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 6px;
+    background: rgba(20,15,50,0.5); border: 1px solid rgba(100,70,180,0.2);
+}
+.room-slot .slot-color {
+    width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+}
+.room-slot .slot-name { flex: 1; color: #E0E7FF; font-size: 13px; }
+.room-slot .slot-ready {
+    font-family: 'Orbitron',monospace; font-size: 10px;
+    letter-spacing: 1px; padding: 2px 8px; border-radius: 3px;
+}
+.room-slot .slot-ready.yes { color: #4ADE80; background: rgba(34,197,94,0.15); }
+.room-slot .slot-ready.no { color: #64748B; background: rgba(100,116,139,0.1); }
+.room-slot.empty { border-style: dashed; opacity: 0.4; }
+.lobby-room-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; border-radius: 6px; margin-bottom: 6px;
+    background: rgba(20,15,50,0.5); border: 1px solid rgba(100,70,180,0.2);
+    cursor: pointer; transition: all 0.2s;
+}
+.lobby-room-row:hover {
+    background: rgba(40,30,80,0.6); border-color: rgba(34,197,94,0.4);
+}
+
 /* ── Écran config ── */
 #configScreen {
     background: radial-gradient(ellipse at center, rgba(14,27,61,0.9) 0%, rgba(6,8,26,0.97) 100%);
@@ -287,6 +314,7 @@ canvas#gameCanvas.grabbing {
     font-family: 'Orbitron', sans-serif;
     font-size: 16px;
     color: #C8A0FF;
+    pointer-events: auto;
 }
 
 #sporeCounter .count {
@@ -458,6 +486,7 @@ canvas#gameCanvas.grabbing {
     border-radius: 6px;
     padding: 10px 14px;
     min-width: 180px;
+    pointer-events: auto;
 }
 
 .score-row {
@@ -779,6 +808,108 @@ canvas#gameCanvas.grabbing {
 }
 
 /* ── Pause overlay ── */
+.panel-drag-handle {
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 6px;
+    background: rgba(100,70,180,0.12);
+    border-bottom: 1px solid rgba(100,70,180,0.15);
+    border-radius: 6px 6px 0 0;
+    user-select: none;
+}
+.panel-drag-handle:active { cursor: grabbing; }
+.panel-drag-handle .panel-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 7px;
+    color: rgba(200,160,255,0.4);
+    letter-spacing: 1px;
+}
+.panel-drag-handle .panel-collapse {
+    cursor: pointer;
+    font-size: 12px;
+    color: rgba(200,160,255,0.4);
+    transition: transform 0.2s;
+    line-height: 1;
+}
+.panel-drag-handle .panel-collapse:hover { color: rgba(200,160,255,0.8); }
+.panel-collapsed > *:not(.panel-drag-handle) { display: none !important; }
+.panel-collapsed { min-height: auto !important; max-height: none !important; height: auto !important; overflow: hidden !important; }
+#eventLog {
+    position: fixed;
+    bottom: 12px;
+    left: 90px;
+    width: 280px;
+    max-height: 200px;
+    background: rgba(6,8,26,0.85);
+    border: 1px solid rgba(100,70,180,0.3);
+    border-radius: 6px;
+    z-index: 25;
+    pointer-events: auto;
+    display: none;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 11px;
+    overflow: hidden;
+}
+#eventLog .log-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(100,70,180,0.2);
+    flex-wrap: wrap;
+}
+#eventLog .log-header .log-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: rgba(200,160,255,0.6);
+    letter-spacing: 1px;
+    margin-right: auto;
+}
+#eventLog .log-filter {
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid rgba(100,70,180,0.3);
+    background: rgba(100,70,180,0.1);
+    color: rgba(200,200,220,0.6);
+    font-size: 8px;
+    cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    transition: all 0.2s;
+}
+#eventLog .log-filter.active {
+    background: rgba(100,70,180,0.3);
+    color: #c8a0ff;
+    border-color: rgba(160,120,255,0.5);
+}
+#eventLog .log-body {
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 4px 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100,70,180,0.3) transparent;
+}
+#eventLog .log-body::-webkit-scrollbar { width: 3px; }
+#eventLog .log-body::-webkit-scrollbar-thumb { background: rgba(100,70,180,0.4); border-radius: 3px; }
+#eventLog .log-entry {
+    padding: 3px 8px;
+    color: rgba(200,210,230,0.7);
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+}
+#eventLog .log-entry:hover { background: rgba(100,70,180,0.1); }
+#eventLog .log-entry .log-time {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 8px;
+    color: rgba(200,200,220,0.4);
+    min-width: 35px;
+}
+#eventLog .log-entry .log-icon { font-size: 10px; }
+#eventLog .log-entry .log-text { flex: 1; }
 #pauseOverlay {
     position: fixed;
     top: 0; left: 0;
@@ -1018,7 +1149,6 @@ canvas#gameCanvas.grabbing {
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 #authScreen {
     display: flex;
@@ -1064,6 +1194,58 @@ canvas#gameCanvas.grabbing {
     <h1 id="titleText" class="title-glow"></h1>
     <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL</div>
     <button class="btn" id="btnNewGame">NOUVELLE PARTIE</button>
+    <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">MULTIJOUEUR</button>
+    <button class="btn" id="btnLeaderboard" style="margin-top:8px; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4);">CLASSEMENT</button>
+</div>
+
+<!-- ═══ ÉCRAN LEADERBOARD ═══ -->
+<div id="leaderboardScreen" class="screen hidden">
+    <h2 style="font-family:'Orbitron',monospace; color:#E0E7FF; text-shadow:0 0 20px rgba(139,92,246,0.4); margin-bottom:20px;">CLASSEMENT</h2>
+    <div id="leaderboardBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:20px; max-width:500px; margin:0 auto; max-height:60vh; overflow-y:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:14px;">
+            <thead>
+                <tr style="color:#8B5CF6; border-bottom:1px solid rgba(139,92,246,0.3);">
+                    <th style="padding:8px; text-align:left;">#</th>
+                    <th style="padding:8px; text-align:left;">Joueur</th>
+                    <th style="padding:8px; text-align:center;">Victoires</th>
+                    <th style="padding:8px; text-align:center;">Parties</th>
+                    <th style="padding:8px; text-align:center;">%</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboardBody"></tbody>
+        </table>
+        <p id="leaderboardEmpty" style="color:#94A3B8; text-align:center; padding:20px; display:none;">Aucune partie enregistrée.</p>
+    </div>
+    <button class="btn" id="btnLeaderboardBack" style="margin-top:16px;">RETOUR</button>
+</div>
+
+<!-- ═══ ÉCRAN LOBBY MULTI ═══ -->
+<div id="lobbyScreen" class="screen hidden">
+    <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:20px;">MULTIJOUEUR</h2>
+    <div id="lobbyBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px; max-width:520px; margin:0 auto; max-height:60vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span style="color:#94A3B8; font-size:13px;">Parties ouvertes</span>
+            <button class="btn" id="btnCreateRoom" style="font-size:12px; padding:8px 16px; background:rgba(34,197,94,0.2); border-color:rgba(34,197,94,0.5); color:#4ADE80;">+ CRÉER</button>
+        </div>
+        <div id="lobbyRoomList" style="min-height:60px;">
+            <p style="color:#64748B; text-align:center; padding:20px; font-size:13px;">Chargement...</p>
+        </div>
+    </div>
+    <button class="btn" id="btnLobbyBack" style="margin-top:16px;">RETOUR</button>
+</div>
+
+<!-- ═══ ÉCRAN ROOM (salle d'attente) ═══ -->
+<div id="roomScreen" class="screen hidden">
+    <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:6px;">SALLE D'ATTENTE</h2>
+    <p id="roomCode" style="font-family:'Orbitron',monospace; font-size:11px; color:#64748B; letter-spacing:2px; margin-bottom:16px;"></p>
+    <div id="roomBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px; max-width:420px; margin:0 auto;">
+        <div id="roomSlots" style="display:flex; flex-direction:column; gap:8px;"></div>
+        <div style="display:flex; justify-content:center; gap:10px; margin-top:16px;">
+            <button class="btn" id="btnRoomReady" style="font-size:13px; padding:10px 24px; background:rgba(34,197,94,0.2); border-color:rgba(34,197,94,0.5); color:#4ADE80;">PRÊT</button>
+            <button class="btn" id="btnRoomStart" style="font-size:13px; padding:10px 24px; background:rgba(234,179,8,0.2); border-color:rgba(234,179,8,0.5); color:#FBBF24; display:none;">LANCER</button>
+        </div>
+    </div>
+    <button class="btn" id="btnRoomLeave" style="margin-top:16px; font-size:12px; padding:8px 20px;">QUITTER</button>
 </div>
 
 <!-- ═══ ÉCRAN CONFIG ═══ -->
@@ -1072,12 +1254,12 @@ canvas#gameCanvas.grabbing {
     <div class="config-panel">
         <div class="config-row">
             <label>Soleils</label>
-            <input type="range" id="cfgSuns" min="4" max="10" value="4">
+            <input type="range" id="cfgSuns" min="1" max="8" value="4">
             <span class="val" id="cfgSunsVal">4</span>
         </div>
         <div class="config-row">
             <label>Joueurs</label>
-            <input type="range" id="cfgPlayers" min="2" max="8" value="4">
+            <input type="range" id="cfgPlayers" min="2" max="10" value="4">
             <span class="val" id="cfgPlayersVal">4</span>
         </div>
         <div class="config-row">
@@ -1086,6 +1268,27 @@ canvas#gameCanvas.grabbing {
                 <option value="easy">Facile</option>
                 <option value="normal" selected>Normal</option>
                 <option value="brutal">Brutal</option>
+            </select>
+        </div>
+
+        <div class="config-row">
+            <label>IA</label>
+            <select id="cfgIA">
+                <option value="on" selected>Activée</option>
+                <option value="off">Désactivée</option>
+            </select>
+        </div>
+        <div class="config-row">
+            <label>Vaisseaux ennemis</label>
+            <input type="range" id="cfgCleaners" min="1" max="25" value="3">
+            <span class="val" id="cfgCleanersVal">3</span>
+        </div>
+
+        <div class="config-row">
+            <label>Amas de météorites</label>
+            <select id="cfgAsteroids">
+                <option value="on" selected>Activés</option>
+                <option value="off">Désactivés</option>
             </select>
         </div>
 
@@ -1173,6 +1376,7 @@ canvas#gameCanvas.grabbing {
     <label>TAILLE UI</label>
     <input type="range" id="uiZoomSlider" min="60" max="140" value="100" step="5">
     <span class="uz-val" id="uiZoomVal">100%</span>
+    <br><span id="uiResetBtn" style="font-family:'Orbitron',sans-serif;font-size:7px;color:rgba(200,170,255,0.5);cursor:pointer;letter-spacing:1px;margin-top:3px;display:inline-block;" title="Réinitialiser positions des panneaux">⟲ RESET POSITIONS</span>
 </div>
 <div id="minimap"><canvas id="minimapCanvas" width="160" height="160"></canvas></div>
 
@@ -1184,6 +1388,18 @@ canvas#gameCanvas.grabbing {
 </div>
 
 <!-- ═══ CODEX ═══ -->
+<div id="eventLog">
+    <div class="log-header">
+        <span class="log-title">ÉVÉNEMENTS</span>
+        <span class="log-filter active" data-cat="all">Tous</span>
+        <span class="log-filter" data-cat="neutral">Neutres</span>
+        <span class="log-filter" data-cat="war">Guerres</span>
+        <span class="log-filter" data-cat="mine">Mes astres</span>
+        <span class="log-filter" data-cat="build">Constructions</span>
+    </div>
+    <div class="log-body" id="eventLogBody"></div>
+</div>
+
 <div id="codex">
     <span class="close-btn" id="codexClose">✕</span>
     <h3 id="codexName">—</h3>
@@ -1227,6 +1443,62 @@ canvas#gameCanvas.grabbing {
    ══════════════════════════════════════════════════════════════════════
    DEV LOG
    ──────────────────────────────────────────────────────────────────────
+   v2.4.6 | 2026-02-27 | Multijoueur — Lobby & Rooms
+     - Bouton MULTIJOUEUR sur l'écran titre
+     - Écran lobby : liste des parties ouvertes en temps réel
+     - Écran salle d'attente : slots joueurs, statut prêt, code room
+     - Création / rejoindre / quitter une room via Supabase
+     - Supabase Realtime : sync automatique des joueurs dans la room
+     - Bouton PRÊT et LANCER (hôte uniquement, quand tous prêts)
+     - Tables game_rooms et game_room_players avec RLS
+
+   v2.4.5 | 2026-02-27 | Panneaux UI — Scale, Snap & Reset
+     - Zoom UI (slider taille) affecte désormais TOUS les panneaux (eventLog, codex, sporeCounter, scoreBoard)
+     - Drag des panneaux préserve le scale UI en cours
+     - 8 panneaux draggables : Spores, Évolution, Scores, Minimap, Taille UI, Mes Astres, Événements, Codex
+     - Tableau des scores (scoreBoard) et compteur Spores rendus interactifs (pointer-events)
+     - Handle du scoreBoard préservé lors des mises à jour dynamiques du contenu
+     - Accrochage magnétique (snap) entre panneaux au relâchement du drag (14px)
+     - Snap aux bords de l'écran
+     - Bouton ⟲ RESET POSITIONS pour réinitialiser toute la disposition UI
+     - Reset remet aussi le slider de taille à 100%
+
+   v2.4.3 | 2026-02-27 | Gameplay avancé & UI
+     - Paramètres de partie : soleils (1-8), joueurs (2-10), IA on/off, vaisseaux (1-25), météorites on/off
+     - 3 types de ceintures d'astéroïdes : noir (÷2 spores), rouge (déviation), vert (split ×5)
+     - 3 types de vaisseaux ennemis : rouge (attaque), vert (×2 boost), noir (renvoi à la base)
+     - Graphismes améliorés : météorites polygonales, vaisseaux détaillés avec cockpit et traînée
+     - Vaisseaux patrouillent entre planètes (navigation intelligente)
+     - Jets renvoyés par vaisseaux noirs suivent la cible en temps réel (homing)
+     - Journal d'événements avec filtres (Tous/Neutres/Guerres/Mes astres/Constructions)
+     - Événements cliquables pour naviguer vers le lieu de l'action
+     - Icônes colorées selon le joueur dans le journal
+     - Contrôle Nid/Biome/Off par système solaire dans le panneau gauche
+     - Panneaux draggables et rétractables (6 panneaux)
+     - Sauvegarde positions des panneaux dans Supabase (profil joueur)
+     - Synchronisation curseurs config au démarrage
+     - Espacement orbites solaires augmenté (pas de chevauchement avec météorites)
+     - Collision météorites par proximité réelle d'amas (plus de faux positifs)
+
+   v2.4.2 | 2026-02-27 | Mise en ligne & Auth
+     - Déploiement GitHub Pages (gadmy.github.io/nebula-conquest)
+     - Intégration Supabase Auth (inscription email + mot de passe)
+     - Écran de login avec choix de pseudo à la première connexion
+     - Tables Supabase : profiles, games, leaderboard (vue)
+     - Row Level Security (RLS) sur toutes les tables
+     - Sauvegarde automatique des parties en fin de game
+     - Écran Classement (leaderboard) accessible depuis le menu titre
+
+   v2.4.1 | 2026-02-26 | Nettoyage debug & config
+     - Suppression complète du code debug (CSS, HTML, JS)
+     - Suppression panneaux debug F2-F7
+     - Config par défaut : 4 soleils, 4 joueurs, stats 0/0/0
+     - Hitbox améliorées : lunes +12, petites planètes +10
+     - Couleurs ciel éclaircies (RGB 22,38,78)
+     - Vitesse jets : 0.25 → 0.70
+     - Suppression fonction orpheline generateBackgroundFromConfig
+     - Correction référence BG_CFG
+
    v2.4.0 | 2026-02-25 | Optimisation performances
      - Étoiles de base pré-rendues sur canvas offscreen (−2500 draw calls)
      - Amas stellaires pré-rendus sur canvas offscreen (−660 draw calls)
@@ -1454,7 +1726,14 @@ canvas#gameCanvas.grabbing {
     v2.1  ✅ Multiplicité (jauge évolution, consomme spores, 10 paliers, +1 stat/palier)
     v2.2  ✅ UX — Interface adaptable (zoom UI, scroll astres, clic→codex)
     v2.3  ✅ Comètes, débris & effets d'impact
-    v2.4  🔧 Optimisation performances (LOD, cache offscreen, FPS adaptatif)
+    v2.4  ✅ Optimisation performances (LOD, cache offscreen, FPS adaptatif)
+
+   ── PHASE 3 : Mise en ligne & multijoueur ──
+    v2.4.1 ✅ Nettoyage debug & config (suppression debug F2-F7, réglages par défaut)
+    v2.4.2 ✅ Mise en ligne & Auth (GitHub Pages, Supabase, login, pseudo, leaderboard)
+    v2.4.3 ✅ Gameplay avancé & UI (astéroïdes, vaisseaux 3 types, journal, panneaux draggables)
+    v2.4.5 ✅ Panneaux UI (scale tous panneaux, snap magnétique, reset positions, 8 panneaux draggables)
+    v2.4.6 🔧 Multijoueur & minification
 
    Protocole par session :
      1. Uploader le fichier HTML actuel
@@ -1558,6 +1837,9 @@ const gameState = {
     // ── Vaisseaux nettoyeurs ──
     cleaners: [],
 
+    // ── Amas de météorites ──
+    asteroidBelts: [],
+
     // ── Audio ──
     audio: {
         ctx: null,
@@ -1574,9 +1856,12 @@ const gameState = {
 
     // ── Config partie ──
     config: {
-        sunCount: 8,
-        playerCount: 2,
-        difficulty: 'normal'  // 'easy' | 'normal' | 'brutal'
+        sunCount: 4,
+        playerCount: 4,
+        difficulty: 'normal',  // 'easy' | 'normal' | 'brutal'
+        useIA: true,
+        cleanerCount: 3,
+        useAsteroids: true
     },
 
     // ── Joueur humain stats ──
@@ -1588,7 +1873,7 @@ const gameState = {
     playerColor: '#8B5CF6',
 
     // ── Couleurs disponibles ──
-    teamColors: ['#8B5CF6','#EC4899','#EF4444','#F97316','#EAB308','#22C55E','#06B6D4','#3B82F6'],
+    teamColors: ['#8B5CF6','#EC4899','#EF4444','#F97316','#EAB308','#22C55E','#06B6D4','#3B82F6','#A855F7','#F472B6'],
 
     // ── Codex ──
     selectedBody: null,
@@ -1598,6 +1883,9 @@ const gameState = {
     conquestEffects: [],   // {x, y, text, color, age, maxAge}
     bloomEffects: [],      // {body, age, maxAge, color}
     impactEffects: [],     // {x, y, color, particles[], age, maxAge}
+
+    // ── Log d'événements ──
+    eventLog: [],
 
     // ── Stats de partie ──
     gameStats: {
@@ -2444,7 +2732,7 @@ function generateUniverse() {
     gameState.moons = [];
 
     const baseOrbitRadius = 800;
-    const orbitSpacing = 500;
+    const orbitSpacing = 750;
 
     for (let s = 0; s < sunCount; s++) {
         const angle = Math.random() * Math.PI * 2;
@@ -2554,11 +2842,9 @@ function generateUniverse() {
 
     // ── Vaisseaux nettoyeurs ──
     gameState.cleaners = [];
-    const totalPlanets = gameState.planets.length;
-    let cleanerCount = 1;
-    if (totalPlanets > 5) cleanerCount = 2;
-    if (totalPlanets > 8) cleanerCount = 3;
+    const cleanerCount = gameState.config.cleanerCount || 3;
 
+    const clTypes = ['red', 'green', 'dark'];
     for (let c = 0; c < cleanerCount; c++) {
         const angle = (c / cleanerCount) * Math.PI * 2 + Math.random() * 0.5;
         const dist = 400 + Math.random() * 2000;
@@ -2573,8 +2859,59 @@ function generateUniverse() {
             detectionRange: 200,
             fireRate: 1.5,
             fireTimer: 0,
-            size: 8
+            size: 8,
+            type: clTypes[c % 3]
         });
+    }
+
+    // ── Amas de météorites ──
+    gameState.asteroidBelts = [];
+    if (gameState.config.useAsteroids) {
+        const beltTypes = ['dark', 'red', 'green'];
+        for (const sun of gameState.suns) {
+            const lastPlanet = sun.planets[sun.planets.length - 1];
+            const beltRadius = lastPlanet ? lastPlanet.orbitRadius + 150 + Math.random() * 80 : sun.radius * 6 + 120;
+            const asteroidCount = 4 + Math.floor(Math.random() * 7);
+            const rocks = [];
+            for (let a = 0; a < asteroidCount; a++) {
+                const rockType = beltTypes[Math.floor(Math.random() * 3)];
+                const aAngle = (a / asteroidCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+                const rOff = (Math.random() - 0.5) * 25;
+                const rockCount = 3 + Math.floor(Math.random() * 4);
+                const subRocks = [];
+                for (let r = 0; r < rockCount; r++) {
+                    // Base gris/marron/noir
+                    const baseR = 50 + Math.floor(Math.random() * 50);
+                    const baseG = 40 + Math.floor(Math.random() * 40);
+                    const baseB = 35 + Math.floor(Math.random() * 35);
+                    // Touche de couleur selon le type (1 rocher sur 3)
+                    let cr = baseR, cg = baseG, cb = baseB;
+                    if (r % 3 === 0) {
+                        if (rockType === 'dark') { cr -= 15; cg -= 15; cb -= 10; }
+                        else if (rockType === 'red') { cr += 60; cg -= 10; cb -= 10; }
+                        else { cr -= 10; cg += 50; cb -= 10; }
+                    }
+                    subRocks.push({
+                        offX: (Math.random() - 0.5) * 16,
+                        offY: (Math.random() - 0.5) * 16,
+                        size: 2 + Math.random() * 4,
+                        color: `rgb(${Math.max(0,cr)},${Math.max(0,cg)},${Math.max(0,cb)})`
+                    });
+                }
+                rocks.push({
+                    angle: aAngle,
+                    radiusOff: rOff,
+                    subRocks: subRocks,
+                    type: rockType
+                });
+            }
+            gameState.asteroidBelts.push({
+                sun: sun,
+                radius: beltRadius,
+                orbitSpeed: 0.008 + Math.random() * 0.006,
+                rocks: rocks
+            });
+        }
     }
 }
 
@@ -2640,6 +2977,13 @@ function updateOrbits(dt) {
             }
         }
     }
+
+    // Amas de météorites
+    for (const belt of gameState.asteroidBelts) {
+        for (const rock of belt.rocks) {
+            rock.angle += belt.orbitSpeed * dt;
+        }
+    }
 }
 
 
@@ -2672,15 +3016,41 @@ function setupUI() {
         document.getElementById('cfgPlayersVal').textContent = cfgPlayers.value;
         gameState.config.playerCount = parseInt(cfgPlayers.value);
     });
+    const cfgIA = document.getElementById('cfgIA');
+    const cfgDifficulty = document.getElementById('cfgDifficulty');
+    cfgIA.addEventListener('change', () => {
+        gameState.config.useIA = cfgIA.value === 'on';
+        cfgDifficulty.disabled = !gameState.config.useIA;
+        cfgDifficulty.style.opacity = gameState.config.useIA ? '1' : '0.3';
+    });
+    const cfgCleaners = document.getElementById('cfgCleaners');
+    cfgCleaners.addEventListener('input', () => {
+        document.getElementById('cfgCleanersVal').textContent = cfgCleaners.value;
+        gameState.config.cleanerCount = parseInt(cfgCleaners.value);
+    });
+    const cfgAsteroids = document.getElementById('cfgAsteroids');
+    cfgAsteroids.addEventListener('change', () => {
+        gameState.config.useAsteroids = cfgAsteroids.value === 'on';
+    });
 
     // ── Sliders stats (total = 10) ──
     const sliders = ['statGrowth', 'statVelocity', 'statDensity'];
     const keys = ['growth', 'velocity', 'density'];
+    // Synchroniser les sliders avec les valeurs par défaut
     sliders.forEach((id, idx) => {
+        document.getElementById(id).value = gameState.playerStats[keys[idx]];
+        document.getElementById(id + 'Val').textContent = gameState.playerStats[keys[idx]];
         document.getElementById(id).addEventListener('input', () => {
             enforceStatPoints(idx);
         });
     });
+    document.getElementById('cfgSunsVal').textContent = gameState.config.sunCount;
+    document.getElementById('cfgSuns').value = gameState.config.sunCount;
+    document.getElementById('cfgPlayersVal').textContent = gameState.config.playerCount;
+    document.getElementById('cfgPlayers').value = gameState.config.playerCount;
+    document.getElementById('cfgCleanersVal').textContent = gameState.config.cleanerCount;
+    document.getElementById('cfgCleaners').value = gameState.config.cleanerCount;
+    enforceStatPoints(0);
 
     // ── Boutons navigation ──
     document.getElementById('btnNewGame').addEventListener('click', () => { ensureAudio(); playClickSound(); fadeTransition(() => setPhase('config')); });
@@ -2737,7 +3107,11 @@ function setPhase(phase) {
     // Cacher tous les écrans
     document.getElementById('authScreen').classList.add('hidden');
     document.getElementById('titleScreen').classList.add('hidden');
+    document.getElementById('leaderboardScreen').classList.add('hidden');
+    document.getElementById('eventLog').style.display = 'none';
     document.getElementById('configScreen').classList.add('hidden');
+    document.getElementById('lobbyScreen').classList.add('hidden');
+    document.getElementById('roomScreen').classList.add('hidden');
     document.getElementById('spawnBanner').classList.add('hidden');
     document.getElementById('gameHud').style.display = 'none';
     document.getElementById('pauseOverlay').classList.remove('active');
@@ -2754,6 +3128,16 @@ function setPhase(phase) {
             stopAmbiance();
             animateTitleScreen();
             break;
+        case 'lobby':
+            document.getElementById('lobbyScreen').classList.remove('hidden');
+            document.getElementById('titleScreen').classList.add('hidden');
+            loadRoomList();
+            break;
+        case 'room':
+            document.getElementById('roomScreen').classList.remove('hidden');
+            document.getElementById('lobbyScreen').classList.add('hidden');
+            document.getElementById('titleScreen').classList.add('hidden');
+            break;
         case 'config':
             document.getElementById('configScreen').classList.remove('hidden');
             break;
@@ -2767,6 +3151,8 @@ function setPhase(phase) {
             document.getElementById('gameHud').style.display = 'block';
             document.getElementById('minimap').style.display = 'block';
             document.getElementById('uiZoomControl').style.display = 'block';
+            document.getElementById('eventLog').style.display = 'block';
+            initPanels();
             break;
         case 'paused':
             document.getElementById('gameCanvas').style.display = 'block';
@@ -2793,6 +3179,9 @@ function startGame() {
 
     // Lire la difficulté
     gameState.config.difficulty = document.getElementById('cfgDifficulty').value;
+    gameState.config.useIA = document.getElementById('cfgIA').value === 'on';
+    gameState.config.cleanerCount = parseInt(document.getElementById('cfgCleaners').value);
+    gameState.config.useAsteroids = document.getElementById('cfgAsteroids').value === 'on';
 
     // Générer l'univers avec progression
     setTimeout(() => {
@@ -2962,6 +3351,9 @@ function applyMultiChoice(player, stat) {
     player.stats[stat]++;
     player.multiTier++;
     player._multiPending = false;
+    if (player === gameState.players[0]) {
+        addEvent('build', '✦', `Multiplicité palier ${player.multiTier} — ${stat} +1`, null, gameState.players[0]?.color);
+    }
 }
 
 function updateMultiPanel() {
@@ -3208,7 +3600,9 @@ function updateScoreBoard() {
 
     if (hash !== _lastScoreHash) {
         _lastScoreHash = hash;
+        const handle = board.querySelector('.panel-drag-handle');
         board.innerHTML = html;
+        if (handle) board.insertBefore(handle, board.firstChild);
     }
 }
 
@@ -3581,8 +3975,10 @@ function updateSporeGeneration(dt) {
                 body.buildProgress -= body.maxSpores;
                 if (body.buildMode === 'nid') {
                     body.nids = (body.nids || 0) + 1;
+                    if (body.owner === 0) addEvent('build', '🏗️', `Nid construit sur ${body.name} (${body.nids})`, body, gameState.players[0]?.color);
                 } else {
                     body.biomes = (body.biomes || 0) + 1;
+                    if (body.owner === 0) addEvent('build', '🛡️', `Biome construit sur ${body.name} (${body.biomes})`, body, gameState.players[0]?.color);
                 }
             }
             // Max spores réduit à 1/3
@@ -3713,6 +4109,24 @@ function updateJets(dt) {
 
         jet.age += dt;
 
+        // Jets renvoyés : guidage vers la cible
+        if (jet._targetBody) {
+            const tb = jet._targetBody;
+            const tdx = tb.x - jet.x;
+            const tdy = tb.y - jet.y;
+            const tDist = Math.sqrt(tdx * tdx + tdy * tdy);
+            jet.trail.push({ x: jet.x, y: jet.y, t: jet.age });
+            if (jet.trail.length > 30) jet.trail.shift();
+            if (tDist < tb.radius + 8) {
+                // Arrivé sur la cible
+                jet.x = tb.x;
+                jet.y = tb.y;
+            } else {
+                const moveSpeed = jet.speed * 0.70 * dt;
+                jet.x += (tdx / tDist) * moveSpeed;
+                jet.y += (tdy / tDist) * moveSpeed;
+            }
+        } else {
         // Avancer le long de la trajectoire
         jet.posIndex += jet.speed * dt * 0.70;
         const idx = Math.floor(jet.posIndex);
@@ -3730,12 +4144,84 @@ function updateJets(dt) {
 
         jet.x = pt.x;
         jet.y = pt.y;
+        }
 
         // Animer les particules scintillantes
         for (const sp of jet.sparkles) {
             sp.angle += sp.speed * dt * 3;
             sp.offX = Math.cos(sp.angle) * (5 + Math.sin(jet.age * 4 + sp.phase) * 3);
             sp.offY = Math.sin(sp.angle) * (5 + Math.cos(jet.age * 4 + sp.phase) * 3);
+        }
+
+        // Traversée amas de météorites
+        if (!jet._hitBelt) jet._hitBelt = {};
+        for (let bi = 0; bi < gameState.asteroidBelts.length; bi++) {
+            if (jet._hitBelt[bi]) continue;
+            const belt = gameState.asteroidBelts[bi];
+            const sun = belt.sun;
+            // Vérifier proximité réelle avec un amas (pas juste l'anneau)
+            let closestType = null;
+            let closestDist = Infinity;
+            for (const rock of belt.rocks) {
+                const ra = rock.angle;
+                const rr = belt.radius + rock.radiusOff;
+                const rcx = sun.x + Math.cos(ra) * rr;
+                const rcy = sun.y + Math.sin(ra) * rr;
+                const rd = (jet.x - rcx) * (jet.x - rcx) + (jet.y - rcy) * (jet.y - rcy);
+                if (rd < closestDist) { closestDist = rd; closestType = rock.type; }
+            }
+            // Seulement si le jet est à moins de 25px d'un amas réel
+            if (closestDist > 625) continue; // 25 * 25
+            jet._hitBelt[bi] = true;
+            if (closestType === 'dark') {
+                // Noir : divise les spores par 2
+                jet.spores = Math.max(1, Math.floor(jet.spores / 2));
+                spawnImpact(jet.x, jet.y, '#555555');
+            } else if (closestType === 'red') {
+                // Rouge : dévie le jet de 5° à 15°
+                const devAngle = (5 + Math.random() * 10) * Math.PI / 180;
+                const sign = Math.random() < 0.5 ? 1 : -1;
+                const cosA = Math.cos(devAngle * sign);
+                const sinA = Math.sin(devAngle * sign);
+                for (let ti = Math.floor(jet.posIndex); ti < jet.trajectory.length; ti++) {
+                    const p = jet.trajectory[ti];
+                    const relX = p.x - jet.x;
+                    const relY = p.y - jet.y;
+                    p.x = jet.x + relX * cosA - relY * sinA;
+                    p.y = jet.y + relX * sinA + relY * cosA;
+                }
+                spawnImpact(jet.x, jet.y, '#FF4444');
+            } else if (closestType === 'green') {
+                // Vert : éclate en 5 mini-jets
+                const sporesEach = Math.max(1, Math.floor(jet.spores / 5));
+                for (let si = 0; si < 5; si++) {
+                    const sAngle = Math.random() * Math.PI * 2;
+                    const sDirX = Math.cos(sAngle);
+                    const sDirY = Math.sin(sAngle);
+                    const speed = jet.speed * (0.6 + Math.random() * 0.4);
+                    const traj = computeTrajectory(jet.x, jet.y, sDirX, sDirY, speed, 200);
+                    gameState.jets.push({
+                        owner: jet.owner,
+                        color: jet.color,
+                        spores: sporesEach,
+                        trajectory: traj,
+                        posIndex: 0,
+                        x: jet.x,
+                        y: jet.y,
+                        speed: speed,
+                        alive: true,
+                        trail: [],
+                        sparkles: [],
+                        age: 0,
+                        selected: false,
+                        source: jet.source,
+                        _hitBelt: Object.assign({}, jet._hitBelt)
+                    });
+                }
+                spawnImpact(jet.x, jet.y, '#44FF44');
+                jet.alive = false;
+                break;
+            }
         }
 
         // Destruction par trou noir
@@ -3775,6 +4261,34 @@ function checkJetCollision(jet) {
 
         if (dist < body.radius + 8) {
             spawnImpact(jet.x, jet.y, jet.color);
+            // Jets renvoyés par vaisseau noir : ciblent une planète spécifique
+            if (jet.owner === -1) {
+                if (body === jet._targetBody || !jet._targetBody) {
+                    const oldOwner = body.owner;
+                    body.spores -= jet.spores;
+                    if (body.spores < 0) {
+                        body.spores = Math.abs(body.spores);
+                        body.owner = null;
+                        body.symOwnerTime = 0;
+                        body.symbiosis = 0;
+                        if (oldOwner !== null) {
+                            const p = gameState.players[oldOwner];
+                            if (p) p.bodies = p.bodies.filter(b => b !== body);
+                        }
+                        gameState.conquestEffects.push({
+                            x: body.x, y: body.y - 15, baseX: body.x,
+                            text: 'CHASSÉ !', color: '#888888', age: 0, maxAge: 2
+                        });
+                        const bT = body.type === 'planet' ? 'Planète' : 'Lune';
+                        const chColor = oldOwner !== null ? (gameState.players[oldOwner]?.color || '#888') : '#888';
+                        if (oldOwner === 0) addEvent('mine', '↩', `${bT} ${body.name} chassé par vaisseau !`, body, chColor);
+                        else addEvent('war', '↩', `${bT} ${body.name} chassé (Joueur ${oldOwner})`, body, chColor);
+                    }
+                    jet.alive = false;
+                    return;
+                }
+                continue;
+            }
             if (body.owner === jet.owner) {
                 // Density bonus : +5% spores livrées par point
                 const densityBonus = 1 + (gameState.players[jet.owner]?.stats.density || 0) * 0.05;
@@ -3846,6 +4360,21 @@ function applyConquest(body, jet) {
         }
 
         gameState.gameStats.bodiesConquered++;
+
+        // Log événement
+        const attackerName = gameState.players[jet.owner]?.name || 'Joueur ' + jet.owner;
+        const bType = body.type === 'planet' ? 'Planète' : 'Lune';
+        const aColor = gameState.players[jet.owner]?.color || '#AAA';
+        const oColor = oldOwner !== null ? (gameState.players[oldOwner]?.color || '#AAA') : '#AAA';
+        if (oldOwner === null) {
+            addEvent('neutral', '🏳️', `${bType} ${body.name} colonisée par ${attackerName}`, body, aColor);
+        } else if (jet.owner === 0) {
+            addEvent('mine', '⚔️', `${bType} ${body.name} conquise !`, body, aColor);
+        } else if (oldOwner === 0) {
+            addEvent('mine', '💀', `${bType} ${body.name} perdue ! (${attackerName})`, body, aColor);
+        } else {
+            addEvent('war', '⚔️', `${bType} ${body.name} : ${attackerName} prend à Joueur ${oldOwner}`, body, aColor);
+        }
 
         // Effet d'éclosion
         gameState.bloomEffects.push({
@@ -4339,6 +4868,9 @@ function render() {
     // ── Soleils ──
     drawSuns(ctx);
 
+    // ── Amas de météorites ──
+    drawAsteroidBelts(ctx);
+
     // ── Planètes & Lunes ──
     drawPlanets(ctx);
 
@@ -4589,6 +5121,79 @@ function drawBlackHole(ctx) {
 // ─────────────────────────────────────────────
 // DESSIN — Soleils
 // ─────────────────────────────────────────────
+function drawAsteroidBelts(ctx) {
+    const t = gameState.time;
+    for (const belt of gameState.asteroidBelts) {
+        const sun = belt.sun;
+
+        // Traînée orbitale (LOD mid+)
+        if (gameState.lod >= 1) {
+            ctx.strokeStyle = 'rgba(80,70,60,0.06)';
+            ctx.lineWidth = 14;
+            ctx.beginPath();
+            ctx.arc(sun.x, sun.y, belt.radius, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        for (const rock of belt.rocks) {
+            const a = rock.angle;
+            const r = belt.radius + rock.radiusOff;
+            const cx = sun.x + Math.cos(a) * r;
+            const cy = sun.y + Math.sin(a) * r;
+
+            for (let si = 0; si < rock.subRocks.length; si++) {
+                const sr = rock.subRocks[si];
+                const rx = cx + sr.offX;
+                const ry = cy + sr.offY;
+                const rot = t * 0.3 + si * 1.7 + rock.angle * 5;
+                const sz = sr.size;
+
+                // Polygone irrégulier (5-7 côtés)
+                const sides = sr._sides || (sr._sides = 5 + Math.floor(Math.random() * 3));
+                const verts = sr._verts || (sr._verts = Array.from({length: sides}, (_, i) => 0.7 + Math.random() * 0.6));
+
+                ctx.save();
+                ctx.translate(rx, ry);
+                ctx.rotate(rot);
+
+                // Ombre (côté sombre)
+                ctx.fillStyle = sr.color;
+                ctx.beginPath();
+                for (let v = 0; v < sides; v++) {
+                    const va = (v / sides) * Math.PI * 2;
+                    const vr = sz * verts[v];
+                    if (v === 0) ctx.moveTo(Math.cos(va) * vr, Math.sin(va) * vr);
+                    else ctx.lineTo(Math.cos(va) * vr, Math.sin(va) * vr);
+                }
+                ctx.closePath();
+                ctx.fill();
+
+                // Reflet (demi-lune éclairée)
+                ctx.globalAlpha = 0.25;
+                ctx.fillStyle = '#FFF';
+                ctx.beginPath();
+                ctx.arc(sz * -0.2, sz * -0.2, sz * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                ctx.restore();
+            }
+
+            // Lueur de groupe (LOD high)
+            if (gameState.lod >= 2) {
+                let haloColor;
+                if (rock.type === 'dark') haloColor = 'rgba(60,55,50,0.06)';
+                else if (rock.type === 'red') haloColor = 'rgba(120,50,40,0.06)';
+                else haloColor = 'rgba(50,100,50,0.06)';
+                ctx.fillStyle = haloColor;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+}
+
 function drawSuns(ctx) {
     const t = gameState.time;
     const cam = gameState.camera;
@@ -4772,15 +5377,47 @@ function updateCleaners(dt) {
     const bh = gameState.blackHole;
 
     for (const cl of gameState.cleaners) {
-        // Mouvement : dérive lente avec changements de direction périodiques
+        // Mouvement : naviguer vers une planète cible
         cl.turnTimer -= dt;
         if (cl.turnTimer <= 0) {
-            cl.turnTimer = CLN_CFG.turnInterval + Math.random() * 3;
-            // Nouvelle direction semi-aléatoire
-            const targetAngle = Math.atan2(cl.y, cl.x) + (Math.random() - 0.5) * 2;
+            cl.turnTimer = CLN_CFG.turnInterval + Math.random() * 5;
             const speed = CLN_CFG.speedMin + Math.random() * (CLN_CFG.speedMax - CLN_CFG.speedMin);
-            cl.vx = Math.cos(targetAngle) * speed;
-            cl.vy = Math.sin(targetAngle) * speed;
+            // 70% chance de viser une planète, 30% errance locale
+            if (Math.random() < 0.7 && gameState.planets.length > 0) {
+                const target = gameState.planets[Math.floor(Math.random() * gameState.planets.length)];
+                cl._target = target;
+                const tdx = target.x - cl.x;
+                const tdy = target.y - cl.y;
+                const tDist = Math.sqrt(tdx * tdx + tdy * tdy);
+                if (tDist > 0) {
+                    cl.vx = (tdx / tDist) * speed;
+                    cl.vy = (tdy / tDist) * speed;
+                }
+            } else {
+                cl._target = null;
+                const wanderAngle = Math.atan2(cl.y, cl.x) + (Math.random() - 0.5) * 1.5;
+                cl.vx = Math.cos(wanderAngle) * speed * 0.5;
+                cl.vy = Math.sin(wanderAngle) * speed * 0.5;
+            }
+        }
+
+        // Si on a une cible, ajuster la direction en temps réel (la planète bouge)
+        if (cl._target) {
+            const tdx = cl._target.x - cl.x;
+            const tdy = cl._target.y - cl.y;
+            const tDist = Math.sqrt(tdx * tdx + tdy * tdy);
+            if (tDist < 80) {
+                cl.turnTimer = 0;
+            } else if (tDist > 0) {
+                const currentSpeed = Math.sqrt(cl.vx * cl.vx + cl.vy * cl.vy);
+                cl.vx += (tdx / tDist) * 15 * dt;
+                cl.vy += (tdy / tDist) * 15 * dt;
+                const newSpeed = Math.sqrt(cl.vx * cl.vx + cl.vy * cl.vy);
+                if (newSpeed > currentSpeed * 1.2) {
+                    cl.vx = (cl.vx / newSpeed) * currentSpeed;
+                    cl.vy = (cl.vy / newSpeed) * currentSpeed;
+                }
+            }
         }
 
         cl.x += cl.vx * dt;
@@ -4795,12 +5432,17 @@ function updateCleaners(dt) {
             cl.vy += (bhDy / bhDist) * 30 * dt;
         }
 
-        // Garder dans la zone de jeu (ramener vers le centre si trop loin)
+        // Garder dans la zone de jeu (orbite du soleil le plus éloigné + marge)
+        let maxRange = 500;
+        for (const sun of gameState.suns) {
+            const lastP = sun.planets[sun.planets.length - 1];
+            const total = sun.orbitRadius + (lastP ? lastP.orbitRadius : 0) + 100;
+            if (total > maxRange) maxRange = total;
+        }
         const distFromCenter = Math.sqrt(cl.x * cl.x + cl.y * cl.y);
-        const maxRange = 3000 + gameState.config.sunCount * 300;
         if (distFromCenter > maxRange) {
-            cl.vx -= cl.x * 0.005;
-            cl.vy -= cl.y * 0.005;
+            cl.vx -= cl.x * 0.02;
+            cl.vy -= cl.y * 0.02;
         }
 
         // Tirer sur les jets à portée
@@ -4813,21 +5455,65 @@ function updateCleaners(dt) {
                 const dy = jet.y - cl.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < CLN_CFG.detectRange) {
-                    // Réduire les spores du jet
-                    const damage = CLN_CFG.dmgMin + Math.random() * (CLN_CFG.dmgMax - CLN_CFG.dmgMin);
-                    jet.spores -= damage;
-                    if (jet.spores <= 0) {
-                        jet.alive = false;
+                    playCleanerSound(cl.x, cl.y);
+
+                    if (cl.type === 'red') {
+                        // Rouge : attaque classique, réduit les spores
+                        const damage = CLN_CFG.dmgMin + Math.random() * (CLN_CFG.dmgMax - CLN_CFG.dmgMin);
+                        jet.spores -= damage;
+                        if (jet.spores <= 0) jet.alive = false;
+                        gameState.conquestEffects.push({
+                            x: jet.x, y: jet.y - 10, baseX: jet.x,
+                            text: '-' + Math.floor(damage),
+                            color: '#FF4444', age: 0, maxAge: 1.5
+                        });
+                    } else if (cl.type === 'green') {
+                        // Vert : multiplie les spores par 2 (une seule fois)
+                        if (!jet._boosted) {
+                            jet.spores = Math.floor(jet.spores * 2);
+                            jet._boosted = true;
+                            gameState.conquestEffects.push({
+                                x: jet.x, y: jet.y - 10, baseX: jet.x,
+                                text: 'x2',
+                                color: '#44FF44', age: 0, maxAge: 1.5
+                            });
+                        }
+                    } else if (cl.type === 'dark') {
+                        // Noir : renvoie les spores vers la planète d'origine
+                        if (jet.source && jet.source.owner !== null) {
+                            const src = jet.source;
+                            const returnSpores = jet.spores;
+                            // Créer un jet retour hostile (owner = -1, neutre hostile)
+                            const rdx = src.x - jet.x;
+                            const rdy = src.y - jet.y;
+                            const rDist = Math.sqrt(rdx * rdx + rdy * rdy);
+                            if (rDist > 0) {
+                                const traj = computeTrajectory(jet.x, jet.y, rdx / rDist, rdy / rDist, jet.speed * 1.2, 400);
+                                gameState.jets.push({
+                                    owner: -1,
+                                    color: '#333333',
+                                    spores: returnSpores,
+                                    trajectory: traj,
+                                    posIndex: 0,
+                                    x: jet.x, y: jet.y,
+                                    speed: jet.speed * 1.2,
+                                    alive: true,
+                                    trail: [],
+                                    sparkles: [],
+                                    age: 0,
+                                    selected: false,
+                                    source: null,
+                                    _targetBody: src
+                                });
+                            }
+                            jet.alive = false;
+                            gameState.conquestEffects.push({
+                                x: jet.x, y: jet.y - 10, baseX: jet.x,
+                                text: '↩ RENVOI',
+                                color: '#888888', age: 0, maxAge: 1.5
+                            });
+                        }
                     }
-                    playCleanerSound(cl.x, cl.y);
-                    playCleanerSound(cl.x, cl.y);
-                    // Effet visuel
-                    gameState.conquestEffects.push({
-                        x: jet.x, y: jet.y - 10,
-                        baseX: jet.x,
-                        text: '-' + Math.floor(damage),
-                        color: '#FF4444', age: 0, maxAge: 1.5
-                    });
                     break; // un tir par cycle
                 }
             }
@@ -4848,49 +5534,131 @@ function drawCleaners(ctx) {
         ctx.translate(cl.x, cl.y);
         ctx.rotate(moveAngle);
 
-        // Corps du vaisseau (triangle)
+        // Couleurs selon type
         const s = cl.size * scale;
-        ctx.fillStyle = 'rgba(200, 50, 50, 0.7)';
+        let fillColor, strokeColor, reactorC1, reactorC2, detectColor, accentColor;
+        if (cl.type === 'green') {
+            fillColor = 'rgba(70, 75, 65, 0.8)';
+            strokeColor = 'rgba(100, 110, 90, 0.5)';
+            accentColor = 'rgba(80, 220, 80, 0.7)';
+            reactorC1 = 'rgba(60, 180, 80, 0.4)';
+            reactorC2 = 'rgba(40, 120, 50, 0.15)';
+            detectColor = 'rgba(60, 180, 60, 0.06)';
+        } else if (cl.type === 'dark') {
+            fillColor = 'rgba(55, 55, 65, 0.8)';
+            strokeColor = 'rgba(80, 80, 100, 0.5)';
+            accentColor = 'rgba(140, 140, 170, 0.7)';
+            reactorC1 = 'rgba(90, 90, 130, 0.4)';
+            reactorC2 = 'rgba(50, 50, 80, 0.15)';
+            detectColor = 'rgba(100, 100, 130, 0.06)';
+        } else {
+            fillColor = 'rgba(85, 60, 55, 0.8)';
+            strokeColor = 'rgba(120, 80, 70, 0.5)';
+            accentColor = 'rgba(220, 70, 60, 0.7)';
+            reactorC1 = 'rgba(200, 80, 50, 0.4)';
+            reactorC2 = 'rgba(150, 40, 30, 0.15)';
+            detectColor = 'rgba(200, 60, 50, 0.06)';
+        }
+
+        // Corps du vaisseau (détaillé)
+        ctx.fillStyle = fillColor;
         ctx.beginPath();
-        ctx.moveTo(s * 1.5, 0);
-        ctx.lineTo(-s, -s * 0.8);
-        ctx.lineTo(-s * 0.5, 0);
-        ctx.lineTo(-s, s * 0.8);
+        ctx.moveTo(s * 1.8, 0);           // Nez
+        ctx.lineTo(s * 0.6, -s * 0.3);    // Avant haut
+        ctx.lineTo(-s * 0.2, -s * 0.9);   // Aile haute
+        ctx.lineTo(-s * 0.8, -s * 0.7);   // Arrière aile haute
+        ctx.lineTo(-s * 0.6, -s * 0.2);   // Jonction haute
+        ctx.lineTo(-s, 0);                 // Arrière centre
+        ctx.lineTo(-s * 0.6, s * 0.2);    // Jonction basse
+        ctx.lineTo(-s * 0.8, s * 0.7);    // Arrière aile basse
+        ctx.lineTo(-s * 0.2, s * 0.9);    // Aile basse
+        ctx.lineTo(s * 0.6, s * 0.3);     // Avant bas
         ctx.closePath();
         ctx.fill();
 
         // Contour lumineux
-        ctx.strokeStyle = 'rgba(255, 80, 80, 0.5)';
+        ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 1 * scale;
         ctx.stroke();
 
-        // Réacteur (lueur arrière)
-        const gReactor = ctx.createRadialGradient(-s, 0, 0, -s, 0, s * 1.5);
-        gReactor.addColorStop(0, 'rgba(255, 100, 50, 0.4)');
-        gReactor.addColorStop(0.5, 'rgba(255, 50, 30, 0.15)');
+        // Cockpit (bulle centrale avec touche de couleur)
+        ctx.fillStyle = 'rgba(200,220,255,0.2)';
+        ctx.beginPath();
+        ctx.ellipse(s * 0.5, 0, s * 0.4, s * 0.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = accentColor;
+        ctx.beginPath();
+        ctx.ellipse(s * 0.5, 0, s * 0.25, s * 0.12, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bandes de couleur sur les ailes
+        ctx.strokeStyle = accentColor;
+        ctx.lineWidth = 1.5 * scale;
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.1, -s * 0.6);
+        ctx.lineTo(-s * 0.5, -s * 0.65);
+        ctx.moveTo(-s * 0.1, s * 0.6);
+        ctx.lineTo(-s * 0.5, s * 0.65);
+        ctx.stroke();
+
+        // Lumières d'aile clignotantes
+        const blink = Math.sin(t * 5 + cl.angle * 10) > 0.3 ? 1 : 0.2;
+        ctx.fillStyle = accentColor.replace(/[\d.]+\)$/, (blink * 0.8) + ')');
+        ctx.beginPath();
+        ctx.arc(-s * 0.2, -s * 0.7, s * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(-s * 0.2, s * 0.7, s * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Réacteur (lueur arrière avec traînée)
+        const gReactor = ctx.createRadialGradient(-s, 0, 0, -s, 0, s * 2);
+        gReactor.addColorStop(0, reactorC1);
+        gReactor.addColorStop(0.4, reactorC2);
         gReactor.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = gReactor;
         ctx.beginPath();
-        ctx.arc(-s, 0, s * 1.5, 0, Math.PI * 2);
+        ctx.arc(-s, 0, s * 2, 0, Math.PI * 2);
         ctx.fill();
+
+        // Traînée de propulsion
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = reactorC1;
+        for (let ti = 1; ti <= 3; ti++) {
+            const trailS = s * (0.3 / ti);
+            ctx.beginPath();
+            ctx.arc(-s * (1 + ti * 0.8), 0, trailS, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
 
         ctx.restore();
 
-        // Cercle de détection — LOD mid+
+        // Cercle de détection — LOD mid+ (pulsant)
         if (gameState.lod >= 1) {
-            ctx.strokeStyle = 'rgba(255, 60, 60, 0.06)';
-            ctx.lineWidth = 0.5;
-            ctx.setLineDash([4, 8]);
+            const dPulse = 0.5 + Math.sin(t * 2 + cl.angle) * 0.5;
+            ctx.strokeStyle = detectColor;
+            ctx.lineWidth = 0.5 + dPulse * 0.5;
+            ctx.setLineDash([4 + dPulse * 2, 8 - dPulse * 2]);
             ctx.beginPath();
             ctx.arc(cl.x, cl.y, cl.detectionRange, 0, Math.PI * 2);
             ctx.stroke();
             ctx.setLineDash([]);
+
+            // Remplissage subtil
+            ctx.fillStyle = detectColor.replace('0.06', '0.02');
+            ctx.beginPath();
+            ctx.arc(cl.x, cl.y, cl.detectionRange, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         // Pulsation d'alerte — LOD high
         if (gameState.lod >= 2) {
             const pulse = Math.sin(t * 3) * 0.5 + 0.5;
-            ctx.fillStyle = `rgba(255, 50, 50, ${0.03 * pulse})`;
+            const pulseColor = cl.type === 'green' ? `rgba(50,255,50,${0.03*pulse})` :
+                               cl.type === 'dark' ? `rgba(120,120,150,${0.03*pulse})` :
+                               `rgba(255,50,50,${0.03*pulse})`;
+            ctx.fillStyle = pulseColor;
             ctx.beginPath();
             ctx.arc(cl.x, cl.y, cl.detectionRange * 0.3, 0, Math.PI * 2);
             ctx.fill();
@@ -5373,6 +6141,26 @@ function showEndScreen(isVictory) {
     stopAmbiance();
     if (isVictory) playVictorySound();
     else playDefeatSound();
+
+    // Sauvegarder la partie dans Supabase
+    saveGame(isVictory, stats, human, totalBodies);
+}
+
+async function saveGame(isVictory, stats, human, totalBodies) {
+    if (!currentUser) return;
+    try {
+        await _supa.from('games').insert({
+            player_id: currentUser.id,
+            won: isVictory,
+            score: human.bodies.length,
+            planets_captured: stats.bodiesConquered,
+            duration_seconds: Math.floor(stats.timeElapsed),
+            players_count: gameState.players.length,
+            suns_count: gameState.suns.length
+        });
+    } catch (e) {
+        console.warn('Erreur sauvegarde partie:', e);
+    }
 }
 
 function hideEndScreen() {
@@ -5441,6 +6229,23 @@ function updateMyPlanets() {
             sunLabel.title = complete ? 'Système complet ! Bonus +3% de production actif' : 'Colonisez toutes les planètes et lunes de ce système pour un bonus +3% de production';
             sunLabel.innerHTML = '\u2600 ' + sunName + (complete ? '<span class="sys-complete" title="Système complet : +3% de vitesse de production de spores sur toutes les planètes et lunes"> ★ +3%</span>' : '');
             groupEl.appendChild(sunLabel);
+
+            // Sélecteur Nid/Biome/Off pour tout le système
+            const buildRow = document.createElement('div');
+            buildRow.style.cssText = 'display:flex; gap:4px; padding:2px 4px 4px; align-items:center;';
+            ['off','nid','biome'].forEach(mode => {
+                const btn = document.createElement('span');
+                btn.textContent = mode === 'off' ? 'Off' : mode === 'nid' ? 'Nid' : 'Biome';
+                btn.style.cssText = 'font-size:8px; padding:1px 5px; border-radius:3px; cursor:pointer; border:1px solid rgba(100,70,180,0.3); color:rgba(200,200,220,0.6); background:rgba(100,70,180,0.1); font-family:Exo 2,sans-serif;';
+                btn.addEventListener('click', () => {
+                    for (const b of bodies) {
+                        b.buildMode = mode;
+                        if (mode === 'off') b.buildProgress = 0;
+                    }
+                });
+                buildRow.appendChild(btn);
+            });
+            groupEl.appendChild(buildRow);
 
             const rowEl = document.createElement('div');
             rowEl.className = 'mp-row';
@@ -6316,6 +7121,212 @@ function animateTitleScreen() {
 }
 
 
+// ── Panneaux draggables & rétractables ──
+const PANEL_IDS = ['sporeCounter', 'evoPanel', 'scoreBoard', 'minimap', 'uiZoomControl', 'myPlanets', 'eventLog', 'codex'];
+const PANEL_LABELS = { sporeCounter: 'SPORES', evoPanel: 'ÉVOLUTION', scoreBoard: 'SCORES', minimap: 'MINIMAP', uiZoomControl: 'TAILLE UI', myPlanets: 'MES ASTRES', eventLog: 'ÉVÉNEMENTS', codex: 'CODEX' };
+let panelConfig = {};
+let _panelsInitialized = false;
+
+const SNAP_DISTANCE = 14;
+
+function _snapPanel(el, id) {
+    const r = el.getBoundingClientRect();
+    const curLeft = parseInt(el.style.left);
+    const curTop = parseInt(el.style.top);
+    if (isNaN(curLeft) || isNaN(curTop)) return;
+    let dxBest = SNAP_DISTANCE + 1, dyBest = SNAP_DISTANCE + 1;
+    let adjX = 0, adjY = 0;
+    for (const otherId of PANEL_IDS) {
+        if (otherId === id) continue;
+        const other = document.getElementById(otherId);
+        if (!other || other.style.display === 'none' || other.classList.contains('panel-collapsed')) continue;
+        if (!other.offsetWidth) continue;
+        const o = other.getBoundingClientRect();
+        // Proximité verticale suffisante pour snap horizontal ?
+        const nearY = (r.bottom > o.top - SNAP_DISTANCE) && (r.top < o.bottom + SNAP_DISTANCE);
+        // Proximité horizontale suffisante pour snap vertical ?
+        const nearX = (r.right > o.left - SNAP_DISTANCE) && (r.left < o.right + SNAP_DISTANCE);
+        if (nearY) {
+            const tests = [
+                r.right - o.left,   // bord droit → bord gauche
+                r.left - o.right,   // bord gauche → bord droit
+                r.left - o.left,    // aligner gauches
+                r.right - o.right   // aligner droits
+            ];
+            for (let i = 0; i < tests.length; i++) {
+                if (Math.abs(tests[i]) < Math.abs(dxBest)) { dxBest = tests[i]; adjX = -tests[i]; }
+            }
+        }
+        if (nearX) {
+            const tests = [
+                r.bottom - o.top,   // bord bas → bord haut
+                r.top - o.bottom,   // bord haut → bord bas
+                r.top - o.top,      // aligner hauts
+                r.bottom - o.bottom // aligner bas
+            ];
+            for (let i = 0; i < tests.length; i++) {
+                if (Math.abs(tests[i]) < Math.abs(dyBest)) { dyBest = tests[i]; adjY = -tests[i]; }
+            }
+        }
+    }
+    // Snap aux bords de l'écran
+    if (Math.abs(r.left) < Math.abs(dxBest)) { dxBest = r.left; adjX = -r.left; }
+    if (Math.abs(r.top) < Math.abs(dyBest)) { dyBest = r.top; adjY = -r.top; }
+    if (Math.abs(r.right - window.innerWidth) < Math.abs(dxBest)) { adjX = window.innerWidth - r.right; dxBest = -(window.innerWidth - r.right); }
+    if (Math.abs(r.bottom - window.innerHeight) < Math.abs(dyBest)) { adjY = window.innerHeight - r.bottom; dyBest = -(window.innerHeight - r.bottom); }
+    if (Math.abs(dxBest) <= SNAP_DISTANCE) el.style.left = Math.round(curLeft + adjX) + 'px';
+    if (Math.abs(dyBest) <= SNAP_DISTANCE) el.style.top = Math.round(curTop + adjY) + 'px';
+}
+
+function _getUIScaleTransform() {
+    const slider = document.getElementById('uiZoomSlider');
+    if (!slider) return '';
+    const val = parseInt(slider.value);
+    return val !== 100 ? `scale(${val / 100})` : '';
+}
+
+function initPanels() {
+    if (_panelsInitialized) return;
+    _panelsInitialized = true;
+    for (const id of PANEL_IDS) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        if (!panelConfig[id]) panelConfig[id] = {};
+        const handle = document.createElement('div');
+        handle.className = 'panel-drag-handle';
+        handle.innerHTML = `<span class="panel-label">${PANEL_LABELS[id]}</span><span class="panel-collapse" title="Réduire/Agrandir">▾</span>`;
+        el.insertBefore(handle, el.firstChild);
+        const colBtn = handle.querySelector('.panel-collapse');
+        colBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            el.classList.toggle('panel-collapsed');
+            colBtn.textContent = el.classList.contains('panel-collapsed') ? '▸' : '▾';
+            panelConfig[id].collapsed = el.classList.contains('panel-collapsed');
+            debounceSavePanels();
+        });
+        let dragging = false, startX, startY, origX, origY;
+        handle.addEventListener('mousedown', (e) => {
+            if (e.target === colBtn) return;
+            dragging = true;
+            startX = e.clientX; startY = e.clientY;
+            const rect = el.getBoundingClientRect();
+            origX = rect.left; origY = rect.top;
+            el.style.transition = 'none';
+            e.preventDefault();
+        });
+        handle.addEventListener('touchstart', (e) => {
+            if (e.target === colBtn) return;
+            const touch = e.touches[0];
+            dragging = true;
+            startX = touch.clientX; startY = touch.clientY;
+            const rect = el.getBoundingClientRect();
+            origX = rect.left; origY = rect.top;
+            el.style.transition = 'none';
+        }, { passive: true });
+        window.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            el.style.position = 'fixed';
+            el.style.left = (origX + e.clientX - startX) + 'px';
+            el.style.top = (origY + e.clientY - startY) + 'px';
+            el.style.right = 'auto';
+            el.style.bottom = 'auto';
+            el.style.transform = _getUIScaleTransform() || 'none';
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (!dragging) return;
+            const touch = e.touches[0];
+            el.style.position = 'fixed';
+            el.style.left = (origX + touch.clientX - startX) + 'px';
+            el.style.top = (origY + touch.clientY - startY) + 'px';
+            el.style.right = 'auto';
+            el.style.bottom = 'auto';
+            el.style.transform = _getUIScaleTransform() || 'none';
+        }, { passive: true });
+        const endDrag = () => {
+            if (!dragging) return;
+            dragging = false;
+            el.style.transition = '';
+            _snapPanel(el, id);
+            const left = parseInt(el.style.left);
+            const top = parseInt(el.style.top);
+            if (!isNaN(left) && !isNaN(top)) {
+                panelConfig[id].x = left;
+                panelConfig[id].y = top;
+                debounceSavePanels();
+            }
+        };
+        window.addEventListener('mouseup', endDrag);
+        window.addEventListener('touchend', endDrag);
+        if (panelConfig[id].x !== undefined && panelConfig[id].y !== undefined) {
+            el.style.position = 'fixed';
+            el.style.left = panelConfig[id].x + 'px';
+            el.style.top = panelConfig[id].y + 'px';
+            el.style.right = 'auto';
+            el.style.bottom = 'auto';
+            el.style.transform = _getUIScaleTransform() || 'none';
+        }
+        if (panelConfig[id].collapsed) {
+            el.classList.add('panel-collapsed');
+            colBtn.textContent = '▸';
+        }
+    }
+}
+
+let _savePanelTimer = null;
+function debounceSavePanels() {
+    clearTimeout(_savePanelTimer);
+    _savePanelTimer = setTimeout(savePanelConfig, 1000);
+}
+
+async function loadPanelConfig() {
+    if (typeof currentUser === 'undefined' || !currentUser) return;
+    try {
+        const { data } = await _supa.from('profiles').select('panel_config').eq('id', currentUser.id).single();
+        if (data && data.panel_config) panelConfig = data.panel_config;
+    } catch (e) { console.warn('Panel config load:', e); }
+}
+
+async function savePanelConfig() {
+    if (typeof currentUser === 'undefined' || !currentUser) return;
+    try {
+        await _supa.from('profiles').update({ panel_config: panelConfig }).eq('id', currentUser.id);
+    } catch (e) { console.warn('Panel config save:', e); }
+}
+
+// ── Log d'événements ──
+function addEvent(cat, icon, text, body, color) {
+    const t = gameState.time;
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    const time = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    gameState.eventLog.unshift({ cat, icon, text, time, body, color: color || '#AAA' });
+    if (gameState.eventLog.length > 100) gameState.eventLog.pop();
+    refreshEventLog();
+}
+
+function refreshEventLog() {
+    const logBody = document.getElementById('eventLogBody');
+    if (!logBody) return;
+    const activeFilter = document.querySelector('#eventLog .log-filter.active');
+    const cat = activeFilter ? activeFilter.dataset.cat : 'all';
+    const filtered = cat === 'all' ? gameState.eventLog : gameState.eventLog.filter(e => e.cat === cat);
+    logBody.innerHTML = filtered.slice(0, 50).map((e, i) =>
+        `<div class="log-entry" data-idx="${i}"><span class="log-time">${e.time}</span><span class="log-icon" style="color:${e.color}">${e.icon}</span><span class="log-text">${e.text}</span></div>`
+    ).join('');
+    logBody.querySelectorAll('.log-entry').forEach(el => {
+        el.addEventListener('click', () => {
+            const idx = parseInt(el.dataset.idx);
+            const evt = filtered[idx];
+            if (evt && evt.body) {
+                gameState.camera.x = evt.body.x;
+                gameState.camera.y = evt.body.y;
+                gameState.camera.zoom = Math.max(gameState.camera.zoom, 0.8);
+                openCodex(evt.body);
+            }
+        });
+    });
+}
+
 window.addEventListener('load', init);
 
 </script>
@@ -6414,14 +7425,20 @@ document.getElementById('uiZoomSlider').addEventListener('input', (e) => {
     document.getElementById('uiZoomVal').textContent = val + '%';
     const scale = val / 100;
     // Appliquer le zoom aux éléments HUD
-    const els = ['evoPanel', 'myPlanets', 'minimap', 'uiZoomControl', 'scoreBoard', 'sporeCounter'];
+    const els = ['evoPanel', 'myPlanets', 'minimap', 'uiZoomControl', 'scoreBoard', 'sporeCounter', 'eventLog', 'codex'];
     els.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.style.transformOrigin = 'top left';
             if (id === 'minimap' || id === 'uiZoomControl') el.style.transformOrigin = 'bottom right';
             if (id === 'scoreBoard' || id === 'sporeCounter') el.style.transformOrigin = 'top right';
-            el.style.transform = el.style.transform ? el.style.transform.replace(/scale\([^)]*\)/, `scale(${scale})`) : `scale(${scale})`;
+            if (id === 'eventLog' || id === 'codex') el.style.transformOrigin = 'bottom left';
+            const cur = el.style.transform || '';
+            if (cur && cur !== 'none' && /scale\(/.test(cur)) {
+                el.style.transform = cur.replace(/scale\([^)]*\)/, `scale(${scale})`);
+            } else {
+                el.style.transform = scale !== 1 ? `scale(${scale})` : (cur === 'none' ? 'none' : '');
+            }
         }
     });
 });
@@ -6453,6 +7470,9 @@ const _supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 let currentUser = null;
 let currentProfile = null;
+let currentRoom = null;
+let currentRoomChannel = null;
+let isHost = false;
 
 let authHandled = false;
 
@@ -6463,6 +7483,7 @@ async function handleSession(session) {
     const profile = await loadProfile(currentUser.id);
     if (profile) {
         currentProfile = profile;
+        await loadPanelConfig();
         enterGame();
     } else {
         showPseudoStep();
@@ -6513,6 +7534,7 @@ async function loadProfile(userId) {
         .select('*')
         .eq('id', userId)
         .single();
+    console.log('loadProfile:', data, error);
     if (error || !data) return null;
     return data;
 }
@@ -6592,6 +7614,244 @@ document.getElementById('btnAuthPseudo').addEventListener('click', async () => {
         currentProfile = data;
         enterGame();
     }
+});
+
+async function startMultiGame() {
+    if (!isHost || !currentRoom) return;
+    // Vérifier que tous sont prêts
+    const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', currentRoom.id);
+    if (!players || players.length < 2 || !players.every(p => p.ready)) return;
+    // Passer la room en "playing"
+    await _supa.from('game_rooms').update({ status: 'playing' }).eq('id', currentRoom.id);
+}
+
+function onMultiGameStart(room) {
+    currentRoom = room;
+    // Pour l'instant : placeholder — on connectera le vrai startGame à l'étape D
+    console.log('Partie multi lancée ! Seed:', room.seed);
+}
+
+async function toggleReady() {
+    if (!currentRoom || !currentUser) return;
+    const { data } = await _supa.from('game_room_players').select('ready').eq('room_id', currentRoom.id).eq('player_id', currentUser.id).single();
+    if (!data) return;
+    await _supa.from('game_room_players').update({ ready: !data.ready }).eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
+}
+
+async function leaveRoom() {
+    if (!currentRoom || !currentUser) return;
+    if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
+    await _supa.from('game_room_players').delete().eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
+    // Si host, supprimer la room
+    if (isHost) {
+        await _supa.from('game_rooms').delete().eq('id', currentRoom.id);
+    }
+    currentRoom = null;
+    isHost = false;
+    setPhase('lobby');
+}
+
+async function enterRoom(roomId) {
+    setPhase('room');
+    document.getElementById('roomCode').textContent = 'CODE : ' + roomId.substring(0, 8).toUpperCase();
+    document.getElementById('btnRoomStart').style.display = isHost ? 'inline-block' : 'none';
+    // Charger les joueurs
+    await refreshRoomSlots(roomId);
+    // Subscribe Realtime sur la table game_room_players
+    if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); }
+    currentRoomChannel = _supa.channel('room-' + roomId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'game_room_players', filter: 'room_id=eq.' + roomId }, () => {
+            refreshRoomSlots(roomId);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_rooms', filter: 'id=eq.' + roomId }, (payload) => {
+            if (payload.new.status === 'playing') onMultiGameStart(payload.new);
+        })
+        .subscribe();
+}
+
+async function refreshRoomSlots(roomId) {
+    const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', roomId).order('slot_number');
+    const max = currentRoom ? currentRoom.max_players : 4;
+    const slotsEl = document.getElementById('roomSlots');
+    let html = '';
+    for (let i = 0; i < max; i++) {
+        const p = (players || []).find(x => x.slot_number === i);
+        if (p) {
+            const readyCls = p.ready ? 'yes' : 'no';
+            const readyTxt = p.ready ? 'PRÊT' : '...';
+            html += `<div class="room-slot"><div class="slot-color" style="background:${p.color}"></div><span class="slot-name">${p.pseudo}</span><span class="slot-ready ${readyCls}">${readyTxt}</span></div>`;
+        } else {
+            html += `<div class="room-slot empty"><div class="slot-color" style="background:#333"></div><span class="slot-name" style="color:#64748B;">Slot libre</span></div>`;
+        }
+    }
+    slotsEl.innerHTML = html;
+    // Activer le bouton LANCER si host et tous prêts
+    if (isHost) {
+        const allReady = players && players.length > 0 && players.every(p => p.ready);
+        document.getElementById('btnRoomStart').style.opacity = allReady ? '1' : '0.4';
+    }
+}
+
+async function joinRoom(roomId) {
+    if (!currentUser || !currentProfile) return;
+    // Charger la room
+    const { data: room, error: re } = await _supa.from('game_rooms').select('*').eq('id', roomId).single();
+    if (re || !room || room.status !== 'waiting') { alert('Partie indisponible.'); loadRoomList(); return; }
+    // Trouver le prochain slot libre
+    const { data: players } = await _supa.from('game_room_players').select('slot_number').eq('room_id', roomId);
+    const taken = (players || []).map(p => p.slot_number);
+    let slot = -1;
+    for (let i = 0; i < room.max_players; i++) { if (!taken.includes(i)) { slot = i; break; } }
+    if (slot === -1) { alert('Partie pleine.'); loadRoomList(); return; }
+    const { error } = await _supa.from('game_room_players').insert({
+        room_id: roomId, player_id: currentUser.id,
+        pseudo: currentProfile.pseudo,
+        color: gameState.playerColor || '#C8A0FF',
+        slot_number: slot, ready: false
+    });
+    if (error) { console.warn('Erreur join:', error); return; }
+    currentRoom = room;
+    isHost = (room.host_id === currentUser.id);
+    enterRoom(roomId);
+}
+
+async function createRoom() {
+    console.log('createRoom', currentUser?.id, currentProfile?.pseudo);
+    if (!currentUser || !currentProfile) { console.warn('createRoom: pas connecté'); return; }
+    const settings = { sunCount: 4, difficulty: 'normal', useIA: true, cleanerCount: 3, useAsteroids: true };
+    const { data, error } = await _supa.from('game_rooms').insert({
+        host_id: currentUser.id,
+        host_pseudo: currentProfile.pseudo,
+        settings: settings,
+        max_players: 4,
+        status: 'waiting'
+    }).select().single();
+    console.log('insert room result:', data, error);
+    if (error) { console.warn('Erreur création room:', error); return; }
+    currentRoom = data;
+    isHost = true;
+    // S'ajouter comme joueur slot 0
+    await _supa.from('game_room_players').insert({
+        room_id: data.id, player_id: currentUser.id,
+        pseudo: currentProfile.pseudo,
+        color: gameState.playerColor || '#C8A0FF',
+        slot_number: 0, ready: true
+    });
+    enterRoom(data.id);
+}
+
+async function loadRoomList() {
+    const list = document.getElementById('lobbyRoomList');
+    list.innerHTML = '<p style="color:#64748B; text-align:center; padding:20px; font-size:13px;">Chargement...</p>';
+    const { data, error } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: false }).limit(20);
+    if (error || !data || data.length === 0) {
+        list.innerHTML = '<p style="color:#64748B; text-align:center; padding:20px; font-size:13px;">Aucune partie disponible.</p>';
+        return;
+    }
+    list.innerHTML = data.map(r => {
+        const count = r.game_room_players?.[0]?.count || 0;
+        return `<div class="lobby-room-row" onclick="joinRoom('${r.id}')"><div><span style="color:#E0E7FF; font-size:14px;">${r.host_pseudo}</span><br><span style="color:#64748B; font-size:11px;">${r.settings.sunCount || 4} soleils · ${r.max_players} joueurs</span></div><div style="text-align:right;"><span style="color:#4ADE80; font-family:'Orbitron',monospace; font-size:13px;">${count}/${r.max_players}</span><br><span style="color:#64748B; font-size:10px;">EN ATTENTE</span></div></div>`;
+    }).join('');
+}
+
+document.getElementById('btnMulti').addEventListener('click', () => {
+    playClickSound();
+    fadeTransition(() => setPhase('lobby'));
+});
+document.getElementById('btnLobbyBack').addEventListener('click', () => {
+    playClickSound();
+    fadeTransition(() => setPhase('title'));
+});
+document.getElementById('btnCreateRoom').addEventListener('click', () => {
+    playClickSound();
+    createRoom();
+});
+document.getElementById('btnRoomLeave').addEventListener('click', () => {
+    playClickSound();
+    leaveRoom();
+});
+document.getElementById('btnRoomReady').addEventListener('click', () => {
+    playClickSound();
+    toggleReady();
+});
+document.getElementById('btnRoomStart').addEventListener('click', () => {
+    playClickSound();
+    startMultiGame();
+});
+document.getElementById('btnLeaderboard').addEventListener('click', () => {
+    playClickSound();
+    showLeaderboard();
+});
+
+document.getElementById('btnLeaderboardBack').addEventListener('click', () => {
+    playClickSound();
+    setPhase('title');
+});
+
+async function showLeaderboard() {
+    document.getElementById('titleScreen').classList.add('hidden');
+    document.getElementById('leaderboardScreen').classList.remove('hidden');
+    const body = document.getElementById('leaderboardBody');
+    const empty = document.getElementById('leaderboardEmpty');
+    body.innerHTML = '<tr><td colspan="5" style="color:#94A3B8; text-align:center; padding:20px;">Chargement...</td></tr>';
+    empty.style.display = 'none';
+
+    try {
+        const { data, error } = await _supa.from('leaderboard').select('*').limit(50);
+        if (error) throw error;
+        if (!data || data.length === 0) {
+            body.innerHTML = '';
+            empty.style.display = 'block';
+            return;
+        }
+        body.innerHTML = data.map((row, i) => {
+            const rank = i + 1;
+            const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+            const isMe = currentProfile && row.pseudo === currentProfile.pseudo;
+            const bg = isMe ? 'background:rgba(139,92,246,0.15);' : '';
+            return `<tr style="${bg} border-bottom:1px solid rgba(139,92,246,0.1);">
+                <td style="padding:8px; color:#E0E7FF;">${medal}</td>
+                <td style="padding:8px; color:${row.avatar_color || '#E0E7FF'}; font-weight:${isMe ? 'bold' : 'normal'};">${row.pseudo}</td>
+                <td style="padding:8px; text-align:center; color:#22C55E;">${row.wins}</td>
+                <td style="padding:8px; text-align:center; color:#94A3B8;">${row.total_games}</td>
+                <td style="padding:8px; text-align:center; color:#FBBF24;">${row.win_rate}%</td>
+            </tr>`;
+        }).join('');
+    } catch (e) {
+        body.innerHTML = '<tr><td colspan="5" style="color:#EF4444; text-align:center; padding:20px;">Erreur de chargement</td></tr>';
+        console.warn('Erreur leaderboard:', e);
+    }
+}
+
+document.getElementById('uiResetBtn').addEventListener('click', () => {
+    panelConfig = {};
+    _panelsInitialized = false;
+    for (const id of PANEL_IDS) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const handle = el.querySelector('.panel-drag-handle');
+        if (handle) el.removeChild(handle);
+        el.classList.remove('panel-collapsed');
+        el.style.position = '';
+        el.style.left = '';
+        el.style.top = '';
+        el.style.right = '';
+        el.style.bottom = '';
+        el.style.transform = '';
+        el.style.transformOrigin = '';
+    }
+    const slider = document.getElementById('uiZoomSlider');
+    if (slider) { slider.value = 100; document.getElementById('uiZoomVal').textContent = '100%'; }
+    initPanels();
+    savePanelConfig();
+});
+
+document.querySelectorAll('#eventLog .log-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#eventLog .log-filter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        refreshEventLog();
+    });
 });
 
 initAuth();
