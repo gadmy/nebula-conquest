@@ -1043,9 +1043,11 @@ canvas#gameCanvas.grabbing {
     <h1 class="title-glow" style="font-family:'Orbitron',monospace; font-size:2.5rem; color:#E0E7FF; text-shadow:0 0 30px rgba(139,92,246,0.5); margin-bottom:30px;">NEBULA CONQUEST</h1>
     <div id="authBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:30px; max-width:360px; margin:0 auto; text-align:center;">
         <div id="authStep1">
-            <p style="color:#94A3B8; margin-bottom:16px; font-size:14px;">Entrez votre email pour jouer</p>
+            <p style="color:#94A3B8; margin-bottom:16px; font-size:14px;">Connectez-vous ou créez un compte</p>
             <input type="email" id="authEmail" placeholder="votre@email.com" style="width:100%; padding:10px 14px; background:rgba(30,41,59,0.8); border:1px solid rgba(139,92,246,0.3); border-radius:8px; color:#E0E7FF; font-size:14px; margin-bottom:12px; box-sizing:border-box; outline:none;">
-            <button class="btn" id="btnAuthSend" style="width:100%; margin-top:4px;">ENVOYER LE LIEN</button>
+            <input type="password" id="authPassword" placeholder="Mot de passe (6 car. min)" style="width:100%; padding:10px 14px; background:rgba(30,41,59,0.8); border:1px solid rgba(139,92,246,0.3); border-radius:8px; color:#E0E7FF; font-size:14px; margin-bottom:12px; box-sizing:border-box; outline:none;">
+            <button class="btn" id="btnAuthLogin" style="width:100%; margin-top:4px;">CONNEXION</button>
+            <button class="btn" id="btnAuthSignup" style="width:100%; margin-top:8px; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4);">CRÉER UN COMPTE</button>
             <p id="authMsg" style="color:#8B5CF6; margin-top:12px; font-size:13px; min-height:20px;"></p>
         </div>
         <div id="authStep2" style="display:none;">
@@ -6515,22 +6517,51 @@ async function loadProfile(userId) {
     return data;
 }
 
-document.getElementById('btnAuthSend').addEventListener('click', async () => {
+document.getElementById('btnAuthLogin').addEventListener('click', async () => {
     const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
     const msg = document.getElementById('authMsg');
     if (!email || !email.includes('@')) {
         msg.textContent = 'Entrez un email valide.';
         msg.style.color = '#EF4444';
         return;
     }
-    msg.textContent = 'Envoi en cours...';
+    if (password.length < 6) {
+        msg.textContent = 'Mot de passe : 6 caractères minimum.';
+        msg.style.color = '#EF4444';
+        return;
+    }
+    msg.textContent = 'Connexion...';
     msg.style.color = '#8B5CF6';
-    const { error } = await _supa.auth.signInWithOtp({ email });
+    const { error } = await _supa.auth.signInWithPassword({ email, password });
+    if (error) {
+        msg.textContent = 'Email ou mot de passe incorrect.';
+        msg.style.color = '#EF4444';
+    }
+});
+
+document.getElementById('btnAuthSignup').addEventListener('click', async () => {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const msg = document.getElementById('authMsg');
+    if (!email || !email.includes('@')) {
+        msg.textContent = 'Entrez un email valide.';
+        msg.style.color = '#EF4444';
+        return;
+    }
+    if (password.length < 6) {
+        msg.textContent = 'Mot de passe : 6 caractères minimum.';
+        msg.style.color = '#EF4444';
+        return;
+    }
+    msg.textContent = 'Création du compte...';
+    msg.style.color = '#8B5CF6';
+    const { error } = await _supa.auth.signUp({ email, password });
     if (error) {
         msg.textContent = 'Erreur : ' + error.message;
         msg.style.color = '#EF4444';
     } else {
-        msg.textContent = '✓ Lien envoyé ! Vérifiez votre boîte mail.';
+        msg.textContent = '✓ Compte créé ! Connexion automatique...';
         msg.style.color = '#22C55E';
     }
 });
