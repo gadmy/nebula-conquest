@@ -4388,8 +4388,8 @@ function updateJets(dt) {
                 const rd = (jet.x - rcx) * (jet.x - rcx) + (jet.y - rcy) * (jet.y - rcy);
                 if (rd < closestDist) { closestDist = rd; closestType = rock.type; }
             }
-            // Seulement si le jet est à moins de 25px d'un amas réel
-            if (closestDist > 625) continue; // 25 * 25
+            // Seulement si le jet est à moins de 40px d'un amas réel
+            if (closestDist > 1600) continue; // 40 * 40
             jet._hitBelt[bi] = true;
             if (closestType === 'dark') {
                 // Noir : divise les spores par 2
