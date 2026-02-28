@@ -1300,7 +1300,7 @@ canvas#gameCanvas.grabbing {
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🧬 MULTIPLICITÉ</p>
         <p style="margin-bottom:16px;">Sacrifiez une part de production pour évoluer. Chaque palier = +1 stat permanent. 10 paliers au total.</p>
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🪺 NIDIFICATION</p>
-        <p style="margin-bottom:16px;">Système solaire entièrement conquis → choisissez une planète mère → 5000 spores → elle et ses lunes deviennent invincibles.</p>
+        <p style="margin-bottom:16px;">Système solaire entièrement conquis → choisissez une planète mère → 5000 spores → elle et ses lunes deviennent invincibles. La nidification reste active tant que vous possédez au moins 50% du système. L'appel de nidification ne rassemble que les spores de vos propres astres.</p>
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">⚠️ DANGERS</p>
         <p style="margin-bottom:6px;"><span style="color:#A78BFA;">Trou noir</span> — détruit les jets trop proches, courbe les trajectoires</p>
         <p style="margin-bottom:6px;"><span style="color:#EF4444;">Vaisseaux rouges</span> — attaquent vos jets</p>
@@ -1568,6 +1568,19 @@ canvas#gameCanvas.grabbing {
    ══════════════════════════════════════════════════════════════════════
    DEV LOG
    ──────────────────────────────────────────────────────────────────────
+   v2.4.8 | 2026-02-28 | Corrections, aide & nidification améliorée
+     - Fix auth : système de connexion simplifié et robuste
+     - Fix multijoueur : création de lobby, couleurs uniques par joueur
+     - Fix hitbox : lunes et planètes plus faciles à cliquer
+     - Fix noms joueurs : pseudo affiché partout
+     - Cinématique titre jouée une seule fois
+     - Menu titre réorganisé : rejoindre partie rapide, créer multi, aide
+     - Écran aide complet
+     - Salle d'attente multi avec paramètres et compteur joueurs
+     - Bouton déconnexion
+     - Panneaux de jeu cachés au retour menu
+     - Nidification : planète mère invincible tant que >= 50% du système possédé
+     - Appel de nidification ne rassemble que les spores des astres possédés
    v2.4.7 | 2026-02-27 | Nidification de système solaire
      - Système complet conquis → panneau Nidification avec jauge sacrifice (5000 spores)
      - Choix de la planète mère → couronne visuelle (emoji 👑)
@@ -3015,53 +3028,64 @@ function generateUniverse() {
         });
     }
 
-    // ── Amas de météorites ──
+    // ── Amas de météorites (4 ceintures : 1 interne + 3 externes) ──
     gameState.asteroidBelts = [];
     if (gameState.config.useAsteroids) {
         const beltTypes = ['dark', 'red', 'green'];
         for (const sun of gameState.suns) {
+            const firstPlanet = sun.planets[0];
             const lastPlanet = sun.planets[sun.planets.length - 1];
-            const beltRadius = lastPlanet ? lastPlanet.orbitRadius + 150 + worldRandom() * 80 : sun.radius * 6 + 120;
-            const asteroidCount = 4 + Math.floor(worldRandom() * 7);
-            const rocks = [];
-            for (let a = 0; a < asteroidCount; a++) {
-                const rockType = beltTypes[Math.floor(worldRandom() * 3)];
-                const aAngle = (a / asteroidCount) * Math.PI * 2 + (worldRandom() - 0.5) * 0.4;
-                const rOff = (worldRandom() - 0.5) * 25;
-                const rockCount = 3 + Math.floor(worldRandom() * 4);
-                const subRocks = [];
-                for (let r = 0; r < rockCount; r++) {
-                    // Base gris/marron/noir
-                    const baseR = 50 + Math.floor(worldRandom() * 50);
-                    const baseG = 40 + Math.floor(worldRandom() * 40);
-                    const baseB = 35 + Math.floor(worldRandom() * 35);
-                    // Touche de couleur selon le type (1 rocher sur 3)
-                    let cr = baseR, cg = baseG, cb = baseB;
-                    if (r % 3 === 0) {
-                        if (rockType === 'dark') { cr -= 15; cg -= 15; cb -= 10; }
-                        else if (rockType === 'red') { cr += 60; cg -= 10; cb -= 10; }
-                        else { cr -= 10; cg += 50; cb -= 10; }
+            // 1 ceinture interne (entre le soleil et la première planète)
+            const innerRadius = firstPlanet ? sun.radius * 2.5 + (firstPlanet.orbitRadius - sun.radius * 2.5) * (0.3 + worldRandom() * 0.3) : sun.radius * 4;
+            // 3 ceintures externes (après la dernière planète, espacées)
+            const outerBase = lastPlanet ? lastPlanet.orbitRadius + 100 + worldRandom() * 60 : sun.radius * 6 + 120;
+            const beltRadii = [
+                innerRadius,
+                outerBase,
+                outerBase + 80 + worldRandom() * 60,
+                outerBase + 180 + worldRandom() * 80
+            ];
+            for (let bi = 0; bi < 4; bi++) {
+                const isInner = (bi === 0);
+                const asteroidCount = isInner ? (2 + Math.floor(worldRandom() * 4)) : (3 + Math.floor(worldRandom() * 6));
+                const rocks = [];
+                for (let a = 0; a < asteroidCount; a++) {
+                    const rockType = beltTypes[Math.floor(worldRandom() * 3)];
+                    const aAngle = (a / asteroidCount) * Math.PI * 2 + (worldRandom() - 0.5) * 0.4;
+                    const rOff = (worldRandom() - 0.5) * 25;
+                    const rockCount = 3 + Math.floor(worldRandom() * 4);
+                    const subRocks = [];
+                    for (let r = 0; r < rockCount; r++) {
+                        const baseR = 50 + Math.floor(worldRandom() * 50);
+                        const baseG = 40 + Math.floor(worldRandom() * 40);
+                        const baseB = 35 + Math.floor(worldRandom() * 35);
+                        let cr = baseR, cg = baseG, cb = baseB;
+                        if (r % 3 === 0) {
+                            if (rockType === 'dark') { cr -= 15; cg -= 15; cb -= 10; }
+                            else if (rockType === 'red') { cr += 60; cg -= 10; cb -= 10; }
+                            else { cr -= 10; cg += 50; cb -= 10; }
+                        }
+                        subRocks.push({
+                            offX: (worldRandom() - 0.5) * 16,
+                            offY: (worldRandom() - 0.5) * 16,
+                            size: 2 + worldRandom() * 4,
+                            color: `rgb(${Math.max(0,cr)},${Math.max(0,cg)},${Math.max(0,cb)})`
+                        });
                     }
-                    subRocks.push({
-                        offX: (worldRandom() - 0.5) * 16,
-                        offY: (worldRandom() - 0.5) * 16,
-                        size: 2 + worldRandom() * 4,
-                        color: `rgb(${Math.max(0,cr)},${Math.max(0,cg)},${Math.max(0,cb)})`
+                    rocks.push({
+                        angle: aAngle,
+                        radiusOff: rOff,
+                        subRocks: subRocks,
+                        type: rockType
                     });
                 }
-                rocks.push({
-                    angle: aAngle,
-                    radiusOff: rOff,
-                    subRocks: subRocks,
-                    type: rockType
+                gameState.asteroidBelts.push({
+                    sun: sun,
+                    radius: beltRadii[bi],
+                    orbitSpeed: isInner ? (0.012 + Math.random() * 0.008) : (0.005 + Math.random() * 0.006),
+                    rocks: rocks
                 });
             }
-            gameState.asteroidBelts.push({
-                sun: sun,
-                radius: beltRadius,
-                orbitSpeed: 0.008 + Math.random() * 0.006,
-                rocks: rocks
-            });
         }
     }
 }
@@ -4691,23 +4715,29 @@ function applyConquest(body, jet) {
         body.nids = 0;
         body.biomes = 0;
 
-        // Annuler nidification si une planète du système est perdue
+        // Vérifier nidification : annuler si < 50% du système
         if (oldOwner !== null && gameState.players[oldOwner]) {
             const sunRef = body.type === 'planet' ? body.parent : (body.parent?.parent || null);
             if (sunRef) {
                 const nid = gameState.players[oldOwner].nidification[sunRef.name];
-                if (nid) {
-                    // Si la planète mère elle-même est perdue, reset total
-                    if (nid.motherPlanet) {
+                if (nid && nid.motherPlanet) {
+                    // Compter le % de possession du système
+                    let total = 0, owned = 0;
+                    for (const p of sunRef.planets) {
+                        total++; if (p.owner === oldOwner) owned++;
+                        for (const m of p.moons) { total++; if (m.owner === oldOwner) owned++; }
+                    }
+                    const pct = total > 0 ? owned / total : 0;
+                    if (pct < 0.5) {
+                        // Moins de 50% → annuler la nidification
                         const mother = gameState.allBodies.find(b => b.name === nid.motherPlanet);
                         if (mother) { mother.isMotherPlanet = false; mother.invincible = false; }
-                        // Retirer invincibilité des lunes
                         for (const p of sunRef.planets) {
                             for (const m of p.moons) { m.invincible = false; }
                         }
+                        delete gameState.players[oldOwner].nidification[sunRef.name];
+                        if (oldOwner === localSlot()) addEvent('mine', '💔', 'Nidification perdue (<50%) : système ' + sunRef.name, body, gameState.players[oldOwner]?.color);
                     }
-                    delete gameState.players[oldOwner].nidification[sunRef.name];
-                    if (oldOwner === localSlot()) addEvent('mine', '💔', 'Nidification perdue : système ' + sunRef.name, body, gameState.players[oldOwner]?.color);
                 }
             }
         }
