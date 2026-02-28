@@ -8269,12 +8269,23 @@ document.getElementById('btnAuthPseudo').addEventListener('click', async () => {
 });
 
 async function startMultiGame() {
-    if (!isHost || !currentRoom) return;
-    const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', currentRoom.id).order('slot_number');
-    if (!players || players.length < 2 || !players.every(p => p.ready)) return;
-    // Mettre à jour settings avec le vrai nombre de joueurs
+    if (!isHost || !currentRoom) { console.warn('startMulti: not host or no room'); return; }
+    const { data: players, error } = await _supa.from('game_room_players').select('*').eq('room_id', currentRoom.id).order('slot_number');
+    if (error) { console.warn('startMulti error:', error); return; }
+    if (!players || players.length < 2) {
+        document.getElementById('roomStatus').textContent = 'Il faut au moins 2 joueurs.';
+        document.getElementById('roomStatus').style.color = '#F87171';
+        return;
+    }
+    if (!players.every(p => p.ready)) {
+        document.getElementById('roomStatus').textContent = 'Tous les joueurs doivent être PRÊT.';
+        document.getElementById('roomStatus').style.color = '#F87171';
+        return;
+    }
+    const seed = Math.floor(Math.random() * 2147483647);
     const settings = { ...currentRoom.settings, playerCount: players.length };
-    await _supa.from('game_rooms').update({ status: 'playing', settings }).eq('id', currentRoom.id);
+    const { error: e2 } = await _supa.from('game_rooms').update({ status: 'playing', settings, seed }).eq('id', currentRoom.id);
+    if (e2) { console.warn('startMulti update error:', e2); }
 }
 
 let gameChannel = null;
@@ -8353,14 +8364,18 @@ async function onMultiGameStart(room) {
 }
 
 async function toggleReady() {
-    if (!currentRoom || !currentUser) return;
+    if (!currentRoom || !currentUser) { console.warn('toggleReady: no room or user'); return; }
     const { data: { session } } = await _supa.auth.getSession();
     if (!session) { alert('Session expirée. Reconnectez-vous.'); initAuth(); return; }
-    const { data, error: e1 } = await _supa.from('game_room_players').select('ready').eq('room_id', currentRoom.id).eq('player_id', currentUser.id).single();
-    if (e1) { console.warn('toggleReady select error:', e1); return; }
-    if (!data) return;
-    const { error: e2 } = await _supa.from('game_room_players').update({ ready: !data.ready }).eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
-    if (e2) console.warn('toggleReady update error:', e2);
+    const { data, error: e1 } = await _supa.from('game_room_players').select('ready').eq('room_id', currentRoom.id).eq('player_id', currentUser.id).maybeSingle();
+    if (e1) { console.warn('toggleReady select:', e1); return; }
+    if (!data) { console.warn('toggleReady: player not found in room'); return; }
+    const newReady = !data.ready;
+    const { error: e2 } = await _supa.from('game_room_players').update({ ready: newReady }).eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
+    if (e2) { console.warn('toggleReady update:', e2); return; }
+    const btn = document.getElementById('btnRoomReady');
+    btn.textContent = newReady ? '✓ PRÊT' : 'PRÊT';
+    btn.style.borderColor = newReady ? '#4ADE80' : 'rgba(34,197,94,0.5)';
 }
 
 async function leaveRoom() {
@@ -8430,6 +8445,7 @@ async function refreshRoomSlots(roomId) {
     if (isHost) {
         const allReady = players && players.length > 0 && players.every(p => p.ready);
         document.getElementById('btnRoomStart').style.opacity = allReady ? '1' : '0.4';
+        document.getElementById('btnRoomStart').style.pointerEvents = allReady ? 'auto' : 'none';
     }
     // Auto-lancement pour les rooms auto quand pleine et tous prêts
     if (currentRoom && currentRoom.settings?.mode === 'auto') {
@@ -8620,7 +8636,7 @@ document.getElementById('btnInvite').addEventListener('click', async () => {
     if (!pseudo) { msg.textContent = 'Entrez un pseudo.'; return; }
     if (!currentRoom) { msg.textContent = 'Aucune room active.'; return; }
     // Trouver le joueur par pseudo
-    const { data: target } = await _supa.from('profiles').select('id, pseudo').eq('pseudo', pseudo).single();
+    const { data: target } = await _supa.from('profiles').select('id, pseudo').ilike('pseudo', pseudo).single();
     if (!target) { msg.textContent = 'Joueur "' + pseudo + '" introuvable.'; msg.style.color = '#F87171'; return; }
     // Envoyer l'invitation via Broadcast sur le channel du joueur cible
     const ch = _supa.channel('invite-' + target.id);
