@@ -8007,18 +8007,30 @@ let currentRoom = null;
 let currentRoomChannel = null;
 let isHost = false;
 
-let authHandled = false;
-
-async function handleSession(session) {
-    if (authHandled) return;
-    if (!session || !session.user || !session.user.email) {
-        showAuthScreen();
-        return;
-    }
-    authHandled = true;
-    currentUser = session.user;
-    try {
+async function initAuth() {
+    // 1. Vérifier s'il y a une session existante
+    const { data: { session } } = await _supa.auth.getSession();
+    if (session && session.user) {
+        currentUser = session.user;
         const profile = await loadProfile(currentUser.id);
+        if (profile) {
+            currentProfile = profile;
+            await loadPanelConfig();
+            enterGame();
+            return;
+        }
+        // Session existe mais pas de profil → déconnecter et repartir propre
+        await _supa.auth.signOut();
+    }
+    // Pas de session valide → écran de connexion
+    currentUser = null;
+    currentProfile = null;
+    showAuthScreen();
+}
+
+function onSignedIn(user) {
+    currentUser = user;
+    loadProfile(user.id).then(async (profile) => {
         if (profile) {
             currentProfile = profile;
             await loadPanelConfig();
@@ -8026,34 +8038,7 @@ async function handleSession(session) {
         } else {
             showPseudoStep();
         }
-    } catch(e) {
-        console.warn('Erreur session:', e);
-        authHandled = false;
-        currentUser = null;
-        showAuthScreen();
-    }
-}
-
-async function initAuth() {
-    _supa.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            await handleSession(session);
-        }
-        if (event === 'SIGNED_OUT') {
-            currentUser = null;
-            currentProfile = null;
-            authHandled = false;
-            showAuthScreen();
-        }
     });
-
-    const { data: { session } } = await _supa.auth.getSession();
-    if (session && session.user && session.user.email) {
-        await handleSession(session);
-    } else {
-        authHandled = false;
-        showAuthScreen();
-    }
 }
 
 function showAuthScreen() {
@@ -8103,10 +8088,14 @@ document.getElementById('btnAuthLogin').addEventListener('click', async () => {
     }
     msg.textContent = 'Connexion...';
     msg.style.color = '#8B5CF6';
-    const { error } = await _supa.auth.signInWithPassword({ email, password });
+    const { data, error } = await _supa.auth.signInWithPassword({ email, password });
     if (error) {
         msg.textContent = 'Email ou mot de passe incorrect.';
         msg.style.color = '#EF4444';
+    } else if (data && data.user) {
+        msg.textContent = '✓ Connecté !';
+        msg.style.color = '#22C55E';
+        onSignedIn(data.user);
     }
 });
 
@@ -8126,13 +8115,14 @@ document.getElementById('btnAuthSignup').addEventListener('click', async () => {
     }
     msg.textContent = 'Création du compte...';
     msg.style.color = '#8B5CF6';
-    const { error } = await _supa.auth.signUp({ email, password });
+    const { data, error } = await _supa.auth.signUp({ email, password });
     if (error) {
         msg.textContent = 'Erreur : ' + error.message;
         msg.style.color = '#EF4444';
-    } else {
-        msg.textContent = '✓ Compte créé ! Connexion automatique...';
+    } else if (data && data.user) {
+        msg.textContent = '✓ Compte créé !';
         msg.style.color = '#22C55E';
+        onSignedIn(data.user);
     }
 });
 
@@ -8538,11 +8528,12 @@ document.getElementById('btnLogout').addEventListener('click', async () => {
     try { await _supa.auth.signOut(); } catch(e) { console.warn('Erreur logout:', e); }
     currentUser = null;
     currentProfile = null;
-    authHandled = false;
     document.getElementById('titlePseudo').textContent = '';
     document.getElementById('authStep1').style.display = 'block';
     document.getElementById('authStep2').style.display = 'none';
     document.getElementById('authMsg').textContent = '';
+    document.getElementById('authEmail').value = '';
+    document.getElementById('authPassword').value = '';
     showAuthScreen();
 });
 
