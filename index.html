@@ -1314,7 +1314,10 @@ canvas#gameCanvas.grabbing {
 <!-- ═══ ÉCRAN ROOM (salle d'attente) ═══ -->
 <div id="roomScreen" class="screen hidden">
     <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:6px;">SALLE D'ATTENTE</h2>
-    <p id="roomCode" style="font-family:'Orbitron',monospace; font-size:11px; color:#64748B; letter-spacing:2px; margin-bottom:16px;"></p>
+    <p id="roomCode" style="font-family:'Orbitron',monospace; font-size:11px; color:#64748B; letter-spacing:2px; margin-bottom:8px;"></p>
+    <div id="roomParams" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(200,210,230,0.6); margin-bottom:8px; text-align:center;"></div>
+    <div id="roomCounter" style="font-family:'Orbitron',sans-serif; font-size:22px; color:#4ADE80; text-shadow:0 0 12px rgba(34,197,94,0.4); margin-bottom:14px; text-align:center;"></div>
+    <div id="roomStatus" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#FBBF24; margin-bottom:14px; text-align:center; min-height:20px;"></div>
     <div id="roomBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px; max-width:420px; margin:0 auto;">
         <div id="roomSlots" style="display:flex; flex-direction:column; gap:8px;"></div>
         <div style="display:flex; justify-content:center; gap:10px; margin-top:16px;">
@@ -8224,6 +8227,10 @@ async function enterRoom(roomId) {
     setPhase('room');
     document.getElementById('roomCode').textContent = 'CODE : ' + roomId.substring(0, 8).toUpperCase();
     const isAuto = currentRoom && currentRoom.settings?.mode === 'auto';
+    // Afficher les paramètres de la partie
+    const s = currentRoom ? currentRoom.settings || {} : {};
+    const diffLabel = s.difficulty === 'easy' ? 'Facile' : s.difficulty === 'brutal' ? 'Brutal' : 'Normal';
+    document.getElementById('roomParams').innerHTML = `${s.sunCount || 4} soleils · ${diffLabel} · ${s.useAsteroids !== false ? 'Météorites' : 'Sans météorites'} · ${s.cleanerCount || 0} vaisseaux`;
     document.getElementById('btnRoomStart').style.display = (isHost && !isAuto) ? 'inline-block' : 'none';
     document.getElementById('btnRoomReady').style.display = isAuto ? 'none' : 'inline-block';
     // Charger les joueurs
@@ -8256,6 +8263,16 @@ async function refreshRoomSlots(roomId) {
         }
     }
     slotsEl.innerHTML = html;
+    // Compteur joueurs
+    const count = (players || []).length;
+    document.getElementById('roomCounter').textContent = count + ' / ' + max;
+    if (count >= max) {
+        document.getElementById('roomStatus').textContent = '✓ PARTIE COMPLÈTE — LANCEMENT...';
+        document.getElementById('roomStatus').style.color = '#4ADE80';
+    } else {
+        document.getElementById('roomStatus').textContent = 'En attente de joueurs...';
+        document.getElementById('roomStatus').style.color = '#FBBF24';
+    }
     // Activer le bouton LANCER si host et tous prêts
     if (isHost) {
         const allReady = players && players.length > 0 && players.every(p => p.ready);
