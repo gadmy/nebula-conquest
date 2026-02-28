@@ -2002,8 +2002,8 @@ const gameState = {
         ctx: null,
         masterGain: null,
         ambDrone: null,
-        volume: 0.4,
-        muted: false,
+        volume: 0,
+        muted: true,
         initialized: false,
         tension: 0,
         tensionTarget: 0,
@@ -3047,7 +3047,7 @@ function generateUniverse() {
             ];
             for (let bi = 0; bi < 4; bi++) {
                 const isInner = (bi === 0);
-                const asteroidCount = isInner ? (2 + Math.floor(worldRandom() * 4)) : (3 + Math.floor(worldRandom() * 6));
+                const asteroidCount = isInner ? 1 : (3 + Math.floor(worldRandom() * 6));
                 const rocks = [];
                 for (let a = 0; a < asteroidCount; a++) {
                     const rockType = beltTypes[Math.floor(worldRandom() * 3)];
@@ -4611,7 +4611,7 @@ function checkJetCollision(jet) {
 
     const bodies = gameState.allBodies;
     for (const body of bodies) {
-        if (body === jet.source && jet.age < 2) continue;
+        if (body === jet.source) continue;
         const dx = body.x - jet.x;
         const dy = body.y - jet.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
@@ -7864,7 +7864,7 @@ function refreshEventLog() {
     const cat = activeFilter ? activeFilter.dataset.cat : 'all';
     const filtered = cat === 'all' ? gameState.eventLog : gameState.eventLog.filter(e => e.cat === cat);
     logBody.innerHTML = filtered.slice(0, 50).map((e, i) =>
-        `<div class="log-entry" data-idx="${i}"><span class="log-time">${e.time}</span><span class="log-icon" style="color:${e.color}">${e.icon}</span><span class="log-text">${e.text}</span></div>`
+        `<div class="log-entry" data-idx="${i}"><span class="log-time">${e.time}</span><span class="log-icon" style="color:${e.color}">${e.icon}</span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${e.color};margin:0 4px;vertical-align:middle;"></span><span class="log-text">${e.text}</span></div>`
     ).join('');
     logBody.querySelectorAll('.log-entry').forEach(el => {
         el.addEventListener('click', () => {
@@ -7887,7 +7887,7 @@ window.addEventListener('load', init);
 <!-- ═══ VOLUME ═══ -->
 <div id="volumeControl">
     <span class="vol-icon" id="volToggle">🔊</span>
-    <input type="range" id="volSlider" min="0" max="100" value="40">
+    <input type="range" id="volSlider" min="0" max="100" value="0">
 </div>
 
 <!-- ═══ ÉCRAN DE FIN ═══ -->
