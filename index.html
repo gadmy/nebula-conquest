@@ -8099,26 +8099,47 @@ let currentRoomChannel = null;
 let isHost = false;
 
 async function initAuth() {
-    // 1. Vérifier s'il y a une session existante
-    const { data: { session } } = await _supa.auth.getSession();
-    if (session && session.user) {
-        currentUser = session.user;
-        const profile = await loadProfile(currentUser.id);
-        if (profile) {
-            currentProfile = profile;
-            await loadPanelConfig();
-            enterGame();
+    try {
+        const { data: { session }, error } = await _supa.auth.getSession();
+        if (error) {
+            console.warn('Session invalide, nettoyage...', error.message);
+            await _supa.auth.signOut();
+            currentUser = null;
+            currentProfile = null;
+            if (inviteChannel) { _supa.removeChannel(inviteChannel); inviteChannel = null; }
+            showAuthScreen();
             return;
         }
-        // Session existe mais pas de profil → déconnecter et repartir propre
-        await _supa.auth.signOut();
+        if (session && session.user) {
+            currentUser = session.user;
+            const profile = await loadProfile(currentUser.id);
+            if (profile) {
+                currentProfile = profile;
+                await loadPanelConfig();
+                enterGame();
+                return;
+            }
+            await _supa.auth.signOut();
+        }
+    } catch(e) {
+        console.warn('Erreur auth init:', e);
+        await _supa.auth.signOut().catch(() => {});
     }
-    // Pas de session valide → écran de connexion
     currentUser = null;
     currentProfile = null;
     if (inviteChannel) { _supa.removeChannel(inviteChannel); inviteChannel = null; }
     showAuthScreen();
 }
+
+_supa.auth.onAuthStateChange((event, session) => {
+    if (event === 'TOKEN_REFRESHED' && session) {
+        currentUser = session.user;
+    }
+    if (event === 'SIGNED_OUT') {
+        currentUser = null;
+        currentProfile = null;
+    }
+});
 
 function onSignedIn(user) {
     currentUser = user;
@@ -8333,9 +8354,13 @@ async function onMultiGameStart(room) {
 
 async function toggleReady() {
     if (!currentRoom || !currentUser) return;
-    const { data } = await _supa.from('game_room_players').select('ready').eq('room_id', currentRoom.id).eq('player_id', currentUser.id).single();
+    const { data: { session } } = await _supa.auth.getSession();
+    if (!session) { alert('Session expirée. Reconnectez-vous.'); initAuth(); return; }
+    const { data, error: e1 } = await _supa.from('game_room_players').select('ready').eq('room_id', currentRoom.id).eq('player_id', currentUser.id).single();
+    if (e1) { console.warn('toggleReady select error:', e1); return; }
     if (!data) return;
-    await _supa.from('game_room_players').update({ ready: !data.ready }).eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
+    const { error: e2 } = await _supa.from('game_room_players').update({ ready: !data.ready }).eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
+    if (e2) console.warn('toggleReady update error:', e2);
 }
 
 async function leaveRoom() {
