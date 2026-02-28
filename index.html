@@ -125,6 +125,13 @@ canvas#gameCanvas.grabbing {
     opacity: 0;
     animation: fadeInUp 0.6s 2s forwards;
 }
+#titleScreen.no-intro .btn,
+#titleScreen.no-intro .subtitle,
+#titleScreen.no-intro .title-letter {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+}
 
 #titleScreen .subtitle {
     opacity: 0;
@@ -1217,6 +1224,8 @@ canvas#gameCanvas.grabbing {
     <button class="btn" id="btnNewGame">NOUVELLE PARTIE</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">MULTIJOUEUR</button>
     <button class="btn" id="btnLeaderboard" style="margin-top:8px; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4);">CLASSEMENT</button>
+    <button class="btn" id="btnHelp" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">AIDE</button>
+    <div id="titlePseudo" style="margin-top:20px; font-family:'Orbitron',sans-serif; font-size:11px; color:rgba(200,170,255,0.5); letter-spacing:2px;"></div>
 </div>
 
 <!-- ═══ ÉCRAN LEADERBOARD ═══ -->
@@ -1238,6 +1247,48 @@ canvas#gameCanvas.grabbing {
         <p id="leaderboardEmpty" style="color:#94A3B8; text-align:center; padding:20px; display:none;">Aucune partie enregistrée.</p>
     </div>
     <button class="btn" id="btnLeaderboardBack" style="margin-top:16px;">RETOUR</button>
+</div>
+
+<!-- ═══ ÉCRAN AIDE ═══ -->
+<div id="helpScreen" class="screen hidden">
+    <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:20px; letter-spacing:3px;">AIDE</h2>
+    <div style="background:rgba(15,23,42,0.92); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px 28px; max-width:560px; margin:0 auto; max-height:65vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(100,180,255,0.3) transparent; font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.85); line-height:1.6;">
+        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🎯 OBJECTIF</p>
+        <p style="margin-bottom:16px;">Conquérir <span style="color:#FFD700;">80%</span> des astres de la galaxie. Colonisez des planètes et des lunes en envoyant vos <span style="color:#C8A0FF;">spores</span> à travers l'espace.</p>
+        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🚀 CONTRÔLES</p>
+        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">Clic maintenu + glisser</span> depuis un astre possédé → lance un jet de spores vers la cible</p>
+        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">Clic droit + glisser</span> → déplacer la caméra</p>
+        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">Molette</span> → zoom / dézoom</p>
+        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">Échap</span> → pause (solo uniquement)</p>
+        <p style="margin-bottom:16px;"><span style="color:#E9D5FF;">Clic sur un astre</span> → ouvre le codex (infos détaillées)</p>
+        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🧬 SPORES & CONQUÊTE</p>
+        <p style="margin-bottom:6px;">Vos planètes produisent des spores automatiquement. La <span style="color:#4ADE80;">Flore</span> détermine la vitesse de production.</p>
+        <p style="margin-bottom:6px;">Pour conquérir un astre ennemi ou neutre, vos spores doivent d'abord vaincre sa <span style="color:#EF4444;">Faune</span> (défense naturelle), puis ses spores.</p>
+        <p style="margin-bottom:16px;">Plus vous envoyez de spores, plus le jet est puissant — mais vous laissez aussi l'astre d'origine vulnérable !</p>
+        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">📊 STATS DU COMMANDANT</p>
+        <p style="margin-bottom:6px;"><span style="color:#4ADE80;">Croissance</span> — augmente la vitesse de production de spores (+5%/pt)</p>
+        <p style="margin-bottom:6px;"><span style="color:#60A5FA;">Vélocité</span> — augmente la vitesse des jets (+5%/pt)</p>
+        <p style="margin-bottom:16px;"><span style="color:#F472B6;">Densité</span> — augmente la puissance des jets à l'impact (+5%/pt)</p>
+        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🏗️ NIDS & BIOMES</p>
+        <p style="margin-bottom:6px;"><span style="color:#4ADE80;">Nid</span> — augmente la production locale (+0.2%/nid)</p>
+        <p style="margin-bottom:6px;"><span style="color:#3B82F6;">Biome</span> — augmente la défense locale (+0.2%/biome)</p>
+        <p style="margin-bottom:16px;">Activez dans le codex d'un astre possédé (clic sur l'astre).</p>
+        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🧬 MULTIPLICITÉ</p>
+        <p style="margin-bottom:16px;">Sacrifiez une part de production pour évoluer. Chaque palier = +1 stat permanent. 10 paliers au total.</p>
+        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🪺 NIDIFICATION</p>
+        <p style="margin-bottom:16px;">Système solaire entièrement conquis → choisissez une planète mère → 5000 spores → elle et ses lunes deviennent invincibles.</p>
+        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">⚠️ DANGERS</p>
+        <p style="margin-bottom:6px;"><span style="color:#A78BFA;">Trou noir</span> — détruit les jets trop proches, courbe les trajectoires</p>
+        <p style="margin-bottom:6px;"><span style="color:#EF4444;">Vaisseaux rouges</span> — attaquent vos jets</p>
+        <p style="margin-bottom:6px;"><span style="color:#4ADE80;">Vaisseaux verts</span> — doublent les jets croisés</p>
+        <p style="margin-bottom:6px;"><span style="color:#888;">Vaisseaux noirs</span> — renvoient vos jets contre vous</p>
+        <p style="margin-bottom:6px;"><span style="color:#888;">Astéroïdes noirs</span> ÷2 · <span style="color:#EF4444;">rouges</span> dévient · <span style="color:#4ADE80;">verts</span> ×5</p>
+        <p style="margin-bottom:16px;"><span style="color:#60A5FA;">Comètes</span> — détruisent les spores au contact</p>
+        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">💡 ASTUCES</p>
+        <p style="margin-bottom:6px;">La <span style="color:#22C55E;">symbiose</span> augmente avec le temps (+20% prod planètes, +10% lunes).</p>
+        <p>Les panneaux d'interface sont déplaçables et rétractables !</p>
+    </div>
+    <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
 </div>
 
 <!-- ═══ ÉCRAN LOBBY MULTI ═══ -->
@@ -1483,7 +1534,7 @@ canvas#gameCanvas.grabbing {
 
 <!-- ═══ PAUSE ═══ -->
 <div id="pauseOverlay">
-    <h2>PAUSE</h2>
+    <h2 id="pauseTitle">PAUSE</h2>
     <button class="btn" id="btnResume">REPRENDRE</button>
     <button class="btn" id="btnQuit">QUITTER</button>
 </div>
@@ -3135,8 +3186,36 @@ function setupUI() {
     document.getElementById('btnNewGame').addEventListener('click', () => { ensureAudio(); playClickSound(); fadeTransition(() => setPhase('config')); });
     document.getElementById('btnBack').addEventListener('click', () => { playClickSound(); fadeTransition(() => setPhase('title')); });
     document.getElementById('btnStart').addEventListener('click', () => { playClickSound(); fadeTransition(() => startGame()); });
-    document.getElementById('btnResume').addEventListener('click', () => { playClickSound(); togglePause(); });
-    document.getElementById('btnQuit').addEventListener('click', () => { playClickSound(); setPhase('title'); });
+    document.getElementById('btnResume').addEventListener('click', () => {
+        playClickSound();
+        if (gameState.isMulti) {
+            document.getElementById('pauseOverlay').classList.remove('active');
+        } else {
+            togglePause();
+        }
+    });
+    document.getElementById('btnQuit').addEventListener('click', () => {
+        playClickSound();
+        document.getElementById('pauseOverlay').classList.remove('active');
+        if (gameState.isMulti && currentRoom) {
+            const slot = localSlot();
+            const player = gameState.players[slot];
+            if (player && player.alive) {
+                player.isHuman = false;
+                player.isLocal = false;
+                player.aiTimer = 0;
+                player.aiCooldown = gameState.config.difficulty === 'easy' ? 3 : gameState.config.difficulty === 'normal' ? 1.5 : 0.5;
+                player.name = 'IA-' + player.name;
+                sendAction('playerLeft', { slot: slot });
+                addEvent('neutral', '🚪', player.name + ' a quitté (remplacé par IA)', null, player.color);
+            }
+            _leftRoom = { roomId: currentRoom.id, slot: slot, gameStateBackup: gameState };
+            if (gameChannel) { _supa.removeChannel(gameChannel); gameChannel = null; }
+        }
+        gameState.running = false;
+        stopAmbiance();
+        setPhase('title');
+    });
     document.getElementById('codexClose').addEventListener('click', closeCodex);
     document.getElementById('btnReplay').addEventListener('click', () => { hideEndScreen(); startGame(); });
     setupMinimap();
@@ -3187,6 +3266,7 @@ function setPhase(phase) {
     document.getElementById('authScreen').classList.add('hidden');
     document.getElementById('titleScreen').classList.add('hidden');
     document.getElementById('leaderboardScreen').classList.add('hidden');
+    document.getElementById('helpScreen').classList.add('hidden');
     document.getElementById('eventLog').style.display = 'none';
     document.getElementById('configScreen').classList.add('hidden');
     document.getElementById('lobbyScreen').classList.add('hidden');
@@ -3203,6 +3283,7 @@ function setPhase(phase) {
     switch (phase) {
         case 'title':
             document.getElementById('titleScreen').classList.remove('hidden');
+            if (_titleAnimPlayed) document.getElementById('titleScreen').classList.add('no-intro');
             gameState.running = false;
             gameState.isMulti = false;
             gameState.multiSeed = null;
@@ -3242,13 +3323,22 @@ function setPhase(phase) {
         case 'paused':
             document.getElementById('gameCanvas').style.display = 'block';
             document.getElementById('gameHud').style.display = 'block';
+            document.getElementById('pauseTitle').textContent = 'PAUSE';
             document.getElementById('pauseOverlay').classList.add('active');
             break;
     }
 }
 
 function togglePause() {
-    if (gameState.isMulti) return;
+    if (gameState.isMulti) {
+        if (gameState.phase === 'game') {
+            document.getElementById('pauseTitle').textContent = 'MENU';
+            document.getElementById('pauseOverlay').classList.add('active');
+        } else {
+            document.getElementById('pauseOverlay').classList.remove('active');
+        }
+        return;
+    }
     if (gameState.phase === 'game') {
         gameState.phase = 'paused';
         setPhase('paused');
@@ -3258,7 +3348,10 @@ function togglePause() {
     }
 }
 
+let _leftRoom = null;
+
 function startGame() {
+    _leftRoom = null;
     // Afficher le loading
     document.getElementById('loadingScreen').classList.remove('hidden');
     updateLoadingBar(0, 'Génération de l\'espace...');
@@ -3450,7 +3543,7 @@ function createPlayers() {
     // Mode solo
     gameState.players.push({
         id: 0,
-        name: (currentProfile && currentProfile.pseudo) ? currentProfile.pseudo : 'Joueur',
+        name: (currentProfile && currentProfile.pseudo) ? currentProfile.pseudo : 'Commandant',
         color: gameState.playerColor,
         isHuman: true,
         isLocal: true,
@@ -3782,7 +3875,7 @@ function handleSpawnClick(worldX, worldY) {
         const dx = p.x - worldX;
         const dy = p.y - worldY;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < p.radius + 10 && dist < closestDist) {
+        if (dist < Math.max(p.radius + 14, 20) && dist < closestDist) {
             closest = p;
             closestDist = dist;
         }
@@ -4499,8 +4592,8 @@ function checkJetCollision(jet) {
                         });
                         const bT = body.type === 'planet' ? 'Planète' : 'Lune';
                         const chColor = oldOwner !== null ? (gameState.players[oldOwner]?.color || '#888') : '#888';
-                        if (oldOwner === 0) addEvent('mine', '↩', `${bT} ${body.name} chassé par vaisseau !`, body, chColor);
-                        else addEvent('war', '↩', `${bT} ${body.name} chassé (Joueur ${oldOwner})`, body, chColor);
+                        if (oldOwner === localSlot()) addEvent('mine', '↩', `${bT} ${body.name} chassé par vaisseau !`, body, chColor);
+                        else addEvent('war', '↩', `${bT} ${body.name} chassé (${gameState.players[oldOwner]?.name || 'IA-'+oldOwner})`, body, chColor);
                     }
                     jet.alive = false;
                     return;
@@ -4604,18 +4697,18 @@ function applyConquest(body, jet) {
         gameState.gameStats.bodiesConquered++;
 
         // Log événement
-        const attackerName = gameState.players[jet.owner]?.name || 'Joueur ' + jet.owner;
+        const attackerName = gameState.players[jet.owner]?.name || 'IA-' + jet.owner;
         const bType = body.type === 'planet' ? 'Planète' : 'Lune';
         const aColor = gameState.players[jet.owner]?.color || '#AAA';
         const oColor = oldOwner !== null ? (gameState.players[oldOwner]?.color || '#AAA') : '#AAA';
         if (oldOwner === null) {
             addEvent('neutral', '🏳️', `${bType} ${body.name} colonisée par ${attackerName}`, body, aColor);
-        } else if (jet.owner === 0) {
+        } else if (jet.owner === localSlot()) {
             addEvent('mine', '⚔️', `${bType} ${body.name} conquise !`, body, aColor);
-        } else if (oldOwner === 0) {
+        } else if (oldOwner === localSlot()) {
             addEvent('mine', '💀', `${bType} ${body.name} perdue ! (${attackerName})`, body, aColor);
         } else {
-            addEvent('war', '⚔️', `${bType} ${body.name} : ${attackerName} prend à Joueur ${oldOwner}`, body, aColor);
+            addEvent('war', '⚔️', `${bType} ${body.name} : ${attackerName} prend à ${gameState.players[oldOwner]?.name || 'IA-'+oldOwner}`, body, aColor);
         }
 
         // Effet d'éclosion
@@ -5006,11 +5099,13 @@ function findBodyAt(wx, wy) {
     // Chercher lunes, puis planètes, puis soleils (plus petit d'abord)
     for (const m of gameState.moons) {
         const dx = m.x - wx, dy = m.y - wy;
-        if (dx*dx + dy*dy < (m.radius + 12) * (m.radius + 12)) return m;
+        const hr = Math.max(m.radius + 18, 22);
+        if (dx*dx + dy*dy < hr * hr) return m;
     }
     for (const p of gameState.planets) {
         const dx = p.x - wx, dy = p.y - wy;
-        if (dx*dx + dy*dy < (p.radius + 10) * (p.radius + 10)) return p;
+        const hr = Math.max(p.radius + 14, 20);
+        if (dx*dx + dy*dy < hr * hr) return p;
     }
     for (const s of gameState.suns) {
         const dx = s.x - wx, dy = s.y - wy;
@@ -7424,8 +7519,10 @@ function updateOrbitHum() {
 // ─────────────────────────────────────────────
 // ÉCRAN TITRE — Animation
 // ─────────────────────────────────────────────
+let _titleAnimPlayed = false;
 function animateTitleScreen() {
     const title = document.getElementById('titleText');
+    if (!_titleAnimPlayed) {
     const text = 'NEBULA CONQUEST';
     title.innerHTML = '';
 
@@ -7436,6 +7533,8 @@ function animateTitleScreen() {
         span.textContent = text[i] === ' ' ? '\u00A0' : text[i];
         span.style.animationDelay = (i * 0.08) + 's';
         title.appendChild(span);
+    }
+    _titleAnimPlayed = true;
     }
 
     // Canvas étoiles filantes en fond
@@ -7916,9 +8015,7 @@ async function initAuth() {
     });
 
     const { data: { session } } = await _supa.auth.getSession();
-    if (session) {
-        await handleSession(session);
-    } else {
+    if (!session) {
         showAuthScreen();
     }
 }
@@ -7937,6 +8034,8 @@ function showPseudoStep() {
 
 function enterGame() {
     document.getElementById('authScreen').classList.add('hidden');
+    const pseudoEl = document.getElementById('titlePseudo');
+    if (pseudoEl && currentProfile) pseudoEl.textContent = '⬡ ' + currentProfile.pseudo;
     setPhase('title');
 }
 
@@ -8072,6 +8171,18 @@ function handleRemoteAction(payload) {
         case 'multi':
             applyMultiChoice(player, payload.stat);
             break;
+        case 'playerLeft':
+            player.isHuman = false;
+            player.aiTimer = 0;
+            player.aiCooldown = gameState.config.difficulty === 'easy' ? 3 : gameState.config.difficulty === 'normal' ? 1.5 : 0.5;
+            player.name = 'IA-' + player.name;
+            addEvent('neutral', '🚪', player.name + ' a quitté (remplacé par IA)', null, player.color);
+            break;
+        case 'playerRejoined':
+            player.isHuman = true;
+            player.name = player.name.replace(/^IA-/, '');
+            addEvent('neutral', '🔄', player.name + ' a repris le contrôle', null, player.color);
+            break;
     }
 }
 
@@ -8124,7 +8235,7 @@ async function leaveRoom() {
 async function enterRoom(roomId) {
     setPhase('room');
     document.getElementById('roomCode').textContent = 'CODE : ' + roomId.substring(0, 8).toUpperCase();
-    const isAuto = room.settings?.mode === 'auto';
+    const isAuto = currentRoom && currentRoom.settings?.mode === 'auto';
     document.getElementById('btnRoomStart').style.display = (isHost && !isAuto) ? 'inline-block' : 'none';
     document.getElementById('btnRoomReady').style.display = isAuto ? 'none' : 'inline-block';
     // Charger les joueurs
@@ -8242,6 +8353,40 @@ async function createRoom(mode = 'custom', settings = null, maxPlayers = 4) {
     enterRoom(data.id);
 }
 
+async function rejoinGame() {
+    if (!_leftRoom) return;
+    const { roomId, slot, gameStateBackup } = _leftRoom;
+    // Vérifier que la room existe encore
+    const { data: room } = await _supa.from('game_rooms').select('*').eq('id', roomId).single();
+    if (!room || room.status !== 'playing') {
+        _leftRoom = null;
+        alert('La partie est terminée.');
+        return;
+    }
+    currentRoom = room;
+    mySlot = slot;
+    gameState.isMulti = true;
+    setupGameChannel(roomId);
+    // Reprendre le contrôle du joueur
+    const player = gameState.players[slot];
+    if (player) {
+        player.isHuman = true;
+        player.isLocal = true;
+        player.name = player.name.replace(/^IA-/, '');
+        sendAction('playerRejoined', { slot: slot });
+        addEvent('neutral', '🔄', player.name + ' a repris le contrôle', null, player.color);
+    }
+    _leftRoom = null;
+    document.getElementById('gameCanvas').style.display = 'block';
+    document.getElementById('gameHud').style.display = 'block';
+    document.getElementById('minimap').style.display = 'block';
+    document.getElementById('uiZoomControl').style.display = 'block';
+    document.getElementById('eventLog').style.display = 'block';
+    gameState.phase = 'game';
+    gameState.running = true;
+    initPanels();
+}
+
 async function loadRoomList() {
     const list = document.getElementById('lobbyRoomList');
     list.innerHTML = '<p style="color:#64748B; text-align:center; padding:20px; font-size:13px;">Chargement...</p>';
@@ -8260,6 +8405,14 @@ async function loadRoomList() {
 
 document.getElementById('btnMulti').addEventListener('click', () => {
     playClickSound();
+    if (_leftRoom) {
+        if (confirm('Vous avez une partie en cours. Rejoindre ?')) {
+            rejoinGame();
+            return;
+        }
+        alert('Vous devez attendre la fin de votre partie ou y retourner.');
+        return;
+    }
     fadeTransition(() => setPhase('lobby'));
 });
 document.getElementById('btnLobbyBack').addEventListener('click', () => {
@@ -8289,6 +8442,17 @@ document.getElementById('btnRoomStart').addEventListener('click', () => {
 document.getElementById('btnLeaderboard').addEventListener('click', () => {
     playClickSound();
     showLeaderboard();
+});
+
+document.getElementById('btnHelp').addEventListener('click', () => {
+    playClickSound();
+    document.getElementById('titleScreen').classList.add('hidden');
+    document.getElementById('helpScreen').classList.remove('hidden');
+});
+
+document.getElementById('btnHelpBack').addEventListener('click', () => {
+    playClickSound();
+    setPhase('title');
 });
 
 document.getElementById('btnLeaderboardBack').addEventListener('click', () => {
