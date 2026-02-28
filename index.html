@@ -127,10 +127,28 @@ canvas#gameCanvas.grabbing {
 }
 #titleScreen.no-intro .btn,
 #titleScreen.no-intro .subtitle,
-#titleScreen.no-intro .title-letter {
+#titleScreen.no-intro .title-letter,
+#titleScreen.no-intro #quickMatchPanel,
+#titleScreen.no-intro #titlePseudo,
+#titleScreen.no-intro #btnLogout {
     opacity: 1 !important;
     transform: none !important;
     animation: none !important;
+}
+
+#quickMatchPanel {
+    opacity: 0;
+    animation: fadeInUp 0.6s 2s forwards;
+}
+
+#titlePseudo {
+    opacity: 0;
+    animation: fadeInUp 0.5s 2.2s forwards;
+}
+
+#titleScreen #btnLogout {
+    opacity: 0;
+    animation: fadeInUp 0.5s 2.4s forwards;
 }
 
 #titleScreen .subtitle {
@@ -3271,12 +3289,20 @@ function setPhase(phase) {
 
     document.getElementById('myPlanets').style.display = 'none';
     document.getElementById('minimap').style.display = 'none';
+    document.getElementById('uiZoomControl').style.display = 'none';
+    document.getElementById('sporeCounter').style.display = 'none';
+    document.getElementById('evoPanel').style.display = 'none';
+    document.getElementById('scoreBoard').style.display = 'none';
+    document.getElementById('codex').classList.remove('open');
+    document.getElementById('volumeControl').style.display = 'none';
 
     switch (phase) {
         case 'title':
             document.getElementById('titleScreen').classList.remove('hidden');
             if (_titleAnimPlayed) document.getElementById('titleScreen').classList.add('no-intro');
             gameState.running = false;
+            const _pEl = document.getElementById('titlePseudo');
+            if (_pEl) _pEl.textContent = currentProfile ? '⬡ ' + currentProfile.pseudo : '';
             if (currentProfile) updateQuickMatchPanel();
             gameState.isMulti = false;
             gameState.multiSeed = null;
@@ -3310,6 +3336,10 @@ function setPhase(phase) {
             document.getElementById('minimap').style.display = 'block';
             document.getElementById('uiZoomControl').style.display = 'block';
             document.getElementById('eventLog').style.display = 'block';
+            document.getElementById('sporeCounter').style.display = 'block';
+            document.getElementById('evoPanel').style.display = 'block';
+            document.getElementById('scoreBoard').style.display = 'block';
+            document.getElementById('volumeControl').style.display = 'flex';
             initPanels();
             break;
         case 'paused':
@@ -8006,7 +8036,7 @@ async function handleSession(session) {
 
 async function initAuth() {
     _supa.auth.onAuthStateChange(async (event, session) => {
-        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+        if (event === 'SIGNED_IN' && session) {
             await handleSession(session);
         }
         if (event === 'SIGNED_OUT') {
@@ -8018,7 +8048,9 @@ async function initAuth() {
     });
 
     const { data: { session } } = await _supa.auth.getSession();
-    if (!session || !session.user || !session.user.email) {
+    if (session && session.user && session.user.email) {
+        await handleSession(session);
+    } else {
         authHandled = false;
         showAuthScreen();
     }
@@ -8326,7 +8358,11 @@ async function joinRoom(roomId) {
 }
 
 async function quickMatch() {
-    if (!currentUser || !currentProfile) return;
+    if (!currentUser || !currentProfile) {
+        alert('Vous devez être connecté pour jouer en ligne.');
+        showAuthScreen();
+        return;
+    }
     // Chercher une room auto en attente avec de la place
     const { data: rooms } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: true }).limit(20);
     if (rooms) {
@@ -8499,10 +8535,14 @@ document.getElementById('btnRoomStart').addEventListener('click', () => {
 });
 document.getElementById('btnLogout').addEventListener('click', async () => {
     playClickSound();
-    await _supa.auth.signOut();
+    try { await _supa.auth.signOut(); } catch(e) { console.warn('Erreur logout:', e); }
     currentUser = null;
     currentProfile = null;
     authHandled = false;
+    document.getElementById('titlePseudo').textContent = '';
+    document.getElementById('authStep1').style.display = 'block';
+    document.getElementById('authStep2').style.display = 'none';
+    document.getElementById('authMsg').textContent = '';
     showAuthScreen();
 });
 
