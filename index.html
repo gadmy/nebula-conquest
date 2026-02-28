@@ -1221,8 +1221,13 @@ canvas#gameCanvas.grabbing {
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
     <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL</div>
-    <button class="btn" id="btnNewGame">NOUVELLE PARTIE</button>
-    <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">MULTIJOUEUR</button>
+    <div id="quickMatchPanel" style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:14px 22px; margin-bottom:14px; min-width:340px; text-align:center;">
+        <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(34,197,94,0.5); letter-spacing:2px; margin-bottom:8px;">PROCHAINE PARTIE EN LIGNE</div>
+        <div id="qmParams" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(200,210,230,0.7); margin-bottom:10px;">Chargement...</div>
+        <button class="btn" id="btnQuickMatch" style="width:100%; font-size:14px; padding:10px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.6); color:#4ADE80; letter-spacing:3px;">▶ REJOINDRE</button>
+    </div>
+    <button class="btn" id="btnNewGame">NOUVELLE PARTIE (SOLO)</button>
+    <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">CRÉER PARTIE MULTI</button>
     <button class="btn" id="btnLeaderboard" style="margin-top:8px; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4);">CLASSEMENT</button>
     <button class="btn" id="btnHelp" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">AIDE</button>
     <div id="titlePseudo" style="margin-top:20px; font-family:'Orbitron',sans-serif; font-size:11px; color:rgba(200,170,255,0.5); letter-spacing:2px;"></div>
@@ -1291,18 +1296,17 @@ canvas#gameCanvas.grabbing {
     <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
 </div>
 
-<!-- ═══ ÉCRAN LOBBY MULTI ═══ -->
+<!-- ═══ ÉCRAN CRÉER PARTIE MULTI ═══ -->
 <div id="lobbyScreen" class="screen hidden">
-    <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:20px;">MULTIJOUEUR</h2>
-    <div id="lobbyBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px; max-width:520px; margin:0 auto; max-height:60vh; overflow-y:auto;">
-        <button class="btn" id="btnQuickMatch" style="width:100%; margin-bottom:14px; font-size:15px; padding:12px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.6); color:#4ADE80; letter-spacing:3px;">▶ REJOINDRE UNE PARTIE</button>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <span style="color:#94A3B8; font-size:13px;">Parties ouvertes</span>
-            <button class="btn" id="btnCreateRoom" style="font-size:12px; padding:8px 16px; background:rgba(34,197,94,0.2); border-color:rgba(34,197,94,0.5); color:#4ADE80;">+ CRÉER</button>
-        </div>
-        <div id="lobbyRoomList" style="min-height:60px;">
-            <p style="color:#64748B; text-align:center; padding:20px; font-size:13px;">Chargement...</p>
-        </div>
+    <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:20px;">CRÉER UNE PARTIE</h2>
+    <div id="lobbyBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px; max-width:420px; margin:0 auto;">
+        <div class="config-row"><label>Soleils</label><input type="range" id="multiCfgSuns" min="1" max="8" value="4"><span class="val" id="multiCfgSunsVal">4</span></div>
+        <div class="config-row"><label>Joueurs humains</label><input type="range" id="multiCfgHumans" min="2" max="8" value="2"><span class="val" id="multiCfgHumansVal">2</span></div>
+        <div class="config-row"><label>Joueurs IA</label><input type="range" id="multiCfgAI" min="0" max="8" value="2"><span class="val" id="multiCfgAIVal">2</span></div>
+        <div class="config-row"><label>Difficulté IA</label><select id="multiCfgDiff"><option value="easy">Facile</option><option value="normal" selected>Normal</option><option value="brutal">Brutal</option></select></div>
+        <div class="config-row"><label>Vaisseaux ennemis</label><input type="range" id="multiCfgCleaners" min="0" max="25" value="3"><span class="val" id="multiCfgCleanersVal">3</span></div>
+        <div class="config-row"><label>Météorites</label><select id="multiCfgAsteroids"><option value="on" selected>Activés</option><option value="off">Désactivés</option></select></div>
+        <button class="btn" id="btnCreateRoom" style="width:100%; margin-top:16px; font-size:14px; padding:10px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.6); color:#4ADE80; letter-spacing:2px;">CRÉER LA PARTIE</button>
     </div>
     <button class="btn" id="btnLobbyBack" style="margin-top:16px;">RETOUR</button>
 </div>
@@ -1383,11 +1387,6 @@ canvas#gameCanvas.grabbing {
                 <input type="range" id="statDensity" min="0" max="10" value="0">
                 <span class="val" id="statDensityVal">0</span>
             </div>
-        </div>
-
-        <div class="stat-group">
-            <div class="stat-title">COULEUR D'ÉQUIPE</div>
-            <div class="color-picker" id="colorPicker"></div>
         </div>
 
         <div class="config-buttons">
@@ -3121,19 +3120,8 @@ function updateOrbits(dt) {
 // INTERFACE — Setup UI
 // ─────────────────────────────────────────────
 function setupUI() {
-    // ── Couleurs d'équipe ──
-    const picker = document.getElementById('colorPicker');
-    gameState.teamColors.forEach((col, i) => {
-        const swatch = document.createElement('div');
-        swatch.className = 'color-swatch' + (col === gameState.playerColor ? ' selected' : '');
-        swatch.style.background = col;
-        swatch.addEventListener('click', () => {
-            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-            swatch.classList.add('selected');
-            gameState.playerColor = col;
-        });
-        picker.appendChild(swatch);
-    });
+    // ── Couleur automatique (slot 0 = première couleur) ──
+    gameState.playerColor = gameState.teamColors[0];
 
     // ── Sliders config ──
     const cfgSuns = document.getElementById('cfgSuns');
@@ -3285,6 +3273,7 @@ function setPhase(phase) {
             document.getElementById('titleScreen').classList.remove('hidden');
             if (_titleAnimPlayed) document.getElementById('titleScreen').classList.add('no-intro');
             gameState.running = false;
+            if (currentProfile) updateQuickMatchPanel();
             gameState.isMulti = false;
             gameState.multiSeed = null;
             if (gameChannel) { _supa.removeChannel(gameChannel); gameChannel = null; }
@@ -3293,10 +3282,9 @@ function setPhase(phase) {
             stopAmbiance();
             animateTitleScreen();
             break;
-        case 'lobby':
+        case 'createMulti':
             document.getElementById('lobbyScreen').classList.remove('hidden');
             document.getElementById('titleScreen').classList.add('hidden');
-            loadRoomList();
             break;
         case 'room':
             document.getElementById('roomScreen').classList.remove('hidden');
@@ -3562,7 +3550,7 @@ function createPlayers() {
     if (usedIdx >= 0) colors.splice(usedIdx, 1);
 
     for (let i = 1; i < gameState.config.playerCount; i++) {
-        const aiColor = colors[i % colors.length];
+        const aiColor = colors[(i - 1) % colors.length];
         // Stats aléatoires pour les IAs (total = 10)
         const s1 = Math.floor(Math.random() * 5) + 1;
         const s2 = Math.floor(Math.random() * (10 - s1)) + 1;
@@ -8229,7 +8217,7 @@ async function leaveRoom() {
     }
     currentRoom = null;
     isHost = false;
-    setPhase('lobby');
+    setPhase('title');
 }
 
 async function enterRoom(roomId) {
@@ -8298,7 +8286,7 @@ async function joinRoom(roomId) {
     const { error } = await _supa.from('game_room_players').insert({
         room_id: roomId, player_id: currentUser.id,
         pseudo: currentProfile.pseudo,
-        color: gameState.playerColor || '#C8A0FF',
+        color: gameState.teamColors[slot % gameState.teamColors.length],
         slot_number: slot, ready: autoReady
     });
     if (error) { console.warn('Erreur join:', error); return; }
@@ -8347,7 +8335,7 @@ async function createRoom(mode = 'custom', settings = null, maxPlayers = 4) {
     await _supa.from('game_room_players').insert({
         room_id: data.id, player_id: currentUser.id,
         pseudo: currentProfile.pseudo,
-        color: gameState.playerColor || '#C8A0FF',
+        color: gameState.teamColors[0],
         slot_number: 0, ready: true
     });
     enterRoom(data.id);
@@ -8387,20 +8375,37 @@ async function rejoinGame() {
     initPanels();
 }
 
-async function loadRoomList() {
-    const list = document.getElementById('lobbyRoomList');
-    list.innerHTML = '<p style="color:#64748B; text-align:center; padding:20px; font-size:13px;">Chargement...</p>';
-    const { data, error } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: false }).limit(20);
-    if (error || !data || data.length === 0) {
-        list.innerHTML = '<p style="color:#64748B; text-align:center; padding:20px; font-size:13px;">Aucune partie disponible.</p>';
-        return;
+async function updateQuickMatchPanel() {
+    const el = document.getElementById('qmParams');
+    if (!el) return;
+    try {
+        const { data: rooms } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: true }).limit(20);
+        let found = null;
+        if (rooms) {
+            for (const r of rooms) {
+                if (r.settings?.mode === 'auto') {
+                    const count = r.game_room_players?.[0]?.count || 0;
+                    if (count < r.max_players) { found = r; found._count = count; break; }
+                }
+            }
+        }
+        if (found) {
+            const s = found.settings || {};
+            el.innerHTML = `${s.sunCount || 4} soleils · ${s.difficulty || 'normal'} · <span style="color:#4ADE80;">${found._count}/${found.max_players} joueurs</span>`;
+        } else {
+            const suns = 2 + Math.floor(Math.random() * 5);
+            const pl = 2 + Math.floor(Math.random() * 3);
+            const diffs = ['facile', 'normal', 'brutal'];
+            const diff = diffs[Math.floor(Math.random() * 3)];
+            el.innerHTML = `${suns} soleils · ${diff} · <span style="color:#94A3B8;">${pl} joueurs (en attente)</span>`;
+        }
+    } catch(e) {
+        el.innerHTML = '4 soleils · normal · <span style="color:#94A3B8;">2-4 joueurs</span>';
     }
-    list.innerHTML = data.map(r => {
-        const count = r.game_room_players?.[0]?.count || 0;
-        const isAuto = r.settings?.mode === 'auto';
-        const tag = isAuto ? '<span style="color:#FBBF24; font-size:10px;">AUTO</span> ' : '';
-        return `<div class="lobby-room-row" onclick="joinRoom('${r.id}')"><div>${tag}<span style="color:#E0E7FF; font-size:14px;">${isAuto ? 'Partie rapide' : r.host_pseudo}</span><br><span style="color:#64748B; font-size:11px;">${r.settings.sunCount || 4} soleils · ${r.max_players} joueurs</span></div><div style="text-align:right;"><span style="color:#4ADE80; font-family:'Orbitron',monospace; font-size:13px;">${count}/${r.max_players}</span><br><span style="color:#64748B; font-size:10px;">EN ATTENTE</span></div></div>`;
-    }).join('');
+}
+
+async function loadRoomList() {
+    // Plus utilisé — le lobby est devenu l'écran de création
 }
 
 document.getElementById('btnMulti').addEventListener('click', () => {
@@ -8413,7 +8418,7 @@ document.getElementById('btnMulti').addEventListener('click', () => {
         alert('Vous devez attendre la fin de votre partie ou y retourner.');
         return;
     }
-    fadeTransition(() => setPhase('lobby'));
+    fadeTransition(() => setPhase('createMulti'));
 });
 document.getElementById('btnLobbyBack').addEventListener('click', () => {
     playClickSound();
@@ -8421,11 +8426,34 @@ document.getElementById('btnLobbyBack').addEventListener('click', () => {
 });
 document.getElementById('btnQuickMatch').addEventListener('click', () => {
     playClickSound();
+    if (_leftRoom) {
+        if (confirm('Vous avez une partie en cours. Rejoindre ?')) {
+            rejoinGame();
+            return;
+        }
+        alert('Vous devez attendre la fin de votre partie ou y retourner.');
+        return;
+    }
     quickMatch();
 });
+document.getElementById('multiCfgSuns').addEventListener('input', (e) => { document.getElementById('multiCfgSunsVal').textContent = e.target.value; });
+document.getElementById('multiCfgHumans').addEventListener('input', (e) => { document.getElementById('multiCfgHumansVal').textContent = e.target.value; });
+document.getElementById('multiCfgAI').addEventListener('input', (e) => { document.getElementById('multiCfgAIVal').textContent = e.target.value; });
+document.getElementById('multiCfgCleaners').addEventListener('input', (e) => { document.getElementById('multiCfgCleanersVal').textContent = e.target.value; });
 document.getElementById('btnCreateRoom').addEventListener('click', () => {
     playClickSound();
-    createRoom();
+    const humans = parseInt(document.getElementById('multiCfgHumans').value);
+    const aiCount = parseInt(document.getElementById('multiCfgAI').value);
+    const settings = {
+        sunCount: parseInt(document.getElementById('multiCfgSuns').value),
+        difficulty: document.getElementById('multiCfgDiff').value,
+        useIA: aiCount > 0,
+        aiCount: aiCount,
+        cleanerCount: parseInt(document.getElementById('multiCfgCleaners').value),
+        useAsteroids: document.getElementById('multiCfgAsteroids').value === 'on',
+        playerCount: humans + aiCount
+    };
+    createRoom('custom', settings, humans);
 });
 document.getElementById('btnRoomLeave').addEventListener('click', () => {
     playClickSound();
