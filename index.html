@@ -523,6 +523,26 @@ canvas#gameCanvas.grabbing {
 #evoPanel .evo-choose .stat-current {
     font-size: 8px; color: rgba(200,170,255,0.4);
 }
+#evoPanel .evo-tabs { display:flex; gap:0; margin-bottom:6px; }
+#evoPanel .evo-tab { flex:1; padding:4px 2px; text-align:center; font-size:9px; font-family:'Orbitron',sans-serif; color:rgba(200,170,255,0.4); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+#evoPanel .evo-tab:hover { color:rgba(200,170,255,0.7); }
+#evoPanel .evo-tab.active { color:#E9D5FF; border-bottom-color:#A855F7; }
+#evoPanel .evo-tab-content { display:none; }
+#evoPanel .evo-tab-content.active { display:block; }
+#evoPanel .tech-branch { margin-bottom:8px; padding:6px 8px; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.15); border-radius:5px; }
+#evoPanel .tech-branch-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+#evoPanel .tech-branch-icon { font-size:14px; }
+#evoPanel .tech-branch-name { font-family:'Orbitron',sans-serif; font-size:10px; color:#E9D5FF; flex:1; }
+#evoPanel .tech-branch-lvl { font-family:'Orbitron',sans-serif; font-size:9px; color:#C084FC; }
+#evoPanel .tech-pips { display:flex; gap:2px; margin-bottom:4px; }
+#evoPanel .tech-pip { flex:1; height:4px; border-radius:2px; background:rgba(168,85,247,0.15); transition:all 0.3s; }
+#evoPanel .tech-pip.filled { background:linear-gradient(90deg,#7C3AED,#C084FC); }
+#evoPanel .tech-desc { font-size:8px; color:rgba(200,170,255,0.4); margin-bottom:4px; line-height:1.3; }
+#evoPanel .tech-lvl-name { font-size:9px; color:rgba(200,170,255,0.6); text-align:center; margin-bottom:3px; }
+#evoPanel .tech-buy { display:block; width:100%; padding:4px; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.4); color:#E9D5FF; cursor:pointer; font-family:'Exo 2',sans-serif; font-size:10px; border-radius:4px; transition:all 0.2s; }
+#evoPanel .tech-buy:hover { background:rgba(168,85,247,0.3); border-color:#C084FC; }
+#evoPanel .tech-buy:disabled { opacity:0.35; cursor:default; background:rgba(168,85,247,0.08); }
+#evoPanel .tech-buy .tech-cost { font-family:'Orbitron',sans-serif; font-size:9px; color:#C084FC; }
 
 #scoreBoard {
     position: absolute;
@@ -1454,10 +1474,21 @@ canvas#gameCanvas.grabbing {
 <div id="gameHud">
     <div id="sporeCounter" title="Total de spores sur tous vos astres">SPORES <span class="count" id="sporeCount">0</span></div>
     <div id="evoPanel">
+        <div class="evo-tabs">
+            <div class="evo-tab active" data-tab="tabEvo">✦ ÉVOLUTION</div>
+            <div class="evo-tab" data-tab="tabTech">🧬 MUTATIONS</div>
+        </div>
+        <div class="evo-tab-content active" id="tabEvo">
         <div class="evo-stats">
             <div class="stat-row" title="Multiplie la vitesse de production de spores sur vos planètes (+30% par point)"><span class="stat-icon">🌱</span><span class="stat-name">Growth</span><span class="stat-val" id="evoStatGrowth">3</span><span class="stat-bonus" id="evoStatGrowthBonus"></span><span class="stat-effect" id="evoStatGrowthFx"></span></div>
             <div class="stat-row" title="Augmente la vitesse de déplacement des jets de spores (+6 par point)"><span class="stat-icon">⚡</span><span class="stat-name">Velocity</span><span class="stat-val" id="evoStatVelocity">4</span><span class="stat-bonus" id="evoStatVelocityBonus"></span><span class="stat-effect" id="evoStatVelocityFx"></span></div>
             <div class="stat-row" title="Augmente les spores délivrées à l'impact (+5% par point)"><span class="stat-icon">💎</span><span class="stat-name">Density</span><span class="stat-val" id="evoStatDensity">3</span><span class="stat-bonus" id="evoStatDensityBonus"></span><span class="stat-effect" id="evoStatDensityFx"></span></div>
+        </div>
+        <div class="evo-sep"></div>
+        <div class="evo-sacrifice" style="margin-bottom:2px;">
+            <label title="Pourcentage de spores envoyées lors d'un jet">🚀 Envoi</label>
+            <input type="range" id="jetRatioSlider" min="0" max="100" value="50" step="5">
+            <span class="sac-val" id="jetRatioVal">50%</span>
         </div>
         <div class="evo-sep"></div>
         <div class="evo-multi-title" title="Sacrifiez une partie de votre production pour gagner des paliers d'évolution. Chaque palier donne +1 point de stat au choix.">✦ MULTIPLICITÉ ✦</div>
@@ -1475,6 +1506,46 @@ canvas#gameCanvas.grabbing {
             <button id="evoVelocity">⚡ Velocity <div class="stat-current" id="evoVelocityCur"></div></button>
             <button id="evoDensity">💎 Density <div class="stat-current" id="evoDensityCur"></div></button>
         </div>
+        </div><!-- /tabEvo -->
+        <div class="evo-tab-content" id="tabTech">
+            <div class="tech-branch" id="techHoming">
+                <div class="tech-branch-header"><span class="tech-branch-icon">🎯</span><span class="tech-branch-name">Tête chercheuse</span><span class="tech-branch-lvl" id="techHomingLvl">0/10</span></div>
+                <div class="tech-pips" id="techHomingPips"></div>
+                <div class="tech-lvl-name" id="techHomingName">—</div>
+                <div class="tech-desc" id="techHomingDesc">Les jets dévient vers les planètes neutres/ennemies proches.</div>
+                <button class="tech-buy" id="techHomingBuy">Débloquer</button>
+            </div>
+            <div class="tech-branch" id="techTenacity">
+                <div class="tech-branch-header"><span class="tech-branch-icon">💪</span><span class="tech-branch-name">Ténacité</span><span class="tech-branch-lvl" id="techTenacityLvl">0/10</span></div>
+                <div class="tech-pips" id="techTenacityPips"></div>
+                <div class="tech-lvl-name" id="techTenacityName">—</div>
+                <div class="tech-desc" id="techTenacityDesc">Jets séparés conservent plus de spores et visent les systèmes.</div>
+                <button class="tech-buy" id="techTenacityBuy">Débloquer</button>
+            </div>
+            <div class="tech-branch" id="techMimicry">
+                <div class="tech-branch-header"><span class="tech-branch-icon">🦎</span><span class="tech-branch-name">Mimétisme</span><span class="tech-branch-lvl" id="techMimicryLvl">0/10</span></div>
+                <div class="tech-pips" id="techMimicryPips"></div>
+                <div class="tech-lvl-name" id="techMimicryName">—</div>
+                <div class="tech-desc" id="techMimicryDesc">À la conquête, jets se scindent vers les lunes.</div>
+                <button class="tech-buy" id="techMimicryBuy">Débloquer</button>
+            </div>
+        <div class="evo-sep"></div>
+            <div id="nidPanel" style="font-family:'Exo 2',sans-serif; font-size:11px;">
+                <div style="font-family:'Orbitron',sans-serif; font-size:9px; color:#4ADE80; letter-spacing:1px; text-align:center; margin-bottom:5px;">🏰 NIDIFICATION 🏰</div>
+                <div id="nidSystemName" style="font-size:10px; color:#E9D5FF; text-align:center; margin-bottom:5px;"></div>
+                <div class="evo-bar-bg"><div class="evo-bar" id="nidBar" style="width:0%; background:linear-gradient(90deg,#15803d,#4ADE80);"></div></div>
+                <div id="nidInfo" style="font-size:9px; color:rgba(200,170,255,0.5); text-align:center; margin:4px 0;">0 / 2500 spores</div>
+                <div class="evo-sacrifice">
+                    <label>Sacrifice</label>
+                    <input type="range" id="nidSacrifice" min="0" max="50" value="0" step="5">
+                    <span class="sac-val" id="nidSacVal">0%</span>
+                </div>
+                <div id="nidChoose" style="display:none; text-align:center; margin-top:6px; padding-top:6px; border-top:1px solid rgba(34,197,94,0.2);">
+                    <div style="font-size:9px; color:#E9D5FF; margin-bottom:5px;">👑 CHOISIR LA PLANÈTE MÈRE 👑</div>
+                    <div id="nidPlanetList" style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center;"></div>
+                </div>
+            </div>
+        </div><!-- /tabTech -->
     </div>
 </div>
 <div id="spawnPopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(10,8,30,0.92); border:1px solid rgba(167,139,250,0.4); border-radius:10px; padding:16px 22px; pointer-events:auto; z-index:1000; text-align:center; font-family:'Exo 2',sans-serif; min-width:200px; box-shadow:0 0 30px rgba(100,70,180,0.3);">
@@ -1490,21 +1561,6 @@ canvas#gameCanvas.grabbing {
         <button id="spawnPopupBtn" class="btn" style="font-size:13px; padding:8px 24px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.5); color:#4ADE80; letter-spacing:2px; cursor:pointer;">✦ APPARAÎTRE ✦</button>
         <div style="margin-top:6px;">
             <span id="spawnPopupClose" style="font-size:9px; color:rgba(200,200,220,0.4); cursor:pointer; letter-spacing:1px;">✕ FERMER</span>
-        </div>
-    </div>
-    <div id="nidPanel" style="display:none; position:absolute; top:48px; left:290px; font-family:'Exo 2',sans-serif; font-size:11px; background:rgba(10,8,30,0.75); border:1px solid rgba(34,197,94,0.3); border-radius:6px; padding:8px 12px; pointer-events:auto; min-width:220px;">
-        <div style="font-family:'Orbitron',sans-serif; font-size:9px; color:#4ADE80; letter-spacing:1px; text-align:center; margin-bottom:5px;">🏰 NIDIFICATION 🏰</div>
-        <div id="nidSystemName" style="font-size:10px; color:#E9D5FF; text-align:center; margin-bottom:5px;"></div>
-        <div class="evo-bar-bg"><div class="evo-bar" id="nidBar" style="width:0%; background:linear-gradient(90deg,#15803d,#4ADE80);"></div></div>
-        <div id="nidInfo" style="font-size:9px; color:rgba(200,170,255,0.5); text-align:center; margin:4px 0;">0 / 5000 spores</div>
-        <div class="evo-sacrifice">
-            <label>Sacrifice</label>
-            <input type="range" id="nidSacrifice" min="0" max="50" value="0" step="5">
-            <span class="sac-val" id="nidSacVal">0%</span>
-        </div>
-        <div id="nidChoose" style="display:none; text-align:center; margin-top:6px; padding-top:6px; border-top:1px solid rgba(34,197,94,0.2);">
-            <div style="font-size:9px; color:#E9D5FF; margin-bottom:5px;">👑 CHOISIR LA PLANÈTE MÈRE 👑</div>
-            <div id="nidPlanetList" style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center;"></div>
         </div>
     </div>
     <div id="gameTimer">00:00</div>
@@ -1966,13 +2022,7 @@ const gameState = {
         mouseY: 0
     },
 
-    // ── Décor (5 couches de profondeur) ──
-    bgVeils: [],          // couche 1 : voiles galactiques (très lent)
-    bgNebulae: [],        // couche 2 : nébuleuses denses (lent)
-    bgFilaments: [],      // couche 3 : filaments de gaz (moyen)
-    bgStarClusters: [],   // couche 4 : amas stellaires (moyen-rapide)
-    bgBrightStars: [],    // couche 5 : étoiles brillantes (rapide)
-    bgBaseStars: [],      // étoiles simples de fond
+    // ── Décor ──
     cosmicDust: [],       // particules ambiantes
     shootingStars: [],    // étoiles filantes
     shootingStarTimer: 0,
@@ -1987,8 +2037,6 @@ const gameState = {
     lodAutoTimer: 0,       // timer pour FPS adaptatif
     lodFpsAccum: 0,        // accumulateur FPS pour moyenne
     lodFpsSamples: 0,      // nombre d'échantillons FPS
-    bgStarsCache: null,    // canvas offscreen étoiles de base
-    bgClustersCache: [],   // canvas offscreen par cluster
 
     // ── FPS ──
     fps: 0,
@@ -2070,6 +2118,7 @@ const gameState = {
     },
 
     // ── Lancement de jets ──
+    jetRatio: 0.5,         // pourcentage de spores envoyées (0.0 à 1.0)
     launching: false,
     launchSource: null,
     launchPreview: [],
@@ -2146,330 +2195,73 @@ function resizeCanvas() {
 // ─────────────────────────────────────────────
 function generateBackground() {
     const rng = mulberry32(42);
-    const cfg = window._bgCfg || {};
-    const spread = cfg.spread || 14000;
+    // ══ Fond bleu dégradé (canvas offscreen) ══
+    const bgW = 2048, bgH = 2048;
+    const bgC = document.createElement('canvas');
+    bgC.width = bgW; bgC.height = bgH;
+    const bgCtx = bgC.getContext('2d');
+    // Gradient de base : bleu profond
+    const gBase = bgCtx.createLinearGradient(0, 0, bgW, bgH);
+    gBase.addColorStop(0, '#0a1628');
+    gBase.addColorStop(0.3, '#0f2040');
+    gBase.addColorStop(0.5, '#162d50');
+    gBase.addColorStop(0.7, '#0d1a35');
+    gBase.addColorStop(1, '#081020');
+    bgCtx.fillStyle = gBase;
+    bgCtx.fillRect(0, 0, bgW, bgH);
+    // Taches lumineuses diffuses (blobs radial)
+    const blobColors = [
+        [20, 40, 80], [15, 50, 90], [25, 35, 70],
+        [10, 30, 65], [30, 50, 100], [18, 45, 85]
+    ];
+    for (let i = 0; i < 18; i++) {
+        const bx = rng() * bgW;
+        const by = rng() * bgH;
+        const br = 200 + rng() * 500;
+        const bc = blobColors[i % blobColors.length];
+        const ba = 0.08 + rng() * 0.12;
+        const g = bgCtx.createRadialGradient(bx, by, 0, bx, by, br);
+        g.addColorStop(0, `rgba(${bc[0]+20},${bc[1]+20},${bc[2]+30}, ${ba})`);
+        g.addColorStop(0.5, `rgba(${bc[0]},${bc[1]},${bc[2]}, ${ba * 0.5})`);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        bgCtx.fillStyle = g;
+        bgCtx.beginPath();
+        bgCtx.arc(bx, by, br, 0, Math.PI * 2);
+        bgCtx.fill();
+    }
+    gameState._bgCanvas = bgC;
 
-    // ══ COUCHE 0 : Étoiles de base (fond dense) ══
-    gameState.bgBaseStars = [];
-    const starColors = ['200,215,255','255,220,180','180,200,255','255,200,200','220,255,220'];
-    const starsCount = cfg.starsCount || 2500;
-    const starsPrlxBase = cfg.starsPrlx || 0.25;
-    const starsSpread = cfg.starsSpread || 14000;
+    // ══ Étoiles (canvas offscreen tuilable) ══
+    const stW = 2048, stH = 2048;
+    const stC = document.createElement('canvas');
+    stC.width = stW; stC.height = stH;
+    const stCtx = stC.getContext('2d');
+    const starColors = ['255,255,255','220,230,255','200,210,240','255,240,220','180,200,255'];
+    const starsCount = 3000;
     for (let i = 0; i < starsCount; i++) {
-        gameState.bgBaseStars.push({
-            x: (rng() - 0.5) * starsSpread,
-            y: (rng() - 0.5) * starsSpread,
-            size: rng() * 1.2 + 0.4,
-            alpha: rng() * 0.5 + 0.15,
-            color: starColors[Math.floor(rng() * starColors.length)],
-            parallax: starsPrlxBase + rng() * 0.1
-        });
-    }
-
-    // ══ COUCHE 1 : Voiles galactiques (très lents, immenses) ══
-    gameState.bgVeils = [];
-    const veilPals = [
-        { c: [15, 25, 70], h: [40, 60, 140] },  // bleu profond
-        { c: [50, 15, 60], h: [90, 30, 110] },   // violet
-        { c: [20, 40, 55], h: [30, 70, 90] },    // bleu-vert
-        { c: [45, 20, 25], h: [80, 35, 45] },    // brun-rouge
-    ];
-    const veilCount = cfg.veilsCount || 4;
-    const veilSizeMin = cfg.veilsSizeMin || 2500;
-    const veilSizeVar = cfg.veilsSizeVar || 3000;
-    const veilAlphaBase = cfg.veilsAlpha || 0.08;
-    for (let i = 0; i < veilCount; i++) {
-        const vp = veilPals[i % veilPals.length];
-        const vw = veilSizeMin + rng() * veilSizeVar;
-        const vh = 600 + rng() * 1200;
-        const texW = Math.ceil(vw * 0.5);
-        const texH = Math.ceil(vh * 0.5);
-        const tc = document.createElement('canvas');
-        tc.width = texW; tc.height = texH;
-        const tcx = tc.getContext('2d');
-
-        // Gradient linéaire principal (bande allongée)
-        const angle = rng() * Math.PI;
-        const cos = Math.cos(angle), sin = Math.sin(angle);
-        const gMain = tcx.createLinearGradient(
-            texW/2 - cos*texW/2, texH/2 - sin*texH/2,
-            texW/2 + cos*texW/2, texH/2 + sin*texH/2
-        );
-        gMain.addColorStop(0, 'rgba(0,0,0,0)');
-        gMain.addColorStop(0.2, `rgba(${vp.c[0]},${vp.c[1]},${vp.c[2]}, ${veilAlphaBase * 0.5})`);
-        gMain.addColorStop(0.5, `rgba(${vp.h[0]},${vp.h[1]},${vp.h[2]}, ${veilAlphaBase})`);
-        gMain.addColorStop(0.8, `rgba(${vp.c[0]},${vp.c[1]},${vp.c[2]}, ${veilAlphaBase * 0.5})`);
-        gMain.addColorStop(1, 'rgba(0,0,0,0)');
-        tcx.fillStyle = gMain;
-        tcx.fillRect(0, 0, texW, texH);
-
-        // Superposer des blobs diffus pour rendre irrégulier
-        for (let b = 0; b < 12; b++) {
-            const bx = rng() * texW;
-            const by = rng() * texH;
-            const br = texH * (0.3 + rng() * 0.5);
-            const gB = tcx.createRadialGradient(bx, by, 0, bx, by, br);
-            gB.addColorStop(0, `rgba(${vp.h[0]},${vp.h[1]},${vp.h[2]}, ${0.03 + rng()*0.05})`);
-            gB.addColorStop(0.6, `rgba(${vp.c[0]},${vp.c[1]},${vp.c[2]}, 0.02)`);
-            gB.addColorStop(1, 'rgba(0,0,0,0)');
-            tcx.fillStyle = gB;
-            tcx.beginPath();
-            tcx.arc(bx, by, br, 0, Math.PI * 2);
-            tcx.fill();
+        const sx = rng() * stW;
+        const sy = rng() * stH;
+        const sr = rng() * 1.3 + 0.3;
+        const sa = rng() * 0.6 + 0.2;
+        const sc = starColors[Math.floor(rng() * starColors.length)];
+        stCtx.fillStyle = `rgba(${sc}, ${sa})`;
+        stCtx.beginPath();
+        stCtx.arc(sx, sy, sr, 0, Math.PI * 2);
+        stCtx.fill();
+        // Quelques étoiles plus brillantes avec halo
+        if (rng() > 0.95) {
+            const gh = stCtx.createRadialGradient(sx, sy, 0, sx, sy, sr * 4);
+            gh.addColorStop(0, `rgba(${sc}, 0.3)`);
+            gh.addColorStop(1, 'rgba(0,0,0,0)');
+            stCtx.fillStyle = gh;
+            stCtx.beginPath();
+            stCtx.arc(sx, sy, sr * 4, 0, Math.PI * 2);
+            stCtx.fill();
         }
-
-        // Fade radial pour adoucir les bords
-        const gFade = tcx.createRadialGradient(texW/2, texH/2, 0, texW/2, texH/2, texW/2);
-        gFade.addColorStop(0, 'rgba(0,0,0,0)');
-        gFade.addColorStop(0.7, 'rgba(0,0,0,0)');
-        gFade.addColorStop(1, `rgba(${14},${27},${61}, 1)`);
-        tcx.fillStyle = gFade;
-        tcx.fillRect(0, 0, texW, texH);
-
-        const veilSpread = cfg.veilsSpread || 10000;
-        const veilPrlx = cfg.veilsPrlx || 0.10;
-        gameState.bgVeils.push({
-            x: (rng() - 0.5) * veilSpread,
-            y: (rng() - 0.5) * veilSpread,
-            w: vw, h: vh,
-            texture: tc,
-            rotation: rng() * Math.PI * 2,
-            rotSpeed: (rng() - 0.5) * 0.0005,
-            vx: (rng() - 0.5) * 0.5,
-            vy: (rng() - 0.5) * 0.5,
-            parallax: veilPrlx + rng() * 0.08
-        });
     }
+    gameState._starsCanvas = stC;
 
-    // ══ COUCHE 2 : Nébuleuses denses irrégulières ══
-    gameState.bgNebulae = [];
-    const nebPals = [
-        { c1: [60, 20, 100], c2: [130, 50, 180], rim: [180, 100, 255] },  // violet
-        { c1: [15, 50, 90],  c2: [30, 100, 160], rim: [80, 180, 255] },   // bleu
-        { c1: [90, 25, 40],  c2: [160, 50, 60],  rim: [255, 120, 100] },  // rouge
-        { c1: [20, 70, 65],  c2: [40, 140, 120], rim: [80, 255, 220] },   // turquoise
-        { c1: [80, 50, 15],  c2: [150, 90, 30],  rim: [255, 180, 60] },   // doré
-        { c1: [70, 20, 70],  c2: [120, 40, 100], rim: [200, 100, 180] },  // magenta
-        { c1: [15, 40, 80],  c2: [30, 80, 130],  rim: [60, 160, 220] },   // bleu acier
-        { c1: [50, 60, 20],  c2: [90, 110, 40],  rim: [160, 200, 80] },   // vert nébuleux
-    ];
-
-    const nebCount = cfg.nebCount || 10;
-    const nebRadMin = cfg.nebRadMin || 400;
-    const nebRadVar = cfg.nebRadVar || 700;
-    const nebAlpha = cfg.nebAlpha || 0.10;
-    const nebBlobCount = cfg.nebBlobs || 8;
-    const nebSoft = cfg.nebSoft || 0.60;
-    const nebStretch = cfg.nebStretch || 1.0;
-    for (let n = 0; n < nebCount; n++) {
-        const pal = nebPals[n % nebPals.length];
-        const nebR = nebRadMin + rng() * nebRadVar;
-        const stretchX = 1.0 + (rng() * (nebStretch - 1.0));
-        const stretchY = 1.0 + (rng() * (nebStretch - 1.0));
-        const texW = Math.ceil(nebR * 2.8 * Math.max(stretchX, 1));
-        const texH = Math.ceil(nebR * 2.8 * Math.max(stretchY, 1));
-        const tc = document.createElement('canvas');
-        tc.width = texW; tc.height = texH;
-        const tcx = tc.getContext('2d');
-        const halfW = texW / 2;
-        const halfH = texH / 2;
-
-        // Étirer le contexte pour allongement
-        tcx.save();
-        tcx.translate(halfW, halfH);
-        tcx.scale(stretchX, 1.0 / stretchX);
-        tcx.translate(-halfW, -halfH);
-
-        const half = Math.min(halfW, halfH);
-
-        // Forme irrégulière : blobs décentrés superposés
-        const blobCount = nebBlobCount + Math.floor(rng() * 7);
-        const alpha = nebAlpha + rng() * 0.12;
-        for (let b = 0; b < blobCount; b++) {
-            const bx = half + (rng() - 0.5) * half * 1.1;
-            const by = half + (rng() - 0.5) * half * 1.1;
-            const br = half * (0.2 + rng() * 0.45);
-            const gB = tcx.createRadialGradient(bx, by, 0, bx, by, br);
-            const mix = rng();
-            const r = Math.round(pal.c1[0] * (1-mix) + pal.c2[0] * mix);
-            const g = Math.round(pal.c1[1] * (1-mix) + pal.c2[1] * mix);
-            const bv = Math.round(pal.c1[2] * (1-mix) + pal.c2[2] * mix);
-            gB.addColorStop(0, `rgba(${r},${g},${bv}, ${alpha + 0.08})`);
-            gB.addColorStop(0.3, `rgba(${r},${g},${bv}, ${alpha})`);
-            gB.addColorStop(0.7, `rgba(${pal.c1[0]},${pal.c1[1]},${pal.c1[2]}, ${alpha * 0.3})`);
-            gB.addColorStop(1, 'rgba(0,0,0,0)');
-            tcx.fillStyle = gB;
-            tcx.beginPath();
-            tcx.arc(bx, by, br, 0, Math.PI * 2);
-            tcx.fill();
-        }
-
-        // Rim lighting (bord lumineux d'un côté)
-        const rimAngle = rng() * Math.PI * 2;
-        const rimX = half + Math.cos(rimAngle) * half * 0.4;
-        const rimY = half + Math.sin(rimAngle) * half * 0.4;
-        const gRim = tcx.createRadialGradient(rimX, rimY, half * 0.3, rimX, rimY, half * 0.9);
-        gRim.addColorStop(0, `rgba(${pal.rim[0]},${pal.rim[1]},${pal.rim[2]}, 0.12)`);
-        gRim.addColorStop(0.4, `rgba(${pal.rim[0]},${pal.rim[1]},${pal.rim[2]}, 0.04)`);
-        gRim.addColorStop(1, 'rgba(0,0,0,0)');
-        tcx.fillStyle = gRim;
-        tcx.beginPath();
-        tcx.arc(half, half, half * 0.9, 0, Math.PI * 2);
-        tcx.fill();
-
-        // Cœur lumineux
-        const gCore = tcx.createRadialGradient(half, half, 0, half, half, half * 0.25);
-        gCore.addColorStop(0, `rgba(${pal.rim[0]},${pal.rim[1]},${pal.rim[2]}, 0.15)`);
-        gCore.addColorStop(0.5, `rgba(${pal.c2[0]},${pal.c2[1]},${pal.c2[2]}, 0.06)`);
-        gCore.addColorStop(1, 'rgba(0,0,0,0)');
-        tcx.fillStyle = gCore;
-        tcx.beginPath();
-        tcx.arc(half, half, half * 0.25, 0, Math.PI * 2);
-        tcx.fill();
-
-        // Micro-étoiles internes
-        for (let s = 0; s < 30; s++) {
-            const sx = half + (rng() - 0.5) * half * 1.4;
-            const sy = half + (rng() - 0.5) * half * 1.4;
-            const ss = rng() * 2 + 0.5;
-            tcx.fillStyle = `rgba(${pal.rim[0]},${pal.rim[1]},${pal.rim[2]}, ${rng()*0.3+0.1})`;
-            tcx.beginPath();
-            tcx.arc(sx, sy, ss, 0, Math.PI * 2);
-            tcx.fill();
-        }
-
-        tcx.restore(); // fin du scale/stretch
-
-        // Fade doux des bords (softness contrôle la zone de fondu)
-        tcx.globalCompositeOperation = 'destination-in';
-        const gFade = tcx.createRadialGradient(halfW, halfH, 0, halfW, halfH, Math.max(halfW, halfH));
-        gFade.addColorStop(0, 'rgba(0,0,0,1)');
-        gFade.addColorStop(nebSoft, 'rgba(0,0,0,1)');
-        gFade.addColorStop(1, 'rgba(0,0,0,0)');
-        tcx.fillStyle = gFade;
-        tcx.fillRect(0, 0, texW, texH);
-        tcx.globalCompositeOperation = 'source-over';
-
-        const nebSpread2 = cfg.nebSpread || 12000;
-        const nebPrlxBase = cfg.nebPrlx || 0.20;
-        gameState.bgNebulae.push({
-            x: (rng() - 0.5) * nebSpread2,
-            y: (rng() - 0.5) * nebSpread2,
-            radius: nebR,
-            texture: tc,
-            rotation: rng() * Math.PI * 2,
-            rotSpeed: (rng() - 0.5) * 0.002,
-            vx: (rng() - 0.5) * 1.5,
-            vy: (rng() - 0.5) * 1.5,
-            parallax: nebPrlxBase + rng() * 0.1
-        });
-    }
-
-    // ══ COUCHE 3 : Filaments de gaz (traînées longues) ══
-    gameState.bgFilaments = [];
-    const filColors = [
-        [60, 80, 160], [120, 50, 100], [40, 100, 100],
-        [100, 70, 40], [80, 40, 120], [50, 90, 70]
-    ];
-    const filCount = cfg.filCount || 8;
-    const filLenMin = cfg.filLenMin || 800;
-    const filThick = cfg.filThick || 40;
-    const filPrlxBase = cfg.filPrlx || 0.35;
-    for (let i = 0; i < filCount; i++) {
-        const fc = filColors[i % filColors.length];
-        const fw = filLenMin + rng() * 1500;
-        const fh = filThick + rng() * 30;
-        const tc = document.createElement('canvas');
-        tc.width = Math.ceil(fw * 0.3); tc.height = Math.ceil(fh * 3);
-        const tcx = tc.getContext('2d');
-        // Gradient horizontal (longueur)
-        const gF = tcx.createLinearGradient(0, 0, tc.width, 0);
-        gF.addColorStop(0, 'rgba(0,0,0,0)');
-        gF.addColorStop(0.15, `rgba(${fc[0]},${fc[1]},${fc[2]}, 0.04)`);
-        gF.addColorStop(0.5, `rgba(${fc[0]+30},${fc[1]+20},${fc[2]+30}, 0.08)`);
-        gF.addColorStop(0.85, `rgba(${fc[0]},${fc[1]},${fc[2]}, 0.04)`);
-        gF.addColorStop(1, 'rgba(0,0,0,0)');
-        tcx.fillStyle = gF;
-        tcx.fillRect(0, 0, tc.width, tc.height);
-        // Fade vertical TRANSPARENT (plus de fond opaque)
-        tcx.globalCompositeOperation = 'destination-in';
-        const gV = tcx.createLinearGradient(0, 0, 0, tc.height);
-        gV.addColorStop(0, 'rgba(0,0,0,0)');
-        gV.addColorStop(0.25, 'rgba(0,0,0,1)');
-        gV.addColorStop(0.75, 'rgba(0,0,0,1)');
-        gV.addColorStop(1, 'rgba(0,0,0,0)');
-        tcx.fillStyle = gV;
-        tcx.fillRect(0, 0, tc.width, tc.height);
-        tcx.globalCompositeOperation = 'source-over';
-
-        const filSpread2 = cfg.filSpread || spread;
-        gameState.bgFilaments.push({
-            x: (rng() - 0.5) * filSpread2,
-            y: (rng() - 0.5) * filSpread2,
-            w: fw, h: fh * 3,
-            texture: tc,
-            rotation: rng() * Math.PI * 2,
-            vx: (rng() - 0.5) * 2,
-            vy: (rng() - 0.5) * 2,
-            parallax: filPrlxBase + rng() * 0.1
-        });
-    }
-
-    // ══ COUCHE 4 : Amas stellaires (groupes denses d'étoiles) ══
-    gameState.bgStarClusters = [];
-    const clusCount = cfg.clusCount || 12;
-    const clusRadBase = cfg.clusRad || 150;
-    const clusPrlxBase = cfg.clusPrlx || 0.50;
-    for (let i = 0; i < clusCount; i++) {
-        const clusSpread2 = cfg.clusSpread || spread;
-        const cx2 = (rng() - 0.5) * clusSpread2;
-        const cy = (rng() - 0.5) * clusSpread2;
-        const clusterR = clusRadBase + rng() * 150;
-        const count = 30 + Math.floor(rng() * 50);
-        const clusterStars = [];
-        const cc = starColors[Math.floor(rng() * starColors.length)];
-        for (let s = 0; s < count; s++) {
-            // Distribution gaussienne (somme de randoms)
-            const gx = ((rng()+rng()+rng())/3 - 0.5) * 2;
-            const gy = ((rng()+rng()+rng())/3 - 0.5) * 2;
-            clusterStars.push({
-                ox: gx * clusterR,
-                oy: gy * clusterR,
-                size: rng() * 1.2 + 0.3,
-                alpha: rng() * 0.5 + 0.2,
-                color: rng() > 0.3 ? cc : starColors[Math.floor(rng() * starColors.length)]
-            });
-        }
-        gameState.bgStarClusters.push({
-            x: cx2, y: cy,
-            stars: clusterStars,
-            parallax: clusPrlxBase + rng() * 0.15,
-            vx: (rng() - 0.5) * 1,
-            vy: (rng() - 0.5) * 1
-        });
-    }
-
-    // ══ COUCHE 5 : Étoiles brillantes premier plan ══
-    gameState.bgBrightStars = [];
-    const brightColors = ['220,230,255','255,200,150','180,200,255','255,180,180','200,255,220'];
-    const brightCount = cfg.brightCount || 25;
-    const brightSizeBase = cfg.brightSize || 2.0;
-    const brightPrlxBase = cfg.brightPrlx || 0.65;
-    const brightSpread2 = cfg.brightSpread || spread;
-    for (let i = 0; i < brightCount; i++) {
-        gameState.bgBrightStars.push({
-            x: (rng() - 0.5) * brightSpread2,
-            y: (rng() - 0.5) * brightSpread2,
-            size: rng() * brightSizeBase + 1.5,
-            alpha: rng() * 0.4 + 0.4,
-            color: brightColors[Math.floor(rng() * brightColors.length)],
-            parallax: brightPrlxBase + rng() * 0.15,
-            hasDiffraction: rng() > 0.3,
-            phase: rng() * Math.PI * 2
-        });
-    }
-
-    // ══ Particules ambiantes (poussière cosmique) ══
+    // ══ Particules ambiantes (poussière cosmique) — on garde ══
     gameState.cosmicDust = [];
     const rng4 = mulberry32(55);
     for (let i = 0; i < 40; i++) {
@@ -2489,93 +2281,6 @@ function generateBackground() {
 // ─────────────────────────────────────────────
 // PERFORMANCE — Caches offscreen (étoiles, clusters, halos)
 // ─────────────────────────────────────────────
-function buildBgStarsCache() {
-    const stars = gameState.bgBaseStars;
-    if (stars.length === 0) return;
-    // Calcul des bornes
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const s of stars) {
-        if (s.x < minX) minX = s.x;
-        if (s.x > maxX) maxX = s.x;
-        if (s.y < minY) minY = s.y;
-        if (s.y > maxY) maxY = s.y;
-    }
-    const pad = 10;
-    const w = Math.ceil(maxX - minX + pad * 2);
-    const h = Math.ceil(maxY - minY + pad * 2);
-    // Limiter taille max canvas (mémoire GPU)
-    const maxDim = 4096;
-    const scale = Math.min(1, maxDim / Math.max(w, h));
-    const cw = Math.ceil(w * scale);
-    const ch = Math.ceil(h * scale);
-    const c = document.createElement('canvas');
-    c.width = cw; c.height = ch;
-    const ctx = c.getContext('2d');
-    for (const s of stars) {
-        const sx = (s.x - minX + pad) * scale;
-        const sy = (s.y - minY + pad) * scale;
-        ctx.fillStyle = `rgba(${s.color}, ${s.alpha})`;
-        ctx.beginPath();
-        ctx.arc(sx, sy, Math.max(s.size * scale, 0.5), 0, Math.PI * 2);
-        ctx.fill();
-    }
-    // Parallaxe moyenne du groupe
-    let pSum = 0;
-    for (const s of stars) pSum += s.parallax;
-    gameState.bgStarsCache = {
-        canvas: c, offX: minX - pad, offY: minY - pad,
-        w: w, h: h, scale: scale,
-        parallax: pSum / stars.length
-    };
-}
-
-function buildBgClustersCache() {
-    gameState.bgClustersCache = [];
-    for (const cl of gameState.bgStarClusters) {
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        for (const s of cl.stars) {
-            if (s.ox < minX) minX = s.ox;
-            if (s.ox > maxX) maxX = s.ox;
-            if (s.oy < minY) minY = s.oy;
-            if (s.oy > maxY) maxY = s.oy;
-        }
-        const pad = 10;
-        const w = Math.ceil(maxX - minX + pad * 2);
-        const h = Math.ceil(maxY - minY + pad * 2);
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        const ctx = c.getContext('2d');
-        for (const s of cl.stars) {
-            ctx.fillStyle = `rgba(${s.color}, ${s.alpha})`;
-            ctx.beginPath();
-            ctx.arc(s.ox - minX + pad, s.oy - minY + pad, s.size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        gameState.bgClustersCache.push({
-            canvas: c, offX: minX - pad, offY: minY - pad, w: w, h: h
-        });
-    }
-}
-
-function buildBrightStarsCache() {
-    for (const s of gameState.bgBrightStars) {
-        const r = s.size * 5;
-        const dim = Math.ceil(r * 2 + 4);
-        const c = document.createElement('canvas');
-        c.width = dim; c.height = dim;
-        const ctx = c.getContext('2d');
-        const cx = dim / 2, cy = dim / 2;
-        const gh = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        gh.addColorStop(0, `rgba(${s.color}, 0.35)`);
-        gh.addColorStop(0.5, `rgba(${s.color}, 0.08)`);
-        gh.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = gh;
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fill();
-        s._haloCache = c;
-    }
-}
 
 function buildSunHaloCache() {
     for (const sun of gameState.suns) {
@@ -2913,42 +2618,67 @@ function generateUniverse() {
     gameState.planets = [];
     gameState.moons = [];
 
-    const baseOrbitRadius = 800;
-    const orbitSpacing = 750;
+    const _d = window._debugCfg || {};
+    const baseOrbitRadius = _d.sunOrbitBase || 200;
+    const orbitSpacing = _d.sunOrbitSpacing || 100;
     const MIN_BH_GAP = 50;
     const MIN_SYS_GAP = 10;
 
-    for (let s = 0; s < sunCount; s++) {
-        const angle = worldRandom() * Math.PI * 2;
-        const orbitR = baseOrbitRadius + s * orbitSpacing + (worldRandom() - 0.5) * 200;
-        const speed = (0.02 + worldRandom() * 0.015) / (1 + s * 0.15);
+    // Orbites partagées : capacité max par anneau
+    const orbitSlots = [
+        [2, 3], [3, 5], [3, 5],
+        [3, 5], [3, 5], [3, 5]  // anneaux supplémentaires si beaucoup de soleils
+    ];
+    // Répartir les soleils sur les orbites
+    let remaining = sunCount;
+    let orbitIdx = 0;
+    const orbitPlan = []; // [{orbitR, speed, count}]
+    while (remaining > 0 && orbitIdx < orbitSlots.length) {
+        const [minS, maxS] = orbitSlots[orbitIdx];
+        const count = Math.min(remaining, minS + Math.floor(worldRandom() * (maxS - minS + 1)));
+        const orbitR = baseOrbitRadius + orbitIdx * orbitSpacing + (worldRandom() - 0.5) * 40;
+        const speed = (0.02 + worldRandom() * 0.015) / (1 + orbitIdx * 0.15);
+        orbitPlan.push({ orbitR, speed, count });
+        remaining -= count;
+        orbitIdx++;
+    }
 
-        const sun = {
-            type: 'sun',
-            name: generateName(),
-            radius: 25 + worldRandom() * 20,
-            orbitRadius: orbitR,
-            orbitSpeed: speed,
-            angle: angle,
-            x: 0, y: 0,
-            color: ['#FFE44D','#FFB830','#FF8C42','#FF6B6B','#7CB9FF'][Math.floor(worldRandom()*5)],
-            planets: []
-        };
+    for (const orbit of orbitPlan) {
+        // Angle de départ aléatoire pour cette orbite
+        const baseAngle = worldRandom() * Math.PI * 2;
+        // Espacement angulaire avec variation
+        const angleStep = (Math.PI * 2) / orbit.count;
+        const angleJitter = angleStep * 0.2; // ±20% de variation
 
-        // Position initiale
-        sun.x = Math.cos(sun.angle) * sun.orbitRadius;
-        sun.y = Math.sin(sun.angle) * sun.orbitRadius;
+        for (let i = 0; i < orbit.count; i++) {
+            const angle = baseAngle + i * angleStep + (worldRandom() - 0.5) * angleJitter;
+
+            const sun = {
+                type: 'sun',
+                name: generateName(),
+                radius: (_d.sunRadMin || 80) + worldRandom() * (_d.sunRadVar || 24),
+                orbitRadius: orbit.orbitR,
+                orbitSpeed: orbit.speed,
+                angle: angle,
+                x: 0, y: 0,
+                color: ['#FFE44D','#FFB830','#FF8C42','#FF6B6B','#7CB9FF'][Math.floor(worldRandom()*5)],
+                planets: []
+            };
+
+            // Position initiale
+            sun.x = Math.cos(sun.angle) * sun.orbitRadius;
+            sun.y = Math.sin(sun.angle) * sun.orbitRadius;
 
         // ── Planètes pour ce soleil ──
         const planetCount = 2 + Math.floor(worldRandom() * 9); // 2-10
-        const pBaseOrbit = sun.radius * 2.5 + 30;
-        const pSpacing = 35 + worldRandom() * 25;
+        const pBaseOrbit = sun.radius * 2.5 + (_d.pOrbitBase || 30);
+        const pSpacing = (_d.pOrbitSpacing || 95) + worldRandom() * (_d.pOrbitSpacingVar || 15);
 
         for (let p = 0; p < planetCount; p++) {
             const pOrbitR = pBaseOrbit + p * pSpacing + worldRandom() * 20;
             const pSpeed = (0.08 + worldRandom() * 0.06) / (1 + p * 0.2);
             const pAngle = worldRandom() * Math.PI * 2;
-            const pRadius = 5 + worldRandom() * 12;
+            const pRadius = (_d.pRadMin || 20) + worldRandom() * (_d.pRadVar || 12);
 
             const planet = {
                 type: 'planet',
@@ -2983,9 +2713,9 @@ function generateUniverse() {
             if (hasMoons) {
                 const moonCount = 1 + Math.floor(worldRandom() * 3);
                 for (let m = 0; m < moonCount; m++) {
-                    const mOrbitR = planet.radius * 2 + 8 + m * 12 + worldRandom() * 5;
+                    const mOrbitR = planet.radius * 2 + (_d.mOrbitBase || 12) + m * (_d.mOrbitSpacing || 14) + worldRandom() * 5;
                     const mSpeed = 0.15 + worldRandom() * 0.2;
-                    const mRadius = 2 + worldRandom() * 4;
+                    const mRadius = (_d.mRadMin || 10) + worldRandom() * (_d.mRadVar || 2);
 
                     const moon = {
                         type: 'moon',
@@ -3022,6 +2752,7 @@ function generateUniverse() {
         }
 
         gameState.suns.push(sun);
+        }
     }
 
     // ── Espacement sécurisé des systèmes solaires ──
@@ -3325,6 +3056,80 @@ function setupUI() {
             if (gameState.phase === 'game') togglePause();
             else if (gameState.phase === 'paused') togglePause();
         }
+        if (e.key === 'F1') {
+            e.preventDefault();
+            let panel = document.getElementById('debugF1');
+            if (panel) { panel.style.display = panel.style.display === 'none' ? 'flex' : 'none'; return; }
+            panel = document.createElement('div');
+            panel.id = 'debugF1';
+            panel.style.cssText = 'position:fixed;top:10px;left:10px;z-index:9999;background:rgba(0,10,30,0.92);border:1px solid #3af;color:#cde;font:12px monospace;padding:12px 16px;display:flex;flex-direction:column;gap:6px;border-radius:8px;max-height:90vh;overflow-y:auto;pointer-events:auto;min-width:340px;';
+            const _P = window._debugCfg || {};
+            const defs = [
+                ['sunOrbitBase', 'Soleils: orbite base', 200, 100, 3000, 50],
+                ['sunOrbitSpacing', 'Soleils: espacement', 100, 50, 2000, 50],
+                ['sunRadMin', 'Soleils: rayon min', 80, 5, 120, 1],
+                ['sunRadVar', 'Soleils: rayon var (+)', 24, 0, 60, 1],
+                ['pOrbitBase', 'Planètes: orbite base (×R+)', 30, 5, 150, 5],
+                ['pOrbitSpacing', 'Planètes: espacement', 95, 10, 150, 5],
+                ['pOrbitSpacingVar', 'Planètes: esp. var (+)', 15, 0, 60, 5],
+                ['pRadMin', 'Planètes: rayon min', 20, 2, 40, 1],
+                ['pRadVar', 'Planètes: rayon var (+)', 12, 0, 30, 1],
+                ['mOrbitBase', 'Lunes: orbite base (×R+)', 12, 2, 40, 1],
+                ['mOrbitSpacing', 'Lunes: espacement', 14, 4, 40, 1],
+                ['mRadMin', 'Lunes: rayon min', 10, 1, 20, 1],
+                ['mRadVar', 'Lunes: rayon var (+)', 2, 0, 12, 1],
+            ];
+            if (!window._debugCfg) {
+                window._debugCfg = {};
+                defs.forEach(d => window._debugCfg[d[0]] = d[2]);
+            }
+            const title = document.createElement('div');
+            title.textContent = '⚙ DEBUG UNIVERS (F1)';
+            title.style.cssText = 'font-size:13px;font-weight:bold;color:#3af;margin-bottom:4px;';
+            panel.appendChild(title);
+            defs.forEach(d => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+                const lbl = document.createElement('span');
+                lbl.textContent = d[1];
+                lbl.style.cssText = 'flex:1;font-size:11px;';
+                const sl = document.createElement('input');
+                sl.type = 'range'; sl.min = d[3]; sl.max = d[4]; sl.step = d[5];
+                sl.value = window._debugCfg[d[0]];
+                sl.style.cssText = 'width:100px;';
+                const val = document.createElement('span');
+                val.textContent = sl.value;
+                val.style.cssText = 'width:36px;text-align:right;color:#fff;font-size:11px;';
+                sl.addEventListener('input', () => { window._debugCfg[d[0]] = parseFloat(sl.value); val.textContent = sl.value; });
+                row.appendChild(lbl); row.appendChild(sl); row.appendChild(val);
+                panel.appendChild(row);
+            });
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;gap:8px;margin-top:6px;';
+            const btnRegen = document.createElement('button');
+            btnRegen.textContent = '🔄 Régénérer univers';
+            btnRegen.style.cssText = 'flex:1;padding:6px;background:#1a3a5c;color:#fff;border:1px solid #3af;border-radius:4px;cursor:pointer;font-size:12px;';
+            btnRegen.addEventListener('click', () => {
+                gameState.multiSeed = null;
+                generateUniverse();
+                gameState.suns.forEach(s => createSunTexture(s));
+                gameState.planets.forEach(p => createPlanetTexture(p));
+                gameState.moons.forEach(m => createMoonTexture(m));
+                rebuildAllBodies();
+                buildSunHaloCache();
+            });
+            const btnCopy = document.createElement('button');
+            btnCopy.textContent = '📋 Copier valeurs';
+            btnCopy.style.cssText = 'flex:1;padding:6px;background:#1a3a5c;color:#fff;border:1px solid #3af;border-radius:4px;cursor:pointer;font-size:12px;';
+            btnCopy.addEventListener('click', () => {
+                const txt = JSON.stringify(window._debugCfg, null, 2);
+                navigator.clipboard.writeText(txt).then(() => btnCopy.textContent = '✅ Copié !');
+                setTimeout(() => btnCopy.textContent = '📋 Copier valeurs', 1500);
+            });
+            btnRow.appendChild(btnRegen); btnRow.appendChild(btnCopy);
+            panel.appendChild(btnRow);
+            document.body.appendChild(panel);
+        }
     });
 }
 
@@ -3478,7 +3283,6 @@ function startGame() {
     // Générer l'univers avec progression
     setTimeout(() => {
         updateLoadingBar(15, 'Nébuleuses et étoiles...');
-        if (!window._bgCfg) window._bgCfg = {};
         generateBackground();
         generateForegroundDebris();
 
@@ -3500,10 +3304,6 @@ function startGame() {
 
                         setTimeout(() => {
                             updateLoadingBar(92, 'Caches performances...');
-                            buildBgLayerTextures();
-            buildBgStarsCache();
-                            buildBgClustersCache();
-                            buildBrightStarsCache();
                             buildSunHaloCache();
                             setTimeout(() => {
                                 updateLoadingBar(100, 'Prêt !');
@@ -3654,7 +3454,8 @@ function createPlayers() {
                 multiTier: 0,
                 multiProgress: 0,
                 multiSacrifice: 0,
-                nidification: {}
+                nidification: {},
+                tech: { homing:0, tenacity:0, mimicry:0, _branchOrder:[] }
             });
         }
         // Ajouter les IAs multi (si aiCount > 0 dans les settings)
@@ -3685,7 +3486,8 @@ function createPlayers() {
                     multiTier: 0,
                     multiProgress: 0,
                     multiSacrifice: 0,
-                    nidification: {}
+                    nidification: {},
+                    tech: { homing:0, tenacity:0, mimicry:0, _branchOrder:[] }
                 });
             }
         }
@@ -3707,7 +3509,8 @@ function createPlayers() {
         multiTier: 0,
         multiProgress: 0,
         multiSacrifice: 0,
-        nidification: {}
+        nidification: {},
+        tech: { homing:0, tenacity:0, mimicry:0, _branchOrder:[] }
     });
 
     const usedIdx = colors.indexOf(gameState.playerColor);
@@ -3734,7 +3537,8 @@ function createPlayers() {
             multiTier: 0,
             multiProgress: 0,
             multiSacrifice: 0,
-            nidification: {}
+            nidification: {},
+            tech: { homing:0, tenacity:0, mimicry:0, _branchOrder:[] }
         });
     }
 }// ─────────────────────────────────────────────
@@ -3824,6 +3628,54 @@ function updateMultiPanel() {
     document.getElementById('evoStatGrowthFx').textContent = `×${(1 + s.growth * 0.3).toFixed(1)} prod`;
     document.getElementById('evoStatVelocityFx').textContent = `${velSpeed} vitesse`;
     document.getElementById('evoStatDensityFx').textContent = `+${densPct}% impact`;
+}
+
+// ─────────────────────────────────────────────
+// ARBRE TECHNOLOGIQUE — Spores
+// ─────────────────────────────────────────────
+const TECH_BRANCHES = {
+    homing: { icon:'🎯', name:'Tête chercheuse', levels:['Instinct','Attraction','Magnétisme','Radar','Sonar spatial','Traque','Poursuite','Prédation','Guidage total','Œil omniscient'] },
+    tenacity: { icon:'💪', name:'Ténacité', levels:['Résistance','Endurance','Persistance','Résilience','Insubmersible','Régénération','Duplication','Essaim','Prolifération','Hydre cosmique'] },
+    mimicry: { icon:'🦎', name:'Mimétisme', levels:['Écho','Résonance','Fragmentation','Propagation','Ramification','Cascade','Nuée','Pandémie','Assimilation','Fléau lunaire'] }
+};
+function getTechCost(player, branch) {
+    const tech = player.tech; const lvl = tech[branch];
+    if (lvl >= 10) return Infinity;
+    let order = tech._branchOrder.indexOf(branch);
+    if (order === -1) order = tech._branchOrder.length;
+    const baseCost = [1000,2000,3000][Math.min(order,2)];
+    const increment = [100,200,300][Math.min(order,2)];
+    return baseCost + lvl * increment;
+}
+function buyTech(player, branch) {
+    const cost = getTechCost(player, branch);
+    if (player.totalSpores < cost || player.tech[branch] >= 10) return false;
+    let toDeduct = cost;
+    const bodies = player.bodies.slice().sort((a,b) => b.spores - a.spores);
+    for (const body of bodies) { const take = Math.min(body.spores, toDeduct); body.spores -= take; toDeduct -= take; if (toDeduct <= 0) break; }
+    if (toDeduct > 0) return false;
+    if (player.tech[branch] === 0 && !player.tech._branchOrder.includes(branch)) player.tech._branchOrder.push(branch);
+    player.tech[branch]++;
+    const info = TECH_BRANCHES[branch];
+    addEvent('build', info.icon, `${info.name} niv.${player.tech[branch]} — ${info.levels[player.tech[branch]-1]}`, null, player.color);
+    return true;
+}
+function updateTechPanel() {
+    const slot = localSlot(); const player = gameState.players?.[slot];
+    if (!player) return;
+    for (const branch of ['homing','tenacity','mimicry']) {
+        const lvl = player.tech[branch]; const info = TECH_BRANCHES[branch];
+        const cap = branch.charAt(0).toUpperCase() + branch.slice(1);
+        const pipsEl = document.getElementById('tech'+cap+'Pips');
+        if (pipsEl && pipsEl.children.length === 0) { for (let i=0;i<10;i++) { const p=document.createElement('div'); p.className='tech-pip'; pipsEl.appendChild(p); } }
+        if (pipsEl) { for (let i=0;i<10;i++) pipsEl.children[i].className = 'tech-pip' + (i<lvl?' filled':''); }
+        const lvlEl = document.getElementById('tech'+cap+'Lvl');
+        if (lvlEl) lvlEl.textContent = lvl+'/10';
+        const nameEl = document.getElementById('tech'+cap+'Name');
+        if (nameEl) nameEl.textContent = lvl > 0 ? info.levels[lvl-1] : '—';
+        const buyEl = document.getElementById('tech'+cap+'Buy');
+        if (buyEl) { if (lvl>=10) { buyEl.disabled=true; buyEl.innerHTML='✦ MAX ✦'; } else { const cost=getTechCost(player,branch); buyEl.disabled=player.totalSpores<cost; buyEl.innerHTML='Niv.'+(lvl+1)+' → '+info.levels[lvl]+' <span class="tech-cost">('+cost+')</span>'; } }
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -4126,22 +3978,6 @@ function autoSpawnAIs() {
 function updateCosmicEffects(dt) {
     const t = gameState.time;
 
-    // Drift des couches de fond
-    for (const v of gameState.bgVeils) {
-        v.x += v.vx * dt; v.y += v.vy * dt;
-        v.rotation += v.rotSpeed * dt;
-    }
-    for (const n of gameState.bgNebulae) {
-        n.x += n.vx * dt; n.y += n.vy * dt;
-        n.rotation += n.rotSpeed * dt;
-    }
-    for (const f of gameState.bgFilaments) {
-        f.x += f.vx * dt; f.y += f.vy * dt;
-    }
-    for (const c of gameState.bgStarClusters) {
-        c.x += c.vx * dt; c.y += c.vy * dt;
-    }
-
     // Particules ambiantes
     for (const p of gameState.cosmicDust) {
         p.x += p.vx * dt;
@@ -4416,7 +4252,18 @@ function updateSporeGeneration(dt) {
 
         // Mode construction : production allouée au compteur
         if (body.buildMode === 'nid' || body.buildMode === 'biome') {
-            body.buildProgress += rate * dt;
+            // Nidification continue même en construction
+            const _nidPct = (player._nidSacrifice || 0) / 100;
+            if (_nidPct > 0 && body.parent) {
+                const _sunR = body.type === 'planet' ? body.parent : (body.parent.parent || null);
+                if (_sunR && player.nidification[_sunR.name]) {
+                    const _nid = player.nidification[_sunR.name];
+                    if (!_nid.motherPlanet && _nid.progress < 2500) {
+                        _nid.progress += rate * _nidPct * dt;
+                    }
+                }
+            }
+            body.buildProgress += rate * (1 - _nidPct) * dt;
             // Vérifier si construction terminée
             if (body.buildProgress >= body.maxSpores) {
                 body.buildProgress -= body.maxSpores;
@@ -4466,7 +4313,7 @@ function updateSporeGeneration(dt) {
                 const sunRef = body.type === 'planet' ? body.parent : (body.parent.parent || null);
                 if (sunRef && player.nidification[sunRef.name]) {
                     const nid = player.nidification[sunRef.name];
-                    if (!nid.motherPlanet && nid.progress < 5000) {
+                    if (!nid.motherPlanet && nid.progress < 2500) {
                         nid.progress += rate * nidSac * dt;
                     }
                 }
@@ -4523,7 +4370,7 @@ function launchJet(source, dirX, dirY) {
     const player = gameState.players[source.owner];
     if (!player) return;
 
-    const sporeCount = Math.floor(source.spores * 0.5);
+    const sporeCount = Math.floor(source.spores * gameState.jetRatio);
     if (sporeCount < 5) return;
     source.spores -= sporeCount;
 
@@ -4616,6 +4463,29 @@ function updateJets(dt) {
             sp.offY = Math.sin(sp.angle) * (5 + Math.cos(jet.age * 4 + sp.phase) * 3);
         }
 
+        // ── Tête chercheuse ──
+        const _hp = gameState.players[jet.owner];
+        const _hl = _hp?.tech?.homing || 0;
+        if (_hl > 0 && !jet._targetBody) {
+            const hRange = 80 + _hl * 30;
+            const hForce = 0.02 + _hl * 0.01;
+            let hBest = null, hDist = hRange;
+            for (const b of gameState.allBodies) {
+                if (b.owner === jet.owner || b === jet.source) continue;
+                const hdx = b.x-jet.x, hdy = b.y-jet.y;
+                const hd = Math.sqrt(hdx*hdx+hdy*hdy);
+                if (hd < hDist) { hDist = hd; hBest = b; }
+            }
+            if (hBest) {
+                const i2 = Math.floor(jet.posIndex);
+                for (let ti=i2; ti<jet.trajectory.length; ti++) {
+                    const tp = jet.trajectory[ti];
+                    const tx=hBest.x-tp.x, ty=hBest.y-tp.y, td=Math.sqrt(tx*tx+ty*ty);
+                    if (td>1) { const f=Math.max(0,1-(ti-i2)/60); tp.x+=tx/td*hForce*f*jet.speed*0.3; tp.y+=ty/td*hForce*f*jet.speed*0.3; }
+                }
+            }
+        }
+
         // Traversée amas de météorites
         if (!jet._hitBelt) jet._hitBelt = {};
         for (let bi = 0; bi < gameState.asteroidBelts.length; bi++) {
@@ -4637,8 +4507,10 @@ function updateJets(dt) {
             if (closestDist > 1600) continue; // 40 * 40
             jet._hitBelt[bi] = true;
             if (closestType === 'dark') {
-                // Noir : divise les spores par 2
-                jet.spores = Math.max(1, Math.floor(jet.spores / 2));
+                // Noir : divise les spores (Ténacité réduit la perte)
+                const _tl1 = gameState.players[jet.owner]?.tech?.tenacity || 0;
+                const _dk = 0.5 + _tl1 * 0.05;
+                jet.spores = Math.max(1, Math.floor(jet.spores * _dk));
                 spawnImpact(jet.x, jet.y, '#555555');
             } else if (closestType === 'red') {
                 // Rouge : dévie le jet de 5° à 15°
@@ -4655,12 +4527,20 @@ function updateJets(dt) {
                 }
                 spawnImpact(jet.x, jet.y, '#FF4444');
             } else if (closestType === 'green') {
-                // Vert : éclate en 5 mini-jets
-                const sporesEach = Math.max(1, Math.floor(jet.spores / 5));
+                // Vert : éclate en 5 mini-jets (Ténacité améliore conservation + direction)
+                const _tl2 = gameState.players[jet.owner]?.tech?.tenacity || 0;
+                const _kr = (1/5) + _tl2 * (4/5) / 10;
+                const sporesEach = Math.max(1, Math.floor(jet.spores * _kr));
                 for (let si = 0; si < 5; si++) {
-                    const sAngle = gameRandom() * Math.PI * 2;
-                    const sDirX = Math.cos(sAngle);
-                    const sDirY = Math.sin(sAngle);
+                    let sDirX, sDirY;
+                    if (_tl2 > 0) {
+                        const _ts = gameState.suns[si % gameState.suns.length];
+                        const _tp = _ts.planets[Math.floor(gameRandom()*_ts.planets.length)] || _ts;
+                        const _tx=_tp.x-jet.x, _ty=_tp.y-jet.y, _td=Math.sqrt(_tx*_tx+_ty*_ty);
+                        const _sc = (1-_tl2*0.08)*Math.PI*0.5;
+                        const _sa = Math.atan2(_ty,_tx)+(gameRandom()-0.5)*_sc;
+                        sDirX = Math.cos(_sa); sDirY = Math.sin(_sa);
+                    } else { const sAngle=gameRandom()*Math.PI*2; sDirX=Math.cos(sAngle); sDirY=Math.sin(sAngle); }
                     const speed = jet.speed * (0.6 + gameRandom() * 0.4);
                     const traj = computeTrajectory(jet.x, jet.y, sDirX, sDirY, speed, 200);
                     gameState.jets.push({
@@ -4758,9 +4638,25 @@ function checkJetCollision(jet) {
                 body.spores += jet.spores * densityBonus;
                 playFusionSound();
             } else {
+                const _ml = gameState.players[jet.owner]?.tech?.mimicry || 0;
                 const oldOwner = body.owner;
-                applyConquest(body, jet);
-                if (body.owner !== oldOwner) playConquestSound();
+                if (_ml > 0 && body.type === 'planet' && body.moons && body.moons.length > 0) {
+                    const _skip = _ml >= 10;
+                    if (!_skip) { applyConquest(body, jet); if (body.owner !== oldOwner) playConquestSound(); }
+                    const _mr = 0.2 + _ml * 0.08;
+                    const _mc = Math.min(body.moons.length, Math.max(1, Math.ceil(body.moons.length * _ml / 10)));
+                    const _ms = Math.max(1, Math.floor(jet.spores * _mr));
+                    for (let mi=0; mi<_mc; mi++) {
+                        const mn = body.moons[mi]; if (mn.owner === jet.owner) continue;
+                        const mdx=mn.x-body.x, mdy=mn.y-body.y, mdd=Math.sqrt(mdx*mdx+mdy*mdy);
+                        if (mdd<1) continue;
+                        const mSpd=jet.speed*0.8, mTr=computeTrajectory(body.x,body.y,mdx/mdd,mdy/mdd,mSpd,200);
+                        gameState.jets.push({ owner:jet.owner, color:jet.color, spores:_ms, trajectory:mTr, posIndex:0, x:body.x, y:body.y, speed:mSpd, alive:true, trail:[], sparkles:[], age:0, selected:false, source:body, _hitBelt:{} });
+                    }
+                } else {
+                    applyConquest(body, jet);
+                    if (body.owner !== oldOwner) playConquestSound();
+                }
             }
             jet.alive = false;
             return;
@@ -5420,6 +5316,7 @@ function update(dt) {
         updateMyPlanets();
         updateHUD();
         updateMultiPanel();
+        updateTechPanel();
         updateNidPanel();
         checkVictoryAndElimination();
     }
@@ -5469,9 +5366,6 @@ function render() {
     // ── Planètes & Lunes ──
     drawPlanets(ctx);
 
-    // ── Étoiles premier plan (couche 3, devant soleils/planètes) ──
-    drawFrontStars(ctx);
-
     // ── Vaisseaux nettoyeurs ──
     drawCleaners(ctx);
 
@@ -5515,22 +5409,31 @@ function render() {
 // ─────────────────────────────────────────────
 // DESSIN — Fond spatial (tuilé)
 // ─────────────────────────────────────────────
-function drawBgLayer(ctx, layer) {
-    if (!layer.img) return;
-    if (layer.img.complete === false) return;
-    const cam = gameState.camera;
-    const S = layer.scale;
-    const half = S / 2;
-    const px = -half + cam.x * (1 - layer.parallax);
-    const py = -half + cam.y * (1 - layer.parallax);
-    ctx.drawImage(layer.img, px, py, S, S);
-}
-
-function drawFrontStars(ctx) {
-}
-
 function drawBackground(ctx) {
-    for (let i = 0; i < BG_LAYERS.length; i++) drawBgLayer(ctx, BG_LAYERS[i]);
+    const cam = gameState.camera;
+    // Fond bleu dégradé (parallaxe très lente, couvre tout)
+    if (gameState._bgCanvas) {
+        const bgS = 60000;
+        const px = -bgS / 2 + cam.x * 0.02;
+        const py = -bgS / 2 + cam.y * 0.02;
+        ctx.drawImage(gameState._bgCanvas, px, py, bgS, bgS);
+    }
+    // Étoiles (tuilées, parallaxe moyenne)
+    if (gameState._starsCanvas) {
+        const tileS = 8000;
+        const prlx = 0.15;
+        const offX = cam.x * (1 - prlx);
+        const offY = cam.y * (1 - prlx);
+        const startX = Math.floor((cam.x - 5000 / cam.zoom - offX) / tileS) * tileS;
+        const startY = Math.floor((cam.y - 5000 / cam.zoom - offY) / tileS) * tileS;
+        const endX = cam.x + 5000 / cam.zoom - offX;
+        const endY = cam.y + 5000 / cam.zoom - offY;
+        for (let tx = startX; tx <= endX; tx += tileS) {
+            for (let ty = startY; ty <= endY; ty += tileS) {
+                ctx.drawImage(gameState._starsCanvas, tx + offX, ty + offY, tileS, tileS);
+            }
+        }
+    }
 }
 
 
@@ -6182,6 +6085,11 @@ function updateAI(dt) {
         if (player.multiSacrifice === 0 && player.multiTier < 10) {
             player.multiSacrifice = 15 + Math.floor(gameRandom() * 20);
         }
+        // IA : achat tech
+        if (player.totalSpores > 2000 && gameRandom() < 0.03) {
+            const _br = ['homing','tenacity','mimicry'][Math.floor(gameRandom()*3)];
+            if (player.tech[_br] < 10) buyTech(player, _br);
+        }
 
         // IA : gestion nids/biomes (vérifier à chaque frame, pas seulement au timer)
         for (const body of player.bodies) {
@@ -6680,7 +6588,7 @@ function selectMotherPlanet(sun, planet) {
     if (!human) return;
 
     const nid = human.nidification[sun.name];
-    if (!nid || nid.progress < 5000) return;
+    if (!nid || nid.progress < 2500) return;
 
     // Marquer la planète mère
     nid.motherPlanet = planet.name;
@@ -6748,7 +6656,7 @@ function updateNidPanel() {
         human.nidification[targetSun.name] = { progress: 0, sacrifice: 0, sunName: targetSun.name };
     }
     const nid = human.nidification[targetSun.name];
-    const cost = 5000;
+    const cost = 2500;
 
     // Barre de progression
     const pct = Math.min(100, (nid.progress / cost) * 100);
@@ -7997,24 +7905,6 @@ const SKY_CFG = { r: 22, g: 38, b: 78, brightness: 100 };
 // ─────────────────────────────────────────────
 // FOND SPATIAL — Couches PNG en parallaxe
 // ─────────────────────────────────────────────
-const BG_URLS = [
-    'https://raw.githubusercontent.com/gadmy/nebula-conquest/main/assets/bg_cosmic_nebula.jpg',
-    'https://raw.githubusercontent.com/gadmy/nebula-conquest/main/assets/bg_galactic_core.jpg',
-    'https://raw.githubusercontent.com/gadmy/nebula-conquest/main/assets/bg_milky_way.jpg',
-    'https://raw.githubusercontent.com/gadmy/nebula-conquest/main/assets/bg_nebula_detail.jpg',
-    'https://raw.githubusercontent.com/gadmy/nebula-conquest/main/assets/bg_stardust.jpg'
-];
-const BG_LAYERS = [
-    { img: null, parallax: 0.08, scale: 55000 }
-];
-function buildBgLayerTextures() {
-    const url = BG_URLS[Math.floor(Math.random() * BG_URLS.length)];
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => { BG_LAYERS[0].img = img; };
-    img.onerror = () => { console.warn('BG failed to load: ' + url); };
-    img.src = url;
-}
 
 const COMET_CFG = {
     freq: 8, speed: 150, size: 8, tail: 80, fgDebris: 10
@@ -8043,6 +7933,28 @@ document.getElementById('uiZoomSlider').addEventListener('input', (e) => {
         }
     });
 });
+
+// ═══ Listener Jet Ratio ═══
+document.getElementById('jetRatioSlider').addEventListener('input', (e) => {
+    const v = parseInt(e.target.value);
+    gameState.jetRatio = v / 100;
+    document.getElementById('jetRatioVal').textContent = v + '%';
+});
+
+// ═══ Tabs Évolution / Technologies ═══
+document.querySelectorAll('#evoPanel .evo-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('#evoPanel .evo-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('#evoPanel .evo-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        const target = document.getElementById(tab.dataset.tab);
+        if (target) target.classList.add('active');
+    });
+});
+// ═══ Listeners Tech Tree ═══
+document.getElementById('techHomingBuy').addEventListener('click', () => { const p=gameState.players?.[localSlot()]; if(p&&buyTech(p,'homing')){playClickSound();updateTechPanel();} });
+document.getElementById('techTenacityBuy').addEventListener('click', () => { const p=gameState.players?.[localSlot()]; if(p&&buyTech(p,'tenacity')){playClickSound();updateTechPanel();} });
+document.getElementById('techMimicryBuy').addEventListener('click', () => { const p=gameState.players?.[localSlot()]; if(p&&buyTech(p,'mimicry')){playClickSound();updateTechPanel();} });
 
 // ═══ Listeners MULTIPLICITÉ ═══
 document.body.appendChild(document.getElementById('spawnPopup'));
