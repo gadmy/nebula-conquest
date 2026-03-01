@@ -1193,9 +1193,6 @@ canvas#gameCanvas.grabbing {
 #endScreen .end-buttons { display: flex; gap: 12px; }
 
 
-</style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
 #authScreen {
     display: flex;
     flex-direction: column;
@@ -1209,7 +1206,9 @@ canvas#gameCanvas.grabbing {
     box-shadow: 0 0 8px rgba(139,92,246,0.3);
 }
 #authScreen .btn { font-size: 14px; padding: 10px 20px; }
+
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 </head>
 <body>
 
@@ -1577,6 +1576,7 @@ canvas#gameCanvas.grabbing {
 </div>
 
 <script>
+"use strict";
 /* ══════════════════════════════════════════════════════════════════════
    NEBULA CONQUEST — JAVASCRIPT
    Version: 1.1.0
@@ -2862,6 +2862,8 @@ function createSunTexture(sun) {
 // PRNG global pour génération déterministe
 let _worldRng = null;
 function worldRandom() { return _worldRng ? _worldRng() : Math.random(); }
+let _gameRng = null;
+function gameRandom() { return _gameRng ? _gameRng() : Math.random(); }
 
 // PRNG déterministe (mulberry32)
 function mulberry32(a) {
@@ -3143,7 +3145,7 @@ function generateUniverse() {
                 gameState.asteroidBelts.push({
                     sun: sun,
                     radius: beltRadii[bi],
-                    orbitSpeed: isInner ? (0.012 + Math.random() * 0.008) : (0.005 + Math.random() * 0.006),
+                    orbitSpeed: isInner ? (0.012 + worldRandom() * 0.008) : (0.005 + worldRandom() * 0.006),
                     rocks: rocks
                 });
             }
@@ -3356,6 +3358,8 @@ function enforceStatPoints(changedIdx) {
 
 function setPhase(phase) {
     gameState.phase = phase;
+    if (spawnCountdownInterval) { clearInterval(spawnCountdownInterval); spawnCountdownInterval = null; }
+    if (_roomPollTimer) { clearInterval(_roomPollTimer); _roomPollTimer = null; }
 
     // Cacher tous les écrans
     document.getElementById('authScreen').classList.add('hidden');
@@ -3463,11 +3467,13 @@ function startGame() {
     document.getElementById('loadingScreen').classList.remove('hidden');
     updateLoadingBar(0, 'Génération de l\'espace...');
 
-    // Lire la difficulté
-    gameState.config.difficulty = document.getElementById('cfgDifficulty').value;
-    gameState.config.useIA = document.getElementById('cfgIA').value === 'on';
-    gameState.config.cleanerCount = parseInt(document.getElementById('cfgCleaners').value);
-    gameState.config.useAsteroids = document.getElementById('cfgAsteroids').value === 'on';
+    // Lire la config (solo seulement, en multi c'est déjà défini par onMultiGameStart)
+    if (!gameState.isMulti) {
+        gameState.config.difficulty = document.getElementById('cfgDifficulty').value;
+        gameState.config.useIA = document.getElementById('cfgIA').value === 'on';
+        gameState.config.cleanerCount = parseInt(document.getElementById('cfgCleaners').value);
+        gameState.config.useAsteroids = document.getElementById('cfgAsteroids').value === 'on';
+    }
 
     // Générer l'univers avec progression
     setTimeout(() => {
@@ -3525,8 +3531,13 @@ function finishStartGame() {
     gameState.conquestEffects = [];
     gameState.bloomEffects = [];
     gameState.impactEffects = [];
+    gameState.comets = [];
+    gameState.cometTimer = 0;
     gameState.time = 0;
     _lastScoreHash = '';
+    const _logBody = document.querySelector('#eventLog .log-body');
+    if (_logBody) _logBody.innerHTML = '';
+    _gameRng = mulberry32((gameState.multiSeed || 42) + 5555);
 
     // Créer les joueurs
     createPlayers();
@@ -3589,11 +3600,13 @@ function startSpawnCountdown() {
 function finishMultiSpawn() {
     const slot = localSlot();
     const human = gameState.players[slot];
+    // Seed déterministe pour le spawn auto (identique sur tous les clients)
+    const spawnRng = mulberry32((gameState.multiSeed || 42) + 9999);
     // Si le joueur n'a pas choisi, placer au hasard
     if (!human.spawnPlanet) {
         const free = gameState.planets.filter(p => p.owner === null);
         if (free.length > 0) {
-            const pick = free[Math.floor(Math.random() * free.length)];
+            const pick = free[Math.floor(spawnRng() * free.length)];
             pick.owner = slot;
             pick.spores = pick.maxSpores * 0.5;
             human.bodies = [pick];
@@ -3601,12 +3614,12 @@ function finishMultiSpawn() {
             sendAction('spawn', { bodyName: pick.name });
         }
     }
-    // Placer les joueurs distants non spawn au hasard aussi
+    // Placer les joueurs distants non spawn (déterministe)
     for (const player of gameState.players) {
         if (!player.spawnPlanet) {
             const free = gameState.planets.filter(p => p.owner === null);
             if (free.length > 0) {
-                const pick = free[Math.floor(Math.random() * free.length)];
+                const pick = free[Math.floor(spawnRng() * free.length)];
                 pick.owner = player.id;
                 pick.spores = pick.maxSpores * 0.5;
                 player.bodies = [pick];
@@ -3633,7 +3646,7 @@ function createPlayers() {
                 color: rp.color,
                 isHuman: true,
                 isLocal: isMe,
-                stats: isMe ? { ...gameState.playerStats } : { growth: 3, velocity: 4, density: 3 },
+                stats: isMe ? { ...gameState.playerStats } : (rp.stats || { growth: 3, velocity: 4, density: 3 }),
                 bodies: [],
                 totalSpores: 0,
                 alive: true,
@@ -3643,6 +3656,38 @@ function createPlayers() {
                 multiSacrifice: 0,
                 nidification: {}
             });
+        }
+        // Ajouter les IAs multi (si aiCount > 0 dans les settings)
+        const s = currentRoom.settings || {};
+        const aiCount = s.aiCount || 0;
+        if (aiCount > 0 && s.useIA) {
+            const usedColors = roomPlayers.map(rp => rp.color);
+            const aiColors = colors.filter(c => !usedColors.includes(c));
+            const aiRng = mulberry32((gameState.multiSeed || 42) + 7777);
+            for (let a = 0; a < aiCount; a++) {
+                const aiId = roomPlayers.length + a;
+                const aiColor = aiColors[a % aiColors.length] || colors[a % colors.length];
+                const s1 = Math.floor(aiRng() * 5) + 1;
+                const s2 = Math.floor(aiRng() * (10 - s1)) + 1;
+                const s3 = 10 - s1 - s2;
+                gameState.players.push({
+                    id: aiId,
+                    name: 'IA-' + (a + 1),
+                    color: aiColor,
+                    isHuman: false,
+                    stats: { growth: s1, velocity: s2, density: s3 },
+                    bodies: [],
+                    totalSpores: 0,
+                    alive: true,
+                    spawnPlanet: null,
+                    aiTimer: 0,
+                    aiCooldown: gameState.config.difficulty === 'easy' ? 3 : gameState.config.difficulty === 'normal' ? 1.5 : 0.5,
+                    multiTier: 0,
+                    multiProgress: 0,
+                    multiSacrifice: 0,
+                    nidification: {}
+                });
+            }
         }
         return;
     }
@@ -3671,8 +3716,8 @@ function createPlayers() {
     for (let i = 1; i < gameState.config.playerCount; i++) {
         const aiColor = colors[(i - 1) % colors.length];
         // Stats aléatoires pour les IAs (total = 10)
-        const s1 = Math.floor(Math.random() * 5) + 1;
-        const s2 = Math.floor(Math.random() * (10 - s1)) + 1;
+        const s1 = Math.floor(gameRandom() * 5) + 1;
+        const s2 = Math.floor(gameRandom() * (10 - s1)) + 1;
         const s3 = 10 - s1 - s2;
         gameState.players.push({
             id: i,
@@ -3713,8 +3758,8 @@ function applyMultiChoice(player, stat) {
     player.stats[stat]++;
     player.multiTier++;
     player._multiPending = false;
-    if (player === gameState.players[0]) {
-        addEvent('build', '✦', `Multiplicité palier ${player.multiTier} — ${stat} +1`, null, gameState.players[0]?.color);
+    if (player === gameState.players[localSlot()]) {
+        addEvent('build', '✦', `Multiplicité palier ${player.multiTier} — ${stat} +1`, null, player.color);
     }
 }
 
@@ -3722,7 +3767,7 @@ function updateMultiPanel() {
     const panel = document.getElementById('evoPanel');
     if (!panel || gameState.phase !== 'game') return;
 
-    const human = gameState.players[0];
+    const human = gameState.players[localSlot()];
     if (!human || !human.alive) return;
 
     // Pips
@@ -3918,7 +3963,7 @@ function updateHUD() {
     }
 
     // Compteur spores joueur humain
-    const human = gameState.players[0];
+    const human = gameState.players[localSlot()];
     if (human && DOM.sporeCount) {
         DOM.sporeCount.textContent = Math.floor(human.totalSpores);
     }
@@ -4142,7 +4187,7 @@ function updateCosmicEffects(dt) {
 function updateComets(dt) {
     gameState.cometTimer -= dt;
     if (gameState.cometTimer <= 0) {
-        gameState.cometTimer = COMET_CFG.freq * (0.7 + Math.random() * 0.6);
+        gameState.cometTimer = COMET_CFG.freq * (0.7 + gameRandom() * 0.6);
         const cam = gameState.camera;
         const range = (gameState.universeRadius || 6000) * 2;
         const angle = Math.random() * Math.PI * 2;
@@ -4151,13 +4196,13 @@ function updateComets(dt) {
         const cy = Math.sin(angle) * startDist;
         // Viser un point aléatoire dans l'univers
         const targetAngle = angle + Math.PI + (Math.random() - 0.5) * 1.2;
-        const spd = COMET_CFG.speed + Math.random() * COMET_CFG.speed * 0.5;
+        const spd = COMET_CFG.speed + gameRandom() * COMET_CFG.speed * 0.5;
         gameState.comets.push({
             x: cx, y: cy,
             vx: Math.cos(targetAngle) * spd,
             vy: Math.sin(targetAngle) * spd,
-            size: COMET_CFG.size * (0.6 + Math.random() * 0.8),
-            tail: COMET_CFG.tail * (0.7 + Math.random() * 0.6),
+            size: COMET_CFG.size * (0.6 + gameRandom() * 0.8),
+            tail: COMET_CFG.tail * (0.7 + gameRandom() * 0.6),
             life: range * 2 / spd,
             age: 0,
             color: ['#88DDFF','#AAEEFF','#FFCC66','#FF9966'][Math.floor(Math.random()*4)]
@@ -4178,7 +4223,7 @@ function updateComets(dt) {
             const dx = body.x - c.x;
             const dy = body.y - c.y;
             if (Math.sqrt(dx*dx + dy*dy) < body.radius + c.size) {
-                body.spores = 0;
+                if (!body.invincible) body.spores = 0;
                 spawnImpact(c.x, c.y, c.color);
                 gameState.comets.splice(i, 1);
                 break;
@@ -4377,10 +4422,10 @@ function updateSporeGeneration(dt) {
                 body.buildProgress -= body.maxSpores;
                 if (body.buildMode === 'nid') {
                     body.nids = (body.nids || 0) + 1;
-                    if (body.owner === 0) addEvent('build', '🏗️', `Nid construit sur ${body.name} (${body.nids})`, body, gameState.players[0]?.color);
+                    if (body.owner === localSlot()) addEvent('build', '🏗️', `Nid construit sur ${body.name} (${body.nids})`, body, gameState.players[localSlot()]?.color);
                 } else {
                     body.biomes = (body.biomes || 0) + 1;
-                    if (body.owner === 0) addEvent('build', '🛡️', `Biome construit sur ${body.name} (${body.biomes})`, body, gameState.players[0]?.color);
+                    if (body.owner === localSlot()) addEvent('build', '🛡️', `Biome construit sur ${body.name} (${body.biomes})`, body, gameState.players[localSlot()]?.color);
                 }
             }
             // Max spores réduit à 1/3
@@ -4597,8 +4642,8 @@ function updateJets(dt) {
                 spawnImpact(jet.x, jet.y, '#555555');
             } else if (closestType === 'red') {
                 // Rouge : dévie le jet de 5° à 15°
-                const devAngle = (5 + Math.random() * 10) * Math.PI / 180;
-                const sign = Math.random() < 0.5 ? 1 : -1;
+                const devAngle = (5 + gameRandom() * 10) * Math.PI / 180;
+                const sign = gameRandom() < 0.5 ? 1 : -1;
                 const cosA = Math.cos(devAngle * sign);
                 const sinA = Math.sin(devAngle * sign);
                 for (let ti = Math.floor(jet.posIndex); ti < jet.trajectory.length; ti++) {
@@ -4613,10 +4658,10 @@ function updateJets(dt) {
                 // Vert : éclate en 5 mini-jets
                 const sporesEach = Math.max(1, Math.floor(jet.spores / 5));
                 for (let si = 0; si < 5; si++) {
-                    const sAngle = Math.random() * Math.PI * 2;
+                    const sAngle = gameRandom() * Math.PI * 2;
                     const sDirX = Math.cos(sAngle);
                     const sDirY = Math.sin(sAngle);
-                    const speed = jet.speed * (0.6 + Math.random() * 0.4);
+                    const speed = jet.speed * (0.6 + gameRandom() * 0.4);
                     const traj = computeTrajectory(jet.x, jet.y, sDirX, sDirY, speed, 200);
                     gameState.jets.push({
                         owner: jet.owner,
@@ -4984,6 +5029,9 @@ function drawJets(ctx) {
     }
 }
 
+// Helper : escape HTML (anti-XSS)
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
 // Helper : alpha (0-1) → hex string 2 chars
 function hexAlpha(a) {
     return Math.floor(Math.min(1, Math.max(0, a)) * 255).toString(16).padStart(2, '0');
@@ -5206,6 +5254,95 @@ function setupInput() {
 
     // Empêcher le menu contextuel
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // ── Touch : zoom pinch, pan, jet ──
+    let _touches = {};
+    let _pinchDist = 0;
+    let _touchPan = false;
+    let _touchJet = false;
+    let _touchStart = 0;
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        if (e.touches.length === 2) {
+            _touchPan = false; _touchJet = false;
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            _pinchDist = Math.sqrt(dx*dx + dy*dy);
+        } else if (e.touches.length === 1) {
+            const t = e.touches[0];
+            const mx = t.clientX - rect.left;
+            const my = t.clientY - rect.top;
+            const wx = (mx - gameState.width / 2) / cam.zoom + cam.x;
+            const wy = (my - gameState.height / 2) / cam.zoom + cam.y;
+            _touchStart = performance.now();
+            _touchJet = false; _touchPan = false;
+            _touches = { sx: t.clientX, sy: t.clientY, wx, wy };
+            if (gameState.phase === 'game') {
+                for (const body of gameState.allBodies) {
+                    if (body.owner !== localSlot()) continue;
+                    if (Math.sqrt((body.x-wx)**2 + (body.y-wy)**2) < body.radius + 12) {
+                        _touchJet = true;
+                        gameState.launching = true;
+                        gameState.launchSource = body;
+                        gameState.launchPreview = [];
+                        gameState.launchStartTime = performance.now();
+                        gameState.launchCameraLock = false;
+                        break;
+                    }
+                }
+            }
+            if (!_touchJet) _touchPan = true;
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (e.touches.length === 2 && _pinchDist > 0) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const scale = dist / _pinchDist;
+            cam.zoom = Math.max(cam.minZoom, Math.min(cam.maxZoom, cam.zoom * scale));
+            _pinchDist = dist;
+        } else if (e.touches.length === 1) {
+            const t = e.touches[0];
+            if (_touchPan) {
+                cam.x -= (t.clientX - _touches.sx) / cam.zoom;
+                cam.y -= (t.clientY - _touches.sy) / cam.zoom;
+                _touches.sx = t.clientX; _touches.sy = t.clientY;
+            }
+            if (_touchJet && gameState.launching) {
+                const rect = canvas.getBoundingClientRect();
+                gameState.mouseWorldX = (t.clientX - rect.left - gameState.width / 2) / cam.zoom + cam.x;
+                gameState.mouseWorldY = (t.clientY - rect.top - gameState.height / 2) / cam.zoom + cam.y;
+            }
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+        if (_touchJet && gameState.launching && gameState.launchSource) {
+            const elapsed = performance.now() - _touchStart;
+            const src = gameState.launchSource;
+            if (elapsed < 200) {
+                openCodex(src); followingBody = src;
+            } else {
+                const dx = gameState.mouseWorldX - src.x;
+                const dy = gameState.mouseWorldY - src.y;
+                const len = Math.sqrt(dx*dx + dy*dy);
+                if (len > 10) {
+                    launchJet(src, dx/len, dy/len);
+                    if (gameState.isMulti) sendAction('jet', { srcName: src.name, dirX: dx/len, dirY: dy/len });
+                }
+            }
+            gameState.launching = false;
+            gameState.launchSource = null;
+            gameState.launchPreview = [];
+            gameState.launchCameraLock = false;
+        }
+        _touchJet = false; _touchPan = false; _pinchDist = 0;
+    });
 }
 
 function findBodyAt(wx, wy) {
@@ -5395,128 +5532,7 @@ function drawFrontStars(ctx) {
 function drawBackground(ctx) {
     for (let i = 0; i < BG_LAYERS.length; i++) drawBgLayer(ctx, BG_LAYERS[i]);
 }
-/* ancien drawBackground désactivé — couches PNG à la place
-    const t = gameState.time;
 
-    // Helper parallaxe
-    function prlx(obj) {
-        return {
-            x: obj.x + (cam.x - obj.x) * (1 - obj.parallax),
-            y: obj.y + (cam.y - obj.y) * (1 - obj.parallax)
-        };
-    }
-
-    // ── Couche 0 : Étoiles de base ──
-    const _cfg = window._bgCfg || {};
-    const lod = gameState.lod;
-    if (_cfg.starsOn !== false && gameState.bgStarsCache) {
-        const sc = gameState.bgStarsCache;
-        const px = sc.offX + (cam.x - sc.offX) * (1 - sc.parallax);
-        const py = sc.offY + (cam.y - sc.offY) * (1 - sc.parallax);
-        ctx.drawImage(sc.canvas, px, py, sc.w, sc.h);
-    }
-
-    // ── Couche 1 : Voiles galactiques (LOD mid+) ──
-    if (_cfg.veilsOn !== false && lod >= 1)
-    for (const v of gameState.bgVeils) {
-        const p = prlx(v);
-        const maxDim = Math.max(v.w, v.h);
-        if (p.x < cam.x - halfW - maxDim || p.x > cam.x + halfW + maxDim ||
-            p.y < cam.y - halfH - maxDim || p.y > cam.y + halfH + maxDim) continue;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(v.rotation);
-        ctx.drawImage(v.texture, -v.w/2, -v.h/2, v.w, v.h);
-        ctx.restore();
-    }
-
-    // ── Couche 2 : Nébuleuses denses (LOD mid+) ──
-    if (_cfg.nebOn !== false && lod >= 1)
-    for (const neb of gameState.bgNebulae) {
-        const p = prlx(neb);
-        const dw = neb.texture.width / neb.texture.height * neb.radius * 1.4;
-        const dh = neb.radius * 1.4;
-        const maxD = Math.max(dw, dh);
-        if (p.x < cam.x - halfW - maxD || p.x > cam.x + halfW + maxD ||
-            p.y < cam.y - halfH - maxD || p.y > cam.y + halfH + maxD) continue;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(neb.rotation);
-        ctx.drawImage(neb.texture, -dw, -dh, dw * 2, dh * 2);
-        ctx.restore();
-    }
-
-    // ── Couche 3 : Filaments (LOD mid+) ──
-    if (_cfg.filOn !== false && lod >= 1)
-    for (const f of gameState.bgFilaments) {
-        const p = prlx(f);
-        const maxDim = Math.max(f.w, f.h);
-        if (p.x < cam.x - halfW - maxDim || p.x > cam.x + halfW + maxDim ||
-            p.y < cam.y - halfH - maxDim || p.y > cam.y + halfH + maxDim) continue;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(f.rotation);
-        ctx.drawImage(f.texture, -f.w/2, -f.h/2, f.w, f.h);
-        ctx.restore();
-    }
-
-    // ── Couche 4 : Amas stellaires (offscreen cache) ──
-    if (_cfg.clusOn !== false)
-    for (let ci = 0; ci < gameState.bgStarClusters.length; ci++) {
-        const cl = gameState.bgStarClusters[ci];
-        const p = prlx(cl);
-        if (p.x < cam.x - halfW - 300 || p.x > cam.x + halfW + 300 ||
-            p.y < cam.y - halfH - 300 || p.y > cam.y + halfH + 300) continue;
-        const cc = gameState.bgClustersCache[ci];
-        if (cc) {
-            ctx.drawImage(cc.canvas, p.x + cc.offX, p.y + cc.offY, cc.w, cc.h);
-        }
-    }
-
-    // ── Couche 5 : Étoiles brillantes premier plan ──
-    if (_cfg.brightOn !== false && lod > 0)
-    for (const s of gameState.bgBrightStars) {
-        const p = prlx(s);
-        if (p.x < cam.x - halfW - 20 || p.x > cam.x + halfW + 20 ||
-            p.y < cam.y - halfH - 20 || p.y > cam.y + halfH + 20) continue;
-
-        const flicker = 0.7 + Math.sin(t * 3 + s.phase) * 0.3;
-        const a = s.alpha * flicker;
-
-        // Halo depuis cache
-        if (s._haloCache) {
-            ctx.globalAlpha = a;
-            const r = s.size * 5;
-            ctx.drawImage(s._haloCache, p.x - r, p.y - r, r * 2, r * 2);
-            ctx.globalAlpha = 1;
-        }
-
-        // Croix de diffraction (LOD high uniquement)
-        if (s.hasDiffraction && lod >= 2) {
-            ctx.strokeStyle = `rgba(${s.color}, ${a * 0.2})`;
-            ctx.lineWidth = 0.6;
-            const len = s.size * 8;
-            ctx.beginPath();
-            ctx.moveTo(p.x - len, p.y); ctx.lineTo(p.x + len, p.y);
-            ctx.moveTo(p.x, p.y - len); ctx.lineTo(p.x, p.y + len);
-            ctx.stroke();
-            if (lod >= 2) {
-                ctx.strokeStyle = `rgba(${s.color}, ${a * 0.1})`;
-                ctx.beginPath();
-                const d = len * 0.5;
-                ctx.moveTo(p.x-d, p.y-d); ctx.lineTo(p.x+d, p.y+d);
-                ctx.moveTo(p.x+d, p.y-d); ctx.lineTo(p.x-d, p.y+d);
-                ctx.stroke();
-            }
-        }
-
-        // Point central
-        ctx.fillStyle = `rgba(${s.color}, ${a + 0.1})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, s.size, 0, Math.PI * 2);
-        ctx.fill();
-    }
-} fin ancien drawBackground */
 
 
 // ─────────────────────────────────────────────
@@ -5528,11 +5544,14 @@ function drawBlackHole(ctx) {
     const t = gameState.time;
     const bhLod = gameState.lod;
 
-    // Zone de danger (halo externe)
-    const gDanger = ctx.createRadialGradient(0, 0, bh.radius, 0, 0, bh.dangerZone);
-    gDanger.addColorStop(0, 'rgba(100, 40, 180, 0.25)');
-    gDanger.addColorStop(0.5, 'rgba(60, 20, 120, 0.1)');
-    gDanger.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    // Zone de danger (halo externe) — gradient caché
+    if (!bh._gDanger) {
+        bh._gDanger = ctx.createRadialGradient(0, 0, bh.radius, 0, 0, bh.dangerZone);
+        bh._gDanger.addColorStop(0, 'rgba(100, 40, 180, 0.25)');
+        bh._gDanger.addColorStop(0.5, 'rgba(60, 20, 120, 0.1)');
+        bh._gDanger.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    }
+    const gDanger = bh._gDanger;
     ctx.fillStyle = gDanger;
     ctx.beginPath();
     ctx.arc(0, 0, bh.dangerZone, 0, Math.PI * 2);
@@ -5576,11 +5595,14 @@ function drawBlackHole(ctx) {
     ctx.setLineDash([]);
     }
 
-    // Trou noir (noyau)
-    const gCore = ctx.createRadialGradient(0, 0, 0, 0, 0, bh.radius);
-    gCore.addColorStop(0, '#000000');
-    gCore.addColorStop(0.7, '#000000');
-    gCore.addColorStop(1, 'rgba(80, 30, 140, 0.5)');
+    // Trou noir (noyau) — gradient caché
+    if (!bh._gCore) {
+        bh._gCore = ctx.createRadialGradient(0, 0, 0, 0, 0, bh.radius);
+        bh._gCore.addColorStop(0, '#000000');
+        bh._gCore.addColorStop(0.7, '#000000');
+        bh._gCore.addColorStop(1, 'rgba(80, 30, 140, 0.5)');
+    }
+    const gCore = bh._gCore;
     ctx.fillStyle = gCore;
     ctx.beginPath();
     ctx.arc(0, 0, bh.radius, 0, Math.PI * 2);
@@ -5619,8 +5641,8 @@ function drawAsteroidBelts(ctx) {
                 const sz = sr.size;
 
                 // Polygone irrégulier (5-7 côtés)
-                const sides = sr._sides || (sr._sides = 5 + Math.floor(Math.random() * 3));
-                const verts = sr._verts || (sr._verts = Array.from({length: sides}, (_, i) => 0.7 + Math.random() * 0.6));
+                const sides = sr._sides || (sr._sides = 5 + Math.floor(worldRandom() * 3));
+                const verts = sr._verts || (sr._verts = Array.from({length: sides}, (_, i) => 0.7 + worldRandom() * 0.6));
 
                 ctx.save();
                 ctx.translate(rx, ry);
@@ -5859,11 +5881,11 @@ function updateCleaners(dt) {
         // Mouvement : naviguer vers une planète cible
         cl.turnTimer -= dt;
         if (cl.turnTimer <= 0) {
-            cl.turnTimer = CLN_CFG.turnInterval + Math.random() * 5;
-            const speed = CLN_CFG.speedMin + Math.random() * (CLN_CFG.speedMax - CLN_CFG.speedMin);
+            cl.turnTimer = CLN_CFG.turnInterval + gameRandom() * 5;
+            const speed = CLN_CFG.speedMin + gameRandom() * (CLN_CFG.speedMax - CLN_CFG.speedMin);
             // 70% chance de viser une planète, 30% errance locale
-            if (Math.random() < 0.7 && gameState.planets.length > 0) {
-                const target = gameState.planets[Math.floor(Math.random() * gameState.planets.length)];
+            if (gameRandom() < 0.7 && gameState.planets.length > 0) {
+                const target = gameState.planets[Math.floor(gameRandom() * gameState.planets.length)];
                 cl._target = target;
                 const tdx = target.x - cl.x;
                 const tdy = target.y - cl.y;
@@ -5874,7 +5896,7 @@ function updateCleaners(dt) {
                 }
             } else {
                 cl._target = null;
-                const wanderAngle = Math.atan2(cl.y, cl.x) + (Math.random() - 0.5) * 1.5;
+                const wanderAngle = Math.atan2(cl.y, cl.x) + (gameRandom() - 0.5) * 1.5;
                 cl.vx = Math.cos(wanderAngle) * speed * 0.5;
                 cl.vy = Math.sin(wanderAngle) * speed * 0.5;
             }
@@ -5938,7 +5960,7 @@ function updateCleaners(dt) {
 
                     if (cl.type === 'red') {
                         // Rouge : attaque classique, réduit les spores
-                        const damage = CLN_CFG.dmgMin + Math.random() * (CLN_CFG.dmgMax - CLN_CFG.dmgMin);
+                        const damage = CLN_CFG.dmgMin + gameRandom() * (CLN_CFG.dmgMax - CLN_CFG.dmgMin);
                         jet.spores -= damage;
                         if (jet.spores <= 0) jet.alive = false;
                         gameState.conquestEffects.push({
@@ -6158,14 +6180,14 @@ function updateAI(dt) {
 
         // IA sacrifice pour multiplicité
         if (player.multiSacrifice === 0 && player.multiTier < 10) {
-            player.multiSacrifice = 15 + Math.floor(Math.random() * 20);
+            player.multiSacrifice = 15 + Math.floor(gameRandom() * 20);
         }
 
         // IA : gestion nids/biomes (vérifier à chaque frame, pas seulement au timer)
         for (const body of player.bodies) {
             if (body.buildMode === 'off' && body.spores > body.maxSpores * 0.7) {
                 // Activer un mode selon la stratégie : plus de nids si peu de planètes, biomes sinon
-                body.buildMode = player.bodies.length < 4 ? 'nid' : (Math.random() > 0.5 ? 'nid' : 'biome');
+                body.buildMode = player.bodies.length < 4 ? 'nid' : (gameRandom() > 0.5 ? 'nid' : 'biome');
             }
         }
 
@@ -6173,7 +6195,7 @@ function updateAI(dt) {
         if (player.aiTimer > 0) continue;
 
         // Reset timer
-        player.aiTimer = player.aiCooldown + Math.random() * player.aiCooldown * 0.5;
+        player.aiTimer = player.aiCooldown + gameRandom() * player.aiCooldown * 0.5;
 
         // Décider d'une action
         if (difficulty === 'easy') aiActionEasy(player);
@@ -6187,14 +6209,14 @@ function aiActionEasy(player) {
     // Choisir un astre source avec des spores
     const sources = player.bodies.filter(b => b.spores > 20);
     if (sources.length === 0) return;
-    const source = sources[Math.floor(Math.random() * sources.length)];
+    const source = sources[Math.floor(gameRandom() * sources.length)];
 
     // Choisir une cible aléatoire (neutre ou ennemie)
     const targets = gameState.allBodies.filter(b =>
         b.owner !== player.id && b.type !== 'sun'
     );
     if (targets.length === 0) return;
-    const target = targets[Math.floor(Math.random() * targets.length)];
+    const target = targets[Math.floor(gameRandom() * targets.length)];
 
     aiLaunchAt(source, target, player);
 }
@@ -6281,7 +6303,7 @@ function aiActionBrutal(player) {
         const sporePenalty = (target.spores || 0) * 0.3;
 
         // Bonus si c'est un astre du joueur humain (agressif)
-        const humanBonus = target.owner === 0 ? 60 : 0;
+        const humanBonus = (target.owner !== null && target.owner !== player.id && gameState.players[target.owner]?.isHuman) ? 60 : 0;
 
         const score = floreFactor - faunePenalty - distPenalty + ownerBonus - sporePenalty + humanBonus;
 
@@ -6306,7 +6328,7 @@ function aiActionBrutal(player) {
     attackSources.sort((a, b) => a.dist - b.dist);
 
     // Lancer depuis les 1 à 3 sources les plus proches
-    const count = Math.min(attackSources.length, 1 + Math.floor(Math.random() * 3));
+    const count = Math.min(attackSources.length, 1 + Math.floor(gameRandom() * 3));
     for (let i = 0; i < count; i++) {
         const src = attackSources[i].src;
         // Garder une réserve défensive (30% des spores)
@@ -6567,7 +6589,7 @@ function checkVictoryAndElimination() {
             const hasJets = gameState.jets.some(j => j.alive && j.owner === player.id);
             if (!hasJets) {
                 player.alive = false;
-                if (player.isHuman) {
+                if (player.isLocal) {
                     showEndScreen(false);
                     return;
                 }
@@ -6575,9 +6597,9 @@ function checkVictoryAndElimination() {
         }
 
         // Vérifier victoire (80% de la masse)
-        const pct = ownedCount / totalBodies;
+        const pct = totalBodies > 0 ? ownedCount / totalBodies : 0;
         if (pct >= 0.8) {
-            if (player.isHuman) {
+            if (player.isLocal) {
                 showEndScreen(true);
             } else {
                 showEndScreen(false);
@@ -6595,7 +6617,7 @@ function showEndScreen(isVictory) {
     title.className = isVictory ? 'victory' : 'defeat';
 
     const sub = document.getElementById('endSubtitle');
-    const human = gameState.players[0];
+    const human = gameState.players[localSlot()];
     const totalBodies = gameState.planets.length + gameState.moons.length;
     const ownedPct = Math.round((human.bodies.length / totalBodies) * 100);
     sub.textContent = isVictory
@@ -6767,7 +6789,7 @@ function isSystemComplete(sun, ownerID) {
 
 function updateMyPlanets() {
     if (gameState.phase !== 'game') return;
-    const human = gameState.players[0];
+    const human = gameState.players[localSlot()];
     if (!human) return;
 
     const container = document.getElementById('myPlanetsList');
@@ -6794,9 +6816,10 @@ function updateMyPlanets() {
         groups[sunName].push(body);
     }
 
-    // Ne reconstruire que si le nombre a changé
-    if (container.dataset.count !== String(myBodies.length)) {
-        container.dataset.count = String(myBodies.length);
+    // Ne reconstruire que si la liste a changé
+    const _hash = myBodies.map(b => b.name).join(',');
+    if (container.dataset.hash !== _hash) {
+        container.dataset.hash = _hash;
         container.innerHTML = '';
 
         for (const sunName of Object.keys(groups)) {
@@ -7524,7 +7547,7 @@ function updateAudioTension() {
 
     // Calculer la tension : jets ennemis proches de nos astres
     let tensionTarget = 0;
-    const human = gameState.players[0];
+    const human = gameState.players[localSlot()];
     if (human) {
         for (const jet of gameState.jets) {
             if (!jet.alive || jet.owner === 0) continue;
@@ -8062,7 +8085,7 @@ document.body.appendChild(document.getElementById('spawnPopup'));
 document.getElementById('spawnPopupBtn').addEventListener('click', () => { playClickSound(); confirmSpawn(); });
 document.getElementById('spawnPopupClose').addEventListener('click', () => { playClickSound(); _spawnTarget = null; document.getElementById('spawnPopup').style.display = 'none'; });
 document.getElementById('evoSacrifice').addEventListener('input', (e) => {
-    const human = gameState.players[0];
+    const human = gameState.players[localSlot()];
     if (human) human.multiSacrifice = parseInt(e.target.value);
 });
 document.getElementById('nidSacrifice').addEventListener('input', (e) => {
@@ -8073,15 +8096,15 @@ document.getElementById('nidSacrifice').addEventListener('input', (e) => {
     }
 });
 document.getElementById('evoGrowth').addEventListener('click', () => {
-    const human = gameState.players[0];
+    const human = gameState.players[localSlot()];
     if (human && human._multiPending) { applyMultiChoice(human, 'growth'); if (gameState.isMulti) sendAction('multi', { stat: 'growth' }); }
 });
 document.getElementById('evoVelocity').addEventListener('click', () => {
-    const human = gameState.players[0];
+    const human = gameState.players[localSlot()];
     if (human && human._multiPending) { applyMultiChoice(human, 'velocity'); if (gameState.isMulti) sendAction('multi', { stat: 'velocity' }); }
 });
 document.getElementById('evoDensity').addEventListener('click', () => {
-    const human = gameState.players[0];
+    const human = gameState.players[localSlot()];
     if (human && human._multiPending) { applyMultiChoice(human, 'density'); if (gameState.isMulti) sendAction('multi', { stat: 'density' }); }
 });
 
@@ -8299,7 +8322,10 @@ function setupGameChannel(roomId) {
         if (payload.slot === mySlot) return;
         handleRemoteAction(payload);
     });
-    gameChannel.subscribe();
+    return new Promise(resolve => {
+        gameChannel.subscribe((status) => { if (status === 'SUBSCRIBED') resolve(); });
+        setTimeout(resolve, 3000); // fallback si subscribe lent
+    });
 }
 
 function sendAction(type, data) {
@@ -8358,7 +8384,7 @@ async function onMultiGameStart(room) {
     const me = rPlayers.find(p => p.player_id === currentUser.id);
     mySlot = me ? me.slot_number : 0;
     // Canal broadcast
-    setupGameChannel(room.id);
+    await setupGameChannel(room.id);
     // Lancer la partie
     startGame();
 }
@@ -8371,7 +8397,9 @@ async function toggleReady() {
     if (e1) { console.warn('toggleReady select:', e1); return; }
     if (!data) { console.warn('toggleReady: player not found in room'); return; }
     const newReady = !data.ready;
-    const { error: e2 } = await _supa.from('game_room_players').update({ ready: newReady }).eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
+    const updateData = { ready: newReady };
+    if (newReady) updateData.stats = { ...gameState.playerStats };
+    const { error: e2 } = await _supa.from('game_room_players').update(updateData).eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
     if (e2) { console.warn('toggleReady update:', e2); return; }
     const btn = document.getElementById('btnRoomReady');
     btn.textContent = newReady ? '✓ PRÊT' : 'PRÊT';
@@ -8380,6 +8408,7 @@ async function toggleReady() {
 
 async function leaveRoom() {
     if (!currentRoom || !currentUser) return;
+    if (_roomPollTimer) { clearInterval(_roomPollTimer); _roomPollTimer = null; }
     if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
     await _supa.from('game_room_players').delete().eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
     // Si host, supprimer la room
@@ -8391,6 +8420,8 @@ async function leaveRoom() {
     setPhase('title');
 }
 
+let _roomPollTimer = null;
+
 async function enterRoom(roomId) {
     setPhase('room');
     document.getElementById('roomCode').textContent = 'CODE : ' + roomId.substring(0, 8).toUpperCase();
@@ -8398,7 +8429,7 @@ async function enterRoom(roomId) {
     // Afficher les paramètres de la partie
     const s = currentRoom ? currentRoom.settings || {} : {};
     const diffLabel = s.difficulty === 'easy' ? 'Facile' : s.difficulty === 'brutal' ? 'Brutal' : 'Normal';
-    document.getElementById('roomParams').innerHTML = `${s.sunCount || 4} soleils · ${diffLabel} · ${s.useAsteroids !== false ? 'Météorites' : 'Sans météorites'} · ${s.cleanerCount || 0} vaisseaux`;
+    document.getElementById('roomParams').textContent = `${parseInt(s.sunCount) || 4} soleils · ${diffLabel} · ${s.useAsteroids !== false ? 'Météorites' : 'Sans météorites'} · ${parseInt(s.cleanerCount) || 0} vaisseaux`;
     document.getElementById('btnRoomStart').style.display = (isHost && !isAuto) ? 'inline-block' : 'none';
     document.getElementById('btnRoomReady').style.display = isAuto ? 'none' : 'inline-block';
     // Charger les joueurs
@@ -8412,7 +8443,34 @@ async function enterRoom(roomId) {
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_rooms', filter: 'id=eq.' + roomId }, (payload) => {
             if (payload.new.status === 'playing') onMultiGameStart(payload.new);
         })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'game_rooms', filter: 'id=eq.' + roomId }, () => {
+            if (_roomPollTimer) { clearInterval(_roomPollTimer); _roomPollTimer = null; }
+            if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
+            currentRoom = null; isHost = false;
+            alert('L\'hôte a fermé la partie.');
+            setPhase('title');
+        })
         .subscribe();
+    // Polling de secours (3s) au cas où Realtime ne notifie pas
+    if (_roomPollTimer) clearInterval(_roomPollTimer);
+    _roomPollTimer = setInterval(async () => {
+        if (!currentRoom) { clearInterval(_roomPollTimer); _roomPollTimer = null; return; }
+        await refreshRoomSlots(roomId);
+        // Vérifier aussi si la room a été lancée
+        const { data: room } = await _supa.from('game_rooms').select('status, seed, settings').eq('id', roomId).single();
+        if (!room) {
+            clearInterval(_roomPollTimer); _roomPollTimer = null;
+            if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
+            currentRoom = null; isHost = false;
+            alert('L\'hôte a fermé la partie.');
+            setPhase('title');
+            return;
+        }
+        if (room && room.status === 'playing') {
+            clearInterval(_roomPollTimer); _roomPollTimer = null;
+            onMultiGameStart({ ...currentRoom, ...room });
+        }
+    }, 3000);
 }
 
 async function refreshRoomSlots(roomId) {
@@ -8425,7 +8483,7 @@ async function refreshRoomSlots(roomId) {
         if (p) {
             const readyCls = p.ready ? 'yes' : 'no';
             const readyTxt = p.ready ? 'PRÊT' : '...';
-            html += `<div class="room-slot"><div class="slot-color" style="background:${p.color}"></div><span class="slot-name">${p.pseudo}</span><span class="slot-ready ${readyCls}">${readyTxt}</span></div>`;
+            html += `<div class="room-slot"><div class="slot-color" style="background:${esc(p.color)}"></div><span class="slot-name">${esc(p.pseudo)}</span><span class="slot-ready ${readyCls}">${readyTxt}</span></div>`;
         } else {
             html += `<div class="room-slot empty"><div class="slot-color" style="background:#333"></div><span class="slot-name" style="color:#64748B;">Slot libre</span></div>`;
         }
@@ -8434,11 +8492,15 @@ async function refreshRoomSlots(roomId) {
     // Compteur joueurs
     const count = (players || []).length;
     document.getElementById('roomCounter').textContent = count + ' / ' + max;
-    if (count >= max) {
-        document.getElementById('roomStatus').textContent = '✓ PARTIE COMPLÈTE — LANCEMENT...';
+    const allReady2 = players && players.length > 0 && players.every(p => p.ready);
+    if (count >= max && allReady2) {
+        document.getElementById('roomStatus').textContent = '✓ TOUS PRÊTS — LANCEMENT...';
         document.getElementById('roomStatus').style.color = '#4ADE80';
+    } else if (count >= max) {
+        document.getElementById('roomStatus').textContent = 'En attente que tous soient PRÊT...';
+        document.getElementById('roomStatus').style.color = '#FBBF24';
     } else {
-        document.getElementById('roomStatus').textContent = 'En attente de joueurs...';
+        document.getElementById('roomStatus').textContent = 'En attente de joueurs... (' + count + '/' + max + ')';
         document.getElementById('roomStatus').style.color = '#FBBF24';
     }
     // Activer le bouton LANCER si host et tous prêts
@@ -8459,6 +8521,7 @@ async function refreshRoomSlots(roomId) {
 
 async function joinRoom(roomId) {
     if (!currentUser || !currentProfile) return;
+    try {
     // Charger la room
     const { data: room, error: re } = await _supa.from('game_rooms').select('*').eq('id', roomId).single();
     if (re || !room || room.status !== 'waiting') { alert('Partie indisponible.'); loadRoomList(); return; }
@@ -8473,12 +8536,14 @@ async function joinRoom(roomId) {
         room_id: roomId, player_id: currentUser.id,
         pseudo: currentProfile.pseudo,
         color: gameState.teamColors[slot % gameState.teamColors.length],
-        slot_number: slot, ready: autoReady
+        slot_number: slot, ready: autoReady,
+        stats: autoReady ? { ...gameState.playerStats } : null
     });
     if (error) { console.warn('Erreur join:', error); return; }
     currentRoom = room;
     isHost = (room.host_id === currentUser.id);
     enterRoom(roomId);
+    } catch(e) { console.warn('joinRoom:', e); alert('Erreur réseau.'); }
 }
 
 async function quickMatch() {
@@ -8487,6 +8552,11 @@ async function quickMatch() {
         showAuthScreen();
         return;
     }
+    // Nettoyer les rooms abandonnées (>30min en waiting)
+    try {
+        const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        await _supa.from('game_rooms').delete().eq('status', 'waiting').lt('created_at', cutoff);
+    } catch(e) { /* ignore */ }
     // Chercher une room auto en attente avec de la place
     const { data: rooms } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: true }).limit(20);
     if (rooms) {
@@ -8504,7 +8574,7 @@ async function quickMatch() {
     const players = 2 + Math.floor(Math.random() * 3); // 2-4
     const diffs = ['easy', 'normal', 'brutal'];
     const diff = diffs[Math.floor(Math.random() * 3)];
-    const cleaners = Math.floor(Math.random() * 26);
+    const cleaners = Math.floor(Math.random() * 8);
     const aiCount = Math.floor(Math.random() * 5);
     const autoSettings = { sunCount: suns, difficulty: diff, useIA: aiCount > 0, aiCount: aiCount, cleanerCount: cleaners, useAsteroids: Math.random() > 0.4, playerCount: players + aiCount };
     await createRoom('auto', autoSettings, players);
@@ -8512,6 +8582,7 @@ async function quickMatch() {
 
 async function createRoom(mode = 'custom', settings = null, maxPlayers = 4) {
     if (!currentUser || !currentProfile) return;
+    try {
     if (!settings) settings = { sunCount: 4, difficulty: 'normal', useIA: true, cleanerCount: 3, useAsteroids: true };
     const { data, error } = await _supa.from('game_rooms').insert({
         host_id: currentUser.id,
@@ -8528,9 +8599,11 @@ async function createRoom(mode = 'custom', settings = null, maxPlayers = 4) {
         room_id: data.id, player_id: currentUser.id,
         pseudo: currentProfile.pseudo,
         color: gameState.teamColors[0],
-        slot_number: 0, ready: true
+        slot_number: 0, ready: true,
+        stats: { ...gameState.playerStats }
     });
     enterRoom(data.id);
+    } catch(e) { console.warn('createRoom:', e); alert('Erreur réseau.'); }
 }
 
 async function rejoinGame() {
@@ -8546,7 +8619,7 @@ async function rejoinGame() {
     currentRoom = room;
     mySlot = slot;
     gameState.isMulti = true;
-    setupGameChannel(roomId);
+    await setupGameChannel(roomId);
     // Reprendre le contrôle du joueur
     const player = gameState.players[slot];
     if (player) {
@@ -8583,7 +8656,7 @@ async function updateQuickMatchPanel() {
         }
         if (found) {
             const s = found.settings || {};
-            el.innerHTML = `${s.sunCount || 4} soleils · ${s.difficulty || 'normal'} · <span style="color:#4ADE80;">${found._count}/${found.max_players} joueurs</span>`;
+            el.innerHTML = `${parseInt(s.sunCount) || 4} soleils · ${esc(s.difficulty || 'normal')} · <span style="color:#4ADE80;">${parseInt(found._count)||0}/${parseInt(found.max_players)||4} joueurs</span>`;
         } else {
             const suns = 2 + Math.floor(Math.random() * 5);
             const pl = 2 + Math.floor(Math.random() * 3);
@@ -8657,7 +8730,7 @@ document.getElementById('btnInvite').addEventListener('click', async () => {
 });
 
 async function loadRoomList() {
-    // Réservé pour usage futur
+    setPhase('title');
 }
 
 document.getElementById('btnMulti').addEventListener('click', () => {
@@ -8777,7 +8850,7 @@ async function showLeaderboard() {
             const bg = isMe ? 'background:rgba(139,92,246,0.15);' : '';
             return `<tr style="${bg} border-bottom:1px solid rgba(139,92,246,0.1);">
                 <td style="padding:8px; color:#E0E7FF;">${medal}</td>
-                <td style="padding:8px; color:${row.avatar_color || '#E0E7FF'}; font-weight:${isMe ? 'bold' : 'normal'};">${row.pseudo}</td>
+                <td style="padding:8px; color:${esc(row.avatar_color || '#E0E7FF')}; font-weight:${isMe ? 'bold' : 'normal'};">${esc(row.pseudo)}</td>
                 <td style="padding:8px; text-align:center; color:#22C55E;">${row.wins}</td>
                 <td style="padding:8px; text-align:center; color:#94A3B8;">${row.total_games}</td>
                 <td style="padding:8px; text-align:center; color:#FBBF24;">${row.win_rate}%</td>
