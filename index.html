@@ -237,7 +237,7 @@ canvas#gameCanvas.grabbing {
 
 /* ── Nidification ── */
 #nidPanel .nid-planet-btn {
-    font-family: 'Exo 2', sans-serif; font-size: 9px;
+    font-family: 'Exo 2', sans-serif; font-size: 12px;
     padding: 3px 8px; border-radius: 4px; cursor: pointer;
     border: 1px solid rgba(34,197,94,0.4); color: #4ADE80;
     background: rgba(34,197,94,0.15); transition: all 0.2s;
@@ -434,6 +434,11 @@ canvas#gameCanvas.grabbing {
     padding: 8px 12px;
     pointer-events: auto;
     min-width: 260px;
+    max-height: 85vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100,70,180,0.3) transparent;
+    overscroll-behavior: contain;
     z-index: 40;
     display: none;
 }
@@ -460,10 +465,10 @@ canvas#gameCanvas.grabbing {
 #evoPanel .stat-icon { font-size: 12px; width: 16px; text-align: center; }
 #evoPanel .stat-name {
     color: rgba(200,170,255,0.5);
-    font-size: 9px;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    width: 55px;
+    width: 65px;
 }
 #evoPanel .stat-val {
     font-family: 'Orbitron', sans-serif;
@@ -473,12 +478,12 @@ canvas#gameCanvas.grabbing {
     text-align: center;
 }
 #evoPanel .stat-bonus {
-    font-size: 9px;
+    font-size: 12px;
     color: #A855F7;
-    width: 25px;
+    width: 30px;
 }
 #evoPanel .stat-effect {
-    font-size: 9px;
+    font-size: 11px;
     color: rgba(200,170,255,0.4);
     flex: 1;
 }
@@ -590,7 +595,7 @@ canvas#gameCanvas.grabbing {
     font-size: 8px; color: rgba(200,170,255,0.4);
 }
 #evoPanel .evo-tabs { display:flex; gap:0; margin-bottom:6px; }
-#evoPanel .evo-tab { flex:1; padding:4px 2px; text-align:center; font-size:9px; font-family:'Orbitron',sans-serif; color:rgba(200,170,255,0.4); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+#evoPanel .evo-tab { flex:1; padding:4px 2px; text-align:center; font-size:11px; font-family:'Orbitron',sans-serif; color:rgba(200,170,255,0.4); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
 #evoPanel .evo-tab:hover { color:rgba(200,170,255,0.7); }
 #evoPanel .evo-tab.active { color:#E9D5FF; border-bottom-color:#A855F7; }
 #evoPanel .evo-tab-content { display:none; }
@@ -598,17 +603,17 @@ canvas#gameCanvas.grabbing {
 #evoPanel .tech-branch { margin-bottom:8px; padding:6px 8px; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.15); border-radius:5px; }
 #evoPanel .tech-branch-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
 #evoPanel .tech-branch-icon { font-size:14px; }
-#evoPanel .tech-branch-name { font-family:'Orbitron',sans-serif; font-size:10px; color:#E9D5FF; flex:1; }
-#evoPanel .tech-branch-lvl { font-family:'Orbitron',sans-serif; font-size:9px; color:#C084FC; }
+#evoPanel .tech-branch-name { font-family:'Orbitron',sans-serif; font-size:13px; color:#E9D5FF; flex:1; }
+#evoPanel .tech-branch-lvl { font-family:'Orbitron',sans-serif; font-size:12px; color:#C084FC; }
 #evoPanel .tech-pips { display:flex; gap:2px; margin-bottom:4px; }
 #evoPanel .tech-pip { flex:1; height:4px; border-radius:2px; background:rgba(168,85,247,0.15); transition:all 0.3s; }
 #evoPanel .tech-pip.filled { background:linear-gradient(90deg,#7C3AED,#C084FC); }
-#evoPanel .tech-desc { font-size:8px; color:rgba(200,170,255,0.4); margin-bottom:4px; line-height:1.3; }
-#evoPanel .tech-lvl-name { font-size:9px; color:rgba(200,170,255,0.6); text-align:center; margin-bottom:3px; }
-#evoPanel .tech-buy { display:block; width:100%; padding:4px; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.4); color:#E9D5FF; cursor:pointer; font-family:'Exo 2',sans-serif; font-size:10px; border-radius:4px; transition:all 0.2s; }
+#evoPanel .tech-desc { font-size:11px; color:rgba(200,170,255,0.4); margin-bottom:4px; line-height:1.3; }
+#evoPanel .tech-lvl-name { font-size:12px; color:rgba(200,170,255,0.6); text-align:center; margin-bottom:3px; }
+#evoPanel .tech-buy { display:block; width:100%; padding:4px; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.4); color:#E9D5FF; cursor:pointer; font-family:'Exo 2',sans-serif; font-size:12px; border-radius:4px; transition:all 0.2s; }
 #evoPanel .tech-buy:hover { background:rgba(168,85,247,0.3); border-color:#C084FC; }
 #evoPanel .tech-buy:disabled { opacity:0.35; cursor:default; background:rgba(168,85,247,0.08); }
-#evoPanel .tech-buy .tech-cost { font-family:'Orbitron',sans-serif; font-size:9px; color:#C084FC; }
+#evoPanel .tech-buy .tech-cost { font-family:'Orbitron',sans-serif; font-size:12px; color:#C084FC; }
 
 /* ── Panneau bas-droite tri-onglets ── */
 #sidePanel {
@@ -680,7 +685,8 @@ canvas#gameCanvas.grabbing {
 .sp-block.sp-collapsed .sp-body { display: none; }
 .sp-block.sp-collapsed .sp-collapse { transform: rotate(-90deg); }
 .sp-body { padding: 6px 8px; max-height: 200px; overflow-y: auto;
-    scrollbar-width: thin; scrollbar-color: rgba(100,70,180,0.3) transparent; }
+    scrollbar-width: thin; scrollbar-color: rgba(100,70,180,0.3) transparent;
+    overscroll-behavior: contain; }
 .sp-body::-webkit-scrollbar { width: 3px; }
 .sp-body::-webkit-scrollbar-thumb { background: rgba(100,70,180,0.4); border-radius: 3px; }
 
@@ -741,13 +747,18 @@ canvas#gameCanvas.grabbing {
 #codex {
     position: fixed;
     display: none;
-    width: 240px;
+    width: 250px;
+    max-height: 70vh;
+    overflow-y: auto;
     background: rgba(10, 8, 35, 0.92);
     border: 1px solid rgba(100, 70, 180, 0.3);
     border-radius: 8px;
-    padding: 18px;
+    padding: 14px;
     z-index: 30;
     pointer-events: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100,70,180,0.3) transparent;
+    overscroll-behavior: contain;
 }
 
 #codex.open { display: block; }
@@ -830,7 +841,7 @@ canvas#gameCanvas.grabbing {
     display: flex; gap: 0; margin: -4px -18px 12px; border-bottom: 1px solid rgba(100,70,180,0.2);
 }
 #codex .codex-tab {
-    flex: 1; padding: 7px 4px; font-family:'Exo 2',sans-serif; font-size: 10px;
+    flex: 1; padding: 7px 4px; font-family:'Exo 2',sans-serif; font-size: 12px;
     color: rgba(180,190,220,0.5); text-align: center; cursor: pointer;
     border-bottom: 2px solid transparent; transition: all 0.15s; letter-spacing: 0.5px;
 }
@@ -852,11 +863,11 @@ canvas#gameCanvas.grabbing {
 #codex .bld-card.active { background: rgba(100,70,180,0.22); border-color: #C8A0FF; box-shadow: 0 0 6px rgba(160,120,255,0.25); }
 #codex .bld-icon { font-size: 18px; flex-shrink: 0; }
 #codex .bld-main { flex: 1; min-width: 0; }
-#codex .bld-name { font-family:'Exo 2',sans-serif; font-size: 10px; color: rgba(220,225,240,0.9); font-weight: 600; }
-#codex .bld-desc { font-family:'Exo 2',sans-serif; font-size: 8px; color: rgba(180,190,220,0.5); margin-top: 1px; }
+#codex .bld-name { font-family:'Exo 2',sans-serif; font-size: 13px; color: rgba(220,225,240,0.9); font-weight: 600; }
+#codex .bld-desc { font-family:'Exo 2',sans-serif; font-size: 11px; color: rgba(180,190,220,0.7); margin-top: 1px; }
 #codex .bld-progress-bg { margin-top: 3px; height: 2px; background: rgba(255,255,255,0.08); border-radius: 1px; overflow: hidden; }
 #codex .bld-progress { height: 100%; background: linear-gradient(90deg,#C8A0FF,#A78BFA); border-radius: 1px; transition: width 0.5s; }
-#codex .bld-count { font-family:'Orbitron',sans-serif; font-size: 8px; color: #C8A0FF; flex-shrink: 0; text-align: right; }
+#codex .bld-count { font-family:'Orbitron',sans-serif; font-size: 11px; color: #C8A0FF; flex-shrink: 0; text-align: right; }
 
 #codex .codex-build {
     margin-top: 6px;
@@ -942,7 +953,7 @@ input[type="radio"]:checked + .build-icon-btn {
 
 #myPlanets .mp-title {
     font-family: 'Orbitron', sans-serif;
-    font-size: 9px;
+    font-size: 11px;
     color: rgba(200,160,255,0.6);
     text-align: center;
     letter-spacing: 1px;
@@ -957,7 +968,7 @@ input[type="radio"]:checked + .build-icon-btn {
 
 #myPlanets .mp-sun-label {
     font-family: 'Orbitron', sans-serif;
-    font-size: 7px;
+    font-size: 10px;
     color: rgba(255, 220, 100, 0.5);
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -966,7 +977,7 @@ input[type="radio"]:checked + .build-icon-btn {
 }
 #myPlanets .mp-sun-label .sys-complete {
     color: #FFD700;
-    font-size: 8px;
+    font-size: 11px;
     margin-left: 3px;
     text-shadow: 0 0 6px rgba(255,215,0,0.5);
 }
@@ -1022,7 +1033,7 @@ input[type="radio"]:checked + .build-icon-btn {
 
 #myPlanets .mp-item .mp-name {
     font-family: 'Exo 2', sans-serif;
-    font-size: 7px;
+    font-size: 10px;
     color: rgba(200, 210, 230, 0.8);
     white-space: nowrap;
     overflow: hidden;
@@ -1034,7 +1045,7 @@ input[type="radio"]:checked + .build-icon-btn {
 
 #myPlanets .mp-type-badge {
     font-family: 'Orbitron', sans-serif;
-    font-size: 6px;
+    font-size: 9px;
     letter-spacing: 0.5px;
     padding: 1px 4px;
     border-radius: 2px;
@@ -1053,7 +1064,7 @@ input[type="radio"]:checked + .build-icon-btn {
 
 #myPlanets .mp-spores {
     font-family: 'Orbitron', sans-serif;
-    font-size: 7px;
+    font-size: 10px;
     color: #FFD700;
     margin-top: 1px;
 }
@@ -3980,7 +3991,7 @@ function loadMapFromJSON(mapData) {
                 type: 'planet', name: pd.name, radius: pd.radius,
                 flore: pd.flore, faune: pd.faune, _baseFaune: pd.faune,
                 symbiosis: 0, symOwnerTime: 0,
-                buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0, parasiteSpore: 0, parasiteProgress: 0, parasite: null, droneCount: 0,
+                buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0, alveoles: 0, parasiteSpore: 0, parasiteProgress: 0, parasite: null, droneCount: 0,
                 orbitRadius: pd.orbitRadius, orbitSpeed: pd.orbitSpeed,
                 angle: pd.angle, parent: sun,
                 x: sun.x + Math.cos(pd.angle) * pd.orbitRadius,
@@ -3995,7 +4006,7 @@ function loadMapFromJSON(mapData) {
                     type: 'moon', name: md.name, radius: md.radius,
                     flore: md.flore, faune: md.faune,
                     symbiosis: 0, symOwnerTime: 0,
-                    buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0, parasiteSpore: 0, parasiteProgress: 0, parasite: null, droneCount: 0,
+                    buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0, alveoles: 0, parasiteSpore: 0, parasiteProgress: 0, parasite: null, droneCount: 0,
                     orbitRadius: md.orbitRadius, orbitSpeed: md.orbitSpeed,
                     angle: md.angle, parent: planet,
                     x: planet.x + Math.cos(md.angle) * md.orbitRadius,
@@ -4160,6 +4171,7 @@ function generateUniverse() {
                 buildProgress: 0,
                 nids: 0,
                 biomes: 0,
+                alveoles: 0,
                 parasiteSpore: 0, parasiteProgress: 0, parasite: null, droneCount: 0,
                 orbitRadius: pOrbitR,
                 orbitSpeed: pSpeed,
@@ -4821,7 +4833,7 @@ function setupUI() {
                         flore: Math.floor(Math.random() * 101),
                         faune: Math.floor(Math.random() * 101), _baseFaune: 0,
                         symbiosis: 0, symOwnerTime: 0,
-                        buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0,
+                        buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0, alveoles: 0,
                         orbitRadius: orbitR, orbitSpeed: speed, angle: angle,
                         parent: selectedSun, x: selectedSun.x + Math.cos(angle) * orbitR, y: selectedSun.y + Math.sin(angle) * orbitR,
                         owner: null, spores: 0, maxSpores: Math.floor(r * 50),
@@ -4849,7 +4861,7 @@ function setupUI() {
                         flore: Math.floor(Math.random() * 51),
                         faune: Math.floor(Math.random() * 61),
                         symbiosis: 0, symOwnerTime: 0,
-                        buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0,
+                        buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0, alveoles: 0,
                         orbitRadius: orbitR, orbitSpeed: speed, angle: angle,
                         parent: selectedPlanet, x: selectedPlanet.x + Math.cos(angle) * orbitR, y: selectedPlanet.y + Math.sin(angle) * orbitR,
                         owner: null, spores: 0, maxSpores: Math.floor(r * 50)
@@ -5127,6 +5139,9 @@ function setPhase(phase) {
         case 'spawn':
             document.getElementById('gameCanvas').style.display = 'block';
             document.getElementById('spawnBanner').classList.remove('hidden');
+            document.getElementById('sidePanel').style.display = 'flex';
+            document.getElementById('eventLog').style.display = 'block';
+            initSidePanel();
             break;
         case 'game':
             document.getElementById('spawnPopup').style.display = 'none';
@@ -5238,6 +5253,7 @@ function finishStartGame() {
     gameState.jets = [];
     gameState.conquestEffects = [];
     gameState.bloomEffects = [];
+    gameState.particles = [];
     gameState.impactEffects = [];
     gameState.comets = [];
     gameState.cometTimer = 0;
@@ -5311,6 +5327,24 @@ function finishMultiSpawn() {
     // Seed déterministe pour le spawn auto (identique sur tous les clients)
     const spawnRng = mulberry32((gameState.multiSeed || 42) + 9999);
     // Si le joueur n'a pas choisi, placer au hasard
+    // Détection colonisations adverses (pendant spawn)
+    if (gameState.phase === 'spawn') {
+        for (let i = 0; i < gameState.players.length; i++) {
+            if (i === localSlot()) continue;
+            const p = gameState.players[i];
+            if (p && p.spawnPlanet && !p._spawnAnnounced) {
+                p._spawnAnnounced = true;
+                const b = p.spawnPlanet;
+                addEvent('war', '🌍', `${p.name} colonise ${b.name} !`, b, p.color);
+                // Flash visuel sur la planète
+                if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
+                gameState._spawnFlashes.push({ body: b, age: 0, maxAge: 2, color: p.color });
+                // Flèche hors-écran
+                if (!gameState._spawnArrows) gameState._spawnArrows = [];
+                gameState._spawnArrows.push({ body: b, age: 0, maxAge: 3, color: p.color });
+            }
+        }
+    }
     if (!human.spawnPlanet) {
         const free = gameState.planets.filter(p => p.owner === null);
         if (free.length > 0) {
@@ -5594,6 +5628,22 @@ function updateTechPanel() {
 // ─────────────────────────────────────────────
 // CODEX — Panneau latéral
 // ─────────────────────────────────────────────
+function clampToScreen(el, margin) {
+    margin = margin || 8;
+    requestAnimationFrame(() => {
+        const W = window.innerWidth, H = window.innerHeight;
+        const r = el.getBoundingClientRect();
+        let l = parseFloat(el.style.left) || r.left;
+        let t = parseFloat(el.style.top) || r.top;
+        if (l + r.width > W - margin) l = W - r.width - margin;
+        if (l < margin) l = margin;
+        if (t + r.height > H - margin) t = H - r.height - margin;
+        if (t < margin) t = margin;
+        el.style.left = l + 'px';
+        el.style.top = t + 'px';
+    });
+}
+
 function openCodex(body) {
     gameState.selectedBody = body;
     gameState.codexOpen = true;
@@ -5661,21 +5711,32 @@ function openCodex(body) {
     const codexEl = document.getElementById('codex');
     codexEl.classList.add('open');
     if (openCodex._cx !== undefined) {
-        let x = openCodex._cx + 12;
-        let y = openCodex._cy + 12;
-        if (x + 260 > window.innerWidth) x = openCodex._cx - 260;
-        if (y + codexEl.offsetHeight > window.innerHeight) y = window.innerHeight - codexEl.offsetHeight - 8;
-        codexEl.style.left = x + 'px';
-        codexEl.style.top = y + 'px';
+        // Positionner après rendu pour avoir le vrai offsetHeight
+        requestAnimationFrame(() => {
+            const W = window.innerWidth, H = window.innerHeight;
+            const cw = codexEl.offsetWidth || 250;
+            const ch = codexEl.offsetHeight || 400;
+            let x = openCodex._cx + 12;
+            let y = openCodex._cy + 12;
+            if (x + cw > W - 8) x = openCodex._cx - cw - 8;
+            if (x < 8) x = 8;
+            if (y + ch > H - 8) y = H - ch - 8;
+            if (y < 8) y = 8;
+            codexEl.style.left = x + 'px';
+            codexEl.style.top = y + 'px';
+        });
     }
 }
 
 function _bldInfoText(body, mode) {
     const att = Math.floor(body.sporesAttaque||0), def = Math.floor(body.sporesDefense||0);
     const maxAtt = body.maxSpores, maxDef = body.maxSpores*2;
-    if (mode==='nid'||mode==='biome') {
-        const pct = Math.floor((body.buildProgress/body.maxSpores)*100);
-        return `Coût: ${body.maxSpores} sp · Progression: ${pct}%`;
+    if (mode==='nid'||mode==='biome'||mode==='alveole') {
+        const _b = body.baseMaxSpores || body.maxSpores;
+        const cost = mode==='alveole' ? Math.floor(_b*0.35) : mode==='nid' ? Math.floor(_b*0.4) : Math.floor(_b*0.5);
+        const prog = Math.floor(body.buildProgress || 0);
+        const pct = Math.floor((prog / cost) * 100);
+        return `Sacrifice: ${prog}/${cost} sp · ${pct}%`;
     }
     if (mode==='ruche') return `Stock: ${att}/${maxAtt} · Envoi: ~${Math.floor(att*gameState.jetRatio)} sp`;
     if (mode==='mare') return `Stock: ${def}/${maxDef} · Envoi: ~${Math.floor(def*gameState.jetRatio)} sp`;
@@ -5713,7 +5774,7 @@ function updateCodexBuild(body) {
             if (mode === 'mare' && countEl) countEl.textContent = Math.floor(body.sporesDefense||0)+'/'+(body.maxSpores*2)+' sp.déf';
             if (mode === 'parasite' && countEl) countEl.textContent = (body.parasiteSpore||0)+' prête';
             if (barEl) {
-                if ((mode==='nid'||mode==='biome') && body.buildMode===mode) barEl.style.width = Math.min(100,(body.buildProgress/body.maxSpores)*100)+'%';
+                if ((mode==='nid'||mode==='biome') && body.buildMode===mode) { const _c=Math.floor(body.maxSpores*0.5); barEl.style.width = Math.min(100,((body.buildProgress||0)/_c)*100)+'%'; }
                 if (mode==='ruche') barEl.style.width = Math.min(100,((body.sporesAttaque||0)/body.maxSpores)*100)+'%';
                 if (mode==='mare') barEl.style.width = Math.min(100,((body.sporesDefense||0)/(body.maxSpores*2))*100)+'%';
                 if (mode==='parasite') barEl.style.width = (body.parasiteSpore||0)>=1 ? '100%' : '0%';
@@ -5739,13 +5800,15 @@ function updateCodexBuild(body) {
     grid._lastBody = body;
     grid._lastMode = body.buildMode;
 
+    const _base = body.baseMaxSpores || body.maxSpores || 0;
     const BLD = [
-        { mode:'off',     icon:'⬛', name:'OFF',     desc:'Production normale', color:'rgba(100,70,180,0.3)' },
-        { mode:'nid',     icon:'🏗️', name:'NID',     desc:'+0.2% prod/nid construit', color:'rgba(34,197,94,0.3)' },
-        { mode:'biome',   icon:'🛡️', name:'BIOME',   desc:'+défense locale par biome', color:'rgba(59,130,246,0.3)' },
-        { mode:'ruche',   icon:'🔴', name:'RUSH',    desc:'Produit des spores attaque', color:'rgba(220,38,38,0.3)' },
-        { mode:'mare',    icon:'🔵', name:'MARE',    desc:'Produit des spores défense', color:'rgba(14,165,233,0.3)' },
-        { mode:'parasite',icon:'🦠', name:'PARASITE',desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
+        { mode:'off',     icon:'⬛', name:'OFF',      desc:'Production normale', color:'rgba(100,70,180,0.3)' },
+        { mode:'alveole', icon:'🍯', name:'ALVÉOLE',  desc:`+5% stock max · Coût: ${Math.floor(_base*0.35)} sp`, color:'rgba(234,179,8,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.35)+' spores pour agrandir la capacité de stockage de la planète (+5% du max de base par alvéole).' },
+        { mode:'nid',     icon:'🏗️', name:'NID',      desc:`+2.5% prod · Coût: ${Math.floor(_base*0.4)} sp`,    color:'rgba(34,197,94,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.4)+' spores pour accélérer la production locale. La production reprend automatiquement après construction.' },
+        { mode:'biome',   icon:'🛡️', name:'BIOME',    desc:`+5% défense · Coût: ${Math.floor(_base*0.5)} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Sacrifice '+Math.floor(_base*0.5)+' spores pour renforcer la défense naturelle de la planète. Annulé si la planète est vidée.' },
+        { mode:'ruche',   icon:'🔴', name:'RUSH',     desc:'Produit des spores attaque', color:'rgba(220,38,38,0.3)' },
+        { mode:'mare',    icon:'🔵', name:'MARE',     desc:'Produit des spores défense', color:'rgba(14,165,233,0.3)' },
+        { mode:'parasite',icon:'🦠', name:'PARASITE', desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
     ];
 
     grid.innerHTML = '';
@@ -5753,19 +5816,23 @@ function updateCodexBuild(body) {
         const card = document.createElement('div');
         card.className = 'bld-card' + (body.buildMode === b.mode ? ' active' : '');
         card.style.borderColor = body.buildMode === b.mode ? b.color.replace('0.3','0.8') : '';
-        const countTxt = b.mode==='nid' ? (body.nids||0)+' construits'
+        const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.35) : b.mode==='nid' ? Math.floor(_base*0.4) : b.mode==='biome' ? Math.floor(_base*0.5) : 0;
+        const countTxt = b.mode==='alveole' ? (body.alveoles||0)+' construites'
+            : b.mode==='nid' ? (body.nids||0)+' construits'
             : b.mode==='biome' ? (body.biomes||0)+' construits'
             : b.mode==='ruche' ? Math.floor(body.sporesAttaque||0)+'/'+body.maxSpores+' att'
             : b.mode==='mare' ? Math.floor(body.sporesDefense||0)+'/'+(body.maxSpores*2)+' déf'
             : b.mode==='parasite' ? (body.parasiteSpore||0)+' prête' : '';
         const isActive = body.buildMode === b.mode && b.mode !== 'off';
         const infoTxt = isActive ? _bldInfoText(body, b.mode) : '';
+        const notEnough = _bldCost > 0 && body.spores < _bldCost && !isActive;
         card.innerHTML = `
             <div class="bld-icon">${b.icon}</div>
             <div class="bld-main">
                 <div class="bld-name">${b.name}</div>
                 <div class="bld-desc">${b.desc}</div>
-                ${infoTxt ? `<div class="bld-active-info" style="font-size:8px;color:rgba(200,160,255,0.7);margin-top:2px;">${infoTxt}</div>` : ''}
+                ${notEnough ? `<div style="font-size:11px;color:#F87171;margin-top:2px;">⚠ Stock insuffisant</div>` : ''}
+                ${infoTxt ? `<div class="bld-active-info" style="font-size:11px;color:rgba(200,160,255,0.7);margin-top:2px;">${infoTxt}</div>` : ''}
             </div>
             <div class="bld-count" data-bldcount="${b.mode}">${countTxt}</div>
         `;
@@ -5785,18 +5852,46 @@ function updateCodexBuild(body) {
                 bar.style.width = Math.min(100, ((body.sporesDefense||0) / (body.maxSpores*2)) * 100) + '%';
             } else if (b.mode === 'parasite') {
                 bar.style.background = 'linear-gradient(90deg,#22C55E,#86EFAC)';
-                const _parasiteCost = ((body.flore||1)/100) * 2 * 120; // rate * 120s
-                bar.style.width = (body.parasiteSpore||0) >= 1 ? '100%' : Math.min(100, ((body.parasiteProgress||0) / Math.max(1,_parasiteCost)) * 100) + '%';
+                bar.style.width = (body.parasiteSpore||0) >= 1 ? '100%' : Math.min(100, ((body.parasiteProgress||0) / 120) * 100) + '%';
             } else { bar.style.width = '0%'; }
             prog.appendChild(bar);
             card.appendChild(prog);
         }
         card.addEventListener('click', () => {
             body.buildMode = b.mode;
-            if (b.mode === 'off') body.buildProgress = 0;
+            if (b.mode === 'off' || (b.mode !== 'nid' && b.mode !== 'biome')) body.buildProgress = 0;
             grid._lastMode = null; // Force reconstruction
             updateCodexBuild(body);
         });
+        // Tooltip infobulle au survol
+        if (b.tip) {
+            let _bldTT = document.getElementById('_bldTooltip');
+            if (!_bldTT) {
+                _bldTT = document.createElement('div');
+                _bldTT.id = '_bldTooltip';
+                _bldTT.style.cssText = 'position:fixed;z-index:200;background:rgba(10,8,35,0.97);border:1px solid rgba(100,70,180,0.5);border-radius:6px;padding:7px 10px;font-family:"Exo 2",sans-serif;font-size:12px;color:#E2D9F3;pointer-events:none;max-width:220px;line-height:1.5;opacity:0;transition:opacity 0.15s;white-space:normal;';
+                document.body.appendChild(_bldTT);
+            }
+            let _bldTT2 = _bldTT;
+            let _bldTTTimer = null;
+            card.addEventListener('mouseenter', (e) => {
+                clearTimeout(_bldTTTimer);
+                _bldTTTimer = setTimeout(() => {
+                    _bldTT2.textContent = b.tip;
+                    _bldTT2.style.left = (e.clientX + 12) + 'px';
+                    _bldTT2.style.top = (e.clientY - 10) + 'px';
+                    _bldTT2.style.opacity = '1';
+                }, 200);
+            });
+            card.addEventListener('mouseleave', () => {
+                clearTimeout(_bldTTTimer);
+                _bldTT2.style.opacity = '0';
+            });
+            card.addEventListener('mousemove', (e) => {
+                _bldTT2.style.left = (e.clientX + 12) + 'px';
+                _bldTT2.style.top = (e.clientY - 10) + 'px';
+            });
+        }
         grid.appendChild(card);
     }
     }
@@ -5858,7 +5953,7 @@ function updateHUD() {
 
     // Minimap (throttle toutes les 15 frames)
     if (gameState._hudCounter % 15 === 0) drawMinimap();
-    if (gameState._hudCounter % 10 === 0) _stmRefreshLive();
+    if (gameState._hudCounter % 20 === 0) _stmRefreshLive();
 
     // Codex si ouvert : rafraîchir les données sans repositionner
     if (gameState.codexOpen && gameState.selectedBody) {
@@ -5966,6 +6061,9 @@ function confirmSpawn() {
     _spawnTarget.spores = _spawnTarget.maxSpores * 0.5;
     human.bodies = [_spawnTarget];
     human.spawnPlanet = _spawnTarget;
+    addEvent('mine', '🌍', `Vous colonisez ${_spawnTarget.name} !`, _spawnTarget, human.color);
+    if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
+    gameState._spawnFlashes.push({ body: _spawnTarget, age: 0, maxAge: 2.5, color: human.color });
     document.getElementById('spawnPopup').style.display = 'none';
 
     if (gameState.isMulti) {
@@ -6004,7 +6102,14 @@ function autoSpawnAIs() {
             bestPlanet.spores = bestPlanet.maxSpores * 0.5;
             gameState.players[i].bodies = [bestPlanet];
             gameState.players[i].spawnPlanet = bestPlanet;
+            gameState.players[i]._spawnAnnounced = true;
             available.splice(available.indexOf(bestPlanet), 1);
+            const _p = gameState.players[i];
+            addEvent('war', '🌍', `${_p.name} colonise ${bestPlanet.name} !`, bestPlanet, _p.color);
+            if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
+            gameState._spawnFlashes.push({ body: bestPlanet, age: 0, maxAge: 2.5, color: _p.color });
+            if (!gameState._spawnArrows) gameState._spawnArrows = [];
+            gameState._spawnArrows.push({ body: bestPlanet, age: 0, maxAge: 4, color: _p.color });
         }
     }
 }
@@ -6279,59 +6384,65 @@ function updateSporeGeneration(dt) {
         const symBonus = 1 + (body.symbiosis / 100) * symBonusMax;
 
         // Bonus nids : +0.2% production locale par nid
-        const nidBonus = 1 + (body.nids || 0) * 0.002;
+        const nidBonus = 1 + (body.nids || 0) * 0.025;
+        // Alvéoles : +5% maxSpores par alvéole
+        const _alvMax = Math.floor((body.baseMaxSpores || body.maxSpores) * (1 + (body.alveoles || 0) * 0.05));
+        if (body.maxSpores !== _alvMax) body.maxSpores = _alvMax;
 
         // Bonus système complet : +3% si toutes planètes+lunes du soleil au même owner
         let sysBonus = 1;
         const bodySun = body.type === 'planet' ? body.parent : (body.parent.parent || null);
         if (bodySun && isSystemComplete(bodySun, body.owner)) sysBonus = 1.03;
 
-        const rate = (body.flore / 100) * (1 + player.stats.growth * 0.3) * 2 * symBonus * nidBonus * sysBonus;
+        const rate = (0.4 + (body.flore / 100) * 0.6) * (1 + player.stats.growth * 0.3) * 2.5 * symBonus * nidBonus * sysBonus;
 
-        // Mode construction : production allouée au compteur
-        if (body.buildMode === 'nid' || body.buildMode === 'biome') {
-            // Nidification continue même en construction
-            const _nidPct = Math.min((player._nidSacrifice || 0) / 100, 0.5);
-            if (_nidPct > 0 && body.parent) {
-                const _sunR = body.type === 'planet' ? body.parent : (body.parent.parent || null);
-                if (_sunR && player.nidification[_sunR.name]) {
-                    const _nid = player.nidification[_sunR.name];
-                    if (!_nid.motherPlanet && _nid.progress < 2500) {
-                        _nid.progress += rate * _nidPct * dt;
+        // Mode construction nid/biome/alveole : sacrifice de spores directement
+        if (body.buildMode === 'nid' || body.buildMode === 'biome' || body.buildMode === 'alveole') {
+            const _buildType = body.buildMode;
+            const _costPct = body.buildMode === 'nid' ? 0.4 : body.buildMode === 'alveole' ? 0.35 : 0.5;
+            const _buildCost = Math.floor((body.baseMaxSpores || body.maxSpores) * _costPct);
+            if (body.spores < _buildCost * 0.8 && (body.buildProgress || 0) === 0) {
+                // Pas assez de spores (seuil 80% du coût) — on attend sans drainer
+            } else if (body.spores < 5 && (body.buildProgress || 0) > 0) {
+                // Planète vidée pendant construction → annulation, spores sauvegardées
+                body.buildProgress = 0;
+                body.buildMode = 'off';
+                if (body.owner === localSlot()) addEvent('build', '⚠️', `Construction annulée sur ${body.name} (manque de spores)`, body, '#F87171');
+            } else {
+                const _drainRate = _buildCost / 8;
+                const _drain = Math.min(_drainRate * dt, body.spores - 5, _buildCost - (body.buildProgress || 0));
+                if (_drain > 0) {
+                    body.spores -= _drain;
+                    body.buildProgress = (body.buildProgress || 0) + _drain;
+                }
+                if ((body.buildProgress || 0) >= _buildCost) {
+                    body.buildProgress = 0;
+                    body.buildMode = 'off'; // prod reprend automatiquement
+                    if (_buildType === 'nid') {
+                        body.nids = (body.nids || 0) + 1;
+                        if (body.owner === localSlot()) addEvent('build', '🏗️', `Nid construit sur ${body.name} (×${body.nids})`, body, gameState.players[localSlot()]?.color);
+                    } else if (_buildType === 'alveole') {
+                        body.alveoles = (body.alveoles || 0) + 1;
+                        body.baseMaxSpores = body.baseMaxSpores || body.maxSpores;
+                        if (body.owner === localSlot()) addEvent('build', '🍯', `Alvéole construite sur ${body.name} (×${body.alveoles})`, body, gameState.players[localSlot()]?.color);
+                    } else {
+                        body.biomes = (body.biomes || 0) + 1;
+                        if (body.owner === localSlot()) addEvent('build', '🛡️', `Biome construit sur ${body.name} (×${body.biomes})`, body, gameState.players[localSlot()]?.color);
                     }
                 }
             }
-            // Construction proportionnelle au maxSpores (coût = maxSpores, vitesse = rate * 50% max)
-            body.buildProgress += rate * Math.min(1 - _nidPct, 0.5) * dt;
-            // Vérifier si construction terminée
-            if (body.buildProgress >= body.maxSpores) {
-                body.buildProgress -= body.maxSpores;
-                if (body.buildMode === 'nid') {
-                    body.nids = (body.nids || 0) + 1;
-                    if (body.owner === localSlot()) addEvent('build', '🏗️', `Nid construit sur ${body.name} (${body.nids})`, body, gameState.players[localSlot()]?.color);
-                } else {
-                    body.biomes = (body.biomes || 0) + 1;
-                    if (body.owner === localSlot()) addEvent('build', '🛡️', `Biome construit sur ${body.name} (${body.biomes})`, body, gameState.players[localSlot()]?.color);
-                }
-            }
-            // Max spores réduit à 1/3
-            const reducedMax = Math.floor(body.maxSpores / 3);
-            if (body.spores > reducedMax) {
-                body.spores -= (body.spores - reducedMax) * 0.5 * dt;
-            }
         } else if (body.buildMode === 'parasite') {
-            // Accumulation parasite : 100% prod pendant 2min = 120s
+            // Accumulation parasite : durée fixe 120s (indépendant du rate)
             if ((body.parasiteSpore || 0) < 1) {
-                body.parasiteProgress = (body.parasiteProgress || 0) + rate * dt;
-                const parasiteCost = rate * 120; // 2min de prod
-                if (body.parasiteProgress >= parasiteCost) {
+                body.parasiteProgress = (body.parasiteProgress || 0) + dt;
+                if (body.parasiteProgress >= 120) {
                     body.parasiteSpore = 1;
                     body.parasiteProgress = 0;
                     body.buildMode = 'off';
                     if (body.owner === localSlot()) addEvent('build', '🦠', `Spore parasitaire prête sur ${body.name}`, body, gameState.players[localSlot()]?.color);
                 }
             } else {
-                body.buildMode = 'off'; // Déjà 1 spore, repasse off
+                body.buildMode = 'off';
             }
         } else if (body.buildMode === 'ruche') {
             // Production spores attaque (max 50% du rate)
@@ -6751,7 +6862,7 @@ function checkJetCollision(jet) {
             if (body.owner === jet.owner) {
                 // Density bonus : +5% spores livrées par point
                 const densityBonus = 1 + (gameState.players[jet.owner]?.stats.density || 0) * 0.05;
-                body.spores += jet.spores * densityBonus;
+                body.spores = Math.min(body.maxSpores, body.spores + jet.spores * densityBonus);
                 playFusionSound();
             } else {
                 const _ml = gameState.players[jet.owner]?.tech?.mimicry || 0;
@@ -6851,7 +6962,7 @@ function applyConquest(body, jet) {
     }
 
     // Bonus défense biomes : +0.2% par biome = il faut plus de spores pour conquérir
-    const biomeDefense = 1 + (body.biomes || 0) * 0.002;
+    const biomeDefense = 1 + (body.biomes || 0) * 0.05;
     attacking = attacking / biomeDefense;
 
     // Combattre les spores défensives
@@ -6873,12 +6984,17 @@ function applyConquest(body, jet) {
         body.owner = jet.owner;
         body.spores = attacking;
         body.faune = 0; // Faune détruite après conquête
+        // Invalider cache isSystemComplete du soleil concerné
+        const _conquSun = body.type === 'planet' ? body.parent : (body.parent?.parent || null);
+        if (_conquSun) _conquSun._sysCache = null;
         body.symbiosis = 0; // Reset symbiose
         body.symOwnerTime = 0;
         body.buildMode = 'off';
         body.buildProgress = 0;
         body.nids = 0;
         body.biomes = 0;
+        body.alveoles = 0;
+        body.maxSpores = body.baseMaxSpores || body.maxSpores;
 
         // Vérifier nidification : annuler si < 50% du système
         if (oldOwner !== null && gameState.players[oldOwner]) {
@@ -6913,7 +7029,13 @@ function applyConquest(body, jet) {
         const aColor = gameState.players[jet.owner]?.color || '#AAA';
         const oColor = oldOwner !== null ? (gameState.players[oldOwner]?.color || '#AAA') : '#AAA';
         if (oldOwner === null) {
-            addEvent('neutral', '🏳️', `${bType} ${body.name} colonisée par ${attackerName}`, body, aColor);
+            const _virginBonus = body.type === 'planet' ? 1000 : 500;
+            body.spores = Math.min(body.maxSpores, (body.spores || 0) + _virginBonus);
+            if (jet.owner === localSlot()) {
+                addEvent('neutral', '🏳️', `${bType} ${body.name} colonisée ! +${_virginBonus} sp 🎁`, body, aColor);
+            } else {
+                addEvent('neutral', '🏳️', `${bType} ${body.name} colonisée par ${attackerName}`, body, aColor);
+            }
         } else if (jet.owner === localSlot()) {
             addEvent('mine', '⚔️', `${bType} ${body.name} conquise !`, body, aColor);
         } else if (oldOwner === localSlot()) {
@@ -6931,8 +7053,26 @@ function applyConquest(body, jet) {
         gameState.conquestEffects.push({
             x: body.x, y: body.y - body.radius - 15,
             baseX: body.x,
-            text: 'CONQUIS !',
+            text: oldOwner === null ? 'COLONISÉ !' : 'CONQUIS !',
             color: attackerColor, age: 0, maxAge: 5
+        });
+
+        // Particules d'explosion conquête
+        const _pCount = body.type === 'planet' ? 18 : 10;
+        for (let _pi = 0; _pi < _pCount; _pi++) {
+            const _ang = (Math.PI * 2 * _pi / _pCount) + (Math.random() - 0.5) * 0.4;
+            const _spd = body.radius * (0.8 + Math.random() * 1.2);
+            gameState.particles.push({
+                x: body.x, y: body.y,
+                vx: Math.cos(_ang) * _spd, vy: Math.sin(_ang) * _spd,
+                life: 0, maxLife: 0.6 + Math.random() * 0.4,
+                color: attackerColor, radius: 1.5 + Math.random() * 2,
+                fade: true
+            });
+        }
+        // Anneau de couleur expansif
+        gameState.bloomEffects.push({
+            body: body, age: 0, maxAge: 0.6, color: attackerColor, ring: true
         });
     } else if (attacking <= 0 && body.faune <= 0 && body.spores > 0) {
         // Attaque repoussée
@@ -6963,7 +7103,7 @@ function checkJetNeutralization() {
                 const min = Math.min(jets[i].spores, jets[j].spores);
                 jets[i].spores -= min;
                 jets[j].spores -= min;
-                if (jets[i].spores <= 0) jets[i].alive = false;
+                if (jets[i].spores <= 0) { jets[i].alive = false; break; }
                 if (jets[j].spores <= 0) jets[j].alive = false;
             }
         }
@@ -6984,19 +7124,14 @@ function drawJets(ctx) {
         // ── Traîne diffuse (brume colorée) ──
         const trail = jet.trail;
         if (trail.length > 1) {
-            // LOD low : skip radial gradients, juste la ligne
-            if (jLod >= 1) {
-              const step = jLod >= 2 ? 1 : 2; // LOD mid: 1 sur 2
-              for (let i = 1; i < trail.length; i += step) {
+            // LOD high uniquement : brume radiale (coûteuse)
+            if (jLod >= 2) {
+              for (let i = 1; i < trail.length; i += 2) {
                 const progress = i / trail.length;
                 const alpha = progress * 0.35;
                 const zs = Math.max(1, 1.2 / gameState.camera.zoom);
                 const spread = (8 + (1 - progress) * 6) * zs;
-
-                const g = ctx.createRadialGradient(
-                    trail[i].x, trail[i].y, 0,
-                    trail[i].x, trail[i].y, spread
-                );
+                const g = ctx.createRadialGradient(trail[i].x, trail[i].y, 0, trail[i].x, trail[i].y, spread);
                 g.addColorStop(0, jet.color + hexAlpha(alpha));
                 g.addColorStop(0.6, jet.color + hexAlpha(alpha * 0.4));
                 g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -7512,15 +7647,18 @@ function update(dt) {
     updateImpacts(dt);
     updateConquestEffects(dt);
     updateCameraFollow();
-    // Mise à jour HUD toutes les 5 frames (perf)
+    // Mise à jour HUD throttlé (perf)
+    gameState.dt = dt;
     gameState._hudCounter = (gameState._hudCounter || 0) + 1;
-    if (gameState._hudCounter % 5 === 0) {
+    if (gameState._hudCounter % 30 === 0) {
         updateMyPlanets();
+        checkVictoryAndElimination();
+    }
+    if (gameState._hudCounter % 10 === 0) {
         updateHUD();
         updateMultiPanel();
         updateTechPanel();
         updateNidPanel();
-        checkVictoryAndElimination();
     }
     gameState.gameStats.timeElapsed += dt;
     updateAudioTension();
@@ -7973,16 +8111,25 @@ function drawPlanets(ctx) {
             ctx.restore();
         }
 
-        // Atmosphère (LOD high uniquement)
+        // Atmosphère (LOD high uniquement) — gradient en cache offscreen
         if (p._hasAtmosphere && gameState.lod >= 2) {
-            const gAtmo = ctx.createRadialGradient(p.x, p.y, p.radius * 0.85, p.x, p.y, p.radius * 1.3);
-            gAtmo.addColorStop(0, 'rgba(0,0,0,0)');
-            gAtmo.addColorStop(0.5, p._atmoColor);
-            gAtmo.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = gAtmo;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.radius * 1.3, 0, Math.PI * 2);
-            ctx.fill();
+            if (!p._atmoCache) {
+                const _ac = document.createElement('canvas');
+                const _ar = Math.ceil(p.radius * 1.3);
+                _ac.width = _ac.height = _ar * 2;
+                const _ax = _ac.getContext('2d');
+                const _ag = _ax.createRadialGradient(_ar, _ar, p.radius * 0.85, _ar, _ar, _ar);
+                _ag.addColorStop(0, 'rgba(0,0,0,0)');
+                _ag.addColorStop(0.5, p._atmoColor);
+                _ag.addColorStop(1, 'rgba(0,0,0,0)');
+                _ax.fillStyle = _ag;
+                _ax.beginPath();
+                _ax.arc(_ar, _ar, _ar, 0, Math.PI * 2);
+                _ax.fill();
+                p._atmoCache = _ac;
+                p._atmoCacheR = _ar;
+            }
+            ctx.drawImage(p._atmoCache, p.x - p._atmoCacheR, p.y - p._atmoCacheR, p._atmoCacheR * 2, p._atmoCacheR * 2);
         }
 
         // Éclairage directionnel (LOD high uniquement)
@@ -8039,13 +8186,54 @@ function drawPlanets(ctx) {
                 ctx.restore();
             }
 
-            // Couronne planète mère
+            // Couronne planète mère — halo doré pulsant
             if (p.isMotherPlanet) {
                 ctx.save();
-                ctx.font = (p.radius * 1.2) + 'px sans-serif';
+                const _mt = gameState.time || 0;
+                const _mp = 0.5 + 0.4 * Math.sin(_mt * 1.8);
+                const _mr1 = p.radius * (1.35 + 0.08 * Math.sin(_mt * 2.2));
+                const _mr2 = p.radius * (1.65 + 0.1 * Math.sin(_mt * 1.5));
+                // Halo intérieur doré
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, _mr1, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255,215,0,${_mp * 0.7})`;
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+                // Halo extérieur plus doux
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, _mr2, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255,200,50,${_mp * 0.25})`;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                // Couronne
+                ctx.font = (p.radius * 1.1) + 'px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('👑', p.x, p.y - p.radius - 5);
+                ctx.fillText('👑', p.x, p.y - p.radius - 4);
                 ctx.restore();
+            }
+
+            // Icônes bâtiments sous la planète (si possédée par le joueur local)
+            if (p.owner === localSlot() && gameState.lod >= 1) {
+                const icons = [];
+                if ((p.alveoles || 0) > 0) icons.push('🍯');
+                if ((p.nids || 0) > 0) icons.push('🪺');
+                if ((p.biomes || 0) > 0) icons.push('🛡️');
+                if (p.buildMode === 'ruche') icons.push('🔴');
+                if (p.buildMode === 'mare') icons.push('🔵');
+                if (p.buildMode === 'parasite') icons.push('🦠');
+                if (icons.length > 0) {
+                    ctx.save();
+                    const _fs = Math.max(8, p.radius * 0.55);
+                    ctx.font = _fs + 'px sans-serif';
+                    ctx.textAlign = 'center';
+                    const _bY = p.y + p.radius + _fs * 1.3;
+                    const _bW = icons.length * _fs * 1.3;
+                    icons.forEach((ic, idx) => {
+                        const _bX = p.x - _bW / 2 + idx * _fs * 1.3 + _fs * 0.65;
+                        ctx.fillText(ic, _bX, _bY);
+                    });
+                    ctx.restore();
+                }
             }
         }
 
@@ -8725,6 +8913,21 @@ function updateConquestEffects(dt) {
         if (e.age >= e.maxAge) gameState.conquestEffects.splice(i, 1);
     }
 
+    // Mise à jour particules (flag dead, nettoyage groupé toutes les 60 frames)
+    for (let i = 0; i < gameState.particles.length; i++) {
+        const p = gameState.particles[i];
+        if (p.dead) continue;
+        p.life += dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= 0.92;
+        p.vy *= 0.92;
+        if (p.life >= p.maxLife) p.dead = true;
+    }
+    if (gameState._hudCounter % 60 === 0) {
+        gameState.particles = gameState.particles.filter(p => !p.dead);
+    }
+
     // Pousser les anciens vers le haut quand un nouveau apparaît au même endroit
     const effects = gameState.conquestEffects;
     const spacing = 18;
@@ -8751,27 +8954,58 @@ function drawConquestEffects(ctx) {
     const z = gameState.camera.zoom;
     const scale = Math.max(1, 1 / z);
 
+    // Particules
+    for (const p of gameState.particles) {
+        const alpha = 1 - (p.life / p.maxLife);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius * scale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
     // Éclosions (cercle expansif)
     for (const e of gameState.bloomEffects) {
         const progress = e.age / e.maxAge;
-        const r = e.body.radius * (1 + progress * 3);
-        const alpha = (1 - progress) * 0.4;
-        ctx.strokeStyle = e.color + hexAlpha(alpha);
-        ctx.lineWidth = 2 * scale;
-        ctx.beginPath();
-        ctx.arc(e.body.x, e.body.y, r, 0, Math.PI * 2);
-        ctx.stroke();
 
-        // Flash interne
-        if (progress < 0.3) {
-            const flashAlpha = (1 - progress / 0.3) * 0.3;
-            const gFlash = ctx.createRadialGradient(e.body.x, e.body.y, 0, e.body.x, e.body.y, e.body.radius);
-            gFlash.addColorStop(0, e.color + hexAlpha(flashAlpha));
-            gFlash.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = gFlash;
+        if (e.ring) {
+            // Anneau conquête — fin et rapide
+            const r = e.body.radius * (1.1 + progress * 2.5);
+            const alpha = (1 - progress) * 0.8;
+            ctx.strokeStyle = e.color + hexAlpha(alpha);
+            ctx.lineWidth = (3 - progress * 2) * scale;
             ctx.beginPath();
-            ctx.arc(e.body.x, e.body.y, e.body.radius, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.arc(e.body.x, e.body.y, r, 0, Math.PI * 2);
+            ctx.stroke();
+            // Deuxième anneau décalé
+            const r2 = e.body.radius * (1.05 + progress * 1.5);
+            ctx.strokeStyle = e.color + hexAlpha(alpha * 0.4);
+            ctx.lineWidth = 1 * scale;
+            ctx.beginPath();
+            ctx.arc(e.body.x, e.body.y, r2, 0, Math.PI * 2);
+            ctx.stroke();
+        } else {
+            // Bloom classique
+            const r = e.body.radius * (1 + progress * 3);
+            const alpha = (1 - progress) * 0.4;
+            ctx.strokeStyle = e.color + hexAlpha(alpha);
+            ctx.lineWidth = 2 * scale;
+            ctx.beginPath();
+            ctx.arc(e.body.x, e.body.y, r, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Flash interne
+            if (progress < 0.3) {
+                const flashAlpha = (1 - progress / 0.3) * 0.3;
+                const gFlash = ctx.createRadialGradient(e.body.x, e.body.y, 0, e.body.x, e.body.y, e.body.radius);
+                gFlash.addColorStop(0, e.color + hexAlpha(flashAlpha));
+                gFlash.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = gFlash;
+                ctx.beginPath();
+                ctx.arc(e.body.x, e.body.y, e.body.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
     }
 
@@ -9074,13 +9308,19 @@ function updateNidPanel() {
 }
 
 function isSystemComplete(sun, ownerID) {
+    // Cache invalidé à la conquête via sun._sysCache = null
+    if (sun._sysCacheOwner === ownerID && sun._sysCache !== null && sun._sysCache !== undefined) return sun._sysCache;
+    let result = sun.planets.length > 0;
     for (const planet of sun.planets) {
-        if (planet.owner !== ownerID) return false;
+        if (planet.owner !== ownerID) { result = false; break; }
         for (const moon of planet.moons) {
-            if (moon.owner !== ownerID) return false;
+            if (moon.owner !== ownerID) { result = false; break; }
         }
+        if (!result) break;
     }
-    return sun.planets.length > 0;
+    sun._sysCacheOwner = ownerID;
+    sun._sysCache = result;
+    return result;
 }
 
 function updateMyPlanets() {
@@ -9137,8 +9377,9 @@ function updateMyPlanets() {
             buildRow.style.cssText = 'display:flex; gap:4px; padding:2px 4px 4px; align-items:center;';
             const modeDefs = [
                 { mode: 'off',     icon: '⬛', title: 'Désactivé — production normale' },
-                { mode: 'nid',     icon: '🏗️', title: 'Nid — +0.2% production par nid' },
-                { mode: 'biome',   icon: '🛡️', title: 'Biome — +défense contre les attaques' },
+                { mode: 'alveole', icon: '🍯', title: 'Alvéole — +5% stock max (coût: 35% du stock)' },
+                { mode: 'nid',     icon: '🏗️', title: 'Nid — +2.5% production (coût: 40% du stock)' },
+                { mode: 'biome',   icon: '🛡️', title: 'Biome — +5% défense (coût: 50% du stock)' },
                 { mode: 'mare',    icon: '🔵', title: 'Mare — produit des spores de défense' },
                 { mode: 'rush',    icon: '🔴', title: 'Rush — produit des spores d\'attaque' },
             ];
@@ -9862,7 +10103,7 @@ function setupMinimap() {
 // INDICATEURS HORS-ÉCRAN
 // ─────────────────────────────────────────────
 function drawOffscreenIndicators() {
-    if (gameState.phase !== 'game') return;
+    if (gameState.phase !== 'game' && gameState.phase !== 'spawn') return;
     const cam = gameState.camera;
     const w = gameState.width;
     const h = gameState.height;
@@ -9911,6 +10152,66 @@ function drawOffscreenIndicators() {
         ctx.fill();
 
         ctx.restore();
+    }
+
+    // ── Flèches hors-écran colonisation (phase spawn) ──
+    if (gameState._spawnArrows) {
+        const dt = gameState.dt || 0.016;
+        for (let i = gameState._spawnArrows.length - 1; i >= 0; i--) {
+            const arr = gameState._spawnArrows[i];
+            arr.age += dt;
+            if (arr.age >= arr.maxAge) { gameState._spawnArrows.splice(i, 1); continue; }
+            const b = arr.body;
+            const sx = (b.x - cam.x) * cam.zoom + w / 2;
+            const sy = (b.y - cam.y) * cam.zoom + h / 2;
+            if (sx >= margin && sx <= w - margin && sy >= margin && sy <= h - margin) continue; // visible
+            const dx = sx - w / 2, dy = sy - h / 2;
+            const angle = Math.atan2(dy, dx);
+            let ix = w / 2 + Math.cos(angle) * (w / 2 - margin);
+            let iy = h / 2 + Math.sin(angle) * (h / 2 - margin);
+            ix = Math.max(margin, Math.min(w - margin, ix));
+            iy = Math.max(margin, Math.min(h - margin, iy));
+            const alpha = Math.max(0, 1 - arr.age / arr.maxAge);
+            const pulse = 0.7 + 0.3 * Math.sin(arr.age * 8);
+            ctx.save();
+            ctx.translate(ix, iy);
+            ctx.rotate(angle);
+            ctx.globalAlpha = alpha * pulse;
+            ctx.fillStyle = arr.color;
+            ctx.beginPath();
+            ctx.moveTo(12, 0); ctx.lineTo(-6, -7); ctx.lineTo(-6, 7);
+            ctx.closePath(); ctx.fill();
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🌍', -14, 0);
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        }
+    }
+
+    // ── Flashs visuels colonisation sur planète (phase spawn) ──
+    if (gameState._spawnFlashes) {
+        const dt = gameState.dt || 0.016;
+        for (let i = gameState._spawnFlashes.length - 1; i >= 0; i--) {
+            const fl = gameState._spawnFlashes[i];
+            fl.age += dt;
+            if (fl.age >= fl.maxAge) { gameState._spawnFlashes.splice(i, 1); continue; }
+            const b = fl.body;
+            const sx = (b.x - cam.x) * cam.zoom + w / 2;
+            const sy = (b.y - cam.y) * cam.zoom + h / 2;
+            const alpha = Math.max(0, 1 - fl.age / fl.maxAge) * 0.7;
+            const r = (b.radius + 20 + fl.age * 30) * cam.zoom;
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = fl.color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(sx, sy, r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        }
     }
 }
 
@@ -11518,8 +11819,10 @@ function _stmOpen(body, clientX, clientY) {
 
     const menu = document.getElementById('sporeTypeMenu');
     menu.style.display = 'block';
-    menu.style.left = (clientX - STM_SIZE/2) + 'px';
-    menu.style.top  = (clientY - STM_SIZE/2) + 'px';
+    const _mx = Math.max(8, Math.min(window.innerWidth - STM_SIZE - 8, clientX - STM_SIZE/2));
+    const _my = Math.max(8, Math.min(window.innerHeight - STM_SIZE - 8, clientY - STM_SIZE/2));
+    menu.style.left = _mx + 'px';
+    menu.style.top  = _my + 'px';
 }
 
 function setupInviteListener() {
