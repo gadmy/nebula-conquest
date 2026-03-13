@@ -10985,14 +10985,16 @@ async function initAuth() {
         }
         if (session && session.user) {
             currentUser = session.user;
-            const profile = await loadProfile(currentUser.id);
+            let profile = null;
+            try { profile = await Promise.race([loadProfile(currentUser.id), new Promise(r => setTimeout(() => r(null), 5000))]); }
+            catch(e) { console.warn('loadProfile échoué:', e); }
             if (profile) {
                 currentProfile = profile;
                 await loadPanelConfig();
                 enterGame();
                 return;
             }
-            await _supa.auth.signOut();
+            await _supa.auth.signOut().catch(() => {});
         }
     } catch(e) {
         console.warn('Erreur auth init:', e);
@@ -11003,6 +11005,14 @@ async function initAuth() {
     if (inviteChannel) { _supa.removeChannel(inviteChannel); inviteChannel = null; }
     showAuthScreen();
 }
+// Filet de sécurité : si après 4s aucun écran n'est visible → forcer authScreen
+setTimeout(() => {
+    const auth = document.getElementById('authScreen');
+    const title = document.getElementById('titleScreen');
+    if (!auth || !title) return;
+    const bothHidden = auth.classList.contains('hidden') && title.classList.contains('hidden');
+    if (bothHidden) { console.warn('[auth] écran bloqué, forçage authScreen'); showAuthScreen(); }
+}, 4000);
 
 _supa.auth.onAuthStateChange((event, session) => {
     if (event === 'TOKEN_REFRESHED' && session) {
