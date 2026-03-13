@@ -1366,6 +1366,7 @@ input[type="radio"]:checked + .build-icon-btn {
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
 
@@ -2432,6 +2433,153 @@ input[type="radio"]:checked + .build-icon-btn {
      - Un problème = on corrige avant de continuer
      - Versionnement décidé par le développeur uniquement
      - Backup avant chaque session
+   ══════════════════════════════════════════════════════════════════════
+
+   ════════════════════════════════════════════════════════════════════════
+   PLAN D'ATTAQUE v4.0 — MIGRATION SERVEUR NODE.JS (50 JOUEURS)
+   ════════════════════════════════════════════════════════════════════════
+
+   CONTEXTE :
+   - Client : fichier HTML unique (nebula-conquest_v3_4.html)
+   - Actuel  : P2P via Supabase Realtime → limite ~4 joueurs
+   - Cible   : Serveur Node.js autoritaire sur Railway → 50 joueurs
+   - Auth    : Supabase conservé pour login/profils/labo de spores
+   - Comms   : Supabase Realtime remplacé par socket.io WebSocket
+   - Supabase URL : https://hcjajtpbzusqgxkyzbgc.supabase.co
+
+   PRINCIPES ARCHITECTURE :
+   - Le serveur calcule TOUT (jets, conquête, production, bâtiments)
+   - Les clients envoient uniquement des INPUTS (lancer jet, choisir planète)
+   - Le serveur envoie des SNAPSHOTS delta toutes les 50ms (20 tick/s)
+   - Les clients interpolent entre snapshots pour le rendu fluide
+   - Anti-triche : toute action validée côté serveur avant application
+
+   REPO SERVEUR : repo GitHub séparé (nebula-conquest-server)
+   DÉPLOIEMENT  : Railway (tier gratuit, ~500h/mois)
+   STACK        : Node.js + socket.io + même logique JS que le client
+
+   ════════════════════════════════════════════════════════════════
+   PHASE S1 — Serveur minimal (repo séparé)      [ ] EN ATTENTE
+   ════════════════════════════════════════════════════════════════
+   S1.1 [ ] Créer repo nebula-conquest-server
+            Structure : server.js, package.json, game/gameLoop.js,
+            game/state.js, game/physics.js, game/actions.js
+   S1.2 [ ] server.js : HTTP + socket.io, écoute port 3000
+            Events entrants : 'join_room', 'leave_room', 'player_action'
+            Events sortants : 'room_state', 'game_snapshot', 'game_event'
+   S1.3 [ ] Rooms : Map() de parties actives
+            Chaque room : { id, players[], gameState, tickInterval }
+            Max 50 joueurs/room, création auto si room pleine
+   S1.4 [ ] Auth bridge : client envoie son token Supabase JWT
+            Serveur vérifie via Supabase Admin API (service_role key)
+            Si invalide → refus de connexion
+   S1.5 [ ] Lobby : liste des rooms disponibles, rejoindre par code
+            Event 'lobby_list' → liste rooms publiques avec nb joueurs
+   S1.6 [ ] Phase spawn : serveur attend que tous les joueurs aient spawné
+            Timeout 30s → spawn auto IA pour les manquants
+   S1.7 [ ] Déploiement Railway : railway.json, variables d'env
+            SUPABASE_URL, SUPABASE_SERVICE_KEY, PORT
+
+   ════════════════════════════════════════════════════════════════
+   PHASE S2 — Logique de jeu côté serveur        [ ] EN ATTENTE
+   ════════════════════════════════════════════════════════════════
+   S2.1 [ ] Porter generateUniverse() dans game/state.js
+            Même seed déterministe (mulberry32) → univers identique
+            allBodies, suns, planets, moons, asteroidBelts
+   S2.2 [ ] Boucle de jeu : setInterval 50ms (20 tick/s)
+            updateOrbits(dt) → updateProduction(dt) → updateJets(dt)
+            → updateBuildMode(dt) → checkConquests()
+   S2.3 [ ] Porter updateJets() + checkJetCollision() + applyConquest()
+            Identique au client, retiré du client côté rendu seulement
+   S2.4 [ ] Porter updateProduction() (spores, nids, biomes, alvéoles)
+   S2.5 [ ] Snapshots delta : ne transmettre que les champs modifiés
+            Format : { tick, bodies: [{id, spores, owner, buildProgress}],
+            jets: [{id, x, y, alive}], events: [] }
+            Compression : ignorer les corps hors zone d'influence du joueur
+   S2.6 [ ] Actions client validées :
+            'launch_jet' : vérifier owner + spores suffisantes
+            'set_build_mode' : vérifier owner + coût
+            'choose_spawn' : vérifier phase spawn + corps libre
+
+   ════════════════════════════════════════════════════════════════
+   PHASE S3 — Migration client                   [ ] EN ATTENTE
+   ════════════════════════════════════════════════════════════════
+   S3.1 [ ] Ajouter socket.io-client dans le HTML
+            <script src="https://cdn.socket.io/4.7.2/socket.io.min.js">
+   S3.2 [ ] Remplacer _supa.channel() par socket.on/emit
+            sendAction() → socket.emit('player_action', payload)
+            Réception snapshots → applySnapshot(data)
+   S3.3 [ ] applySnapshot() côté client :
+            Mettre à jour bodies depuis snapshot delta
+            Interpoler positions jets entre deux snapshots
+            Déclencher effets visuels depuis events[]
+   S3.4 [ ] Désactiver côté client :
+            updateJets(), updateProduction(), applyConquest()
+            → ces fonctions tournent sur le serveur uniquement
+            Garder : drawJets(), drawPlanets(), effets visuels
+   S3.5 [ ] Conserver Supabase pour :
+            Auth (login/logout/session)
+            Profils (pseudo, couleur, labo de spores)
+            Leaderboard (écriture fin de partie depuis serveur)
+   S3.6 [ ] Mode solo : conserver la logique locale complète
+            Si gameState.isMulti === false → pas de socket, tout local
+            Si gameState.isMulti === true → socket.io, client léger
+
+   ════════════════════════════════════════════════════════════════
+   PHASE S4 — 50 joueurs & optimisations         [ ] EN ATTENTE
+   ════════════════════════════════════════════════════════════════
+   S4.1 [ ] Zone d'intérêt (Interest Management) :
+            Chaque joueur reçoit uniquement les corps à <2000px
+            Jets hors zone → flèche indicateur seulement
+   S4.2 [ ] Compression binaire snapshots :
+            Remplacer JSON par MessagePack ou buffer binaire
+            Réduction ~70% taille des paquets
+   S4.3 [ ] Interpolation client améliorée :
+            Buffer de 3 snapshots, interpolation linéaire
+            Compensation lag : timestamp serveur dans chaque snapshot
+   S4.4 [ ] IA côté serveur uniquement :
+            updateAI() déplacé dans game/ai.js
+            Les IA ne génèrent pas de trafic réseau supplémentaire
+   S4.5 [ ] Test de charge : simuler 50 clients avec script Node.js
+            Mesurer : latence, CPU serveur, taille paquets, FPS client
+   S4.6 [ ] Gestion déconnexion :
+            Joueur déco → ses planètes passent en IA passive
+            Reconnexion dans les 60s → état restauré
+
+   ════════════════════════════════════════════════════════════════
+   PHASE S5 — Polish multijoueur 50j             [ ] EN ATTENTE
+   ════════════════════════════════════════════════════════════════
+   S5.1 [ ] Lobby public : liste parties, filtre nb joueurs, ping
+   S5.2 [ ] Système d'équipes : 2-5 équipes de N joueurs
+            Planètes alliées non attaquables entre coéquipiers
+   S5.3 [ ] Chat en jeu : socket.emit('chat', msg)
+            Affiché dans le journal d'événements
+   S5.4 [ ] Spectateur : rejoindre partie en cours sans jouer
+            Vue globale de la map, suivi d'un joueur
+   S5.5 [ ] Fin de partie : serveur calcule scores + envoie à Supabase
+            leaderboard mis à jour, stats par joueur
+
+   ════════════════════════════════════════════════════════════════
+   ORDRE D'EXÉCUTION :
+   S1 (serveur minimal) → S2 (logique jeu) → S3 (migration client)
+   → S4 (50 joueurs) → S5 (polish)
+
+   PAR SESSION :
+     1. Uploader nebula-conquest_v3_X.html
+     2. Préciser la phase/étape (ex: "on attaque S1.2")
+     3. Pour le serveur : Claude génère les fichiers server-side
+     4. Pour le client : modifications CHERCHE/REMPLACE habituelles
+     5. Tester localement (node server.js + ouvrir HTML)
+     6. Déployer sur Railway quand phase stable
+
+   VARIABLES D'ENV SERVEUR :
+     SUPABASE_URL=https://hcjajtpbzusqgxkyzbgc.supabase.co
+     SUPABASE_SERVICE_KEY=<service_role key — ne pas mettre ici>
+     PORT=3000
+     MAX_PLAYERS_PER_ROOM=50
+     TICK_RATE=20
+   ════════════════════════════════════════════════════════════════════════
+
    ══════════════════════════════════════════════════════════════════════ */
 
 
@@ -5117,6 +5265,7 @@ function setPhase(phase) {
             gameState.multiSeed = null;
             if (gameChannel) { _supa.removeChannel(gameChannel); gameChannel = null; }
             if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
+            if (_socket) { _socket.disconnect(); _socket = null; }
             currentRoom = null; isHost = false;
             stopAmbiance();
             animateTitleScreen();
@@ -10985,16 +11134,14 @@ async function initAuth() {
         }
         if (session && session.user) {
             currentUser = session.user;
-            let profile = null;
-            try { profile = await Promise.race([loadProfile(currentUser.id), new Promise(r => setTimeout(() => r(null), 5000))]); }
-            catch(e) { console.warn('loadProfile échoué:', e); }
+            const profile = await loadProfile(currentUser.id);
             if (profile) {
                 currentProfile = profile;
                 await loadPanelConfig();
                 enterGame();
                 return;
             }
-            await _supa.auth.signOut().catch(() => {});
+            await _supa.auth.signOut();
         }
     } catch(e) {
         console.warn('Erreur auth init:', e);
@@ -11005,14 +11152,6 @@ async function initAuth() {
     if (inviteChannel) { _supa.removeChannel(inviteChannel); inviteChannel = null; }
     showAuthScreen();
 }
-// Filet de sécurité : si après 4s aucun écran n'est visible → forcer authScreen
-setTimeout(() => {
-    const auth = document.getElementById('authScreen');
-    const title = document.getElementById('titleScreen');
-    if (!auth || !title) return;
-    const bothHidden = auth.classList.contains('hidden') && title.classList.contains('hidden');
-    if (bothHidden) { console.warn('[auth] écran bloqué, forçage authScreen'); showAuthScreen(); }
-}, 4000);
 
 _supa.auth.onAuthStateChange((event, session) => {
     if (event === 'TOKEN_REFRESHED' && session) {
@@ -11197,22 +11336,68 @@ let gameChannel = null;
 let mySlot = -1;
 function localSlot() { return gameState.isMulti ? mySlot : 0; }
 
+const SERVER_URL = 'https://TON-SERVEUR.railway.app';
+let _socket = null;
+
 function setupGameChannel(roomId) {
-    if (gameChannel) _supa.removeChannel(gameChannel);
-    gameChannel = _supa.channel('game-' + roomId);
-    gameChannel.on('broadcast', { event: 'action' }, ({ payload }) => {
-        if (payload.slot === mySlot) return;
-        handleRemoteAction(payload);
-    });
     return new Promise(resolve => {
-        gameChannel.subscribe((status) => { if (status === 'SUBSCRIBED') resolve(); });
-        setTimeout(resolve, 3000); // fallback si subscribe lent
+        if (_socket) _socket.disconnect();
+        _socket = io(SERVER_URL, {
+            auth: {
+                token: _supa.auth.getSession().then(r => r.data.session?.access_token),
+                pseudo: currentProfile?.pseudo || 'Joueur',
+                color: currentProfile?.color || '#C084FC'
+            }
+        });
+        _socket.on('connect', () => {
+            _socket.emit('join_room', { roomId });
+            resolve();
+        });
+        _socket.on('game_snapshot', applySnapshot);
+        _socket.on('game_events', (events) => events.forEach(handleGameEvent));
+        _socket.on('error', (e) => console.warn('[socket] erreur:', e.msg));
+        setTimeout(resolve, 3000);
     });
 }
 
 function sendAction(type, data) {
-    if (!gameChannel || !gameState.isMulti) return;
-    gameChannel.send({ type: 'broadcast', event: 'action', payload: { slot: mySlot, type, ...data } });
+    if (!_socket || !gameState.isMulti) return;
+    _socket.emit('player_action', { type, ...data });
+}
+
+function applySnapshot(snap) {
+    if (!snap || !snap.bodies) return;
+    snap.bodies.forEach(bd => {
+        const body = gameState.allBodies.find(b => b.name === bd.name);
+        if (!body) return;
+        if (bd.owner !== undefined) body.owner = bd.owner;
+        if (bd.spores !== undefined) body.spores = bd.spores;
+        if (bd.buildMode !== undefined) body.buildMode = bd.buildMode;
+        if (bd.buildProgress !== undefined) body.buildProgress = bd.buildProgress;
+    });
+    if (snap.jets) {
+        snap.jets.forEach(sj => {
+            const j = gameState.jets.find(j => j.id === sj.id);
+            if (j) { j.x = sj.x; j.y = sj.y; }
+            else if (sj.alive) gameState.jets.push({ ...sj });
+        });
+        gameState.jets = gameState.jets.filter(j => {
+            const sj = snap.jets.find(s => s.id === j.id);
+            return !sj || sj.alive;
+        });
+    }
+}
+
+function handleGameEvent(ev) {
+    if (!ev) return;
+    switch (ev.type) {
+        case 'jet_launched': break;
+        case 'build_started':
+        case 'build_cancelled': break;
+        case 'conquest':
+            addEvent('conquest', '⚔️', ev.bodyName + ' conquise', null, '#fff');
+            break;
+    }
 }
 
 function handleRemoteAction(payload) {
