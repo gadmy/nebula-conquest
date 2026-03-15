@@ -5882,7 +5882,7 @@ function _bldInfoText(body, mode) {
     const maxAtt = body.maxSpores, maxDef = body.maxSpores*2;
     if (mode==='nid'||mode==='biome'||mode==='alveole') {
         const _b = body.baseMaxSpores || body.maxSpores;
-        const cost = mode==='alveole' ? Math.floor(_b*0.35) : mode==='nid' ? Math.floor(_b*0.4) : Math.floor(_b*0.5);
+        const cost = mode==='alveole' ? Math.floor(_b*0.10) : mode==='nid' ? Math.floor(_b*0.15) : Math.floor(_b*0.20);
         const prog = Math.floor(body.buildProgress || 0);
         const pct = Math.floor((prog / cost) * 100);
         return `Sacrifice: ${prog}/${cost} sp · ${pct}%`;
@@ -5952,9 +5952,9 @@ function updateCodexBuild(body) {
     const _base = body.baseMaxSpores || body.maxSpores || 0;
     const BLD = [
         { mode:'off',     icon:'⬛', name:'OFF',      desc:'Production normale', color:'rgba(100,70,180,0.3)' },
-        { mode:'alveole', icon:'🍯', name:'ALVÉOLE',  desc:`+5% stock max · Coût: ${Math.floor(_base*0.35)} sp`, color:'rgba(234,179,8,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.35)+' spores pour agrandir la capacité de stockage de la planète (+5% du max de base par alvéole).' },
-        { mode:'nid',     icon:'🏗️', name:'NID',      desc:`+2.5% prod · Coût: ${Math.floor(_base*0.4)} sp`,    color:'rgba(34,197,94,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.4)+' spores pour accélérer la production locale. La production reprend automatiquement après construction.' },
-        { mode:'biome',   icon:'🛡️', name:'BIOME',    desc:`+5% défense · Coût: ${Math.floor(_base*0.5)} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Sacrifice '+Math.floor(_base*0.5)+' spores pour renforcer la défense naturelle de la planète. Annulé si la planète est vidée.' },
+        { mode:'alveole', icon:'🍯', name:'ALVÉOLE',  desc:`+5% stock max · Coût: ${Math.floor(_base*0.10)} sp`, color:'rgba(234,179,8,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.10)+' spores pour agrandir la capacité de stockage de la planète (+5% du max de base par alvéole).' },
+        { mode:'nid',     icon:'🏗️', name:'NID',      desc:`+2.5% prod · Coût: ${Math.floor(_base*0.15)} sp`,    color:'rgba(34,197,94,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.15)+' spores pour accélérer la production locale. La production reprend automatiquement après construction.' },
+        { mode:'biome',   icon:'🛡️', name:'BIOME',    desc:`+5% défense · Coût: ${Math.floor(_base*0.20)} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Sacrifice '+Math.floor(_base*0.20)+' spores pour renforcer la défense naturelle de la planète. Annulé si la planète est vidée.' },
         { mode:'ruche',   icon:'🔴', name:'RUSH',     desc:'Produit des spores attaque', color:'rgba(220,38,38,0.3)' },
         { mode:'mare',    icon:'🔵', name:'MARE',     desc:'Produit des spores défense', color:'rgba(14,165,233,0.3)' },
         { mode:'parasite',icon:'🦠', name:'PARASITE', desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
@@ -5965,7 +5965,7 @@ function updateCodexBuild(body) {
         const card = document.createElement('div');
         card.className = 'bld-card' + (body.buildMode === b.mode ? ' active' : '');
         card.style.borderColor = body.buildMode === b.mode ? b.color.replace('0.3','0.8') : '';
-        const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.35) : b.mode==='nid' ? Math.floor(_base*0.4) : b.mode==='biome' ? Math.floor(_base*0.5) : 0;
+        const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.10) : b.mode==='nid' ? Math.floor(_base*0.15) : b.mode==='biome' ? Math.floor(_base*0.20) : 0;
         const countTxt = b.mode==='alveole' ? (body.alveoles||0)+' construites'
             : b.mode==='nid' ? (body.nids||0)+' construits'
             : b.mode==='biome' ? (body.biomes||0)+' construits'
@@ -6548,7 +6548,7 @@ function updateSporeGeneration(dt) {
         // Mode construction nid/biome/alveole : sacrifice de spores directement
         if (body.buildMode === 'nid' || body.buildMode === 'biome' || body.buildMode === 'alveole') {
             const _buildType = body.buildMode;
-            const _costPct = body.buildMode === 'nid' ? 0.4 : body.buildMode === 'alveole' ? 0.35 : 0.5;
+            const _costPct = body.buildMode === 'nid' ? 0.15 : body.buildMode === 'alveole' ? 0.10 : 0.20;
             const _buildCost = Math.floor((body.baseMaxSpores || body.maxSpores) * _costPct);
             if (body.spores < _buildCost * 0.8 && (body.buildProgress || 0) === 0) {
                 // Pas assez de spores (seuil 80% du coût) — on attend sans drainer
@@ -7904,6 +7904,7 @@ function render() {
 
     // ── Planètes & Lunes ──
     drawPlanets(ctx);
+    drawOwnerLabels(ctx);
 
     // ── Vaisseaux nettoyeurs ──
     drawCleaners(ctx);
@@ -8428,6 +8429,70 @@ function drawPlanets(ctx) {
     }
 }
 
+
+// ─────────────────────────────────────────────
+// LABELS PROPRIÉTAIRES (clustering)
+// ─────────────────────────────────────────────
+function drawOwnerLabels(ctx) {
+    if (gameState.phase !== 'game') return;
+    const cam = gameState.camera;
+    const toScreen = (wx, wy) => ({
+        x: (wx - cam.x) * cam.zoom + gameState.width / 2,
+        y: (wy - cam.y) * cam.zoom + gameState.height / 2
+    });
+    // Collecter tous les corps possédés
+    const owned = [];
+    for (const p of gameState.planets) {
+        if (p.owner === null || p.owner === undefined || p.owner < 0) continue;
+        const sc = toScreen(p.x, p.y);
+        owned.push({ sx: sc.x, sy: sc.y, owner: p.owner, radius: p.radius });
+    }
+    for (const p of gameState.planets) {
+        for (const m of p.moons) {
+            if (m.owner === null || m.owner === undefined || m.owner < 0) continue;
+            const sc = toScreen(m.x, m.y);
+            owned.push({ sx: sc.x, sy: sc.y, owner: m.owner, radius: m.radius });
+        }
+    }
+    // Clustering par propriétaire + proximité (70px)
+    const THRESH = 70;
+    const used = new Array(owned.length).fill(false);
+    const clusters = [];
+    for (let i = 0; i < owned.length; i++) {
+        if (used[i]) continue;
+        const cl = { owner: owned[i].owner, items: [i] };
+        for (let j = i + 1; j < owned.length; j++) {
+            if (used[j] || owned[j].owner !== owned[i].owner) continue;
+            const dx = owned[j].sx - owned[i].sx;
+            const dy = owned[j].sy - owned[i].sy;
+            if (Math.sqrt(dx*dx + dy*dy) < THRESH) { cl.items.push(j); used[j] = true; }
+        }
+        used[i] = true;
+        clusters.push(cl);
+    }
+    // Dessiner chaque cluster
+    for (const cl of clusters) {
+        const player = gameState.players[cl.owner];
+        if (!player) continue;
+        const pseudo = player.name || player.pseudo || ('J' + cl.owner);
+        const label = cl.items.length > 1 ? pseudo + ' ×' + cl.items.length : pseudo;
+        const cx = cl.items.reduce((s, i) => s + owned[i].sx, 0) / cl.items.length;
+        const avgR = cl.items.reduce((s, i) => s + owned[i].radius, 0) / cl.items.length;
+        const cy = cl.items.reduce((s, i) => s + owned[i].sy, 0) / cl.items.length - avgR * cam.zoom - 6;
+        const fs = Math.max(9, Math.min(16, avgR * cam.zoom * 0.45));
+        ctx.save();
+        ctx.font = 'bold ' + fs + 'px Orbitron';
+        ctx.textAlign = 'center';
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = 'rgba(8,6,30,0.72)';
+        ctx.beginPath();
+        ctx.roundRect(cx - tw/2 - 4, cy - fs, tw + 8, fs * 1.4, 3);
+        ctx.fill();
+        ctx.fillStyle = player.color || '#FFF';
+        ctx.fillText(label, cx, cy);
+        ctx.restore();
+    }
+}
 
 // ─────────────────────────────────────────────
 // LANCEMENT
@@ -11663,11 +11728,14 @@ async function quickMatch() {
         aiCount: 0,
         cleanerCount: 3,
         useComets: true,
-        playerCount: 4,
+        playerCount: _maxP,
         sunCount: 5,
         mode: 'auto'
     };
-    await createRoom('auto', autoSettings, 4);
+    const _np = MAP_LIBRARY[_qmMapIdx].suns.reduce((a,s)=>a+s.planets.length,0);
+    const _base_p = _np <= 10 ? _np : _np + 5;
+    const _maxP = Math.max(2, Math.round(_base_p * (0.95 + Math.random()*0.10)));
+    await createRoom('auto', autoSettings, _maxP);
 }
 
 async function createRoom(mode = 'custom', settings = null, maxPlayers = 4) {
