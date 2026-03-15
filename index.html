@@ -1501,6 +1501,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="lobbyScreen" class="screen hidden">
     <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:20px;">CRÉER UNE PARTIE</h2>
     <div id="lobbyBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px; max-width:420px; margin:0 auto;">
+        <div class="config-row"><label>Carte</label><select id="multiCfgMap"><option value="random">— Aléatoire —</option></select></div>
         <div class="config-row"><label>Soleils</label><input type="range" id="multiCfgSuns" min="1" max="8" value="4"><span class="val" id="multiCfgSunsVal">4</span></div>
         <div class="config-row"><label>Joueurs humains</label><input type="range" id="multiCfgHumans" min="2" max="8" value="2"><span class="val" id="multiCfgHumansVal">2</span></div>
         <div class="config-row"><label>Joueurs IA</label><input type="range" id="multiCfgAI" min="0" max="8" value="2"><span class="val" id="multiCfgAIVal">2</span></div>
@@ -12227,11 +12228,23 @@ document.getElementById('multiCfgSuns').addEventListener('input', (e) => { docum
 document.getElementById('multiCfgHumans').addEventListener('input', (e) => { document.getElementById('multiCfgHumansVal').textContent = e.target.value; });
 document.getElementById('multiCfgAI').addEventListener('input', (e) => { document.getElementById('multiCfgAIVal').textContent = e.target.value; });
 document.getElementById('multiCfgCleaners').addEventListener('input', (e) => { document.getElementById('multiCfgCleanersVal').textContent = e.target.value; });
+(function() {
+    const sel = document.getElementById('multiCfgMap');
+    MAP_LIBRARY.forEach((m, i) => {
+        const opt = document.createElement('option');
+        opt.value = i; opt.textContent = m.name;
+        sel.appendChild(opt);
+    });
+})();
 document.getElementById('btnCreateRoom').addEventListener('click', () => {
     playClickSound();
     const humans = parseInt(document.getElementById('multiCfgHumans').value);
     const aiCount = parseInt(document.getElementById('multiCfgAI').value);
+    const mapVal = document.getElementById('multiCfgMap').value;
+    const mapIndex = mapVal === 'random' ? Math.floor(Math.random() * MAP_LIBRARY.length) : parseInt(mapVal);
     const settings = {
+        mapIndex: mapIndex,
+        mapName: MAP_LIBRARY[mapIndex].name,
         sunCount: parseInt(document.getElementById('multiCfgSuns').value),
         difficulty: document.getElementById('multiCfgDiff').value,
         useIA: aiCount > 0,
