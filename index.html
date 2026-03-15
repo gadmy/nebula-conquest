@@ -11678,6 +11678,7 @@ async function joinRoom(roomId) {
     for (let i = 0; i < room.max_players; i++) { if (!taken.includes(i)) { slot = i; break; } }
     if (slot === -1) { alert('Partie pleine.'); quickMatch(); return; }
     const autoReady = (room.settings?.mode === 'auto');
+    if (autoReady) { currentRoom = room; await _supa.from('game_room_players').insert({ room_id: roomId, player_id: currentUser.id, pseudo: currentProfile.pseudo, color: gameState.teamColors[Math.floor(Math.random()*gameState.teamColors.length)], slot_number: slot, ready: true, stats: { ...gameState.playerStats } }); startQmPolling(roomId); return; }
     const { error } = await _supa.from('game_room_players').insert({
         room_id: roomId, player_id: currentUser.id,
         pseudo: currentProfile.pseudo,
@@ -11695,6 +11696,28 @@ async function joinRoom(roomId) {
     } catch(e) { console.warn('joinRoom:', e); alert('Erreur réseau.'); }
 }
 
+let _qmPollTimer = null;
+function startQmPolling(roomId) {
+    if (_qmPollTimer) { clearInterval(_qmPollTimer); _qmPollTimer = null; }
+    const el = document.getElementById('qmParams');
+    const btn = document.getElementById('btnQuickMatch');
+    if (btn) { btn.textContent = '⏳ EN ATTENTE...'; btn.disabled = true; }
+    _qmPollTimer = setInterval(async () => {
+        if (!currentRoom) { clearInterval(_qmPollTimer); _qmPollTimer = null; return; }
+        const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', roomId);
+        const { data: room } = await _supa.from('game_rooms').select('*').eq('id', roomId).single();
+        if (!room) { clearInterval(_qmPollTimer); _qmPollTimer = null; return; }
+        if (room.status === 'playing') { clearInterval(_qmPollTimer); _qmPollTimer = null; onMultiGameStart(room); return; }
+        const count = (players || []).length;
+        const max = room.max_players;
+        const mapName = MAP_LIBRARY[room.settings?.mapIndex]?.name || room.settings?.mapName || '?';
+        if (el) el.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapName)}</strong> · <span style="color:#4ADE80;">${count}/${max} joueurs</span>`;
+        if (count >= max) {
+            clearInterval(_qmPollTimer); _qmPollTimer = null;
+            if (isHost) await startMultiGame();
+        }
+    }, 2000);
+}
 async function quickMatch() {
     if (!currentUser || !currentProfile) {
         alert('Vous devez être connecté pour jouer en ligne.');
@@ -11760,7 +11783,7 @@ async function createRoom(mode = 'custom', settings = null, maxPlayers = 4) {
         slot_number: 0, ready: true,
         stats: { ...gameState.playerStats }
     });
-    enterRoom(data.id);
+    if (mode === 'auto') { startQmPolling(data.id); } else { enterRoom(data.id); }
     } catch(e) { console.warn('createRoom:', e); alert('Erreur réseau.'); }
 }
 
