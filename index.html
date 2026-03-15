@@ -5521,8 +5521,17 @@ function finishMultiSpawn() {
     setPhase('game');
 }
 
+const AI_NAMES = ['Zyrex','Vorath','Nex','Kael','Draven','Syx','Torvan','Umek','Xael','Phryx','Corvus','Zalith','Nekron','Vreth','Oxar','Juvek','Thyron','Blaze','Mordax','Cynth'];
+const _usedAiNames = new Set();
+function randomAiName() {
+    const available = AI_NAMES.filter(n => !_usedAiNames.has(n));
+    const pool = available.length > 0 ? available : AI_NAMES;
+    const n = pool[Math.floor(Math.random() * pool.length)];
+    _usedAiNames.add(n); return '[IA] ' + n;
+}
 function createPlayers() {
     gameState.players = [];
+    _usedAiNames.clear();
     const colors = [...gameState.teamColors];
 
     if (gameState.isMulti && currentRoom) {
@@ -5564,7 +5573,7 @@ function createPlayers() {
                 const s3 = 10 - s1 - s2;
                 gameState.players.push({
                     id: aiId,
-                    name: 'IA-' + (a + 1),
+                    name: randomAiName(),
                     color: aiColor,
                     isHuman: false,
                     stats: { growth: s1, velocity: s2, density: s3 },
@@ -5615,7 +5624,7 @@ function createPlayers() {
         const s3 = 10 - s1 - s2;
         gameState.players.push({
             id: i,
-            name: 'IA-' + i,
+            name: randomAiName(),
             color: aiColor,
             isHuman: false,
             stats: { growth: s1, velocity: s2, density: s3 },
