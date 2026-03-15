@@ -11926,7 +11926,10 @@ async function updateQuickMatchPanel() {
         } else {
             if (updateQuickMatchPanel._lastMapIdx == null) updateQuickMatchPanel._lastMapIdx = Math.floor(Math.random() * MAP_LIBRARY.length);
             mapData = MAP_LIBRARY[updateQuickMatchPanel._lastMapIdx];
-            el.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapData.name)}</strong> · <span style="color:#94A3B8;">En attente de joueurs...</span>`;
+            const _npQm = mapData.suns.reduce((a,s)=>a+s.planets.length,0);
+            const _bpQm = _npQm <= 10 ? _npQm : _npQm + 5;
+            const _mxQm = Math.max(2, Math.round(_bpQm * 1.0));
+            el.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapData.name)}</strong> · <span style="color:#4ADE80;">0/${_mxQm} joueurs</span>`;
         }
         drawQmPreview(mapData);
     } catch(e) {
