@@ -7736,8 +7736,8 @@ function findBodyAt(wx, wy) {
 // BOUCLE DE JEU
 // ─────────────────────────────────────────────
 const _keysDown = {};
-window.addEventListener('keydown', e => { if (e.key.startsWith('Arrow') || e.key === 'p' || e.key === 'P' || e.key === 'm' || e.key === 'M') { _keysDown[e.key] = true; e.preventDefault(); } });
-window.addEventListener('keyup', e => { if (e.key.startsWith('Arrow') || e.key === 'p' || e.key === 'P' || e.key === 'm' || e.key === 'M') _keysDown[e.key] = false; });
+window.addEventListener('keydown', e => { if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return; if (e.key.startsWith('Arrow') || e.key === 'p' || e.key === 'P' || e.key === 'm' || e.key === 'M') { _keysDown[e.key] = true; e.preventDefault(); } });
+window.addEventListener('keyup', e => { if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return; if (e.key.startsWith('Arrow') || e.key === 'p' || e.key === 'P' || e.key === 'm' || e.key === 'M') _keysDown[e.key] = false; });
 
 function gameLoop(timestamp) {
     if (!gameState.running) return;
