@@ -12235,6 +12235,25 @@ document.getElementById('multiCfgCleaners').addEventListener('input', (e) => { d
         opt.value = i; opt.textContent = m.name;
         sel.appendChild(opt);
     });
+    function updatePlayerMax() {
+        const mapVal = sel.value;
+        let maxP;
+        if (mapVal === 'random') {
+            maxP = 22; // max possible toutes cartes confondues
+        } else {
+            const m = MAP_LIBRARY[parseInt(mapVal)];
+            const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
+            maxP = Math.max(2, np <= 10 ? np : np + 5);
+        }
+        const hSlider = document.getElementById('multiCfgHumans');
+        const aiSlider = document.getElementById('multiCfgAI');
+        hSlider.max = maxP;
+        aiSlider.max = maxP;
+        if (parseInt(hSlider.value) > maxP) { hSlider.value = maxP; document.getElementById('multiCfgHumansVal').textContent = maxP; }
+        if (parseInt(aiSlider.value) > maxP) { aiSlider.value = maxP; document.getElementById('multiCfgAIVal').textContent = maxP; }
+    }
+    sel.addEventListener('change', updatePlayerMax);
+    updatePlayerMax();
 })();
 document.getElementById('btnCreateRoom').addEventListener('click', () => {
     playClickSound();
