@@ -8436,26 +8436,22 @@ function drawPlanets(ctx) {
 function drawOwnerLabels(ctx) {
     if (gameState.phase !== 'game') return;
     const cam = gameState.camera;
-    const toScreen = (wx, wy) => ({
-        x: (wx - cam.x) * cam.zoom + gameState.width / 2,
-        y: (wy - cam.y) * cam.zoom + gameState.height / 2
-    });
+    // Coordonnées monde (le ctx est déjà transformé translate+scale)
+    // Seuil en coordonnées monde (70px écran / zoom)
+    const THRESH = 70 / cam.zoom;
     // Collecter tous les corps possédés
     const owned = [];
     for (const p of gameState.planets) {
         if (p.owner === null || p.owner === undefined || p.owner < 0) continue;
-        const sc = toScreen(p.x, p.y);
-        owned.push({ sx: sc.x, sy: sc.y, owner: p.owner, radius: p.radius });
+        owned.push({ sx: p.x, sy: p.y, owner: p.owner, radius: p.radius });
     }
     for (const p of gameState.planets) {
         for (const m of p.moons) {
             if (m.owner === null || m.owner === undefined || m.owner < 0) continue;
-            const sc = toScreen(m.x, m.y);
-            owned.push({ sx: sc.x, sy: sc.y, owner: m.owner, radius: m.radius });
+            owned.push({ sx: m.x, sy: m.y, owner: m.owner, radius: m.radius });
         }
     }
-    // Clustering par propriétaire + proximité (70px)
-    const THRESH = 70;
+    // Clustering par propriétaire + proximité
     const used = new Array(owned.length).fill(false);
     const clusters = [];
     for (let i = 0; i < owned.length; i++) {
@@ -8478,8 +8474,8 @@ function drawOwnerLabels(ctx) {
         const label = cl.items.length > 1 ? pseudo + ' ×' + cl.items.length : pseudo;
         const cx = cl.items.reduce((s, i) => s + owned[i].sx, 0) / cl.items.length;
         const avgR = cl.items.reduce((s, i) => s + owned[i].radius, 0) / cl.items.length;
-        const cy = cl.items.reduce((s, i) => s + owned[i].sy, 0) / cl.items.length - avgR * cam.zoom - 6;
-        const fs = Math.max(9, Math.min(16, avgR * cam.zoom * 0.45));
+        const cy = cl.items.reduce((s, i) => s + owned[i].sy, 0) / cl.items.length - avgR - 6 / cam.zoom;
+        const fs = Math.max(9 / cam.zoom, Math.min(16 / cam.zoom, avgR * 0.45));
         ctx.save();
         ctx.font = 'bold ' + fs + 'px Orbitron';
         ctx.textAlign = 'center';
