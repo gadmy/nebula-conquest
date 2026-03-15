@@ -11720,6 +11720,9 @@ async function quickMatch() {
     }
     // Aucune room dispo → créer un lobby 4vs4 fixe
     const _qmMapIdx = Math.floor(Math.random() * MAP_LIBRARY.length);
+    const _np = MAP_LIBRARY[_qmMapIdx].suns.reduce((a,s)=>a+s.planets.length,0);
+    const _base_p = _np <= 10 ? _np : _np + 5;
+    const _maxP = Math.max(2, Math.round(_base_p * (0.95 + Math.random()*0.10)));
     const autoSettings = {
         mapIndex: _qmMapIdx,
         mapName: MAP_LIBRARY[_qmMapIdx].name,
@@ -11732,9 +11735,6 @@ async function quickMatch() {
         sunCount: 5,
         mode: 'auto'
     };
-    const _np = MAP_LIBRARY[_qmMapIdx].suns.reduce((a,s)=>a+s.planets.length,0);
-    const _base_p = _np <= 10 ? _np : _np + 5;
-    const _maxP = Math.max(2, Math.round(_base_p * (0.95 + Math.random()*0.10)));
     await createRoom('auto', autoSettings, _maxP);
 }
 
