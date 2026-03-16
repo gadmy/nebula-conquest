@@ -1501,10 +1501,14 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="lobbyScreen" class="screen hidden">
     <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:20px;">CRÉER UNE PARTIE</h2>
     <div id="lobbyBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px; max-width:420px; margin:0 auto;">
-        <div class="config-row"><label>Carte</label><select id="multiCfgMap"><option value="random">— Aléatoire —</option></select></div>
-        <div class="config-row"><label>Soleils</label><input type="range" id="multiCfgSuns" min="1" max="8" value="4"><span class="val" id="multiCfgSunsVal">4</span></div>
-        <div class="config-row"><label>Joueurs humains</label><input type="range" id="multiCfgHumans" min="2" max="8" value="2"><span class="val" id="multiCfgHumansVal">2</span></div>
+        <div class="config-row"><label>Carte</label><select id="multiCfgMap"></select></div>
         <div class="config-row"><label>Joueurs IA</label><input type="range" id="multiCfgAI" min="0" max="8" value="2"><span class="val" id="multiCfgAIVal">2</span></div>
+        <div class="config-row"><label>Compléter par IA</label><select id="multiCfgFillIA"><option value="yes" selected>Oui</option><option value="no">Non</option></select></div>
+        <div style="margin-bottom:10px;">
+            <div style="font-family:'Exo 2',sans-serif;font-size:12px;color:rgba(200,210,230,0.7);margin-bottom:6px;">Inviter des amis (pseudo)</div>
+            <div style="display:flex;gap:6px;margin-bottom:6px;"><input id="multiCfgInviteInput" type="text" placeholder="Pseudo..." style="flex:1;background:rgba(15,23,42,0.8);border:1px solid rgba(100,130,200,0.4);border-radius:6px;padding:6px 10px;color:#E2D9F3;font-family:'Exo 2',sans-serif;font-size:12px;"><button class="btn" id="btnLobbyInvite" style="font-size:12px;padding:6px 12px;margin:0;">Inviter</button></div>
+            <div id="multiCfgInviteList" style="font-family:'Exo 2',sans-serif;font-size:11px;color:rgba(160,200,160,0.7);min-height:16px;"></div>
+        </div>
         <div class="config-row"><label>Difficulté IA</label><select id="multiCfgDiff"><option value="easy">Facile</option><option value="normal" selected>Normal</option><option value="brutal">Brutal</option></select></div>
         <div class="config-row"><label>Vaisseaux ennemis</label><input type="range" id="multiCfgCleaners" min="0" max="25" value="3"><span class="val" id="multiCfgCleanersVal">3</span></div>
         <div class="config-row"><label>Météorites</label><select id="multiCfgAsteroids"><option value="on" selected>Activés</option><option value="off">Désactivés</option></select></div>
@@ -7573,7 +7577,11 @@ function setupInput() {
                 }
                 if (body && body.owner !== null && body.owner !== localSlot() && body.owner >= 0 && (e.button === 2)) {
                     if (_isAllied(localSlot(), body.owner)) {
-                        _tradeOpen(body, e.clientX, e.clientY);
+                        const _allB = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
+                        const _myB = _allB.filter(b=>b.owner===localSlot());
+                        const _hasMatch = Object.keys(TRADE_TYPES).some(tm => body[tm] && _myB.some(b=>b[tm]));
+                        if (_hasMatch) _tradeOpen(body, e.clientX, e.clientY);
+                        else _diplomacyOpen(body, e.clientX, e.clientY);
                     } else {
                         _diplomacyOpen(body, e.clientX, e.clientY);
                     }
@@ -7960,7 +7968,8 @@ function render() {
 
     // ── Planètes & Lunes ──
     drawPlanets(ctx);
-    drawOwnerLabels(ctx);
+    if (gameState._hudCounter % 3 === 0) _updateOwnerClusters();
+    _drawOwnerClustersCache(ctx);
 
     // ── Vaisseaux nettoyeurs ──
     drawCleaners(ctx);
@@ -8491,60 +8500,58 @@ function drawPlanets(ctx) {
 // ─────────────────────────────────────────────
 // LABELS PROPRIÉTAIRES (clustering)
 // ─────────────────────────────────────────────
-function drawOwnerLabels(ctx) {
+let _ownerClustersCache = [];
+function _updateOwnerClusters() {
     if (gameState.phase !== 'game') return;
     const cam = gameState.camera;
-    // Coordonnées monde (le ctx est déjà transformé translate+scale)
-    // Seuil en coordonnées monde (70px écran / zoom)
     const THRESH = 70 / cam.zoom;
-    // Collecter tous les corps possédés
     const owned = [];
     for (const p of gameState.planets) {
-        if (p.owner === null || p.owner === undefined || p.owner < 0) continue;
+        if (p.owner == null || p.owner < 0) continue;
         owned.push({ sx: p.x, sy: p.y, owner: p.owner, radius: p.radius });
-    }
-    for (const p of gameState.planets) {
         for (const m of p.moons) {
-            if (m.owner === null || m.owner === undefined || m.owner < 0) continue;
+            if (m.owner == null || m.owner < 0) continue;
             owned.push({ sx: m.x, sy: m.y, owner: m.owner, radius: m.radius });
         }
     }
-    // Clustering par propriétaire + proximité
-    const used = new Array(owned.length).fill(false);
+    const used = new Uint8Array(owned.length);
     const clusters = [];
     for (let i = 0; i < owned.length; i++) {
         if (used[i]) continue;
-        const cl = { owner: owned[i].owner, items: [i] };
-        for (let j = i + 1; j < owned.length; j++) {
+        const cl = { owner: owned[i].owner, sx: owned[i].sx, sy: owned[i].sy, r: owned[i].radius, count: 1 };
+        for (let j = i+1; j < owned.length; j++) {
             if (used[j] || owned[j].owner !== owned[i].owner) continue;
-            const dx = owned[j].sx - owned[i].sx;
-            const dy = owned[j].sy - owned[i].sy;
-            if (Math.sqrt(dx*dx + dy*dy) < THRESH) { cl.items.push(j); used[j] = true; }
+            const dx = owned[j].sx - owned[i].sx, dy = owned[j].sy - owned[i].sy;
+            if (dx*dx + dy*dy < THRESH*THRESH) {
+                cl.sx += owned[j].sx; cl.sy += owned[j].sy; cl.r += owned[j].radius;
+                cl.count++; used[j] = 1;
+            }
         }
-        used[i] = true;
+        used[i] = 1;
+        cl.sx /= cl.count; cl.sy /= cl.count; cl.r /= cl.count;
         clusters.push(cl);
     }
-    // Dessiner chaque cluster
-    for (const cl of clusters) {
+    _ownerClustersCache = clusters;
+}
+function _drawOwnerClustersCache(ctx) {
+    if (!_ownerClustersCache.length) return;
+    const cam = gameState.camera;
+    ctx.textAlign = 'center';
+    for (const cl of _ownerClustersCache) {
         const player = gameState.players[cl.owner];
         if (!player) continue;
-        const pseudo = player.name || player.pseudo || ('J' + cl.owner);
-        const label = cl.items.length > 1 ? pseudo + ' ×' + cl.items.length : pseudo;
-        const cx = cl.items.reduce((s, i) => s + owned[i].sx, 0) / cl.items.length;
-        const avgR = cl.items.reduce((s, i) => s + owned[i].radius, 0) / cl.items.length;
-        const cy = cl.items.reduce((s, i) => s + owned[i].sy, 0) / cl.items.length - avgR - 6 / cam.zoom;
-        const fs = Math.max(9 / cam.zoom, Math.min(16 / cam.zoom, avgR * 0.45));
-        ctx.save();
-        ctx.font = 'bold ' + fs + 'px Orbitron';
-        ctx.textAlign = 'center';
+        const pseudo = player.name || ('J'+cl.owner);
+        const label = cl.count > 1 ? pseudo+' ×'+cl.count : pseudo;
+        const cy = cl.sy - cl.r - 6/cam.zoom;
+        const fs = Math.max(9/cam.zoom, Math.min(16/cam.zoom, cl.r*0.45));
+        ctx.font = 'bold '+fs+'px Orbitron';
         const tw = ctx.measureText(label).width;
         ctx.fillStyle = 'rgba(8,6,30,0.72)';
         ctx.beginPath();
-        ctx.roundRect(cx - tw/2 - 4, cy - fs, tw + 8, fs * 1.4, 3);
+        ctx.roundRect(cl.sx-tw/2-4, cy-fs, tw+8, fs*1.4, 3);
         ctx.fill();
         ctx.fillStyle = player.color || '#FFF';
-        ctx.fillText(label, cx, cy);
-        ctx.restore();
+        ctx.fillText(label, cl.sx, cy);
     }
 }
 
@@ -12623,8 +12630,14 @@ document.getElementById('btnQuickMatch').addEventListener('click', () => {
     }
     quickMatch();
 });
-document.getElementById('multiCfgSuns').addEventListener('input', (e) => { document.getElementById('multiCfgSunsVal').textContent = e.target.value; });
-document.getElementById('multiCfgHumans').addEventListener('input', (e) => { document.getElementById('multiCfgHumansVal').textContent = e.target.value; });
+document.getElementById('btnLobbyInvite').addEventListener('click', () => {
+    const input = document.getElementById('multiCfgInviteInput');
+    const pseudo = input.value.trim();
+    if (!pseudo) return;
+    const list = document.getElementById('multiCfgInviteList');
+    list.textContent += (list.textContent ? ', ' : '') + pseudo;
+    input.value = '';
+});
 document.getElementById('multiCfgAI').addEventListener('input', (e) => { document.getElementById('multiCfgAIVal').textContent = e.target.value; });
 document.getElementById('multiCfgCleaners').addEventListener('input', (e) => { document.getElementById('multiCfgCleanersVal').textContent = e.target.value; });
 (function() {
@@ -12635,15 +12648,10 @@ document.getElementById('multiCfgCleaners').addEventListener('input', (e) => { d
         sel.appendChild(opt);
     });
     function updatePlayerMax() {
-        const mapVal = sel.value;
-        let maxP;
-        if (mapVal === 'random') {
-            maxP = 22; // max possible toutes cartes confondues
-        } else {
-            const m = MAP_LIBRARY[parseInt(mapVal)];
-            const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
-            maxP = Math.max(2, np <= 10 ? np : np + 5);
-        }
+        const mapVal = parseInt(sel.value) || 0;
+        const m = MAP_LIBRARY[mapVal];
+        const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
+        const maxP = Math.max(2, np <= 10 ? np : np + 5);
         const hSlider = document.getElementById('multiCfgHumans');
         const aiSlider = document.getElementById('multiCfgAI');
         hSlider.max = maxP;
@@ -12656,22 +12664,32 @@ document.getElementById('multiCfgCleaners').addEventListener('input', (e) => { d
 })();
 document.getElementById('btnCreateRoom').addEventListener('click', () => {
     playClickSound();
-    const humans = parseInt(document.getElementById('multiCfgHumans').value);
     const aiCount = parseInt(document.getElementById('multiCfgAI').value);
-    const mapVal = document.getElementById('multiCfgMap').value;
-    const mapIndex = mapVal === 'random' ? Math.floor(Math.random() * MAP_LIBRARY.length) : parseInt(mapVal);
+    const fillIA = document.getElementById('multiCfgFillIA').value === 'yes';
+    const mapIndex = parseInt(document.getElementById('multiCfgMap').value) || 0;
+    const inviteList = document.getElementById('multiCfgInviteList').textContent.split(',').map(s=>s.trim()).filter(Boolean);
     const settings = {
         mapIndex: mapIndex,
         mapName: MAP_LIBRARY[mapIndex].name,
-        sunCount: parseInt(document.getElementById('multiCfgSuns').value),
+        sunCount: MAP_LIBRARY[mapIndex].suns.length,
         difficulty: document.getElementById('multiCfgDiff').value,
-        useIA: aiCount > 0,
+        useIA: aiCount > 0 || fillIA,
         aiCount: aiCount,
+        fillIA: fillIA,
         cleanerCount: parseInt(document.getElementById('multiCfgCleaners').value),
         useAsteroids: document.getElementById('multiCfgAsteroids').value === 'on',
-        playerCount: humans + aiCount
+        playerCount: 1 + inviteList.length + aiCount
     };
-    createRoom('custom', settings, humans);
+    createRoom('custom', settings, 1 + inviteList.length);
+    // Envoyer les invitations
+    for (const pseudo of inviteList) {
+        setTimeout(async () => {
+            const { data: target } = await _supa.from('profiles').select('id,pseudo').ilike('pseudo', pseudo).single();
+            if (!target || !currentRoom) return;
+            const ch = _supa.channel('invite-'+target.id);
+            ch.subscribe(s => { if (s==='SUBSCRIBED') { ch.send({ type:'broadcast', event:'invite', payload:{ roomId:currentRoom.id, hostPseudo:currentProfile.pseudo, settings } }); setTimeout(()=>ch.unsubscribe(),1000); } });
+        }, 1500);
+    }
 });
 document.getElementById('btnRoomLeave').addEventListener('click', () => {
     playClickSound();
