@@ -214,6 +214,26 @@ canvas#gameCanvas.grabbing {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+@keyframes nidGlow {
+    0%,100% { box-shadow: 0 0 6px 2px rgba(239,68,68,0.5); border-color: rgba(239,68,68,0.6); }
+    50%      { box-shadow: 0 0 14px 5px rgba(239,68,68,0.9); border-color: rgba(239,68,68,1); }
+}
+@keyframes nidFade {
+    0%,100% { opacity:1; } 50% { opacity:0.4; }
+}
+@keyframes slideDown {
+    from { transform: translateX(-50%) translateY(-60px); opacity:0; }
+    to   { transform: translateX(-50%) translateY(0);    opacity:1; }
+}
+#gameTopBanner {
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+    z-index: 500; background: rgba(10,8,35,0.95);
+    border: 1px solid rgba(255,215,0,0.6); border-radius: 10px;
+    padding: 8px 20px; font-family: 'Exo 2', sans-serif; font-size: 13px;
+    color: #FFD700; cursor: pointer; pointer-events: auto;
+    animation: slideDown 0.3s ease; display: none;
+    box-shadow: 0 0 20px rgba(255,215,0,0.3);
+}
 
 .btn {
     font-family: 'Orbitron', sans-serif;
@@ -1470,16 +1490,21 @@ input[type="radio"]:checked + .build-icon-btn {
 
 <!-- CONTRÔLES -->
 <p id="h-controles" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🕹 CONTRÔLES</p>
-<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:55%;">Clic maintenu + glisser (depuis un astre possédé)</td><td style="padding:3px 0;">Lance un jet de spores</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit sur un astre possédé</td><td style="padding:3px 0;">Menu radial — types de spores + bâtiments</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit sur un astre ennemi</td><td style="padding:3px 0;">Menu diplomatie (si pas allié) ou commerce (si allié avec terminal)</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic gauche sur un astre</td><td style="padding:3px 0;">Ouvre le Codex (infos détaillées)</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit sur fond vide</td><td style="padding:3px 0;">Panneau Évolution</td></tr>
+<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:55%;">Clic droit sur un astre possédé</td><td style="padding:3px 0;">Ouvre le menu radial (types de spores + bâtiments)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic sur un type de spore dans le menu radial</td><td style="padding:3px 0;">Active le mode visée — un trait de trajectoire apparaît</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic gauche maintenu → relâcher (en mode visée)</td><td style="padding:3px 0;">Tire le jet de spores dans la direction pointée</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">📖 centre du menu radial</td><td style="padding:3px 0;">Ouvre le Codex de l'astre (stats, bâtiments, symbiose)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic gauche sur un astre</td><td style="padding:3px 0;">Centre la caméra sur cet astre + ouvre le Codex</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Couronne extérieure du menu radial</td><td style="padding:3px 0;">Choisir / activer un bâtiment (tooltip au survol)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit sur fond vide</td><td style="padding:3px 0;">Panneau Évolution (Multiplicité + Mutations)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit maintenu + glisser (sur fond vide)</td><td style="padding:3px 0;">Déplacer la caméra</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit sur astre ennemi</td><td style="padding:3px 0;">Diplomatie (si pas allié) ou commerce (si allié avec terminal commun)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">Molette</td><td style="padding:3px 0;">Zoom / dézoom (ne scrolle pas les panneaux si souris dessus)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">P / M</td><td style="padding:3px 0;">Zoom + / Zoom −</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">Échap</td><td style="padding:3px 0;">Pause (solo uniquement)</td></tr>
 </table>
+<p style="margin-bottom:16px;color:rgba(200,210,230,0.5);font-size:11px;">💡 En mode visée, clic droit annule. Le pourcentage de spores envoyées est réglable dans le panneau Évolution (slider Envoi).</p>
 
 <!-- SPORES & CONQUÊTE -->
 <p id="h-spores" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🧬 SPORES & CONQUÊTE</p>
@@ -1517,7 +1542,7 @@ input[type="radio"]:checked + .build-icon-btn {
   <tr><td style="padding:3px 0;">🦠 Parasite</td><td style="padding:3px 0;color:#FFD700;">Gratuit (2 min)</td><td style="padding:3px 0;">Prépare 1 spore parasitaire</td></tr>
 </table>
 <p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Système solaire entier conquis</span> → bonus de production <span style="color:#4ADE80;">+3%</span> sur tous les astres du système.</p>
-<p style="margin-bottom:6px;"><span style="color:#FFD700;">🪺 Nidification</span> : si vous possédez 100% d'un système, sacrifiez 2 500 spores sur une planète mère → elle et ses lunes deviennent <span style="color:#FFD700;">invincibles</span>. Si vous perdez plus de 50% du système, la nidification s'annule.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">🪺 Nidification</span> : conquérez 100% d'un système → dans <span style="color:#E9D5FF;">Mes Astres</span>, les planètes clignotent en rouge → cliquez sur l'une pour la désigner <span style="color:#FFD700;">planète mère</span> → elle est entourée d'un <span style="color:#FFD700;">halo doré</span> visible par tous. Si elle a des lunes, elles doivent être conquises en premier avant de pouvoir l'attaquer. Une fois désignée, le bouton <span style="color:#FFD700;">👑 Nidif.</span> apparaît dans son menu radial : il aspire instantanément 50% des spores de tous vos astres sur elle (cooldown 3 min). La nidification s'annule si une lune de la planète mère est conquise.</p>
 <p style="margin-bottom:16px;">Rush et Mare ne peuvent pas être actifs en même temps sur le même astre. Ils consomment au maximum 50% de la production locale, la production normale reprend sur le reste.</p>
 
 <!-- TERMINAUX DE COMMERCE -->
@@ -1551,7 +1576,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Multiplicité</span> : sacrifiez une part de production (réglable en %) pour accumuler des points d'évolution. À chaque palier atteint (10 paliers max), choisissez +1 point dans Croissance, Vélocité ou Densité. Coût croissant : 500 × 1.8ᴺ spores par palier.</p>
 <p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Mutations</span> — trois branches technologiques (panneau Évolution) :</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
-  <tr><td style="padding:3px 0;color:#E9D5FF;">🎯 Tête chercheuse</td><td style="padding:3px 0;">Jets attirés vers les astres ennemis/neutres proches. Portée et force croissantes.</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">🎯 Tête chercheuse</td><td style="padding:3px 0;">Jets déviés vers les astres non-alliés proches (ennemis et neutres). Portée initiale : 110 unités, +30 par niveau. Force de déviation croissante.</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">💪 Ténacité</td><td style="padding:3px 0;">Jets divisés par astéroïdes conservent plus de spores et sont redirigés vers les systèmes solaires.</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">🦎 Mimétisme</td><td style="padding:3px 0;">À la conquête d'une planète avec lunes, le jet se scinde vers elles. Niv.10 : 100% des spores vont directement aux lunes.</td></tr>
 </table>
@@ -1562,11 +1587,11 @@ input[type="radio"]:checked + .build-icon-btn {
 <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
   <tr><td style="padding:3px 0;color:#A78BFA;">Trou noir central</td><td style="padding:3px 0;">Détruit les jets trop proches, courbe toutes les trajectoires</td></tr>
   <tr><td style="padding:3px 0;color:#EF4444;">Vaisseau rouge</td><td style="padding:3px 0;">Attaque et détruit vos jets</td></tr>
-  <tr><td style="padding:3px 0;color:#4ADE80;">Vaisseau vert</td><td style="padding:3px 0;">Double les jets qu'il croise</td></tr>
+  <tr><td style="padding:3px 0;color:#4ADE80;">Vaisseau vert</td><td style="padding:3px 0;">×2 les spores d'un jet au contact (une seule fois par jet)</td></tr>
   <tr><td style="padding:3px 0;color:#888;">Vaisseau noir</td><td style="padding:3px 0;">Renvoie vos jets vers leurs astres d'origine</td></tr>
   <tr><td style="padding:3px 0;color:#888;">Astéroïde noir</td><td style="padding:3px 0;">÷2 spores au contact</td></tr>
   <tr><td style="padding:3px 0;color:#EF4444;">Astéroïde rouge</td><td style="padding:3px 0;">Dévie la trajectoire du jet</td></tr>
-  <tr><td style="padding:3px 0;color:#4ADE80;">Astéroïde vert</td><td style="padding:3px 0;">×5 spores — peut être exploité volontairement !</td></tr>
+  <tr><td style="padding:3px 0;color:#4ADE80;">Astéroïde vert</td><td style="padding:3px 0;">Éclate le jet en 5 mini-jets partant dans des directions aléatoires (Ténacité améliore leur direction et leur charge)</td></tr>
   <tr><td style="padding:3px 0;color:#60A5FA;">Comète</td><td style="padding:3px 0;">Détruit les spores au contact — trajectoire imprévisible</td></tr>
 </table>
 
@@ -1575,7 +1600,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;"><span style="color:#4ADE80;">Rejoindre</span> : depuis le menu principal, "REJOINDRE" vous place dans la prochaine partie disponible. Le compteur <span style="color:#4ADE80;">X/N joueurs</span> s'affiche en temps réel. La partie se lance automatiquement quand le lobby est plein.</p>
 <p style="margin-bottom:6px;"><span style="color:#4ADE80;">Créer une partie</span> : choisissez la carte, ajoutez des IA, invitez des amis par pseudo. Option "Compléter par IA" pour remplir les slots vides automatiquement au lancement.</p>
 <p style="margin-bottom:6px;">Les joueurs IA portent des noms générés aléatoirement (ex. [IA] Zyrex, [IA] Vorath…). Ils acceptent automatiquement les propositions d'alliance.</p>
-<p style="margin-bottom:16px;">Le nombre de joueurs par partie est calculé automatiquement selon la carte choisie : <span style="color:#FFD700;">≤ 10 planètes → N joueurs = nb planètes · > 10 planètes → N = nb planètes + 5</span> (±5% aléatoire).</p>
+<p style="margin-bottom:16px;">Le nombre maximum de joueurs est calculé selon la carte : <span style="color:#FFD700;">≤ 10 planètes → max = nb planètes · > 10 planètes → max = nb planètes + 5</span> (±5% aléatoire). La partie se lance quand tous les slots sont remplis.</p>
 
 <p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v4.3</p>
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🎯 OBJECTIF</p>
@@ -1603,7 +1628,7 @@ input[type="radio"]:checked + .build-icon-btn {
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🧬 MULTIPLICITÉ</p>
         <p style="margin-bottom:16px;">Sacrifiez une part de production pour évoluer. Chaque palier = +1 stat permanent. 10 paliers au total.</p>
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🪺 NIDIFICATION</p>
-        <p style="margin-bottom:16px;">Système solaire entièrement conquis → choisissez une planète mère → 2500 spores → elle et ses lunes deviennent invincibles. La nidification reste active tant que vous possédez au moins 50% du système. Le sacrifice nidification fonctionne même si vos astres sont en construction de nids/biomes.</p>
+        <p style="margin-bottom:16px;">Système entièrement conquis → planètes clignotent en rouge dans Mes Astres → clic pour désigner la planète mère → halo doré visible par tous. Ses lunes doivent être conquises avant de pouvoir l'attaquer (sans lunes : conquérable normalement). Bouton 👑 Nidif. dans le menu radial : aspire 50% des spores de tous vos astres instantanément (cooldown 3 min). S'annule si une lune est perdue.</p>
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🧬 MUTATIONS</p>
         <p style="margin-bottom:6px;">Trois branches technologiques pour améliorer vos jets (onglet Mutations du panneau évolution) :</p>
         <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">🎯 Tête chercheuse</span> — les jets dévient vers les planètes neutres/ennemies proches. Plus le niveau est haut, plus la portée et la force d'attraction augmentent.</p>
@@ -1670,6 +1695,8 @@ input[type="radio"]:checked + .build-icon-btn {
     <button class="btn" id="btnRoomLeave" style="margin-top:16px; font-size:12px; padding:8px 20px;">QUITTER</button>
     <button id="btnDebugFill" style="display:none;margin-top:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:6px 16px;font-family:'Orbitron',sans-serif;font-size:9px;color:#F87171;cursor:pointer;letter-spacing:1px;">⚡ DEBUG — REMPLIR IA</button>
 </div>
+
+<div id="gameTopBanner"></div>
 
 <!-- ═══ POPUP INVITATION ═══ -->
 <div id="invitePopup" class="hidden" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:200; background:rgba(10,15,35,0.95); border:2px solid rgba(100,180,255,0.6); border-radius:14px; padding:24px 32px; text-align:center; box-shadow:0 0 40px rgba(100,180,255,0.3); pointer-events:auto;">
@@ -7251,8 +7278,12 @@ function applyConquest(body, jet) {
         return;
     }
 
-    // Invincibilité planète mère
-    if (body.invincible) return;
+    // Invincibilité planète mère — seulement si toutes ses lunes sont encore possédées par le proprio
+    if (body.isMotherPlanet) {
+        const _hasLunes = body.moons && body.moons.length > 0;
+        const _lunesOwned = !_hasLunes || body.moons.every(m => m.owner === body.owner);
+        if (_lunesOwned) return; // invincible
+    }
 
     // Jets sur planète alliée (mélange ADN) → renforcement
     if (body.owner !== null && body.owner !== jet.owner && _isAllied(jet.owner, body.owner)) {
@@ -7984,6 +8015,11 @@ function update(dt) {
     updateLOD(dt);
     updateOrbits(dt);
     updateCosmicEffects(dt);
+    // Décompte cooldown nidification
+    for (const p of gameState.planets) {
+        if (p._nidCooldown > 0) p._nidCooldown = Math.max(0, p._nidCooldown - dt);
+        for (const m of p.moons) { if (m._nidCooldown > 0) m._nidCooldown = Math.max(0, m._nidCooldown - dt); }
+    }
     updateSporeGeneration(dt);
     updateComets(dt);
     if ((gameState._hudCounter & 1) === 0) updateAI(dt);
@@ -8514,6 +8550,23 @@ function drawPlanets(ctx) {
             ctx.arc(p.x, p.y, p.radius + 3, 0, Math.PI * 2);
             ctx.stroke();
             ctx.globalAlpha = 1;
+            // Halo doré planète mère
+            if (p.isMotherPlanet) {
+                const _mt = gameState.time || 0;
+                const _mp = 0.6 + 0.4*Math.sin(_mt*2.5);
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius*(1.4+0.1*Math.sin(_mt*1.8)), 0, Math.PI*2);
+                ctx.strokeStyle = `rgba(255,215,0,${_mp*0.9})`;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius*(1.7+0.08*Math.sin(_mt*1.3)), 0, Math.PI*2);
+                ctx.strokeStyle = `rgba(255,180,0,${_mp*0.4})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.restore();
+            }
             // Symbole alliance 🤝
             if (isAlliedPlanet) {
                 ctx.save();
@@ -9626,8 +9679,8 @@ function selectMotherPlanet(sun, planet) {
     const human = gameState.players[slot];
     if (!human) return;
 
+    if (!human.nidification[sun.name]) human.nidification[sun.name] = { progress: 0, sacrifice: 0, sunName: sun.name };
     const nid = human.nidification[sun.name];
-    if (!nid || nid.progress < 2500) return;
 
     // Marquer la planète mère
     nid.motherPlanet = planet.name;
@@ -9704,7 +9757,7 @@ function updateNidPanel() {
 
     // Choix planète mère quand jauge pleine
     const chooseEl = document.getElementById('nidChoose');
-    if (nid.progress >= cost) {
+    if (true) {
         chooseEl.style.display = 'block';
         const listEl = document.getElementById('nidPlanetList');
         const planets = targetSun.planets.filter(p => p.owner === slot);
@@ -9849,59 +9902,52 @@ function updateMyPlanets() {
                 buildRow.appendChild(btn);
             });
 
-            // Bouton planète mère si système complet + jauge pleine
+            // Système complet → nidification disponible
             const sunRef2 = groupSuns[sunName];
-            if (sunRef2 && isSystemComplete(sunRef2, slot)) {
-                const nidData2 = human.nidification[sunName];
-                if (nidData2 && nidData2.progress >= 2500 && !nidData2.motherPlanet) {
-                    const nidBtn2 = document.createElement('span');
-                    nidBtn2.textContent = '👑';
-                    nidBtn2.style.cssText = 'font-size:13px; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; border-radius:4px; cursor:pointer; border:1px solid rgba(255,215,0,0.4); background:rgba(255,215,0,0.1); transition:all 0.15s; opacity:1; animation: tidPulse 1.5s infinite;';
-                    nidBtn2.addEventListener('mouseenter', (e) => {
-                        clearTimeout(_ttTimer);
-                        _ttTimer = setTimeout(() => {
-                            _ttEl.textContent = 'Choisir la planète mère du système';
-                            _ttEl.style.left = (e.clientX + 8) + 'px';
-                            _ttEl.style.top = (e.clientY - 28) + 'px';
-                            _ttEl.classList.add('visible');
-                        }, 200);
-                    });
-                    nidBtn2.addEventListener('mouseleave', () => {
-                        clearTimeout(_ttTimer);
-                        _ttEl.classList.remove('visible');
-                    });
-                    nidBtn2.addEventListener('click', () => {
-                        // Ouvrir le choix dans le nidPanel existant ou afficher une sélection inline
-                        const planets = sunRef2.planets.filter(p => p.owner === slot);
-                        if (planets.length === 1) {
-                            selectMotherPlanet(sunRef2, planets[0]);
-                        } else {
-                            // Mettre en évidence les planètes éligibles dans myPlanets
-                            rowEl.querySelectorAll('.mp-item').forEach(item => {
-                                const bName = item.dataset.bodyName;
-                                const planet = planets.find(p => p.name === bName);
-                                if (planet) {
-                                    item.style.border = '2px solid #FFD700';
-                                    item.style.boxShadow = '0 0 8px rgba(255,215,0,0.4)';
-                                    item.addEventListener('click', function _nidClick() {
-                                        selectMotherPlanet(sunRef2, planet);
-                                        rowEl.querySelectorAll('.mp-item').forEach(i => {
-                                            i.style.border = '';
-                                            i.style.boxShadow = '';
-                                        });
-                                        item.removeEventListener('click', _nidClick);
-                                    }, { once: true });
-                                }
-                            });
-                        }
-                    });
-                    buildRow.appendChild(nidBtn2);
-                }
+            const _nidReady = sunRef2 && isSystemComplete(sunRef2, slot) && !(human.nidification[sunName]?.motherPlanet);
+            if (_nidReady) {
+                groupEl.style.cssText = 'border:2px solid rgba(239,68,68,0.8);border-radius:8px;padding:4px;animation:nidGlow 1.2s infinite;';
             }
             groupEl.appendChild(buildRow);
 
             const rowEl = document.createElement('div');
             rowEl.className = 'mp-row';
+
+            // En mode nidification : seules les planètes clignotent et sont cliquables
+            if (_nidReady) {
+                const _nidPlanets = sunRef2.planets.filter(p => p.owner === slot);
+                for (const p of _nidPlanets) {
+                    const item = document.createElement('div');
+                    item.className = 'mp-item';
+                    item.dataset.bodyName = p.name;
+                    item.style.cssText = 'border:2px solid rgba(239,68,68,0.8);box-shadow:0 0 8px rgba(239,68,68,0.5);cursor:pointer;animation:nidFade 1.2s infinite;';
+                    item.title = '👑 Choisir comme planète mère';
+                    if (p._texture) {
+                        const _c = document.createElement('canvas');
+                        _c.width = _c.height = 32;
+                        _c.getContext('2d').drawImage(p._texture, 0, 0, 32, 32);
+                        item.appendChild(_c);
+                    }
+                    const _n = document.createElement('div');
+                    _n.className = 'mp-name';
+                    _n.textContent = p.name;
+                    item.appendChild(_n);
+                    const _h = document.createElement('div');
+                    _h.style.cssText = 'font-size:9px;color:rgba(239,68,68,0.9);margin-top:2px;';
+                    _h.textContent = '👑 Planète mère ?';
+                    item.appendChild(_h);
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (!human.nidification[sunName]) human.nidification[sunName] = { progress:0, sacrifice:0, sunName:sunRef2.name };
+                        selectMotherPlanet(sunRef2, p);
+                        container.dataset.hash = '';
+                    });
+                    rowEl.appendChild(item);
+                }
+                groupEl.appendChild(rowEl);
+                container.appendChild(groupEl);
+                continue;
+            }
 
             // Trier : planète mère en premier
             const nidData = human.nidification[sunName];
@@ -12007,6 +12053,7 @@ async function rejoinGame() {
     await setupGameChannel(roomId);
     setTimeout(_setupAllianceListener, 2000);
     setTimeout(_setupSignalListener, 2000);
+    setTimeout(_setupNidListener, 2000);
     // Reprendre le contrôle du joueur
     const player = gameState.players[slot];
     if (player) {
@@ -12339,7 +12386,15 @@ _stmCanvas.addEventListener('click', (e) => {
         gameState._firePhase = null;
         if (body) { openCodex._cx=e.clientX; openCodex._cy=e.clientY; openCodex(body); }
     } else if (hit.zone==='spore' && hit.idx>=0 && hit.idx<_stmSectors.length) {
-        if (!_stmSectors[hit.idx].disabled) _selectSporeType(_stmSectors[hit.idx].type);
+        const _sec = _stmSectors[hit.idx];
+        if (!_sec.disabled) {
+            if (_sec.type === 'nidification') {
+                _triggerNidification(_stmLiveBody);
+                _closeSporMenu();
+            } else {
+                _selectSporeType(_sec.type);
+            }
+        }
     } else if (hit.zone==='bld' && hit.idx>=0 && hit.idx<_stmBldSectors.length) {
         const b = _stmBldSectors[hit.idx];
         if (!b.disabled && _stmLiveBody) {
@@ -12369,11 +12424,16 @@ function _stmOpen(body, clientX, clientY) {
     const hasPara = (body.parasiteSpore || 0) >= 1;
 
     const paraCount = (body.parasiteSpore || 0);
+    const _isMotherPlanet = !!body.isMotherPlanet;
+    const _nidCooldown = body._nidCooldown || 0;
+    const _nidReady2 = _isMotherPlanet && _nidCooldown <= 0;
+    const _nidLabel = _nidCooldown > 0 ? Math.ceil(_nidCooldown/60)+'min' : (_isMotherPlanet ? 'Prêt' : 'Inactif');
     _stmSectors = [
-        { type:'normal',   icon:'⚪', label:'Normal',  count: norm + ' sp',              color:'rgba(60,40,120,0.85)',  colorHover:'rgba(100,70,180,0.95)', disabled: norm < 5 },
-        { type:'attaque',  icon:'🔴', label:'Attaque', count: att + ' sp',               color:'rgba(120,15,15,0.85)', colorHover:'rgba(200,30,30,0.95)',  disabled: att < 5 },
-        { type:'defense',  icon:'🔵', label:'Défense', count: def + ' sp',               color:'rgba(10,50,110,0.85)', colorHover:'rgba(20,80,180,0.95)',  disabled: def < 5 },
-        { type:'parasite', icon:'🦠', label:'Parasite',count: paraCount + ' prête',      color:'rgba(10,60,25,0.85)',  colorHover:'rgba(20,120,50,0.95)',  disabled: paraCount < 1 },
+        { type:'normal',      icon:'⚪', label:'Normal',      count: norm + ' sp',         color:'rgba(60,40,120,0.85)',  colorHover:'rgba(100,70,180,0.95)', disabled: norm < 5 },
+        { type:'attaque',     icon:'🔴', label:'Attaque',     count: att + ' sp',          color:'rgba(120,15,15,0.85)', colorHover:'rgba(200,30,30,0.95)',  disabled: att < 5 },
+        { type:'defense',     icon:'🔵', label:'Défense',     count: def + ' sp',          color:'rgba(10,50,110,0.85)', colorHover:'rgba(20,80,180,0.95)',  disabled: def < 5 },
+        { type:'parasite',    icon:'🦠', label:'Parasite',    count: paraCount + ' prête', color:'rgba(10,60,25,0.85)',  colorHover:'rgba(20,120,50,0.95)',  disabled: paraCount < 1 },
+        { type:'nidification',icon:'👑', label:'Nidif.',      count: _nidLabel,            color: _nidReady2 ? 'rgba(180,140,0,0.85)' : 'rgba(60,50,30,0.7)', colorHover:'rgba(255,200,0,0.95)', disabled: !_nidReady2 },
     ];
 
     // Couronne 2 : bâtiments disponibles pour cet astre
@@ -12552,6 +12612,57 @@ function drawTradeOrbs(ctx) {
         ctx.fillText(TRADE_TYPES[o.tradeType]?.icon||'●', o.x, o.y - r*2.5 - 3);
         ctx.restore();
     }
+}
+
+function _triggerNidification(motherPlanet) {
+    const slot = localSlot();
+    const player = gameState.players[slot];
+    if (!player || !motherPlanet) return;
+    // Aspirer 50% des spores normales de TOUTES les planètes et lunes de la carte
+    let total = 0;
+    const allBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
+    for (const b of allBodies) {
+        if (b.owner !== slot || b === motherPlanet) continue;
+        const take = Math.floor((b.spores || 0) * 0.5);
+        b.spores -= take;
+        total += take;
+    }
+    motherPlanet.spores = Math.min(motherPlanet.maxSpores, (motherPlanet.spores||0) + total);
+    // Cooldown 3 min
+    motherPlanet._nidCooldown = 180;
+    // Effets visuels
+    gameState.conquestEffects.push({ x:motherPlanet.x, y:motherPlanet.y-motherPlanet.radius-15, baseX:motherPlanet.x, text:'👑 +'+total+' sp', color:'#FFD700', age:0, maxAge:3 });
+    addEvent('build', '👑', `Nidification ! ${Math.floor(total)} spores aspirées sur ${motherPlanet.name}`, motherPlanet, player.color);
+    // Bannière top-center pour tous
+    _showGameBanner(`👑 ${player.name} — Planète mère : ${motherPlanet.name}`, motherPlanet);
+    // Multi : broadcast
+    if (gameState.isMulti && _supa) {
+        const ch = _supa.channel('nid-notif-global');
+        ch.subscribe(s => { if (s==='SUBSCRIBED') { ch.send({ type:'broadcast', event:'nid', payload:{ playerName:player.name, bodyName:motherPlanet.name, x:motherPlanet.x, y:motherPlanet.y } }); setTimeout(()=>ch.unsubscribe(),1000); } });
+    }
+}
+
+let _gameTopBannerTimer = null;
+function _showGameBanner(text, targetBody) {
+    const el = document.getElementById('gameTopBanner');
+    if (!el) return;
+    el.textContent = text;
+    el.style.display = 'block';
+    el.onclick = () => {
+        if (targetBody) { gameState.camera.x = targetBody.x; gameState.camera.y = targetBody.y; }
+        el.style.display = 'none';
+    };
+    if (_gameTopBannerTimer) clearTimeout(_gameTopBannerTimer);
+    _gameTopBannerTimer = setTimeout(() => { el.style.display = 'none'; }, 6000);
+}
+
+function _setupNidListener() {
+    const ch = _supa.channel('nid-notif-global');
+    ch.on('broadcast', { event:'nid' }, ({ payload }) => {
+        const allBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
+        const tb = allBodies.find(b=>b.name===payload.bodyName);
+        _showGameBanner(`👑 ${payload.playerName} — Planète mère : ${payload.bodyName}`, tb||null);
+    }).subscribe();
 }
 
 function _isAllied(slotA, slotB) {
