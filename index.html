@@ -256,14 +256,11 @@ canvas#gameCanvas.grabbing {
 }
 
 /* ── Nidification ── */
-#nidPanel .nid-planet-btn {
+/* #nidPanel .nid-planet-btn {
     font-family: 'Exo 2', sans-serif; font-size: 12px;
     padding: 3px 8px; border-radius: 4px; cursor: pointer;
     border: 1px solid rgba(34,197,94,0.4); color: #4ADE80;
     background: rgba(34,197,94,0.15); transition: all 0.2s;
-}
-#nidPanel .nid-planet-btn:hover {
-    background: rgba(34,197,94,0.3); border-color: #4ADE80;
 }
 .mp-mother-badge {
     font-family: 'Orbitron', sans-serif; font-size: 7px;
@@ -1862,21 +1859,6 @@ input[type="radio"]:checked + .build-icon-btn {
                 <button class="tech-buy" id="techMimicryBuy">Débloquer</button>
             </div>
         <div class="evo-sep"></div>
-            <div id="nidPanel" style="font-family:'Exo 2',sans-serif; font-size:11px;">
-                <div style="font-family:'Orbitron',sans-serif; font-size:9px; color:#4ADE80; letter-spacing:1px; text-align:center; margin-bottom:5px;">🏰 NIDIFICATION 🏰</div>
-                <div id="nidSystemName" style="font-size:10px; color:#E9D5FF; text-align:center; margin-bottom:5px;"></div>
-                <div class="evo-bar-bg"><div class="evo-bar" id="nidBar" style="width:0%; background:linear-gradient(90deg,#15803d,#4ADE80);"></div></div>
-                <div id="nidInfo" style="font-size:9px; color:rgba(200,170,255,0.5); text-align:center; margin:4px 0;">0 / 2500 spores</div>
-                <div class="evo-sacrifice">
-                    <label>Sacrifice</label>
-                    <input type="range" id="nidSacrifice" min="0" max="50" value="0" step="5">
-                    <span class="sac-val" id="nidSacVal">0%</span>
-                </div>
-                <div id="nidChoose" style="display:none; text-align:center; margin-top:6px; padding-top:6px; border-top:1px solid rgba(34,197,94,0.2);">
-                    <div style="font-size:9px; color:#E9D5FF; margin-bottom:5px;">👑 CHOISIR LA PLANÈTE MÈRE 👑</div>
-                    <div id="nidPlanetList" style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center;"></div>
-                </div>
-            </div>
         </div><!-- /tabTech -->
     </div>
 </div>
@@ -4372,15 +4354,15 @@ function loadMapFromJSON(mapData) {
     gameState.cleaners = [];
     const cleanerCount = gameState.config.cleanerCount || 3;
     for (let i = 0; i < cleanerCount; i++) {
-        const cType = ['red','green','black'][i % 3];
+        const cType = ['red','green','dark'][i % 3];
         const rSun = gameState.suns[i % gameState.suns.length];
         const cAngle = Math.random() * Math.PI * 2;
         const cDist = rSun.orbitRadius * 0.5 + Math.random() * rSun.orbitRadius;
         gameState.cleaners.push({
             type: cType, x: Math.cos(cAngle) * cDist, y: Math.sin(cAngle) * cDist,
             vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2,
-            angle: Math.random()*Math.PI*2, speed: 1.5 + Math.random(),
-            size: 8, targetX: 0, targetY: 0, retargetTimer: 0
+            angle: Math.random()*Math.PI*2, speed: CLN_CFG.speedMin + Math.random()*(CLN_CFG.speedMax-CLN_CFG.speedMin),
+            size: 8, targetX: 0, targetY: 0, turnTimer: 0, _target: null
         });
     }
 
@@ -4661,10 +4643,7 @@ function generateUniverse() {
             vy: (worldRandom() - 0.5) * 15,
             angle: angle,
             turnTimer: 0,
-            turnInterval: 4 + worldRandom() * 6,
-            detectionRange: 200,
-            fireRate: 1.5,
-            fireTimer: 0,
+            _target: null,
             size: 8,
             type: clTypes[c % 3]
         });
@@ -4821,6 +4800,19 @@ function setupUI() {
         cfgMap.appendChild(opt);
     });
     const cfgPlayers = document.getElementById('cfgPlayers');
+    function _updateSoloPlayerMax() {
+        const mapIdx = parseInt(cfgMap.value) || 0;
+        const m = MAP_LIBRARY[mapIdx];
+        const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
+        const maxP = Math.max(1, (np <= 10 ? np : np + 5) - 1); // -1 car le joueur humain compte
+        cfgPlayers.max = maxP;
+        if (parseInt(cfgPlayers.value) > maxP) {
+            cfgPlayers.value = maxP;
+            document.getElementById('cfgPlayersVal').textContent = maxP;
+        }
+    }
+    cfgMap.addEventListener('change', _updateSoloPlayerMax);
+    _updateSoloPlayerMax();
     cfgPlayers.addEventListener('input', () => {
         document.getElementById('cfgPlayersVal').textContent = cfgPlayers.value;
     });
@@ -5566,6 +5558,7 @@ function finishStartGame() {
     };
     gameState.jets = [];
     gameState.tradeOrbs = [];
+    gameState.alliances = [];
     gameState.conquestEffects = [];
     gameState.bloomEffects = [];
     gameState.particles = [];
@@ -5573,7 +5566,10 @@ function finishStartGame() {
     gameState.comets = [];
     gameState.cometTimer = 0;
     gameState.time = 0;
+    gameState._maxRangeCache = null;
     _lastScoreHash = '';
+    _floatingBubbles.length = 0;
+    _ownerClustersCache = [];
     const _logBody = document.querySelector('#eventLog .log-body');
     if (_logBody) _logBody.innerHTML = '';
     _gameRng = mulberry32((gameState.multiSeed || 42) + 5555);
@@ -5952,21 +5948,6 @@ function updateTechPanel() {
 // ─────────────────────────────────────────────
 // CODEX — Panneau latéral
 // ─────────────────────────────────────────────
-function clampToScreen(el, margin) {
-    margin = margin || 8;
-    requestAnimationFrame(() => {
-        const W = window.innerWidth, H = window.innerHeight;
-        const r = el.getBoundingClientRect();
-        let l = parseFloat(el.style.left) || r.left;
-        let t = parseFloat(el.style.top) || r.top;
-        if (l + r.width > W - margin) l = W - r.width - margin;
-        if (l < margin) l = margin;
-        if (t + r.height > H - margin) t = H - r.height - margin;
-        if (t < margin) t = margin;
-        el.style.left = l + 'px';
-        el.style.top = t + 'px';
-    });
-}
 
 function openCodex(body) {
     gameState.selectedBody = body;
@@ -6810,13 +6791,10 @@ function updateSporeGeneration(dt) {
                 body.sporesDefense = Math.min(maxDef, (body.sporesDefense || 0) + rate * 0.5 * dt);
             }
         } else {
-            // Répartir la production entre : jeu, multiplicité, nidification
+            // Répartir la production entre : jeu et multiplicité
             const multiPct = (player.multiSacrifice || 0) / 100;
-            const nidRawPct = (player._nidSacrifice || 0) / 100;
-            // Plafonner le total à 50% max
-            const totalSac = Math.min(multiPct + nidRawPct, 0.5);
-            const multiSac = totalSac > 0 ? multiPct / (multiPct + nidRawPct) * totalSac : 0;
-            const nidSac = totalSac > 0 ? nidRawPct / (multiPct + nidRawPct) * totalSac : 0;
+            const totalSac = Math.min(multiPct, 0.5);
+            const multiSac = totalSac;
             const prodPct = 1 - totalSac;
 
             const produced = rate * prodPct * dt;
@@ -6833,17 +6811,6 @@ function updateSporeGeneration(dt) {
                         player._multiPending = true;
                     } else {
                         aiChooseMultiStat(player);
-                    }
-                }
-            }
-
-            // Accumuler nidification
-            if (nidSac > 0 && body.parent) {
-                const sunRef = body.type === 'planet' ? body.parent : (body.parent.parent || null);
-                if (sunRef && player.nidification[sunRef.name]) {
-                    const nid = player.nidification[sunRef.name];
-                    if (!nid.motherPlanet && nid.progress < 2500) {
-                        nid.progress += rate * nidSac * dt;
                     }
                 }
             }
@@ -8040,7 +8007,6 @@ function update(dt) {
         updateHUD();
         updateMultiPanel();
         updateTechPanel();
-        updateNidPanel();
     }
     gameState.gameStats.timeElapsed += dt;
     updateAudioTension();
@@ -9692,87 +9658,15 @@ function selectMotherPlanet(sun, planet) {
         if (moon.owner === slot) moon.invincible = true;
     }
 
-    // Aspirer tous les spores du système vers la planète mère
-    performNidification(sun, planet, slot);
+    // Aspirer 50% des spores de toute la carte
+    _triggerNidification(planet);
 
     // Événement journal
     addEvent('build', '👑', 'Planète mère : ' + planet.name + ' (système ' + sun.name + ')', planet, human.color);
 
-    // Cacher le choix
-    document.getElementById('nidChoose').style.display = 'none';
-    document.getElementById('nidPlanetList').dataset.sunName = '';
 }
 
-function performNidification(sun, motherPlanet, ownerSlot) {
-    let totalSpores = 0;
-    for (const planet of sun.planets) {
-        if (planet.owner !== ownerSlot) continue;
-        if (planet !== motherPlanet) {
-            totalSpores += planet.spores;
-            planet.spores = 0;
-        }
-        for (const moon of planet.moons) {
-            if (moon.owner !== ownerSlot) continue;
-            totalSpores += moon.spores;
-            moon.spores = 0;
-        }
-    }
-    motherPlanet.spores += totalSpores;
-
-    addEvent('build', '🏰', 'Nidification ' + sun.name + ' : ' + Math.floor(totalSpores) + ' spores rassemblées', motherPlanet, gameState.players[ownerSlot]?.color);
-}
-
-function updateNidPanel() {
-    const panel = document.getElementById('nidPanel');
-    const slot = localSlot();
-    const human = gameState.players[slot];
-    if (!human || !human.alive) { panel.style.display = 'none'; return; }
-
-    // Chercher le premier système complet sans planète mère
-    let targetSun = null;
-    for (const sun of gameState.suns) {
-        if (!isSystemComplete(sun, slot)) continue;
-        const nid = human.nidification[sun.name];
-        if (nid && nid.motherPlanet) continue;
-        targetSun = sun;
-        break;
-    }
-
-    if (!targetSun) { panel.style.display = 'none'; return; }
-
-    panel.style.display = 'block';
-    document.getElementById('nidSystemName').textContent = '☀ ' + targetSun.name;
-
-    // Init nid data si besoin
-    if (!human.nidification[targetSun.name]) {
-        human.nidification[targetSun.name] = { progress: 0, sacrifice: 0, sunName: targetSun.name };
-    }
-    const nid = human.nidification[targetSun.name];
-    const cost = 2500;
-
-    // Barre de progression
-    const pct = Math.min(100, (nid.progress / cost) * 100);
-    document.getElementById('nidBar').style.width = pct + '%';
-    document.getElementById('nidInfo').textContent = Math.floor(nid.progress) + ' / ' + cost + ' spores';
-
-    // Choix planète mère quand jauge pleine
-    const chooseEl = document.getElementById('nidChoose');
-    if (true) {
-        chooseEl.style.display = 'block';
-        const listEl = document.getElementById('nidPlanetList');
-        const planets = targetSun.planets.filter(p => p.owner === slot);
-        if (listEl.dataset.sunName !== targetSun.name) {
-            listEl.dataset.sunName = targetSun.name;
-            listEl.innerHTML = '';
-            for (const p of planets) {
-                const btn = document.createElement('span');
-                btn.className = 'nid-planet-btn';
-                btn.textContent = p.name;
-                btn.addEventListener('click', () => selectMotherPlanet(targetSun, p));
-                listEl.appendChild(btn);
-            }
-        }
-    } else {
+} else {
         chooseEl.style.display = 'none';
     }
 }
@@ -9969,8 +9863,7 @@ function updateMyPlanets() {
                     nidBtn.textContent = '👑 NIDIFIER';
                     nidBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const sunRef = groupSuns[sunName];
-                        if (sunRef) performNidification(sunRef, body, slot);
+                        _triggerNidification(body);
                     });
                     item.appendChild(nidBtn);
                 }
@@ -10988,13 +10881,6 @@ function _snapPanel(el, id) {
     if (Math.abs(dyBest) <= SNAP_DISTANCE) el.style.top = Math.round(curTop + adjY) + 'px';
 }
 
-function _getUIScaleTransform() {
-    const slider = document.getElementById('uiZoomSlider');
-    if (!slider) return '';
-    const val = parseInt(slider.value);
-    return val !== 100 ? `scale(${val / 100})` : '';
-}
-
 function initSidePanel() {
     if (_panelsInitialized) return;
     _panelsInitialized = true;
@@ -11401,13 +11287,6 @@ document.getElementById('evoSacrifice').addEventListener('input', (e) => {
     const human = gameState.players[localSlot()];
     if (human) human.multiSacrifice = parseInt(e.target.value);
 });
-document.getElementById('nidSacrifice').addEventListener('input', (e) => {
-    const human = gameState.players[localSlot()];
-    if (human) {
-        human._nidSacrifice = parseInt(e.target.value);
-        document.getElementById('nidSacVal').textContent = e.target.value + '%';
-    }
-});
 document.getElementById('evoGrowth').addEventListener('click', () => {
     const human = gameState.players[localSlot()];
     if (human && human._multiPending) { applyMultiChoice(human, 'growth'); if (gameState.isMulti) sendAction('multi', { stat: 'growth' }); }
@@ -11645,10 +11524,10 @@ async function launchWithAI() {
     // Charger les joueurs humains présents
     const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', currentRoom.id).order('slot_number');
     const humanCount = players ? players.length : 1;
-    const maxPlayers = 4;
+    const maxPlayers = currentRoom.max_players || humanCount;
     const aiCount = Math.max(0, maxPlayers - humanCount);
     const seed = Math.floor(Math.random() * 2147483647);
-    const settings = { ...currentRoom.settings, sunCount: maxPlayers + 1, playerCount: maxPlayers, aiCount, useIA: true };
+    const settings = { ...currentRoom.settings, playerCount: maxPlayers, aiCount, useIA: true };
     // Sauvegarder la room avant update
     const roomSnapshot = { ...currentRoom, settings, seed, status: 'playing' };
     gameState._roomPlayers = players || [];
@@ -11725,35 +11604,6 @@ function handleGameEvent(ev) {
             break;
     }
 }
-
-function handleRemoteAction(payload) {
-    const player = gameState.players[payload.slot];
-    if (!player) return;
-    switch (payload.type) {
-        case 'spawn':
-            const body = gameState.allBodies.find(b => b.name === payload.bodyName);
-            if (body) { player.spawnPlanet = body; body.owner = payload.slot; body.spores = body.maxSpores * 0.5; player.bodies = [body]; }
-            break;
-        case 'jet':
-            const src = gameState.allBodies.find(b => b.name === payload.srcName);
-            if (src) launchJet(src, payload.dirX, payload.dirY);
-            break;
-        case 'multi':
-            applyMultiChoice(player, payload.stat);
-            break;
-        case 'playerLeft':
-            player.isHuman = false;
-            player.aiTimer = 0;
-            player.aiCooldown = gameState.config.difficulty === 'easy' ? 3 : gameState.config.difficulty === 'normal' ? 1.5 : 0.5;
-            player.name = 'IA-' + player.name;
-            addEvent('neutral', '🚪', player.name + ' a quitté (remplacé par IA)', null, player.color);
-            break;
-        case 'playerRejoined':
-            player.isHuman = true;
-            player.name = player.name.replace(/^IA-/, '');
-            addEvent('neutral', '🔄', player.name + ' a repris le contrôle', null, player.color);
-            break;
-    }
 }
 
 async function onMultiGameStart(room) {
