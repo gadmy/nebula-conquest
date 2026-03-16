@@ -2649,6 +2649,8 @@ const gameState = {
     // ── Univers (préparé pour étape 2) ──
     blackHole: null,
     suns: [],
+    alliances: [],
+    tradeOrbs: [],
     planets: [],
     moons: [],
 
@@ -5401,6 +5403,7 @@ function finishStartGame() {
         bodiesConquered: 0, sporesProduced: 0, timeElapsed: 0
     };
     gameState.jets = [];
+    gameState.tradeOrbs = [];
     gameState.conquestEffects = [];
     gameState.bloomEffects = [];
     gameState.particles = [];
@@ -5967,7 +5970,13 @@ function updateCodexBuild(body) {
         { mode:'biome',   icon:'🛡️', name:'BIOME',    desc:`+5% défense · Coût: ${Math.floor(_base*0.20)} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Sacrifice '+Math.floor(_base*0.20)+' spores pour renforcer la défense naturelle de la planète. Annulé si la planète est vidée.' },
         { mode:'ruche',   icon:'🔴', name:'RUSH',     desc:'Produit des spores attaque', color:'rgba(220,38,38,0.3)' },
         { mode:'mare',    icon:'🔵', name:'MARE',     desc:'Produit des spores défense', color:'rgba(14,165,233,0.3)' },
-        { mode:'parasite',icon:'🦠', name:'PARASITE', desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
+        { mode:'parasite',  icon:'🦠', name:'PARASITE',    desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
+        { mode:'gorge',     icon:'🌫️', name:'GORGE CHAUDE', desc:'Terminal Miasme · Coût: 500 sp',   color:'rgba(180,80,20,0.3)',  tip:'Terminal de commerce niveau 1. Échange des Miasmes entre deux planètes alliées équipées. Coût : 500 spores normales.' },
+        { mode:'ectoplasme',icon:'🫧', name:'ECTOPLASME',   desc:'Terminal Particule · Coût: 1000 sp', color:'rgba(80,180,200,0.3)', tip:'Terminal de commerce niveau 2. Échange des Particules entre deux planètes alliées équipées. Coût : 1000 spores normales.' },
+        ...(body.type !== 'moon' ? [
+        { mode:'antre',     icon:'🕳️', name:'ANTRE',        desc:'Terminal Molécule · Coût: 100 sp.déf', color:'rgba(120,40,180,0.3)', tip:'Terminal de commerce niveau 3. Échange des Molécules entre deux planètes alliées équipées. Coût : 100 spores de défense.' },
+        { mode:'fourme',    icon:'🍄', name:'FOURME',       desc:'Terminal ADN · Coût: 200 sp.att', color:'rgba(200,140,20,0.3)',  tip:'Terminal de commerce niveau 4. Échange des ADN entre deux planètes alliées équipées. Coût : 200 spores d\'attaque.' },
+        ] : []),
     ];
 
     grid.innerHTML = '';
@@ -5975,7 +5984,7 @@ function updateCodexBuild(body) {
         const card = document.createElement('div');
         card.className = 'bld-card' + (body.buildMode === b.mode ? ' active' : '');
         card.style.borderColor = body.buildMode === b.mode ? b.color.replace('0.3','0.8') : '';
-        const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.10) : b.mode==='nid' ? Math.floor(_base*0.15) : b.mode==='biome' ? Math.floor(_base*0.20) : 0;
+        const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.10) : b.mode==='nid' ? Math.floor(_base*0.15) : b.mode==='biome' ? Math.floor(_base*0.20) : b.mode==='gorge' ? 500 : b.mode==='ectoplasme' ? 1000 : b.mode==='antre' ? 100 : b.mode==='fourme' ? 200 : 0;
         const countTxt = b.mode==='alveole' ? (body.alveoles||0)+' construites'
             : b.mode==='nid' ? (body.nids||0)+' construits'
             : b.mode==='biome' ? (body.biomes||0)+' construits'
@@ -6017,9 +6026,19 @@ function updateCodexBuild(body) {
             card.appendChild(prog);
         }
         card.addEventListener('click', () => {
+            // Si on pose un terminal, détruire l'ancien et annuler l'orbe liée
+            const _terminals = ['gorge','ectoplasme','antre','fourme'];
+            if (_terminals.includes(b.mode)) {
+                for (const _t of _terminals) {
+                    if (body[_t] && _t !== b.mode) {
+                        body[_t] = false;
+                        gameState.tradeOrbs = gameState.tradeOrbs.filter(o => !(o.tradeType===_t && (o.srcBody===body||o.dstBody===body)));
+                    }
+                }
+            }
             body.buildMode = b.mode;
             if (b.mode === 'off' || (b.mode !== 'nid' && b.mode !== 'biome')) body.buildProgress = 0;
-            grid._lastMode = null; // Force reconstruction
+            grid._lastMode = null;
             updateCodexBuild(body);
         });
         // Tooltip infobulle au survol
@@ -6603,6 +6622,19 @@ function updateSporeGeneration(dt) {
             } else {
                 body.buildMode = 'off';
             }
+        } else if (body.buildMode === 'gorge' || body.buildMode === 'ectoplasme' || body.buildMode === 'antre' || body.buildMode === 'fourme') {
+            const _tm = body.buildMode;
+            const _tcost = _tm==='gorge' ? 500 : _tm==='ectoplasme' ? 1000 : _tm==='antre' ? 100 : 200;
+            const _tstock = _tm==='antre' ? (body.sporesDefense||0) : _tm==='fourme' ? (body.sporesAttaque||0) : body.spores;
+            const _ticon = _tm==='gorge' ? '🌫️' : _tm==='ectoplasme' ? '🫧' : _tm==='antre' ? '🕳️' : '🍄';
+            if (_tstock >= _tcost) {
+                if (_tm==='antre') body.sporesDefense = (body.sporesDefense||0) - _tcost;
+                else if (_tm==='fourme') body.sporesAttaque = (body.sporesAttaque||0) - _tcost;
+                else body.spores -= _tcost;
+                body[_tm] = true; // terminal construit
+                body.buildMode = 'off';
+                if (body.owner === localSlot()) addEvent('build', _ticon, `Terminal ${_tm} construit sur ${body.name}`, body, gameState.players[localSlot()]?.color);
+            }
         } else if (body.buildMode === 'ruche') {
             // Production spores attaque (max 50% du rate)
             const maxAtt = body.maxSpores;
@@ -7087,6 +7119,13 @@ function applyConquest(body, jet) {
     // Invincibilité planète mère
     if (body.invincible) return;
 
+    // Jets sur planète alliée (mélange ADN) → renforcement
+    if (body.owner !== null && body.owner !== jet.owner && _isAllied(jet.owner, body.owner)) {
+        if (jet.sporeType === 'attaque') body.sporesAttaque = Math.min(body.maxSpores, (body.sporesAttaque||0)+jet.spores);
+        else if (jet.sporeType === 'defense') body.sporesDefense = Math.min(body.maxSpores*2, (body.sporesDefense||0)+jet.spores*5);
+        else body.spores = Math.min(body.maxSpores, (body.spores||0)+jet.spores);
+        return;
+    }
     // Density bonus : +5% puissance d'impact par point
     const densityBonus = 1 + (gameState.players[jet.owner]?.stats.density || 0) * 0.05;
     let attacking = jet.spores * densityBonus;
@@ -7526,12 +7565,18 @@ function setupInput() {
                 const wp = _worldPos(e.clientX, e.clientY);
                 const body = _bodyAt(wp.x, wp.y);
                 if (body && body.owner === localSlot() && (e.button === 2)) {
-                    // Suivre la planète
                     followingBody = body;
-                    // Ouvrir menu radial
                     gameState._firePhase = 'menu';
                     gameState._fireSource = body;
                     _stmOpen(body, e.clientX, e.clientY);
+                    return;
+                }
+                if (body && body.owner !== null && body.owner !== localSlot() && body.owner >= 0 && (e.button === 2)) {
+                    if (_isAllied(localSlot(), body.owner)) {
+                        _tradeOpen(body, e.clientX, e.clientY);
+                    } else {
+                        _diplomacyOpen(body, e.clientX, e.clientY);
+                    }
                     return;
                 }
                 // Clic droit sur fond vide → toggle evoPanel
@@ -7803,6 +7848,7 @@ function update(dt) {
     if ((gameState._hudCounter & 1) === 0) updateAI(dt);
     updateCleaners(dt);
     updateJets(dt);
+    updateTradeOrbs(dt);
     updateImpacts(dt);
     updateConquestEffects(dt);
     updateCameraFollow();
@@ -7921,6 +7967,8 @@ function render() {
 
     // ── Jets de spores ──
     drawJets(ctx);
+    drawTradeOrbs(ctx);
+    drawFloatingBubbles(ctx);
 
     // ── Prévisualisation de lancement ──
     // Recalculer la preview à chaque frame (la planète orbite même si la souris ne bouge pas)
@@ -11807,6 +11855,8 @@ async function rejoinGame() {
     mySlot = slot;
     gameState.isMulti = true;
     await setupGameChannel(roomId);
+    setTimeout(_setupAllianceListener, 2000);
+    setTimeout(_setupSignalListener, 2000);
     // Reprendre le contrôle du joueur
     const player = gameState.players[slot];
     if (player) {
@@ -12130,6 +12180,355 @@ function _stmOpen(body, clientX, clientY) {
     const _my = Math.max(8, Math.min(window.innerHeight - STM_SIZE - 8, clientY - STM_SIZE/2));
     menu.style.left = _mx + 'px';
     menu.style.top  = _my + 'px';
+}
+
+// ─── COMMERCE ───────────────────────────────
+const TRADE_TYPES = {
+    gorge:      { icon:'🌫️', name:'Miasme',   minGain:1,   maxGain:10   },
+    ectoplasme: { icon:'🫧', name:'Particule', minGain:25,  maxGain:50   },
+    antre:      { icon:'🕳️', name:'Molécule',  minGain:65,  maxGain:100  },
+    fourme:     { icon:'🍄', name:'ADN',       minGain:650, maxGain:1000 },
+};
+const TRADE_SPEED = 40; // unités monde/sec
+
+function _tradeOpen(targetBody, clientX, clientY) {
+    const localSl = localSlot();
+    if (targetBody.owner === localSl) return; // pas de commerce avec soi-même
+    // Planètes locales avec terminal construit
+    const myBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)]
+        .filter(b => b.owner === localSl);
+
+    if (_diplomacyPopup) { _diplomacyPopup.remove(); _diplomacyPopup = null; }
+    const popup = document.createElement('div');
+    popup.style.cssText = `position:fixed;z-index:9999;background:rgba(8,6,30,0.95);border:1px solid rgba(160,120,255,0.4);border-radius:10px;padding:14px 18px;font-family:'Exo 2',sans-serif;font-size:13px;color:#E2D9F3;min-width:220px;`;
+    popup.style.left = Math.min(clientX, window.innerWidth-240)+'px';
+    popup.style.top  = Math.min(clientY, window.innerHeight-220)+'px';
+    const tName = gameState.players[targetBody.owner]?.name || '?';
+    popup.innerHTML = `<div style="font-family:'Orbitron',sans-serif;font-size:11px;color:rgba(160,120,255,0.7);margin-bottom:10px;letter-spacing:1px;">COMMERCE — ${tName} · ${targetBody.name}</div>`;
+
+    let added = 0;
+    for (const [tm, td] of Object.entries(TRADE_TYPES)) {
+        if (!targetBody[tm]) continue; // cible n'a pas le terminal
+        const src = myBodies.find(b => b[tm]);
+        if (!src) continue; // on n'a pas le terminal non plus
+        // Vérifier qu'un orbe identique n'existe pas déjà
+        const already = gameState.tradeOrbs.some(o => o.tradeType===tm && ((o.srcBody===src&&o.dstBody===targetBody)||(o.srcBody===targetBody&&o.dstBody===src)));
+        const srcBusy = gameState.tradeOrbs.some(o => o.srcBody===src||o.dstBody===src);
+        const dstBusy = gameState.tradeOrbs.some(o => (o.srcBody===targetBody||o.dstBody===targetBody) && !already);
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.style.cssText = 'width:100%;font-size:12px;padding:7px;margin-bottom:5px;' + (already ? 'opacity:0.4;' : '');
+        btn.textContent = (already?'✓ ':'')+td.icon+' '+td.name+' ('+td.minGain+'–'+td.maxGain+' sp)';
+        btn.disabled = already || srcBusy || dstBusy;
+        if (srcBusy && !already) btn.textContent = '⚠ Votre astre commerce déjà';
+        if (dstBusy && !already) btn.textContent = '⚠ Cet astre commerce déjà';
+        btn.onclick = () => {
+            const dx = targetBody.x - src.x, dy = targetBody.y - src.y;
+            const dist = Math.sqrt(dx*dx+dy*dy);
+            const gain = Math.round(td.minGain + Math.random()*(td.maxGain-td.minGain));
+            gameState.tradeOrbs.push({ tradeType:tm, srcBody:src, dstBody:targetBody,
+                x:src.x, y:src.y, vx:dx/dist, vy:dy/dist,
+                gain, alive:true, phase:'out', timer:0, ownerSlot:localSl, targetSlot:targetBody.owner,
+                color: tm==='gorge'?'#FB923C': tm==='ectoplasme'?'#38BDF8': tm==='antre'?'#A78BFA':'#FBBF24' });
+            addEvent('neutral', td.icon, `Échange ${td.name} lancé : ${src.name} ↔ ${targetBody.name}`, src, gameState.players[localSl]?.color);
+            popup.remove(); _diplomacyPopup = null;
+        };
+        popup.appendChild(btn);
+        added++;
+    }
+    if (added === 0) {
+        const info = document.createElement('div');
+        info.style.cssText = 'color:rgba(200,170,255,0.5);font-size:12px;';
+        info.textContent = 'Aucun terminal compatible entre vos planètes.';
+        popup.appendChild(info);
+    }
+    const closeBtn = document.createElement('div');
+    closeBtn.style.cssText = 'text-align:right;margin-top:8px;font-size:11px;color:rgba(200,170,255,0.4);cursor:pointer;';
+    closeBtn.textContent = '✕ fermer';
+    closeBtn.onclick = () => { popup.remove(); _diplomacyPopup = null; };
+    popup.appendChild(closeBtn);
+    document.body.appendChild(popup);
+    _diplomacyPopup = popup;
+    setTimeout(() => { document.addEventListener('click', function _cls(ev) { if (!popup.contains(ev.target)) { popup.remove(); _diplomacyPopup = null; document.removeEventListener('click',_cls); } }); }, 100);
+}
+
+function updateTradeOrbs(dt) {
+    const orbs = gameState.tradeOrbs;
+    for (let i = orbs.length-1; i >= 0; i--) {
+        const o = orbs[i];
+        if (!o.alive) { orbs.splice(i,1); continue; }
+        // Vérifier que les deux planètes existent toujours et ont le terminal
+        if (!o.srcBody[o.tradeType] || !o.dstBody[o.tradeType]) { o.alive=false; continue; }
+        // Vérifier alliance encore active
+        if (!_isAllied(o.ownerSlot, o.targetSlot)) { o.alive=false; continue; }
+
+        const dst = o.phase==='out' ? o.dstBody : o.srcBody;
+        const dx = dst.x - o.x, dy = dst.y - o.y;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+
+        if (dist < dst.radius + 5) {
+            // Livraison
+            const recv = o.phase==='out' ? o.targetSlot : o.ownerSlot;
+            const recvBody = o.phase==='out' ? o.dstBody : o.srcBody;
+            recvBody.spores = Math.min(recvBody.maxSpores, (recvBody.spores||0) + o.gain);
+            if (recv === localSlot()) addEvent('neutral', TRADE_TYPES[o.tradeType].icon, `+${o.gain} sp reçues (${TRADE_TYPES[o.tradeType].name})`, recvBody, gameState.players[recv]?.color);
+            // Repart dans l'autre sens
+            o.phase = o.phase==='out' ? 'back' : 'out';
+            o.x = dst.x; o.y = dst.y;
+            const ndst = o.phase==='out' ? o.dstBody : o.srcBody;
+            const ndx = ndst.x - o.x, ndy = ndst.y - o.y, nd = Math.sqrt(ndx*ndx+ndy*ndy);
+            o.vx = ndx/nd; o.vy = ndy/nd;
+        } else {
+            // Interception par jet ennemi
+            for (const jet of gameState.jets) {
+                if (!jet.alive) continue;
+                if (_isAllied(jet.owner, o.ownerSlot) || _isAllied(jet.owner, o.targetSlot)) continue;
+                const jdx = jet.x - o.x, jdy = jet.y - o.y;
+                if (Math.sqrt(jdx*jdx+jdy*jdy) < 20) {
+                    // Redirigé vers le voleur
+                    const thief = gameState.players[jet.owner];
+                    const allBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
+                    const thiefBody = allBodies.find(b=>b.owner===jet.owner);
+                    if (thiefBody) {
+                        const tdx=thiefBody.x-o.x, tdy=thiefBody.y-o.y, td=Math.sqrt(tdx*tdx+tdy*tdy);
+                        o.vx=tdx/td; o.vy=tdy/td;
+                        o.dstBody=thiefBody; o.targetSlot=jet.owner; o.phase='out';
+                        if (localSlot()===o.ownerSlot||localSlot()===o.targetSlot) addEvent('war','🏴‍☠️',`Orbe interceptée par ${thief?.name||'?'} !`,thiefBody,'#F87171');
+                        jet.alive=false;
+                    }
+                    break;
+                }
+            }
+            o.x += o.vx * TRADE_SPEED * dt;
+            o.y += o.vy * TRADE_SPEED * dt;
+        }
+    }
+}
+
+function drawTradeOrbs(ctx) {
+    const t = gameState.time || 0;
+    for (const o of gameState.tradeOrbs) {
+        if (!o.alive) continue;
+        ctx.save();
+        const pulse = 0.7 + 0.3*Math.sin(t*4);
+        const r = 6 * pulse;
+        const grd = ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,r*2.5);
+        grd.addColorStop(0,'#FFF');
+        grd.addColorStop(0.3,o.color);
+        grd.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(o.x,o.y,r*2.5,0,Math.PI*2);
+        ctx.fill();
+        // Icône
+        ctx.font = `${Math.max(8,10)}px sans-serif`;
+        ctx.textAlign='center';
+        ctx.fillText(TRADE_TYPES[o.tradeType]?.icon||'●', o.x, o.y - r*2.5 - 3);
+        ctx.restore();
+    }
+}
+
+function _isAllied(slotA, slotB) {
+    return gameState.alliances.some(a => (a[0]===slotA&&a[1]===slotB)||(a[0]===slotB&&a[1]===slotA));
+}
+function _addAlliance(slotA, slotB) {
+    if (!_isAllied(slotA, slotB)) gameState.alliances.push([slotA, slotB]);
+}
+function _removeAlliance(slotA, slotB) {
+    gameState.alliances = gameState.alliances.filter(a => !((a[0]===slotA&&a[1]===slotB)||(a[0]===slotB&&a[1]===slotA)));
+}
+
+let _diplomacyPopup = null;
+function _diplomacyOpen(body, clientX, clientY) {
+    const targetSlot = body.owner;
+    const localSl = localSlot();
+    const allied = _isAllied(localSl, targetSlot);
+    const targetName = gameState.players[targetSlot]?.name || ('J'+targetSlot);
+
+    // Fermer popup existant
+    if (_diplomacyPopup) { _diplomacyPopup.remove(); _diplomacyPopup = null; }
+
+    const popup = document.createElement('div');
+    popup.style.cssText = `position:fixed;z-index:9999;background:rgba(8,6,30,0.95);border:1px solid rgba(160,120,255,0.4);border-radius:10px;padding:14px 18px;font-family:'Exo 2',sans-serif;font-size:13px;color:#E2D9F3;min-width:200px;`;
+    popup.style.left = Math.min(clientX, window.innerWidth-220)+'px';
+    popup.style.top = Math.min(clientY, window.innerHeight-160)+'px';
+
+    popup.innerHTML = `<div style="font-family:'Orbitron',sans-serif;font-size:11px;color:rgba(160,120,255,0.7);margin-bottom:10px;letter-spacing:1px;">DIPLOMATIE — ${targetName}</div>`;
+
+    if (!allied) {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.style.cssText = 'width:100%;font-size:12px;padding:8px;background:rgba(34,197,94,0.2);border-color:rgba(34,197,94,0.5);color:#4ADE80;';
+        btn.textContent = '🧬 Mélange d\'ADN';
+        btn.onclick = () => {
+            _sendAllianceRequest(targetSlot, body);
+            popup.remove(); _diplomacyPopup = null;
+        };
+        popup.appendChild(btn);
+    } else {
+        const info = document.createElement('div');
+        info.style.cssText = 'color:#4ADE80;font-size:12px;margin-bottom:8px;';
+        info.textContent = '✦ Alliance active';
+        popup.appendChild(info);
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.style.cssText = 'width:100%;font-size:12px;padding:8px;background:rgba(239,68,68,0.2);border-color:rgba(239,68,68,0.5);color:#F87171;';
+        btn.textContent = '✗ Rompre l\'alliance';
+        btn.onclick = () => { _removeAlliance(localSl, targetSlot); popup.remove(); _diplomacyPopup = null; addEvent('neutral','💔',`Alliance rompue avec ${targetName}`,null,gameState.players[localSl]?.color); };
+        popup.appendChild(btn);
+    }
+
+    // Bouton signaux émoji
+    const sigBtn = document.createElement('button');
+    sigBtn.className = 'btn';
+    sigBtn.style.cssText = 'width:100%;font-size:12px;padding:7px;margin-top:6px;background:rgba(251,191,36,0.15);border-color:rgba(251,191,36,0.4);color:#FCD34D;';
+    sigBtn.textContent = '📡 Signaux';
+    sigBtn.onclick = () => { _signalOpen(targetSlot, popup); };
+    popup.appendChild(sigBtn);
+
+    const closeBtn = document.createElement('div');
+    closeBtn.style.cssText = 'text-align:right;margin-top:8px;font-size:11px;color:rgba(200,170,255,0.4);cursor:pointer;';
+    closeBtn.textContent = '✕ fermer';
+    closeBtn.onclick = () => { popup.remove(); _diplomacyPopup = null; };
+    popup.appendChild(closeBtn);
+
+    document.body.appendChild(popup);
+    _diplomacyPopup = popup;
+    setTimeout(() => { document.addEventListener('click', function _cls(ev) { if (!popup.contains(ev.target)) { popup.remove(); _diplomacyPopup = null; document.removeEventListener('click',_cls); } }); }, 100);
+}
+
+const SIGNAL_EMOJIS = [
+    { e:'🌫️', label:'Miasme ?' },
+    { e:'🫧',  label:'Particule ?' },
+    { e:'🕳️', label:'Molécule ?' },
+    { e:'🍄',  label:'ADN ?' },
+    { e:'🧬',  label:'Alliance ?' },
+    { e:'⚔️',  label:'Guerre !' },
+    { e:'🏳️', label:'Paix' },
+    { e:'👑',  label:'Respect' },
+    { e:'😈',  label:'Méfie-toi' },
+    { e:'🤝',  label:'Accord' },
+    { e:'💀',  label:'Tu vas mourir' },
+    { e:'😂',  label:'Haha' },
+];
+const _floatingBubbles = [];
+
+function _signalOpen(targetSlot, parentPopup) {
+    const existing = document.getElementById('_signalPanel');
+    if (existing) existing.remove();
+    const panel = document.createElement('div');
+    panel.id = '_signalPanel';
+    panel.style.cssText = 'position:fixed;z-index:10000;background:rgba(8,6,30,0.97);border:1px solid rgba(251,191,36,0.4);border-radius:10px;padding:12px;display:flex;flex-wrap:wrap;gap:8px;max-width:240px;';
+    const pr = parentPopup.getBoundingClientRect();
+    panel.style.left = (pr.right + 8) + 'px';
+    panel.style.top = pr.top + 'px';
+    for (const sig of SIGNAL_EMOJIS) {
+        const btn = document.createElement('button');
+        btn.title = sig.label;
+        btn.style.cssText = 'background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;padding:6px;font-size:20px;cursor:pointer;';
+        btn.textContent = sig.e;
+        btn.onclick = () => {
+            _sendSignal(targetSlot, sig.e, sig.label);
+            panel.remove();
+        };
+        panel.appendChild(btn);
+    }
+    document.body.appendChild(panel);
+    setTimeout(() => { document.addEventListener('click', function _cls(ev) { if (!panel.contains(ev.target) && !parentPopup.contains(ev.target)) { panel.remove(); document.removeEventListener('click',_cls); } }); }, 100);
+}
+
+function _sendSignal(targetSlot, emoji, label) {
+    const localSl = localSlot();
+    const fromName = gameState.players[localSl]?.name || '?';
+    // Trouver une planète du joueur cible pour y afficher la bulle
+    const allBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
+    const targetBody = allBodies.find(b=>b.owner===targetSlot);
+    if (targetBody) _addFloatingBubble(targetBody, emoji, fromName);
+    // En multi : broadcast
+    if (gameState.isMulti && _supa) {
+        const ch = _supa.channel('signal-' + targetSlot);
+        ch.subscribe((s) => {
+            if (s === 'SUBSCRIBED') {
+                ch.send({ type:'broadcast', event:'signal', payload:{ fromSlot:localSl, fromName, emoji, label } });
+                setTimeout(()=>ch.unsubscribe(), 1000);
+            }
+        });
+    }
+    addEvent('neutral', emoji, `Signal "${label}" envoyé à ${gameState.players[targetSlot]?.name||'?'}`, targetBody, gameState.players[localSl]?.color);
+}
+
+function _addFloatingBubble(body, emoji, fromName) {
+    _floatingBubbles.push({ body, emoji, fromName, timer:0, duration:3.5 });
+}
+
+function drawFloatingBubbles(ctx) {
+    const t = gameState.time || 0;
+    for (let i = _floatingBubbles.length-1; i >= 0; i--) {
+        const b = _floatingBubbles[i];
+        b.timer += 0.016;
+        if (b.timer > b.duration) { _floatingBubbles.splice(i,1); continue; }
+        const alpha = b.timer < 0.3 ? b.timer/0.3 : b.timer > b.duration-0.5 ? (b.duration-b.timer)/0.5 : 1;
+        const yOff = b.body.y - b.body.radius - 30 - b.timer*8;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = 'rgba(8,6,30,0.9)';
+        ctx.beginPath();
+        ctx.roundRect(b.body.x-28, yOff-22, 56, 30, 8);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(251,191,36,0.6)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.font = '18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFF';
+        ctx.fillText(b.emoji, b.body.x, yOff-2);
+        ctx.restore();
+    }
+}
+
+function _setupSignalListener() {
+    const sl = localSlot();
+    if (sl < 0) return;
+    const ch = _supa.channel('signal-' + sl);
+    ch.on('broadcast', { event:'signal' }, ({ payload }) => {
+        const allBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
+        const myBody = allBodies.find(b=>b.owner===sl);
+        if (myBody) _addFloatingBubble(myBody, payload.emoji, payload.fromName);
+        addEvent('neutral', payload.emoji, `Signal de ${payload.fromName} : "${payload.label}"`, myBody, gameState.players[payload.fromSlot]?.color);
+    }).subscribe();
+}
+
+let _allianceChannel = null;
+function _sendAllianceRequest(targetSlot, body) {
+    const localSl = localSlot();
+    const targetPlayer = gameState.players[targetSlot];
+    const localPlayer = gameState.players[localSl];
+    // Solo : acceptation auto IA
+    if (!targetPlayer?.isHuman) {
+        _addAlliance(localSl, targetSlot);
+        addEvent('neutral','🧬',`Alliance avec ${targetPlayer?.name||'IA'} conclue !`,null,localPlayer?.color);
+        return;
+    }
+    // Multi : notification via Supabase
+    if (_allianceChannel) _allianceChannel.unsubscribe();
+    _allianceChannel = _supa.channel('alliance-req-' + localSl + '-' + targetSlot);
+    _allianceChannel.subscribe();
+    _allianceChannel.send({ type:'broadcast', event:'alliance_request', payload:{ fromSlot: localSl, fromName: localPlayer?.name || 'Inconnu', toSlot: targetSlot } });
+    addEvent('neutral','🧬',`Demande d'alliance envoyée à ${targetPlayer?.name}...`,null,localPlayer?.color);
+}
+
+function _setupAllianceListener() {
+    const sl = localSlot();
+    if (sl < 0) return;
+    const ch = _supa.channel('alliance-req-0-' + sl);
+    ch.on('broadcast', { event:'alliance_request' }, ({ payload }) => {
+        if (payload.toSlot !== sl) return;
+        const fromName = payload.fromName || ('J'+payload.fromSlot);
+        if (confirm(`${fromName} vous propose un Mélange d'ADN (alliance). Accepter ?`)) {
+            _addAlliance(sl, payload.fromSlot);
+            addEvent('neutral','🧬',`Alliance avec ${fromName} conclue !`,null,gameState.players[sl]?.color);
+        }
+    }).subscribe();
 }
 
 function setupInviteListener() {
