@@ -1446,8 +1446,138 @@ input[type="radio"]:checked + .build-icon-btn {
 
 <!-- ═══ ÉCRAN AIDE ═══ -->
 <div id="helpScreen" class="screen hidden">
-    <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:20px; letter-spacing:3px;">AIDE</h2>
-    <div style="background:rgba(15,23,42,0.92); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px 28px; max-width:560px; margin:0 auto; max-height:65vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(100,180,255,0.3) transparent; font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.85); line-height:1.6;">
+    <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:20px; letter-spacing:3px;">LIVRE DES RÈGLES</h2>
+    <div style="background:rgba(15,23,42,0.92); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px 28px; max-width:620px; margin:0 auto; max-height:70vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(100,180,255,0.3) transparent; font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.85); line-height:1.6;">
+
+<!-- Navigation chapitres -->
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(100,180,255,0.15);">
+  <a href="#h-objectif" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🎯 Objectif</a>
+  <a href="#h-controles" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🕹 Contrôles</a>
+  <a href="#h-spores" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🧬 Spores</a>
+  <a href="#h-stats" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">📊 Stats</a>
+  <a href="#h-batiments" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🏗 Bâtiments</a>
+  <a href="#h-terminaux" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">📡 Terminaux</a>
+  <a href="#h-diplomatie" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🤝 Diplomatie</a>
+  <a href="#h-evolution" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">✦ Évolution</a>
+  <a href="#h-dangers" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚠️ Dangers</a>
+  <a href="#h-multi" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🌐 Multi</a>
+</div>
+
+<!-- OBJECTIF -->
+<p id="h-objectif" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🎯 OBJECTIF</p>
+<p style="margin-bottom:6px;">Conquérir <span style="color:#FFD700;">80%</span> de tous les astres de la galaxie (planètes + lunes). Dès ce seuil atteint, la victoire est déclarée immédiatement.</p>
+<p style="margin-bottom:16px;">Chaque astre possédé génère des <span style="color:#C8A0FF;">spores</span> en continu. Plus vous en contrôlez, plus vite vous produisez — et plus vous êtes difficile à battre.</p>
+
+<!-- CONTRÔLES -->
+<p id="h-controles" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🕹 CONTRÔLES</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:55%;">Clic maintenu + glisser (depuis un astre possédé)</td><td style="padding:3px 0;">Lance un jet de spores</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit sur un astre possédé</td><td style="padding:3px 0;">Menu radial — types de spores + bâtiments</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit sur un astre ennemi</td><td style="padding:3px 0;">Menu diplomatie (si pas allié) ou commerce (si allié avec terminal)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic gauche sur un astre</td><td style="padding:3px 0;">Ouvre le Codex (infos détaillées)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit sur fond vide</td><td style="padding:3px 0;">Panneau Évolution</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Molette</td><td style="padding:3px 0;">Zoom / dézoom (ne scrolle pas les panneaux si souris dessus)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">P / M</td><td style="padding:3px 0;">Zoom + / Zoom −</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Échap</td><td style="padding:3px 0;">Pause (solo uniquement)</td></tr>
+</table>
+
+<!-- SPORES & CONQUÊTE -->
+<p id="h-spores" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🧬 SPORES & CONQUÊTE</p>
+<p style="margin-bottom:6px;">Chaque astre possédé produit des spores à une vitesse dépendant de sa <span style="color:#4ADE80;">Flore</span> (0–100). La <span style="color:#22C55E;">Symbiose</span> augmente cette production avec le temps : jusqu'à <span style="color:#22C55E;">+20%</span> pour les planètes, <span style="color:#22C55E;">+10%</span> pour les lunes.</p>
+<p style="margin-bottom:6px;">Pour conquérir un astre ennemi ou neutre, vos spores doivent d'abord neutraliser sa <span style="color:#EF4444;">Faune</span> (défense naturelle), puis ses spores stockées. Plus vous envoyez de spores, plus le jet est puissant — mais vous laissez votre astre source vulnérable.</p>
+<p style="margin-bottom:6px;">Il existe trois types de spores envoyables depuis le <span style="color:#C8A0FF;">menu radial</span> (clic droit sur un astre possédé) :</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
+  <tr><td style="padding:3px 0;"><span style="color:#FFF;">⚪ Normal</span></td><td style="padding:3px 0;">Usage général — conquête, renforcement, neutralisation</td></tr>
+  <tr><td style="padding:3px 0;"><span style="color:#EF4444;">🔴 Attaque</span></td><td style="padding:3px 0;">×5 puissance à l'impact — très offensif</td></tr>
+  <tr><td style="padding:3px 0;"><span style="color:#38BDF8;">🔵 Défense</span></td><td style="padding:3px 0;">Ne conquiert pas — renforce les défenses alliées (×5 en stock de défense)</td></tr>
+  <tr><td style="padding:3px 0;"><span style="color:#22C55E;">🦠 Parasite</span></td><td style="padding:3px 0;">Infecte une planète ennemie — elle perd des spores progressivement</td></tr>
+</table>
+<p style="margin-bottom:6px;">Un <span style="color:#22C55E;">jet de spores parasitaires</span> prend <span style="color:#FFD700;">2 minutes</span> à charger. Une seule spore parasite à la fois par astre. Pour éliminer un parasite, envoyez <span style="color:#FFD700;">500 spores normales</span> sur la planète infectée.</p>
+<p style="margin-bottom:16px;">Envoyer des spores vers une planète <span style="color:#FFF;">alliée</span> (🤝) renforce ses stocks au lieu d'attaquer. Un <span style="color:#C8A0FF;">+xxx</span> violet apparaît à l'arrivée pour indiquer le gain.</p>
+
+<!-- STATS -->
+<p id="h-stats" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">📊 STATS DU COMMANDANT</p>
+<p style="margin-bottom:6px;">Choisissez 10 points à répartir avant la partie :</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+  <tr><td style="padding:3px 0;color:#4ADE80;width:30%;">Croissance</td><td style="padding:3px 0;">+5% production de spores par point (s'applique à tous vos astres)</td></tr>
+  <tr><td style="padding:3px 0;color:#60A5FA;">Vélocité</td><td style="padding:3px 0;">+5% vitesse des jets par point</td></tr>
+  <tr><td style="padding:3px 0;color:#F472B6;">Densité</td><td style="padding:3px 0;">+5% puissance d'impact par point (s'applique à toutes les spores)</td></tr>
+</table>
+
+<!-- BÂTIMENTS -->
+<p id="h-batiments" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🏗 BÂTIMENTS</p>
+<p style="margin-bottom:6px;">Accessibles via la <span style="color:#C8A0FF;">couronne extérieure du menu radial</span> (clic droit sur un astre possédé). Chaque astre ne peut avoir qu'un seul mode actif à la fois.</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+  <tr style="color:#C8A0FF;"><td style="padding:4px 0;font-size:11px;">Bâtiment</td><td style="padding:4px 0;font-size:11px;">Coût</td><td style="padding:4px 0;font-size:11px;">Effet</td></tr>
+  <tr><td style="padding:3px 0;">🍯 Alvéole</td><td style="padding:3px 0;color:#FFD700;">10% du stock max</td><td style="padding:3px 0;">+5% capacité de stockage (cumulable)</td></tr>
+  <tr><td style="padding:3px 0;">🏗️ Nid</td><td style="padding:3px 0;color:#FFD700;">15% du stock max</td><td style="padding:3px 0;">+2.5% production locale (cumulable)</td></tr>
+  <tr><td style="padding:3px 0;">🛡️ Biome</td><td style="padding:3px 0;color:#FFD700;">20% du stock max</td><td style="padding:3px 0;">+5% défense à l'impact (cumulable)</td></tr>
+  <tr><td style="padding:3px 0;">🔴 Rush</td><td style="padding:3px 0;color:#FFD700;">Gratuit</td><td style="padding:3px 0;">Produit des spores d'attaque (50% du rate)</td></tr>
+  <tr><td style="padding:3px 0;">🔵 Mare</td><td style="padding:3px 0;color:#FFD700;">Gratuit</td><td style="padding:3px 0;">Produit des spores de défense (50% du rate, stock max ×2)</td></tr>
+  <tr><td style="padding:3px 0;">🦠 Parasite</td><td style="padding:3px 0;color:#FFD700;">Gratuit (2 min)</td><td style="padding:3px 0;">Prépare 1 spore parasitaire</td></tr>
+</table>
+<p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Système solaire entier conquis</span> → bonus de production <span style="color:#4ADE80;">+3%</span> sur tous les astres du système.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">🪺 Nidification</span> : si vous possédez 100% d'un système, sacrifiez 2 500 spores sur une planète mère → elle et ses lunes deviennent <span style="color:#FFD700;">invincibles</span>. Si vous perdez plus de 50% du système, la nidification s'annule.</p>
+<p style="margin-bottom:16px;">Rush et Mare ne peuvent pas être actifs en même temps sur le même astre. Ils consomment au maximum 50% de la production locale, la production normale reprend sur le reste.</p>
+
+<!-- TERMINAUX DE COMMERCE -->
+<p id="h-terminaux" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">📡 TERMINAUX DE COMMERCE</p>
+<p style="margin-bottom:6px;">Pour commercer, deux astres alliés doivent posséder le <span style="color:#C8A0FF;">même type de terminal</span>. Une orbe lumineuse fait alors des allers-retours continus entre eux, livrant des spores à chaque arrivée. Les lunes ne peuvent pas construire Antre ni Fourme.</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+  <tr style="color:#C8A0FF;"><td style="padding:4px 0;font-size:11px;">Terminal</td><td style="padding:4px 0;font-size:11px;">Coût construction</td><td style="padding:4px 0;font-size:11px;">Échange</td><td style="padding:4px 0;font-size:11px;">Gain / voyage</td></tr>
+  <tr><td style="padding:3px 0;">🌫️ Gorge Chaude</td><td style="padding:3px 0;color:#FFD700;">500 sp normales</td><td style="padding:3px 0;">Miasme</td><td style="padding:3px 0;color:#4ADE80;">1 – 10 sp</td></tr>
+  <tr><td style="padding:3px 0;">🫧 Ectoplasme</td><td style="padding:3px 0;color:#FFD700;">1 000 sp normales</td><td style="padding:3px 0;">Particule</td><td style="padding:3px 0;color:#4ADE80;">25 – 50 sp</td></tr>
+  <tr><td style="padding:3px 0;">🕳️ Antre</td><td style="padding:3px 0;color:#FFD700;">100 sp défense</td><td style="padding:3px 0;">Molécule</td><td style="padding:3px 0;color:#4ADE80;">65 – 100 sp</td></tr>
+  <tr><td style="padding:3px 0;">🍄 Fourme</td><td style="padding:3px 0;color:#FFD700;">200 sp attaque</td><td style="padding:3px 0;">ADN</td><td style="padding:3px 0;color:#4ADE80;">650 – 1 000 sp</td></tr>
+</table>
+<p style="margin-bottom:6px;">Le gain varie selon la <span style="color:#C8A0FF;">distance</span> entre les deux astres (plus loin = plus rentable). Chaque astre ne peut commercer qu'avec un seul partenaire à la fois. Construire un nouveau terminal détruit l'ancien et annule l'orbe en cours.</p>
+<p style="margin-bottom:16px;">Une orbe peut être <span style="color:#EF4444;">interceptée</span> par un jet ennemi : elle change alors de direction vers la planète de l'intercepteur. Les alliés ne peuvent pas intercepter vos orbes.</p>
+
+<!-- DIPLOMATIE -->
+<p id="h-diplomatie" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🤝 DIPLOMATIE & SIGNAUX</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Mélange d'ADN</span> (alliance) : clic droit sur un astre ennemi → proposer une alliance. Si l'IA accepte automatiquement. Si un humain, il reçoit une notification. Une fois alliés :</p>
+<ul style="margin:0 0 8px 18px;padding:0;">
+  <li>Vos jets vers ses astres le renforcent au lieu d'attaquer</li>
+  <li>Ses astres affichent un halo vert 🤝</li>
+  <li>Vous pouvez commercer via des terminaux compatibles</li>
+  <li>Plusieurs alliances simultanées sont possibles</li>
+</ul>
+<p style="margin-bottom:6px;">Pour <span style="color:#EF4444;">rompre une alliance</span>, clic droit sur un astre allié → "Rompre l'alliance". Les orbes de commerce actives sont annulées.</p>
+<p style="margin-bottom:6px;"><span style="color:#FCD34D;">📡 Signaux</span> : envoyez des émojis expressifs à n'importe quel joueur. Certains signaux (commerce, guerre, paix, accord…) proposent de choisir le destinataire parmi tous les joueurs en partie. Le signal apparaît sous forme de <span style="color:#FCD34D;">bulle flottante</span> au-dessus de l'astre du joueur ciblé.</p>
+<p style="margin-bottom:16px;">Signaux disponibles : 🌫️🫧🕳️🍄 (propositions commerce) · 🧬 (alliance) · ⚔️ (guerre) · 🏳️ (paix) · 👑 (respect) · 😈 (menace) · 🤝 (accord) · 💀 (avertissement) · 😂 (humour)</p>
+
+<!-- ÉVOLUTION -->
+<p id="h-evolution" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">✦ ÉVOLUTION & MUTATIONS</p>
+<p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Multiplicité</span> : sacrifiez une part de production (réglable en %) pour accumuler des points d'évolution. À chaque palier atteint (10 paliers max), choisissez +1 point dans Croissance, Vélocité ou Densité. Coût croissant : 500 × 1.8ᴺ spores par palier.</p>
+<p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Mutations</span> — trois branches technologiques (panneau Évolution) :</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+  <tr><td style="padding:3px 0;color:#E9D5FF;">🎯 Tête chercheuse</td><td style="padding:3px 0;">Jets attirés vers les astres ennemis/neutres proches. Portée et force croissantes.</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">💪 Ténacité</td><td style="padding:3px 0;">Jets divisés par astéroïdes conservent plus de spores et sont redirigés vers les systèmes solaires.</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">🦎 Mimétisme</td><td style="padding:3px 0;">À la conquête d'une planète avec lunes, le jet se scinde vers elles. Niv.10 : 100% des spores vont directement aux lunes.</td></tr>
+</table>
+<p style="margin-bottom:16px;">Coût branches : 1ʳᵉ = 1 000 + 100/niv · 2ᵉ = 2 000 + 200/niv · 3ᵉ = 3 000 + 300/niv. Nidification sacrifie aussi de la production (réglable séparément de la Multiplicité). Total sacrifié plafonné à 50%.</p>
+
+<!-- DANGERS -->
+<p id="h-dangers" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚠️ DANGERS</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+  <tr><td style="padding:3px 0;color:#A78BFA;">Trou noir central</td><td style="padding:3px 0;">Détruit les jets trop proches, courbe toutes les trajectoires</td></tr>
+  <tr><td style="padding:3px 0;color:#EF4444;">Vaisseau rouge</td><td style="padding:3px 0;">Attaque et détruit vos jets</td></tr>
+  <tr><td style="padding:3px 0;color:#4ADE80;">Vaisseau vert</td><td style="padding:3px 0;">Double les jets qu'il croise</td></tr>
+  <tr><td style="padding:3px 0;color:#888;">Vaisseau noir</td><td style="padding:3px 0;">Renvoie vos jets vers leurs astres d'origine</td></tr>
+  <tr><td style="padding:3px 0;color:#888;">Astéroïde noir</td><td style="padding:3px 0;">÷2 spores au contact</td></tr>
+  <tr><td style="padding:3px 0;color:#EF4444;">Astéroïde rouge</td><td style="padding:3px 0;">Dévie la trajectoire du jet</td></tr>
+  <tr><td style="padding:3px 0;color:#4ADE80;">Astéroïde vert</td><td style="padding:3px 0;">×5 spores — peut être exploité volontairement !</td></tr>
+  <tr><td style="padding:3px 0;color:#60A5FA;">Comète</td><td style="padding:3px 0;">Détruit les spores au contact — trajectoire imprévisible</td></tr>
+</table>
+
+<!-- MULTIJOUEUR -->
+<p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Rejoindre</span> : depuis le menu principal, "REJOINDRE" vous place dans la prochaine partie disponible. Le compteur <span style="color:#4ADE80;">X/N joueurs</span> s'affiche en temps réel. La partie se lance automatiquement quand le lobby est plein.</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Créer une partie</span> : choisissez la carte, ajoutez des IA, invitez des amis par pseudo. Option "Compléter par IA" pour remplir les slots vides automatiquement au lancement.</p>
+<p style="margin-bottom:6px;">Les joueurs IA portent des noms générés aléatoirement (ex. [IA] Zyrex, [IA] Vorath…). Ils acceptent automatiquement les propositions d'alliance.</p>
+<p style="margin-bottom:16px;">Le nombre de joueurs par partie est calculé automatiquement selon la carte choisie : <span style="color:#FFD700;">≤ 10 planètes → N joueurs = nb planètes · > 10 planètes → N = nb planètes + 5</span> (±5% aléatoire).</p>
+
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v4.3</p>
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🎯 OBJECTIF</p>
         <p style="margin-bottom:16px;">Conquérir <span style="color:#FFD700;">80%</span> des astres de la galaxie. Colonisez des planètes et des lunes en envoyant vos <span style="color:#C8A0FF;">spores</span> à travers l'espace.</p>
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🚀 CONTRÔLES</p>
@@ -7126,9 +7256,11 @@ function applyConquest(body, jet) {
 
     // Jets sur planète alliée (mélange ADN) → renforcement
     if (body.owner !== null && body.owner !== jet.owner && _isAllied(jet.owner, body.owner)) {
-        if (jet.sporeType === 'attaque') body.sporesAttaque = Math.min(body.maxSpores, (body.sporesAttaque||0)+jet.spores);
-        else if (jet.sporeType === 'defense') body.sporesDefense = Math.min(body.maxSpores*2, (body.sporesDefense||0)+jet.spores*5);
-        else body.spores = Math.min(body.maxSpores, (body.spores||0)+jet.spores);
+        let _gain = 0;
+        if (jet.sporeType === 'attaque') { _gain = Math.floor(jet.spores); body.sporesAttaque = Math.min(body.maxSpores, (body.sporesAttaque||0)+_gain); }
+        else if (jet.sporeType === 'defense') { _gain = Math.floor(jet.spores*5); body.sporesDefense = Math.min(body.maxSpores*2, (body.sporesDefense||0)+_gain); }
+        else { _gain = Math.floor(jet.spores); body.spores = Math.min(body.maxSpores, (body.spores||0)+_gain); }
+        if (_gain > 0) gameState.conquestEffects.push({ x:body.x, y:body.y-body.radius-10, baseX:body.x, text:'+'+_gain, color:'#4ADE80', age:0, maxAge:2.5 });
         return;
     }
     // Density bonus : +5% puissance d'impact par point
@@ -7136,13 +7268,11 @@ function applyConquest(body, jet) {
     let attacking = jet.spores * densityBonus;
     // Spores sur planète alliée : renforcement
     if (body.owner === jet.owner) {
-        if (jet.sporeType === 'attaque') {
-            body.sporesAttaque = Math.min(body.maxSpores, (body.sporesAttaque || 0) + jet.spores);
-        } else if (jet.sporeType === 'defense') {
-            body.sporesDefense = Math.min(body.maxSpores * 2, (body.sporesDefense || 0) + jet.spores * 5);
-        } else {
-            if (body.spores < body.maxSpores) body.spores = Math.min(body.maxSpores, body.spores + jet.spores);
-        }
+        let _gain = 0;
+        if (jet.sporeType === 'attaque') { _gain = Math.floor(jet.spores); body.sporesAttaque = Math.min(body.maxSpores, (body.sporesAttaque||0)+_gain); }
+        else if (jet.sporeType === 'defense') { _gain = Math.floor(jet.spores*5); body.sporesDefense = Math.min(body.maxSpores*2, (body.sporesDefense||0)+_gain); }
+        else if (body.spores < body.maxSpores) { _gain = Math.floor(Math.min(jet.spores, body.maxSpores-body.spores)); body.spores = Math.min(body.maxSpores, body.spores+_gain); }
+        if (_gain > 0) gameState.conquestEffects.push({ x:body.x, y:body.y-body.radius-10, baseX:body.x, text:'+'+_gain, color:'#C8A0FF', age:0, maxAge:2.5 });
         return;
     }
     // Modificateurs type spore (ennemi)
@@ -8376,13 +8506,22 @@ function drawPlanets(ctx) {
         // Halo de propriétaire
         if (p.owner !== null && p.owner !== undefined && p.owner >= 0) {
             const ownerColor = gameState.players[p.owner]?.color || '#FFF';
-            ctx.strokeStyle = ownerColor;
-            ctx.lineWidth = 1.5;
+            const isAlliedPlanet = p.owner !== localSlot() && _isAllied(localSlot(), p.owner);
+            ctx.strokeStyle = isAlliedPlanet ? '#4ADE80' : ownerColor;
+            ctx.lineWidth = isAlliedPlanet ? 2.5 : 1.5;
             ctx.globalAlpha = 0.5 + Math.sin(gameState.time * 2) * 0.15;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.radius + 3, 0, Math.PI * 2);
             ctx.stroke();
             ctx.globalAlpha = 1;
+            // Symbole alliance 🤝
+            if (isAlliedPlanet) {
+                ctx.save();
+                ctx.font = Math.max(10, p.radius * 0.5) + 'px sans-serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('🤝', p.x + p.radius * 0.7, p.y - p.radius * 0.7);
+                ctx.restore();
+            }
 
             // Halo parasite
             if (p.parasite) {
@@ -12509,14 +12648,43 @@ function _signalOpen(targetSlot, parentPopup) {
     const pr = parentPopup.getBoundingClientRect();
     panel.style.left = (pr.right + 8) + 'px';
     panel.style.top = pr.top + 'px';
+    const _needsTarget = ['⚔️','🏳️','🌫️','🫧','🕳️','🍄','🧬','🤝'];
     for (const sig of SIGNAL_EMOJIS) {
         const btn = document.createElement('button');
         btn.title = sig.label;
-        btn.style.cssText = 'background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;padding:6px;font-size:20px;cursor:pointer;';
+        btn.style.cssText = 'background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;padding:6px;font-size:20px;cursor:pointer;position:relative;';
         btn.textContent = sig.e;
         btn.onclick = () => {
-            _sendSignal(targetSlot, sig.e, sig.label);
-            panel.remove();
+            if (_needsTarget.includes(sig.e)) {
+                // Afficher liste des joueurs
+                const existing = document.getElementById('_signalPlayerList');
+                if (existing) existing.remove();
+                const sub = document.createElement('div');
+                sub.id = '_signalPlayerList';
+                sub.style.cssText = 'position:fixed;z-index:10001;background:rgba(8,6,30,0.97);border:1px solid rgba(251,191,36,0.5);border-radius:8px;padding:8px;min-width:160px;';
+                const pb = btn.getBoundingClientRect();
+                sub.style.left = (pb.right+6)+'px'; sub.style.top = pb.top+'px';
+                const title = document.createElement('div');
+                title.style.cssText = 'font-family:"Orbitron",sans-serif;font-size:9px;color:rgba(251,191,36,0.6);margin-bottom:6px;letter-spacing:1px;';
+                title.textContent = sig.e + ' ' + sig.label + ' — À qui ?';
+                sub.appendChild(title);
+                const localSl = localSlot();
+                gameState.players.forEach((p, idx) => {
+                    if (!p || idx === localSl) return;
+                    const pb2 = document.createElement('button');
+                    pb2.style.cssText = 'width:100%;text-align:left;background:rgba(251,191,36,0.08);border:none;border-radius:4px;padding:5px 8px;color:#E2D9F3;font-family:"Exo 2",sans-serif;font-size:12px;cursor:pointer;margin-bottom:3px;display:flex;align-items:center;gap:6px;';
+                    pb2.innerHTML = `<span style="width:10px;height:10px;border-radius:50%;background:${p.color||'#FFF'};display:inline-block;"></span>${p.name||('J'+idx)}`;
+                    pb2.onmouseenter = () => pb2.style.background='rgba(251,191,36,0.2)';
+                    pb2.onmouseleave = () => pb2.style.background='rgba(251,191,36,0.08)';
+                    pb2.onclick = () => { _sendSignal(idx, sig.e, sig.label); sub.remove(); panel.remove(); };
+                    sub.appendChild(pb2);
+                });
+                document.body.appendChild(sub);
+                setTimeout(()=>{ document.addEventListener('click', function _cls2(ev){ if(!sub.contains(ev.target)&&!btn.contains(ev.target)){ sub.remove(); document.removeEventListener('click',_cls2); } }); }, 100);
+            } else {
+                _sendSignal(targetSlot, sig.e, sig.label);
+                panel.remove();
+            }
         };
         panel.appendChild(btn);
     }
