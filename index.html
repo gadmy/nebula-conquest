@@ -11753,6 +11753,7 @@ function localSlot() { return gameState.isMulti ? mySlot : 0; }
 
 const SERVER_URL = 'https://nebula-conquest-server-production.up.railway.app';
 let _socket = null;
+var _roomPollTimer = null;
 
 function setupGameChannel(roomId) {
     return new Promise(resolve => {
@@ -11814,7 +11815,6 @@ function handleGameEvent(ev) {
             break;
     }
 }
-}
 
 async function onMultiGameStart(room) {
     if (gameState.phase === 'game' || gameState._launching) return;
@@ -11874,7 +11874,7 @@ async function leaveRoom() {
     setPhase('title');
 }
 
-var _roomPollTimer = null;
+
 
 async function enterRoom(roomId) {
     setPhase('room');
