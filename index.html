@@ -1538,6 +1538,7 @@ input[type="radio"]:checked + .build-icon-btn {
     </div>
     <div id="inviteMsg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:#94A3B8; text-align:center; margin-top:6px; min-height:16px;"></div>
     <button class="btn" id="btnRoomLeave" style="margin-top:16px; font-size:12px; padding:8px 20px;">QUITTER</button>
+    <button id="btnDebugFill" style="display:none;margin-top:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:6px 16px;font-family:'Orbitron',sans-serif;font-size:9px;color:#F87171;cursor:pointer;letter-spacing:1px;">⚡ DEBUG — REMPLIR IA</button>
 </div>
 
 <!-- ═══ POPUP INVITATION ═══ -->
@@ -1848,7 +1849,7 @@ input[type="radio"]:checked + .build-icon-btn {
 #stmCanvas { pointer-events:all; cursor:pointer; }
 </style>
 <div id="sporeTypeMenu">
-    <canvas id="stmCanvas" width="200" height="200"></canvas>
+    <canvas id="stmCanvas" width="300" height="300"></canvas>
 </div>
 
 <!-- ═══ PAUSE ═══ -->
@@ -7466,6 +7467,8 @@ function setupInput() {
 
     // ── Molette : Zoom ──
     canvas.addEventListener('wheel', (e) => {
+        const mpEl = document.getElementById('myPlanets');
+        if (mpEl && mpEl.matches(':hover')) return;
         e.preventDefault();
         const direction = e.deltaY > 0 ? -1 : 1;
         const factor = 1 + cam.zoomSpeed;
@@ -11630,6 +11633,7 @@ var _roomPollTimer = null;
 
 async function enterRoom(roomId) {
     setPhase('room');
+    _showDebugIfAdmin();
     document.getElementById('roomCode').textContent = 'CODE : ' + roomId.substring(0, 8).toUpperCase();
     const isAuto = currentRoom && currentRoom.settings?.mode === 'auto';
     // Afficher les paramètres de la partie
@@ -12055,110 +12059,166 @@ function _selectSporeType(type) {
 // ── Menu radial canvas ──
 const _stmCanvas = document.getElementById('stmCanvas');
 const _stmCtx = _stmCanvas.getContext('2d');
-const STM_R = 90, STM_INNER = 28, STM_SIZE = 200;
+const STM_SIZE = 300, STM_INNER = 32, STM_R = 90, STM_R2 = 140;
 let _stmSectors = [];
-let _stmHover = -1;
+let _stmBldSectors = [];
+let _stmHover = -1;   // -1=dehors -2=codex >=0=spore
+let _stmHoverB = -1;  // bâtiment survolé
+
+// Tooltip bâtiment
+let _stmTT = null;
+function _stmShowTip(text, x, y) {
+    if (!_stmTT) {
+        _stmTT = document.createElement('div');
+        _stmTT.style.cssText = 'position:fixed;z-index:300;background:rgba(10,8,35,0.97);border:1px solid rgba(100,70,180,0.5);border-radius:6px;padding:6px 10px;font-family:"Exo 2",sans-serif;font-size:11px;color:#E2D9F3;pointer-events:none;max-width:200px;line-height:1.5;white-space:normal;';
+        document.body.appendChild(_stmTT);
+    }
+    _stmTT.textContent = text;
+    _stmTT.style.left = (x + 14) + 'px';
+    _stmTT.style.top  = (y - 10) + 'px';
+    _stmTT.style.display = 'block';
+}
+function _stmHideTip() { if (_stmTT) _stmTT.style.display = 'none'; }
 
 function _stmDraw() {
     const ctx = _stmCtx;
     const cx = STM_SIZE/2, cy = STM_SIZE/2;
     ctx.clearRect(0, 0, STM_SIZE, STM_SIZE);
 
-    // Secteurs
+    // ── Couronne 1 : types de spores ──
     const n = _stmSectors.length;
-    const anglePerSector = (Math.PI * 2) / n;
-    const startOffset = -Math.PI / 2;
-
+    const asp = (Math.PI * 2) / n;
+    const off = -Math.PI / 2;
     for (let i = 0; i < n; i++) {
         const s = _stmSectors[i];
-        const a1 = startOffset + i * anglePerSector;
-        const a2 = a1 + anglePerSector;
-        const isHover = (_stmHover === i);
-
-        // Fond secteur
+        const a1 = off + i * asp, a2 = a1 + asp;
+        const isH = _stmHover === i;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.arc(cx, cy, STM_R, a1, a2);
         ctx.closePath();
-        ctx.fillStyle = s.disabled ? 'rgba(30,30,40,0.7)' : (isHover ? s.colorHover : s.color);
+        ctx.fillStyle = s.disabled ? 'rgba(30,30,40,0.7)' : (isH ? s.colorHover : s.color);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.6)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Icône + label au milieu du secteur
-        const midA = (a1 + a2) / 2;
-        const labelR = (STM_R + STM_INNER) / 2;
-        const lx = cx + Math.cos(midA) * labelR;
-        const ly = cy + Math.sin(midA) * labelR;
-
+        ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+        const midA = (a1+a2)/2;
+        const lr = (STM_R+STM_INNER)/2;
+        const lx = cx+Math.cos(midA)*lr, ly = cy+Math.sin(midA)*lr;
         ctx.save();
-        ctx.font = '18px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(s.icon, lx, ly - 7);
-        ctx.font = `bold 8px 'Exo 2', sans-serif`;
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.fillText(s.label, lx, ly + 8);
-        if (s.count) {
-            ctx.font = `7px 'Exo 2', sans-serif`;
-            ctx.fillStyle = 'rgba(255,255,255,0.6)';
-            ctx.fillText(s.count, lx, ly + 18);
-        }
+        ctx.font='18px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(s.icon, lx, ly-7);
+        ctx.font=`bold 8px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.9)';
+        ctx.fillText(s.label, lx, ly+8);
+        if (s.count) { ctx.font=`7px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillText(s.count, lx, ly+18); }
         ctx.restore();
     }
 
-    // Cercle intérieur (Codex)
+    // ── Couronne 2 : bâtiments ──
+    const nb = _stmBldSectors.length;
+    if (nb > 0) {
+        const bsp = (Math.PI * 2) / nb;
+        for (let i = 0; i < nb; i++) {
+            const b = _stmBldSectors[i];
+            const a1 = off + i * bsp, a2 = a1 + bsp;
+            const isH = _stmHoverB === i;
+            // Anneau externe : donut entre STM_R+4 et STM_R2
+            ctx.beginPath();
+            ctx.arc(cx, cy, STM_R2, a1, a2);
+            ctx.arc(cx, cy, STM_R+4, a2, a1, true);
+            ctx.closePath();
+            const baseCol = b.active ? b.color.replace('0.3','0.85') : (isH ? b.color.replace('0.3','0.6') : b.color);
+            ctx.fillStyle = b.active ? baseCol : (isH ? baseCol : b.color);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
+            const midA = (a1+a2)/2;
+            const lr2 = (STM_R2+STM_R+4)/2;
+            const lx = cx+Math.cos(midA)*lr2, ly = cy+Math.sin(midA)*lr2;
+            ctx.save();
+            ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.globalAlpha = b.disabled ? 0.35 : 1;
+            ctx.fillText(b.icon, lx, ly-4);
+            ctx.font=`bold 7px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.85)';
+            ctx.fillText(b.name.split(' ')[0], lx, ly+7);
+            ctx.restore();
+        }
+    }
+
+    // ── Cercle intérieur Codex ──
     ctx.beginPath();
     ctx.arc(cx, cy, STM_INNER, 0, Math.PI*2);
     ctx.fillStyle = _stmHover === -2 ? 'rgba(100,70,200,0.9)' : 'rgba(20,15,50,0.9)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(160,120,255,0.6)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.font = '14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.strokeStyle = 'rgba(160,120,255,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('📖', cx, cy);
 }
 
 function _stmGetSector(x, y) {
     const cx = STM_SIZE/2, cy = STM_SIZE/2;
-    const dx = x - cx, dy = y - cy;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist < STM_INNER) return -2; // Codex
-    if (dist > STM_R) return -1; // Dehors
-    const angle = Math.atan2(dy, dx);
-    const n = _stmSectors.length;
-    const anglePerSector = (Math.PI * 2) / n;
-    const startOffset = -Math.PI / 2;
-    let a = angle - startOffset;
-    if (a < 0) a += Math.PI * 2;
-    return Math.floor(a / anglePerSector);
+    const dx = x-cx, dy = y-cy;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    if (dist < STM_INNER) return { zone:'codex' };
+    if (dist <= STM_R) {
+        const angle = Math.atan2(dy, dx);
+        const n = _stmSectors.length;
+        const asp = (Math.PI*2)/n;
+        let a = angle - (-Math.PI/2); if (a<0) a+=Math.PI*2;
+        return { zone:'spore', idx: Math.floor(a/asp) };
+    }
+    if (dist <= STM_R2 && _stmBldSectors.length > 0) {
+        const angle = Math.atan2(dy, dx);
+        const nb = _stmBldSectors.length;
+        const bsp = (Math.PI*2)/nb;
+        let a = angle - (-Math.PI/2); if (a<0) a+=Math.PI*2;
+        return { zone:'bld', idx: Math.floor(a/bsp) };
+    }
+    return { zone:'outside' };
 }
 
 _stmCanvas.addEventListener('mousemove', (e) => {
     const r = _stmCanvas.getBoundingClientRect();
-    const x = e.clientX - r.left, y = e.clientY - r.top;
-    const prev = _stmHover;
-    _stmHover = _stmGetSector(x, y);
-    if (_stmHover !== prev) _stmDraw();
+    const x = e.clientX-r.left, y = e.clientY-r.top;
+    const hit = _stmGetSector(x, y);
+    const prevH = _stmHover, prevB = _stmHoverB;
+    _stmHover = hit.zone==='spore' ? hit.idx : (hit.zone==='codex' ? -2 : -1);
+    _stmHoverB = hit.zone==='bld' ? hit.idx : -1;
+    if (_stmHover !== prevH || _stmHoverB !== prevB) _stmDraw();
+    if (hit.zone==='bld') {
+        const b = _stmBldSectors[hit.idx];
+        if (b) _stmShowTip(b.tip || b.name, e.clientX, e.clientY);
+    } else { _stmHideTip(); }
 });
 
-_stmCanvas.addEventListener('mouseleave', () => { _stmHover = -1; _stmDraw(); });
+_stmCanvas.addEventListener('mouseleave', () => { _stmHover=-1; _stmHoverB=-1; _stmDraw(); _stmHideTip(); });
 
 _stmCanvas.addEventListener('click', (e) => {
     const r = _stmCanvas.getBoundingClientRect();
-    const x = e.clientX - r.left, y = e.clientY - r.top;
-    const idx = _stmGetSector(x, y);
-    if (idx === -2) {
-        // Codex
+    const x = e.clientX-r.left, y = e.clientY-r.top;
+    const hit = _stmGetSector(x, y);
+    if (hit.zone==='codex') {
         const body = gameState._fireSource;
         _closeSporMenu();
         gameState._firePhase = null;
-        if (body) { openCodex._cx = e.clientX; openCodex._cy = e.clientY; openCodex(body); }
-    } else if (idx >= 0 && idx < _stmSectors.length) {
-        if (!_stmSectors[idx].disabled) _selectSporeType(_stmSectors[idx].type);
+        if (body) { openCodex._cx=e.clientX; openCodex._cy=e.clientY; openCodex(body); }
+    } else if (hit.zone==='spore' && hit.idx>=0 && hit.idx<_stmSectors.length) {
+        if (!_stmSectors[hit.idx].disabled) _selectSporeType(_stmSectors[hit.idx].type);
+    } else if (hit.zone==='bld' && hit.idx>=0 && hit.idx<_stmBldSectors.length) {
+        const b = _stmBldSectors[hit.idx];
+        if (!b.disabled && _stmLiveBody) {
+            const body = _stmLiveBody;
+            const _terminals = ['gorge','ectoplasme','antre','fourme'];
+            if (_terminals.includes(b.mode)) {
+                for (const _t of _terminals) {
+                    if (body[_t] && _t!==b.mode) {
+                        body[_t]=false;
+                        gameState.tradeOrbs=gameState.tradeOrbs.filter(o=>!(o.tradeType===_t&&(o.srcBody===body||o.dstBody===body)));
+                    }
+                }
+            }
+            body.buildMode = b.mode;
+            body.buildProgress = 0;
+            _closeSporMenu();
+            addEvent('build', b.icon, `${b.name} activé sur ${body.name}`, body, gameState.players[localSlot()]?.color);
+        }
     }
 });
 
@@ -12177,8 +12237,28 @@ function _stmOpen(body, clientX, clientY) {
         { type:'parasite', icon:'🦠', label:'Parasite',count: paraCount + ' prête',      color:'rgba(10,60,25,0.85)',  colorHover:'rgba(20,120,50,0.95)',  disabled: paraCount < 1 },
     ];
 
+    // Couronne 2 : bâtiments disponibles pour cet astre
+    const _base = body.baseMaxSpores || body.maxSpores || 0;
+    const _BLD_ALL = [
+        { mode:'off',       icon:'⬛', name:'OFF',         color:'rgba(100,70,180,0.3)',  tip:'Production normale.',                                                   disabled:false },
+        { mode:'alveole',   icon:'🍯', name:'ALVÉOLE',     color:'rgba(234,179,8,0.3)',   tip:`+5% stock max · Coût: ${Math.floor(_base*0.10)} sp`,                    disabled: body.spores < Math.floor(_base*0.10) },
+        { mode:'nid',       icon:'🏗️', name:'NID',         color:'rgba(34,197,94,0.3)',   tip:`+2.5% prod · Coût: ${Math.floor(_base*0.15)} sp`,                       disabled: body.spores < Math.floor(_base*0.15) },
+        { mode:'biome',     icon:'🛡️', name:'BIOME',       color:'rgba(59,130,246,0.3)',  tip:`+5% défense · Coût: ${Math.floor(_base*0.20)} sp`,                      disabled: body.spores < Math.floor(_base*0.20) },
+        { mode:'ruche',     icon:'🔴', name:'RUSH',        color:'rgba(220,38,38,0.3)',   tip:'Produit des spores d\'attaque (50% du rate).',                          disabled:false },
+        { mode:'mare',      icon:'🔵', name:'MARE',        color:'rgba(14,165,233,0.3)',  tip:'Produit des spores de défense (50% du rate).',                          disabled:false },
+        { mode:'parasite',  icon:'🦠', name:'PARASITE',    color:'rgba(10,80,30,0.3)',    tip:'2 min → 1 spore parasitaire.',                                          disabled:(body.parasiteSpore||0)>=1 },
+        { mode:'gorge',     icon:'🌫️', name:'GORGE',       color:'rgba(180,80,20,0.3)',   tip:'Terminal Miasme · Coût: 500 sp normales.',                              disabled: body.spores < 500 },
+        { mode:'ectoplasme',icon:'🫧', name:'ECTO',        color:'rgba(80,180,200,0.3)',  tip:'Terminal Particule · Coût: 1000 sp normales.',                          disabled: body.spores < 1000 },
+        ...( body.type!=='moon' ? [
+        { mode:'antre',     icon:'🕳️', name:'ANTRE',       color:'rgba(120,40,180,0.3)',  tip:'Terminal Molécule · Coût: 100 sp défense.',                             disabled:(body.sporesDefense||0)<100 },
+        { mode:'fourme',    icon:'🍄', name:'FOURME',      color:'rgba(200,140,20,0.3)',  tip:'Terminal ADN · Coût: 200 sp attaque.',                                  disabled:(body.sporesAttaque||0)<200 },
+        ] : []),
+    ];
+    _stmBldSectors = _BLD_ALL.map(b => ({ ...b, active: body.buildMode===b.mode }));
+
     _stmLiveBody = body;
     _stmHover = -1;
+    _stmHoverB = -1;
     _stmDraw();
 
     const menu = document.getElementById('sporeTypeMenu');
@@ -12687,6 +12767,33 @@ document.getElementById('btnCreateRoom').addEventListener('click', () => {
             ch.subscribe(s => { if (s==='SUBSCRIBED') { ch.send({ type:'broadcast', event:'invite', payload:{ roomId:currentRoom.id, hostPseudo:currentProfile.pseudo, settings } }); setTimeout(()=>ch.unsubscribe(),1000); } });
         }, 1500);
     }
+});
+// ── DEBUG bouton (ga.dmy@ikmail.com uniquement) ──
+function _showDebugIfAdmin() {
+    if (currentUser?.email === 'ga.dmy@ikmail.com') {
+        const btn = document.getElementById('btnDebugFill');
+        if (btn) btn.style.display = 'inline-block';
+    }
+}
+document.getElementById('btnDebugFill').addEventListener('click', async () => {
+    if (!currentRoom || !currentUser) return;
+    const max = currentRoom.max_players;
+    const { data: existing } = await _supa.from('game_room_players').select('slot_number').eq('room_id', currentRoom.id);
+    const taken = (existing||[]).map(p=>p.slot_number);
+    const inserts = [];
+    for (let i = 0; i < max; i++) {
+        if (taken.includes(i)) continue;
+        inserts.push({ room_id: currentRoom.id, player_id: currentUser.id + '-debug-' + i,
+            pseudo: randomAiName(), color: gameState.teamColors[i % gameState.teamColors.length],
+            slot_number: i, ready: true, stats: { growth:3, velocity:3, density:4 } });
+    }
+    if (inserts.length > 0) {
+        // Insérer par batch de 10
+        for (let b = 0; b < inserts.length; b += 10) {
+            await _supa.from('game_room_players').insert(inserts.slice(b, b+10));
+        }
+    }
+    document.getElementById('btnDebugFill').textContent = '✓ ' + inserts.length + ' slots remplis';
 });
 document.getElementById('btnRoomLeave').addEventListener('click', () => {
     playClickSound();
