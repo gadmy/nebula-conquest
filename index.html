@@ -10281,7 +10281,7 @@ function checkVictoryAndElimination() {
     }
 }
 
-function showEndScreen(isVictory) {
+function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverride) {
     gameState.phase = 'end';
 
     const title = document.getElementById('endTitle');
@@ -10289,15 +10289,15 @@ function showEndScreen(isVictory) {
     title.className = isVictory ? 'victory' : 'defeat';
 
     const sub = document.getElementById('endSubtitle');
-    const human = gameState.players[localSlot()];
-    const totalBodies = gameState.planets.length + gameState.moons.length;
+    const human = humanOverride || gameState.players[localSlot()];
+    const totalBodies = totalBodiesOverride || (gameState.planets.length + gameState.moons.length);
     const ownedPct = Math.round((human.bodies.length / totalBodies) * 100);
     sub.textContent = isVictory
         ? 'Vous contrôlez ' + ownedPct + '% de l\'univers !'
         : 'Votre empire s\'est effondré...';
 
-    const stats = gameState.gameStats;
-    stats.timeElapsed = gameState.time;
+    const stats = statsOverride || gameState.gameStats;
+    if (!statsOverride) stats.timeElapsed = gameState.time;
     const minutes = Math.floor(stats.timeElapsed / 60);
     const seconds = Math.floor(stats.timeElapsed % 60);
 
@@ -12475,6 +12475,7 @@ function setupGameChannel(roomId) {
         });
         _socket.on('game_snapshot', applySnapshot);
         _socket.on('game_events', (events) => events.forEach(handleGameEvent));
+        _socket.on('game_end', handleMultiEnd);
         _socket.on('error', (e) => console.warn('[socket] erreur:', e.msg));
         setTimeout(resolve, 3000);
     });
@@ -12483,6 +12484,22 @@ function setupGameChannel(roomId) {
 function sendAction(type, data) {
     if (!_socket || !gameState.isMulti) return;
     _socket.emit('player_action', { type, ...data });
+}
+
+function handleMultiEnd(data) {
+    const slot = localSlot();
+    const isVictory = data.winnerSlot === slot;
+    const human = gameState.players[slot];
+    const totalBodies = gameState.planets.length + gameState.moons.length;
+    const stats = {
+        bodiesConquered: data.stats?.bodiesConquered?.[slot] ?? 0,
+        jetsLaunched:    data.stats?.jetsLaunched?.[slot]    ?? 0,
+        jetsNeutralized: data.stats?.jetsNeutralized?.[slot] ?? 0,
+        sporesProduced:  data.stats?.sporesProduced?.[slot]  ?? 0,
+        timeElapsed:     data.stats?.timeElapsed             ?? gameState.time,
+    };
+    showEndScreen(isVictory, stats, human, totalBodies);
+    saveGame(isVictory, stats, human, totalBodies);
 }
 
 function applySnapshot(snap) {
