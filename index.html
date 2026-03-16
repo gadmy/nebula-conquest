@@ -12652,11 +12652,8 @@ document.getElementById('multiCfgCleaners').addEventListener('input', (e) => { d
         const m = MAP_LIBRARY[mapVal];
         const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
         const maxP = Math.max(2, np <= 10 ? np : np + 5);
-        const hSlider = document.getElementById('multiCfgHumans');
         const aiSlider = document.getElementById('multiCfgAI');
-        hSlider.max = maxP;
         aiSlider.max = maxP;
-        if (parseInt(hSlider.value) > maxP) { hSlider.value = maxP; document.getElementById('multiCfgHumansVal').textContent = maxP; }
         if (parseInt(aiSlider.value) > maxP) { aiSlider.value = maxP; document.getElementById('multiCfgAIVal').textContent = maxP; }
     }
     sel.addEventListener('change', updatePlayerMax);
