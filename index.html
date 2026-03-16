@@ -5413,6 +5413,7 @@ function setPhase(phase) {
     switch (phase) {
         case 'title':
             document.getElementById('titleScreen').classList.remove('hidden');
+            setTimeout(() => { ensureAudio(); playTitleMusic(); }, 500);
             if (_titleAnimPlayed) document.getElementById('titleScreen').classList.add('no-intro');
             gameState.running = false;
             const _pEl = document.getElementById('titlePseudo');
@@ -5440,6 +5441,7 @@ function setPhase(phase) {
             document.getElementById('titleScreen').classList.add('hidden');
             break;
         case 'config':
+            stopTitleMusic();
             document.getElementById('configScreen').classList.remove('hidden');
             break;
         case 'spawn':
@@ -9666,11 +9668,6 @@ function selectMotherPlanet(sun, planet) {
 
 }
 
-} else {
-        chooseEl.style.display = 'none';
-    }
-}
-
 function isSystemComplete(sun, ownerID) {
     // Cache invalidé à la conquête via sun._sysCache = null
     if (sun._sysCacheOwner === ownerID && sun._sysCache !== null && sun._sysCache !== undefined) return sun._sysCache;
@@ -10649,23 +10646,236 @@ function updateAudioTension() {
     }
 }
 
+// ═══════════════════════════════════════════════════════
+// SYSTÈME AUDIO ÉTENDU — Sons d'action + Ambiances + Musique
+// Toutes les fonctions sont des PLACEHOLDERS Web Audio API.
+// Remplacer le corps de chaque fonction par le vrai fichier audio.
+// Format cible : AudioBuffer chargé via fetch() + decodeAudioData()
+// ═══════════════════════════════════════════════════════
+
+// ── Utilitaire variante aléatoire ──
+function _rndV(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function _playBuf(bufName) {
+    // PLACEHOLDER : joue un bip synthétique
+    // TODO: remplacer par : const src = ac.createBufferSource(); src.buffer = gameState.audio.buffers[bufName]; src.connect(master); src.start();
+    if (!gameState.audio.initialized || gameState.audio.muted) return;
+}
+
+// ── Clic menu (3 variantes) ──
 function playClickSound() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
     const ac = gameState.audio.ctx;
     const master = gameState.audio.masterGain;
     const t = ac.currentTime;
+    const variants = [
+        () => { // click_menu_v1
+            const o = ac.createOscillator(); o.type='sine';
+            o.frequency.setValueAtTime(800,t); o.frequency.exponentialRampToValueAtTime(400,t+0.06);
+            const g = ac.createGain(); g.gain.setValueAtTime(0.05,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.08);
+            o.connect(g); g.connect(master); o.start(t); o.stop(t+0.08);
+        },
+        () => { // click_menu_v2
+            const o = ac.createOscillator(); o.type='triangle';
+            o.frequency.setValueAtTime(600,t); o.frequency.exponentialRampToValueAtTime(900,t+0.04);
+            const g = ac.createGain(); g.gain.setValueAtTime(0.04,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.07);
+            o.connect(g); g.connect(master); o.start(t); o.stop(t+0.07);
+        },
+        () => { // click_menu_v3
+            const o = ac.createOscillator(); o.type='sine';
+            o.frequency.setValueAtTime(1000,t); o.frequency.exponentialRampToValueAtTime(500,t+0.05);
+            const g = ac.createGain(); g.gain.setValueAtTime(0.04,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+            o.connect(g); g.connect(master); o.start(t); o.stop(t+0.06);
+        },
+    ];
+    _rndV(variants)();
+}
 
-    const osc = ac.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(800, t);
-    osc.frequency.exponentialRampToValueAtTime(400, t + 0.06);
-    const gain = ac.createGain();
-    gain.gain.setValueAtTime(0.05, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-    osc.connect(gain);
-    gain.connect(master);
-    osc.start(t);
-    osc.stop(t + 0.08);
+// ── Nidification (3 variantes) ──
+function playNidificationSound() {
+    if (!gameState.audio.initialized || gameState.audio.muted) return;
+    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
+    const variants = [
+        () => { // nidification_v1 — montée majestueuse
+            [261,329,392,523].forEach((f,i) => { const o=ac.createOscillator(); o.type='triangle'; o.frequency.value=f; const g=ac.createGain(); g.gain.setValueAtTime(0,t+i*0.12); g.gain.linearRampToValueAtTime(0.07,t+i*0.12+0.08); g.gain.exponentialRampToValueAtTime(0.001,t+i*0.12+0.6); o.connect(g); g.connect(master); o.start(t+i*0.12); o.stop(t+i*0.12+0.6); });
+        },
+        () => { // nidification_v2 — pulse grave
+            const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(80,t); o.frequency.exponentialRampToValueAtTime(200,t+0.5); const g=ac.createGain(); g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.8); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.8);
+        },
+        () => { // nidification_v3 — accord doré
+            [329,415,523,659].forEach((f,i) => { const o=ac.createOscillator(); o.type='sine'; o.frequency.value=f; const g=ac.createGain(); g.gain.setValueAtTime(0,t+i*0.08); g.gain.linearRampToValueAtTime(0.06,t+i*0.08+0.1); g.gain.exponentialRampToValueAtTime(0.001,t+i*0.08+0.7); o.connect(g); g.connect(master); o.start(t+i*0.08); o.stop(t+i*0.08+0.7); });
+        },
+    ];
+    _rndV(variants)();
+}
+
+// ── Alliance / Mélange d'ADN (3 variantes) ──
+function playAllianceSound() {
+    if (!gameState.audio.initialized || gameState.audio.muted) return;
+    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
+    const variants = [
+        () => { // alliance_v1 — deux tons qui se rejoignent
+            [440,554].forEach((f,i) => { const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(f*(i?0.8:1.2),t); o.frequency.exponentialRampToValueAtTime(f,t+0.3); const g=ac.createGain(); g.gain.setValueAtTime(0.06,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.5); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.5); });
+        },
+        () => { // alliance_v2 — bip doux ascendant
+            const o=ac.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(600,t+0.25); const g=ac.createGain(); g.gain.setValueAtTime(0.05,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.35); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.35);
+        },
+        () => { // alliance_v3 — accord lumineux
+            [369,466,587].forEach((f,i) => { const o=ac.createOscillator(); o.type='sine'; o.frequency.value=f; const g=ac.createGain(); g.gain.setValueAtTime(0,t+i*0.05); g.gain.linearRampToValueAtTime(0.05,t+i*0.05+0.07); g.gain.exponentialRampToValueAtTime(0.001,t+i*0.05+0.4); o.connect(g); g.connect(master); o.start(t+i*0.05); o.stop(t+i*0.05+0.4); });
+        },
+    ];
+    _rndV(variants)();
+}
+
+// ── Orbe de commerce (3 variantes) ──
+function playTradeOrbSound() {
+    if (!gameState.audio.initialized || gameState.audio.muted) return;
+    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
+    const variants = [
+        () => { // trade_orb_v1 — tintement cristallin
+            const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(1200,t); o.frequency.exponentialRampToValueAtTime(800,t+0.15); const g=ac.createGain(); g.gain.setValueAtTime(0.04,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.2);
+        },
+        () => { // trade_orb_v2 — double tintement
+            [0,0.1].forEach(d => { const o=ac.createOscillator(); o.type='triangle'; o.frequency.value=1000+Math.random()*200; const g=ac.createGain(); g.gain.setValueAtTime(0.03,t+d); g.gain.exponentialRampToValueAtTime(0.001,t+d+0.18); o.connect(g); g.connect(master); o.start(t+d); o.stop(t+d+0.18); });
+        },
+        () => { // trade_orb_v3 — scintillement
+            const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(900,t); o.frequency.setValueAtTime(1100,t+0.07); o.frequency.setValueAtTime(900,t+0.14); const g=ac.createGain(); g.gain.setValueAtTime(0.04,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.25); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.25);
+        },
+    ];
+    _rndV(variants)();
+}
+
+// ── Signal émoji (3 variantes) ──
+function playSignalSound() {
+    if (!gameState.audio.initialized || gameState.audio.muted) return;
+    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
+    const variants = [
+        () => { // signal_v1 — bip court
+            const o=ac.createOscillator(); o.type='square'; o.frequency.value=440; const g=ac.createGain(); g.gain.setValueAtTime(0.04,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.12); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.12);
+        },
+        () => { // signal_v2 — deux bips
+            [0,0.15].forEach(d => { const o=ac.createOscillator(); o.type='square'; o.frequency.value=550; const g=ac.createGain(); g.gain.setValueAtTime(0.03,t+d); g.gain.exponentialRampToValueAtTime(0.001,t+d+0.1); o.connect(g); g.connect(master); o.start(t+d); o.stop(t+d+0.1); });
+        },
+        () => { // signal_v3 — morse court
+            [0,0.1,0.2].forEach(d => { const o=ac.createOscillator(); o.type='sine'; o.frequency.value=660; const g=ac.createGain(); g.gain.setValueAtTime(0.03,t+d); g.gain.exponentialRampToValueAtTime(0.001,t+d+0.08); o.connect(g); g.connect(master); o.start(t+d); o.stop(t+d+0.08); });
+        },
+    ];
+    _rndV(variants)();
+}
+
+// ── Bannière / Notification globale (3 variantes) ──
+function playBannerSound() {
+    if (!gameState.audio.initialized || gameState.audio.muted) return;
+    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
+    const variants = [
+        () => { // banner_v1 — fanfare courte
+            [523,659,784].forEach((f,i) => { const o=ac.createOscillator(); o.type='triangle'; o.frequency.value=f; const g=ac.createGain(); g.gain.setValueAtTime(0,t+i*0.1); g.gain.linearRampToValueAtTime(0.06,t+i*0.1+0.06); g.gain.exponentialRampToValueAtTime(0.001,t+i*0.1+0.3); o.connect(g); g.connect(master); o.start(t+i*0.1); o.stop(t+i*0.1+0.3); });
+        },
+        () => { // banner_v2 — alerte douce
+            const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(600,t); o.frequency.exponentialRampToValueAtTime(800,t+0.2); const g=ac.createGain(); g.gain.setValueAtTime(0.07,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.35); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.35);
+        },
+        () => { // banner_v3 — gong spatial
+            const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(180,t+0.6); const g=ac.createGain(); g.gain.setValueAtTime(0.09,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.8); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.8);
+        },
+    ];
+    _rndV(variants)();
+}
+
+// ── Interception orbe (3 variantes) ──
+function playInterceptSound() {
+    if (!gameState.audio.initialized || gameState.audio.muted) return;
+    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
+    const variants = [
+        () => { // intercept_v1 — impact sec
+            const o=ac.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(80,t+0.15); const g=ac.createGain(); g.gain.setValueAtTime(0.08,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.2);
+        },
+        () => { // intercept_v2 — crachat électrique
+            const o=ac.createOscillator(); o.type='square'; o.frequency.setValueAtTime(500,t); o.frequency.exponentialRampToValueAtTime(100,t+0.1); const g=ac.createGain(); g.gain.setValueAtTime(0.07,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.15); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.15);
+        },
+        () => { // intercept_v3 — écho de capture
+            [0,0.08].forEach((d,i) => { const o=ac.createOscillator(); o.type='sawtooth'; o.frequency.value=400-i*200; const g=ac.createGain(); g.gain.setValueAtTime(0.06,t+d); g.gain.exponentialRampToValueAtTime(0.001,t+d+0.15); o.connect(g); g.connect(master); o.start(t+d); o.stop(t+d+0.15); });
+        },
+    ];
+    _rndV(variants)();
+}
+
+// ── Rupture alliance (3 variantes) ──
+function playAllianceBreakSound() {
+    if (!gameState.audio.initialized || gameState.audio.muted) return;
+    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
+    const variants = [
+        () => { // alliance_break_v1 — descente dissonante
+            [440,415].forEach((f,i) => { const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(f,t+i*0.1); o.frequency.exponentialRampToValueAtTime(f*0.5,t+i*0.1+0.4); const g=ac.createGain(); g.gain.setValueAtTime(0.05,t+i*0.1); g.gain.exponentialRampToValueAtTime(0.001,t+i*0.1+0.5); o.connect(g); g.connect(master); o.start(t+i*0.1); o.stop(t+i*0.1+0.5); });
+        },
+        () => { // alliance_break_v2 — crack sourd
+            const o=ac.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(60,t+0.3); const g=ac.createGain(); g.gain.setValueAtTime(0.07,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.4);
+        },
+        () => { // alliance_break_v3 — vibration grave
+            const o=ac.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(100,t+0.35); const g=ac.createGain(); g.gain.setValueAtTime(0.08,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.5); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.5);
+        },
+    ];
+    _rndV(variants)();
+}
+
+// ═══════════════════════════════════════════════════════
+// MUSIQUE MENU TITRE
+// PLACEHOLDER — remplacer par un AudioBuffer chargé depuis un fichier
+// ═══════════════════════════════════════════════════════
+let _titleMusicNode = null;
+function playTitleMusic() {
+    if (!gameState.audio.initialized || gameState.audio.muted) return;
+    if (_titleMusicNode) return; // déjà en cours
+    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain;
+    // TODO: charger title_music.ogg et connecter ici
+    // PLACEHOLDER : drone ambiant simple pour le menu
+    const osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.value = 55;
+    const lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.08;
+    const lfoGain = ac.createGain(); lfoGain.gain.value = 8;
+    const gain = ac.createGain(); gain.gain.value = 0.04;
+    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+    osc.connect(gain); gain.connect(master);
+    lfo.start(); osc.start();
+    _titleMusicNode = { osc, lfo, gain };
+}
+function stopTitleMusic() {
+    if (!_titleMusicNode) return;
+    try { _titleMusicNode.osc.stop(); _titleMusicNode.lfo.stop(); } catch(e) {}
+    _titleMusicNode = null;
+}
+
+// ═══════════════════════════════════════════════════════
+// AMBIANCES DE JEU — 5 calmes + 5 agitées
+// Sélection automatique selon gameState.audio.tension
+// ═══════════════════════════════════════════════════════
+let _ambianceNode = null;
+let _ambianceType = null; // 'calm' | 'tense'
+let _ambianceIdx = 0;
+
+const AMBIANCE_CALM = [
+    'amb_calm_1', // Dérive stellaire — nappes froides, basses légères
+    'amb_calm_2', // Respiration cosmique — pad lent, harmoniques douces
+    'amb_calm_3', // Orbite silencieuse — drone minimal, réverb longue
+    'amb_calm_4', // Brumes nébulaires — textures filtrées, très lent
+    'amb_calm_5', // Champ d'étoiles — micro-sons cristallins, quasi silence
+];
+const AMBIANCE_TENSE = [
+    'amb_tense_1', // Alerte rouge — percussions sourdes, basses pulsées
+    'amb_tense_2', // Invasion — arpèges menaçants, rythme accéléré
+    'amb_tense_3', // Confrontation — dissonances, tension montante
+    'amb_tense_4', // Assaut spatial — rythme binaire, distorsion légère
+    'amb_tense_5', // Dernière défense — chaos ordonné, urgence maximale
+];
+
+function updateAmbiance() {
+    if (!gameState.audio.initialized || gameState.audio.muted) return;
+    const tension = gameState.audio.tension || 0;
+    const targetType = tension > 0.3 ? 'tense' : 'calm';
+    if (_ambianceType === targetType) return;
+    // Transition : stop ancien, start nouveau
+    _ambianceType = targetType;
+    const pool = targetType === 'tense' ? AMBIANCE_TENSE : AMBIANCE_CALM;
+    _ambianceIdx = Math.floor(Math.random() * pool.length);
+    // TODO: charger pool[_ambianceIdx] et jouer en boucle
+    // PLACEHOLDER : modifie le drone existant selon la tension
 }
 
 function updateOrbitHum() {
@@ -12485,6 +12695,8 @@ function _triggerNidification(motherPlanet) {
     addEvent('build', '👑', `Nidification ! ${Math.floor(total)} spores aspirées sur ${motherPlanet.name}`, motherPlanet, player.color);
     // Bannière top-center pour tous
     _showGameBanner(`👑 ${player.name} — Planète mère : ${motherPlanet.name}`, motherPlanet);
+    playNidificationSound();
+    playBannerSound();
     // Multi : broadcast
     if (gameState.isMulti && _supa) {
         const ch = _supa.channel('nid-notif-global');
@@ -12561,7 +12773,7 @@ function _diplomacyOpen(body, clientX, clientY) {
         btn.className = 'btn';
         btn.style.cssText = 'width:100%;font-size:12px;padding:8px;background:rgba(239,68,68,0.2);border-color:rgba(239,68,68,0.5);color:#F87171;';
         btn.textContent = '✗ Rompre l\'alliance';
-        btn.onclick = () => { _removeAlliance(localSl, targetSlot); popup.remove(); _diplomacyPopup = null; addEvent('neutral','💔',`Alliance rompue avec ${targetName}`,null,gameState.players[localSl]?.color); };
+        btn.onclick = () => { _removeAlliance(localSl, targetSlot); popup.remove(); _diplomacyPopup = null; addEvent('neutral','💔',`Alliance rompue avec ${targetName}`,null,gameState.players[localSl]?.color); playAllianceBreakSound(); };
         popup.appendChild(btn);
     }
 
@@ -12666,6 +12878,7 @@ function _sendSignal(targetSlot, emoji, label) {
         ch.subscribe((s) => {
             if (s === 'SUBSCRIBED') {
                 ch.send({ type:'broadcast', event:'signal', payload:{ fromSlot:localSl, fromName, emoji, label } });
+        playSignalSound();
                 setTimeout(()=>ch.unsubscribe(), 1000);
             }
         });
@@ -12723,6 +12936,7 @@ function _sendAllianceRequest(targetSlot, body) {
     if (!targetPlayer?.isHuman) {
         _addAlliance(localSl, targetSlot);
         addEvent('neutral','🧬',`Alliance avec ${targetPlayer?.name||'IA'} conclue !`,null,localPlayer?.color);
+        playAllianceSound();
         return;
     }
     // Multi : notification via Supabase
