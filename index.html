@@ -1686,14 +1686,15 @@ input[type="radio"]:checked + .build-icon-btn {
 
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
-<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Rejoindre</span> : depuis le menu principal, "REJOINDRE" vous place dans la prochaine partie disponible. Le compteur <span style="color:#4ADE80;">X/N joueurs</span> s'affiche en temps réel. La partie se lance automatiquement quand le lobby est plein.</p>
-<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Créer une partie</span> : choisissez la carte, ajoutez des IA, invitez des amis par pseudo. Option "Compléter par IA" pour remplir les slots vides automatiquement au lancement.</p>
-<p style="margin-bottom:6px;">Les joueurs IA portent des noms générés aléatoirement (ex. [IA] Zyrex, [IA] Vorath…). Ils acceptent automatiquement les propositions d'alliance.</p>
-<p style="margin-bottom:6px;">Le nombre maximum de joueurs est calculé selon la carte : <span style="color:#FFD700;">≤ 10 planètes → max = nb planètes · > 10 planètes → max = nb planètes + 5</span>. La partie se lance quand tous les slots sont remplis.</p>
-<p style="margin-bottom:6px;"><span style="color:#A5B4FC;">👁 Spectateur</span> : si vous êtes éliminé en multijoueur, le bouton <span style="color:#A5B4FC;">REGARDER</span> apparaît sur l'écran de défaite. Cliquez dessus pour continuer à observer la partie en cours sans interagir. Un bandeau <span style="color:#A5B4FC;">👁 SPECTATEUR</span> s'affiche en haut de l'écran.</p>
-<p style="margin-bottom:16px;">Les scores de fin de partie sont enregistrés automatiquement dans le classement global (astres conquis, jets lancés, durée).</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Rejoindre</span> : depuis le menu principal, "REJOINDRE" vous place dans la prochaine partie disponible. Deux variantes : <span style="color:#4ADE80;">▶ REJOINDRE</span> (chacun pour soi) et <span style="color:#FCD34D;">🤖 REJOINDRE (OK POUR BOTS)</span> qui vote pour compléter avec des IA si la majorité est d'accord.</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Créer une partie</span> : choisissez la carte, ajoutez des IA, invitez des amis par pseudo ou une guilde entière par tag. Option "Compléter par IA" pour remplir les slots vides au lancement. Option <span style="color:#60A5FA;">Mode équipes</span> : 2, 3 ou 4 équipes réparties aléatoirement. En mode équipes, vos jets vers les coéquipiers les renforcent — impossible de trahir. Les noms au-dessus des planètes affichent la couleur de l'équipe.</p>
+<p style="margin-bottom:6px;">Les joueurs IA portent des noms générés aléatoirement (ex. [IA] Zyrex, [IA] Vorath…). En mode équipes, les IA jouent dans leur équipe assignée.</p>
+<p style="margin-bottom:6px;">Le nombre maximum de joueurs est calculé selon la carte : <span style="color:#FFD700;">≤ 10 planètes → max = nb planètes · > 10 planètes → max = nb planètes + 5</span>. En mode équipes, ce nombre est forcément pair.</p>
+<p style="margin-bottom:6px;"><span style="color:#A5B4FC;">👁 Spectateur</span> : si vous êtes éliminé, le bouton <span style="color:#A5B4FC;">REGARDER</span> apparaît sur l'écran de défaite pour observer la suite sans interagir.</p>
+<p style="margin-bottom:6px;"><span style="color:#FB923C;">⚔️ Guildes</span> : créez ou rejoignez une guilde depuis le menu principal. Votre tag s'affiche après votre pseudo <span style="color:#FB923C;">[TAG]</span>. Les guildes ont leur propre classement ELO. Invitez une guilde entière dans une partie via son tag — tous les membres reçoivent l'invitation.</p>
+<p style="margin-bottom:16px;">Les scores et l'ELO sont mis à jour automatiquement après chaque partie multi (minimum 2 joueurs humains).</p>
 
-<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v4.5</p>
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v4.8</p>
         <p style="margin-bottom:16px;">Conquérir <span style="color:#FFD700;">80%</span> des astres de la galaxie. Colonisez des planètes et des lunes en envoyant vos <span style="color:#C8A0FF;">spores</span> à travers l'espace.</p>
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🚀 CONTRÔLES</p>
         <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">Clic maintenu + glisser</span> depuis un astre possédé → lance un jet de spores vers la cible</p>
@@ -6423,7 +6424,7 @@ function finishStartGame() {
     rebuildAllBodies();
     // Ajuster le dézoom min pour voir tout l'univers
     const screenMin = Math.min(gameState.width, gameState.height);
-    gameState.camera.minZoom = Math.max(0.02, screenMin / (gameState.universeRadius * 2.2));
+    gameState.camera.minZoom = Math.max(0.35, screenMin / (gameState.universeRadius * 2.2));
 
     // Centrer la caméra et zoom adapté
     gameState.camera.x = 0;
@@ -7719,6 +7720,23 @@ function computeTrajectory(startX, startY, dirX, dirY, speed, steps) {
             vy += (dy / dist) * factor;
         }
 
+        // Gravité des soleils (légère déviation)
+        for (const sun of gameState.suns) {
+            const sdx = sun.x - x;
+            const sdy = sun.y - y;
+            const sdist = Math.sqrt(sdx*sdx + sdy*sdy);
+            const sRange = sun.radius * 8;
+            if (sdist < sRange && sdist > sun.radius + 5) {
+                const sG = sun.radius * 2;
+                const sEdgeFade = 1 - Math.pow(sdist / sRange, 2);
+                const sGravity = sG / (sdist + 30) * sEdgeFade;
+                vx += (sdx / sdist) * sGravity * dt;
+                vy += (sdy / sdist) * sGravity * dt;
+            }
+        }
+
+        
+
         x += vx * dt;
         y += vy * dt;
         points.push({ x, y });
@@ -7751,7 +7769,7 @@ function launchJet(source, dirX, dirY, sporeType) {
     }
 
     const speed = 20 + player.stats.velocity * 6;
-    const traj = computeTrajectory(source.x, source.y, dirX, dirY, speed, 400);
+    const traj = computeTrajectory(source.x, source.y, dirX, dirY, speed, 200);
 
     // Générer des particules scintillantes autour du jet
     const sparkles = [];
@@ -8587,7 +8605,8 @@ function setupInput() {
             if (len > 1) {
                 const player = gameState.players[src.owner];
                 const speed = 20 + (player ? player.stats.velocity * 6 : 0);
-                gameState.launchPreview = computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 400);
+                if (!gameState._previewFrame || gameState._previewFrame++ % 3 === 0)
+                    gameState.launchPreview = computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 200);
             }
         }
 
