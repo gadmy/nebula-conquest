@@ -1423,6 +1423,7 @@ input[type="radio"]:checked + .build-icon-btn {
     <button class="btn" id="btnNewGame">NOUVELLE PARTIE (SOLO)</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">CRÉER PARTIE MULTI</button>
     <button class="btn" id="btnSporeLab" style="margin-top:8px; background:rgba(160,120,255,0.15); border:1px solid rgba(160,120,255,0.4); color:#C8A0FF;">🧬 LABO DE SPORES</button>
+    <button class="btn" id="btnGuilds" style="margin-top:8px; background:rgba(251,146,60,0.15); border:1px solid rgba(251,146,60,0.4); color:#FB923C;">⚔️ GUILDES</button>
     <button class="btn" id="btnLeaderboard" style="margin-top:8px; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4);">CLASSEMENT</button>
     <button class="btn" id="btnHelp" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">AIDE</button>
     <div id="titlePseudo" style="margin-top:20px; font-family:'Orbitron',sans-serif; font-size:11px; color:rgba(200,170,255,0.5); letter-spacing:2px;"></div>
@@ -1442,26 +1443,114 @@ input[type="radio"]:checked + .build-icon-btn {
 </div>
 
 <!-- ═══ ÉCRAN LEADERBOARD ═══ -->
+<!-- ═══ ÉCRAN GUILDES ═══ -->
+<div id="guildScreen" class="screen hidden">
+    <h2 style="font-family:'Orbitron',monospace; color:#FB923C; text-shadow:0 0 20px rgba(251,146,60,0.4); margin-bottom:20px; letter-spacing:3px;">⚔️ GUILDES</h2>
+    <div style="background:rgba(15,23,42,0.92); border:1px solid rgba(251,146,60,0.3); border-radius:12px; padding:24px 28px; max-width:500px; margin:0 auto; max-height:70vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(251,146,60,0.3) transparent;">
+
+        <!-- Ma guilde -->
+        <div id="myGuildPanel" style="display:none;">
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
+                <img id="myGuildLogo" src="" style="width:52px; height:52px; border-radius:8px; border:2px solid rgba(251,146,60,0.5); object-fit:cover;" onerror="this.style.display='none'">
+                <div>
+                    <div id="myGuildName" style="font-family:'Orbitron',monospace; font-size:16px; color:#FB923C; letter-spacing:2px;"></div>
+                    <div id="myGuildTag" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(251,146,60,0.6); margin-top:2px;"></div>
+                    <div id="myGuildElo" style="font-family:'Orbitron',monospace; font-size:12px; color:#FFD700; margin-top:2px;"></div>
+                </div>
+            </div>
+            <div id="myGuildMembers" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(200,210,230,0.7); margin-bottom:14px;"></div>
+            <button class="btn" id="btnLeaveGuild" style="font-size:12px; padding:7px 18px; background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.4); color:#F87171;">QUITTER LA GUILDE</button>
+        </div>
+
+        <!-- Pas de guilde -->
+        <div id="noGuildPanel">
+            <p style="font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.7); margin-bottom:18px; text-align:center;">Vous n'appartenez à aucune guilde.</p>
+
+            <!-- Créer une guilde -->
+            <div style="margin-bottom:20px; padding:16px; background:rgba(251,146,60,0.06); border:1px solid rgba(251,146,60,0.2); border-radius:8px;">
+                <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:#FB923C; letter-spacing:2px; margin-bottom:12px;">CRÉER UNE GUILDE</div>
+                <div style="margin-bottom:8px;"><input id="guildNameInput" type="text" placeholder="Nom de la guilde..." maxlength="30" style="width:100%; box-sizing:border-box; background:rgba(15,23,42,0.8); border:1px solid rgba(251,146,60,0.3); border-radius:6px; padding:7px 10px; color:#FB923C; font-family:'Exo 2',sans-serif; font-size:13px; outline:none;"></div>
+                <div style="margin-bottom:8px;"><input id="guildTagInput" type="text" placeholder="Tag (3 lettres max)" maxlength="3" style="width:100%; box-sizing:border-box; background:rgba(15,23,42,0.8); border:1px solid rgba(251,146,60,0.3); border-radius:6px; padding:7px 10px; color:#FB923C; font-family:'Exo 2',sans-serif; font-size:13px; outline:none; text-transform:uppercase;"></div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-family:'Exo 2',sans-serif; font-size:11px; color:rgba(251,146,60,0.6); display:block; margin-bottom:6px;">Logo (PNG/JPG, max 1MB)</label>
+                    <input id="guildLogoInput" type="file" accept="image/png,image/jpeg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:rgba(200,210,230,0.7);">
+                    <img id="guildLogoPreview" src="" style="display:none; width:52px; height:52px; border-radius:8px; border:2px solid rgba(251,146,60,0.4); object-fit:cover; margin-top:8px;">
+                </div>
+                <button class="btn" id="btnCreateGuild" style="width:100%; font-size:13px; padding:8px; background:rgba(251,146,60,0.2); border-color:rgba(251,146,60,0.5); color:#FB923C;">CRÉER</button>
+                <div id="guildCreateMsg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:#94A3B8; text-align:center; margin-top:8px; min-height:16px;"></div>
+            </div>
+
+            <!-- Rejoindre une guilde -->
+            <div style="padding:16px; background:rgba(251,146,60,0.06); border:1px solid rgba(251,146,60,0.2); border-radius:8px;">
+                <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:#FB923C; letter-spacing:2px; margin-bottom:12px;">REJOINDRE UNE GUILDE</div>
+                <div style="display:flex; gap:8px;">
+                    <input id="guildJoinTagInput" type="text" placeholder="Tag (ex: NEB)" maxlength="3" style="flex:1; background:rgba(15,23,42,0.8); border:1px solid rgba(251,146,60,0.3); border-radius:6px; padding:7px 10px; color:#FB923C; font-family:'Exo 2',sans-serif; font-size:13px; outline:none; text-transform:uppercase;">
+                    <button class="btn" id="btnJoinGuild" style="font-size:12px; padding:7px 16px; margin:0; background:rgba(251,146,60,0.2); border-color:rgba(251,146,60,0.5); color:#FB923C;">REJOINDRE</button>
+                </div>
+                <div id="guildJoinMsg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:#94A3B8; text-align:center; margin-top:8px; min-height:16px;"></div>
+            </div>
+        </div>
+
+        <!-- Classement guildes -->
+        <div style="margin-top:20px;">
+            <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:#FB923C; letter-spacing:2px; margin-bottom:10px;">CLASSEMENT GUILDES</div>
+            <div id="guildLeaderboard" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(200,210,230,0.7);">Chargement...</div>
+        </div>
+    </div>
+    <button class="btn" id="btnGuildBack" style="margin-top:16px;">RETOUR</button>
+</div>
+
 <div id="leaderboardScreen" class="screen hidden">
     <h2 style="font-family:'Orbitron',monospace; color:#E0E7FF; text-shadow:0 0 20px rgba(139,92,246,0.4); margin-bottom:20px;">CLASSEMENT</h2>
-    <div id="leaderboardBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:20px; max-width:500px; margin:0 auto; max-height:60vh; overflow-y:auto;">
-        <table style="width:100%; border-collapse:collapse; font-size:14px;">
-            <thead>
-                <tr style="color:#8B5CF6; border-bottom:1px solid rgba(139,92,246,0.3);">
-                    <th style="padding:8px; text-align:left;">#</th>
-                    <th style="padding:8px; text-align:left;">Joueur</th>
-                    <th style="padding:8px; text-align:center;">ELO</th>
-                    <th style="padding:8px; text-align:center;">Victoires</th>
-                    <th style="padding:8px; text-align:center;">Parties</th>
-                    <th style="padding:8px; text-align:center;">%</th>
-                </tr>
-            </thead>
-            <tbody id="leaderboardBody"></tbody>
-        </table>
-        <p id="leaderboardEmpty" style="color:#94A3B8; text-align:center; padding:20px; display:none;">Aucune partie enregistrée.</p>
+    <div style="display:flex; gap:14px; max-width:900px; margin:0 auto; max-height:65vh;">
+
+        <!-- Colonne Joueurs -->
+        <div style="flex:1; background:rgba(15,23,42,0.9); border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:16px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(139,92,246,0.3) transparent;">
+            <div style="font-family:'Orbitron',monospace; font-size:10px; color:#8B5CF6; letter-spacing:2px; margin-bottom:12px; text-align:center;">JOUEURS</div>
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead>
+                    <tr style="color:#8B5CF6; border-bottom:1px solid rgba(139,92,246,0.3);">
+                        <th style="padding:6px 4px; text-align:left;">#</th>
+                        <th style="padding:6px 4px; text-align:left;">Joueur</th>
+                        <th style="padding:6px 4px; text-align:center;">ELO</th>
+                        <th style="padding:6px 4px; text-align:center;">V</th>
+                        <th style="padding:6px 4px; text-align:center;">%</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody"></tbody>
+            </table>
+            <p id="leaderboardEmpty" style="color:#94A3B8; text-align:center; padding:20px; display:none;">Aucune partie enregistrée.</p>
+        </div>
+
+        <!-- Colonne Guildes -->
+        <div style="flex:1; background:rgba(15,23,42,0.9); border:1px solid rgba(251,146,60,0.3); border-radius:12px; padding:16px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(251,146,60,0.3) transparent;">
+            <div style="font-family:'Orbitron',monospace; font-size:10px; color:#FB923C; letter-spacing:2px; margin-bottom:12px; text-align:center;">GUILDES</div>
+            <div id="guildLeaderboardRanking">Chargement...</div>
+        </div>
     </div>
     <button class="btn" id="btnLeaderboardBack" style="margin-top:16px;">RETOUR</button>
 </div>
+
+<!-- ═══ POPUP PROFIL GUILDE ═══ -->
+<div id="guildProfilePopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:300; background:rgba(10,15,35,0.97); border:2px solid rgba(251,146,60,0.5); border-radius:14px; padding:24px 28px; max-width:380px; width:90%; box-shadow:0 0 40px rgba(251,146,60,0.2); pointer-events:auto;">
+    <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
+        <img id="gpLogo" src="" style="width:56px; height:56px; border-radius:8px; border:2px solid rgba(251,146,60,0.5); object-fit:cover;">
+        <div>
+            <div id="gpName" style="font-family:'Orbitron',monospace; font-size:15px; color:#FB923C;"></div>
+            <div id="gpTag" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(251,146,60,0.6); margin-top:2px;"></div>
+            <div id="gpElo" style="font-family:'Orbitron',monospace; font-size:12px; color:#FFD700; margin-top:2px;"></div>
+        </div>
+    </div>
+    <div id="gpDesc" style="font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.8); margin-bottom:12px; min-height:32px; line-height:1.5;"></div>
+    <textarea id="gpDescEdit" style="display:none; width:100%; box-sizing:border-box; background:rgba(15,23,42,0.8); border:1px solid rgba(251,146,60,0.4); border-radius:6px; padding:8px; color:#FB923C; font-family:'Exo 2',sans-serif; font-size:12px; resize:vertical; min-height:60px;" maxlength="300" placeholder="Présentation de la guilde (300 chars max)..."></textarea>
+    <div id="gpMembers" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(200,210,230,0.6); margin-bottom:14px;"></div>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button id="gpEditBtn" style="display:none; background:rgba(251,146,60,0.2); border:1px solid rgba(251,146,60,0.4); border-radius:6px; padding:6px 14px; color:#FB923C; font-family:'Exo 2',sans-serif; font-size:12px; cursor:pointer;">✏️ Modifier</button>
+        <button id="gpSaveBtn" style="display:none; background:rgba(34,197,94,0.2); border:1px solid rgba(34,197,94,0.4); border-radius:6px; padding:6px 14px; color:#4ADE80; font-family:'Exo 2',sans-serif; font-size:12px; cursor:pointer;">Sauvegarder</button>
+        <button id="gpCloseBtn" style="background:rgba(100,116,139,0.2); border:1px solid rgba(100,116,139,0.4); border-radius:6px; padding:6px 14px; color:#94A3B8; font-family:'Exo 2',sans-serif; font-size:12px; cursor:pointer;">Fermer</button>
+    </div>
+</div>
+<div id="guildProfileOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:299;" onclick="closeGuildProfile()"></div>
 
 <!-- ═══ ÉCRAN AIDE ═══ -->
 <div id="helpScreen" class="screen hidden">
@@ -1657,15 +1746,22 @@ input[type="radio"]:checked + .build-icon-btn {
     <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:20px;">CRÉER UNE PARTIE</h2>
     <div id="lobbyBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px; max-width:420px; margin:0 auto;">
         <div class="config-row"><label>Carte</label><select id="multiCfgMap"></select></div>
-        <div class="config-row"><label>Joueurs IA</label><input type="range" id="multiCfgAI" min="0" max="8" value="2"><span class="val" id="multiCfgAIVal">2</span></div>
-        <div class="config-row"><label>Compléter par IA</label><select id="multiCfgFillIA"><option value="yes" selected>Oui</option><option value="no">Non</option></select></div>
+        <div id="cfgAIBlock">
+            <div class="config-row"><label>Joueurs IA</label><input type="range" id="multiCfgAI" min="0" max="8" value="2"><span class="val" id="multiCfgAIVal">2</span></div>
+            <div class="config-row"><label>Difficulté IA</label><select id="multiCfgDiff"><option value="easy">Facile</option><option value="normal" selected>Normal</option><option value="brutal">Brutal</option></select></div>
+            <div class="config-row"><label>Compléter par IA</label><select id="multiCfgFillIA"><option value="yes" selected>Oui</option><option value="no">Non</option></select></div>
+        </div>
         <div style="margin-bottom:10px;">
             <div style="font-family:'Exo 2',sans-serif;font-size:12px;color:rgba(200,210,230,0.7);margin-bottom:6px;">Inviter des amis (pseudo)</div>
             <div style="display:flex;gap:6px;margin-bottom:6px;"><input id="multiCfgInviteInput" type="text" placeholder="Pseudo..." style="flex:1;background:rgba(15,23,42,0.8);border:1px solid rgba(100,130,200,0.4);border-radius:6px;padding:6px 10px;color:#E2D9F3;font-family:'Exo 2',sans-serif;font-size:12px;"><button class="btn" id="btnLobbyInvite" style="font-size:12px;padding:6px 12px;margin:0;">Inviter</button></div>
             <div id="multiCfgInviteList" style="font-family:'Exo 2',sans-serif;font-size:11px;color:rgba(160,200,160,0.7);min-height:16px;"></div>
         </div>
-        <div class="config-row"><label>Difficulté IA</label><select id="multiCfgDiff"><option value="easy">Facile</option><option value="normal" selected>Normal</option><option value="brutal">Brutal</option></select></div>
-        <div class="config-row"><label>Vaisseaux ennemis</label><input type="range" id="multiCfgCleaners" min="0" max="25" value="3"><span class="val" id="multiCfgCleanersVal">3</span></div>
+        <div style="margin-bottom:10px;">
+            <div style="font-family:'Exo 2',sans-serif;font-size:12px;color:rgba(251,146,60,0.7);margin-bottom:6px;">Inviter une guilde (tag)</div>
+            <div style="display:flex;gap:6px;margin-bottom:6px;"><input id="multiCfgGuildInput" type="text" placeholder="Tag (ex: NEB)" maxlength="3" style="flex:1;background:rgba(15,23,42,0.8);border:1px solid rgba(251,146,60,0.4);border-radius:6px;padding:6px 10px;color:#FB923C;font-family:'Exo 2',sans-serif;font-size:12px;text-transform:uppercase;"><button class="btn" id="btnLobbyInviteGuild" style="font-size:12px;padding:6px 12px;margin:0;background:rgba(251,146,60,0.15);border-color:rgba(251,146,60,0.4);color:#FB923C;">Inviter</button></div>
+            <div id="multiCfgGuildList" style="font-family:'Exo 2',sans-serif;font-size:11px;color:rgba(251,146,60,0.7);min-height:16px;"></div>
+        </div>
+        <div class="config-row"><label>Vaisseaux ennemis</label><select id="multiCfgCleaners"><option value="on" selected>Activés</option><option value="off">Désactivés</option></select></div>
         <div class="config-row"><label>Météorites</label><select id="multiCfgAsteroids"><option value="on" selected>Activés</option><option value="off">Désactivés</option></select></div>
         <button class="btn" id="btnCreateRoom" style="width:100%; margin-top:16px; font-size:14px; padding:10px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.6); color:#4ADE80; letter-spacing:2px;">CRÉER LA PARTIE</button>
     </div>
@@ -6099,6 +6195,7 @@ function setPhase(phase) {
     document.getElementById('titleScreen').classList.add('hidden');
     document.getElementById('leaderboardScreen').classList.add('hidden');
     document.getElementById('helpScreen').classList.add('hidden');
+    document.getElementById('guildScreen').classList.add('hidden');
     document.getElementById('sporeLabScreen').classList.add('hidden');
     document.getElementById('eventLog').style.display = 'block';
     document.getElementById('configScreen').classList.add('hidden');
@@ -6468,7 +6565,7 @@ function createPlayers() {
     // Mode solo
     gameState.players.push({
         id: 0,
-        name: (currentProfile && currentProfile.pseudo) ? currentProfile.pseudo : 'Commandant',
+        name: (currentProfile && currentProfile.pseudo) ? displayName(currentProfile.pseudo, currentProfile._guildTag) : 'Commandant',
         color: gameState.playerColor,
         isHuman: true,
         isLocal: true,
@@ -7014,7 +7111,7 @@ function updateScoreBoard() {
         hash += player.id + ':' + pct + ',';
         html += `<div class="score-row">
             <div class="score-color" style="background:${player.color}"></div>
-            <span class="score-name">${player.name}</span>
+            <span class="score-name">${player.name}${player.guildTag ? ' <span style="color:rgba(251,146,60,0.6);font-size:10px;">['+player.guildTag+']</span>' : ''}</span>
             <div class="score-bar-bg"><div class="score-bar" style="width:${pct}%;background:${player.color}"></div></div>
             <span class="score-pct">${pct}%</span>
         </div>`;
@@ -12348,8 +12445,25 @@ async function loadProfile(userId) {
         .single();
     if (error || !data) return null;
     _sporeLabLoad(data);
+    // Charger le tag de guilde
+    try {
+        const { data: membership } = await _supa
+            .from('guild_members')
+            .select('role, guilds(id, tag)')
+            .eq('player_id', userId)
+            .maybeSingle();
+        data._guildTag = membership?.guilds?.tag || null;
+        data._guildId = membership?.guilds?.id || null;
+        data._guildRole = membership?.role || null;
+    } catch(e) { data._guildTag = null; data._guildId = null; }
     return data;
     } catch(e) { return null; }
+}
+
+// ── Pseudo avec tag de guilde ──
+function displayName(pseudo, guildTag) {
+    if (!guildTag) return pseudo || '?';
+    return (pseudo || '?') + ' [' + guildTag + ']';
 }
 
 document.getElementById('btnAuthLogin').addEventListener('click', async () => {
@@ -12490,7 +12604,9 @@ function setupGameChannel(roomId) {
             auth: {
                 token: _supa.auth.getSession().then(r => r.data.session?.access_token),
                 pseudo: currentProfile?.pseudo || 'Joueur',
-                color: currentProfile?.color || '#C084FC'
+                color: currentProfile?.color || '#C084FC',
+                guildTag: currentProfile?._guildTag || null,
+                guildId: currentProfile?._guildId || null
             }
         });
         _socket.on('connect', () => {
@@ -12504,6 +12620,20 @@ function setupGameChannel(roomId) {
         _socket.on('game_snapshot', applySnapshot);
         _socket.on('game_events', (events) => events.forEach(handleGameEvent));
         _socket.on('game_end', handleMultiEnd);
+        _socket.on('room_state', (data) => {
+            if (!data?.players) return;
+            data.players.forEach(rp => {
+                const p = gameState.players[rp.slot];
+                if (p && rp.guildTag) p.guildTag = rp.guildTag;
+            });
+        });
+        _socket.on('game_start', (data) => {
+            if (!data?.players) return;
+            data.players.forEach(pd => {
+                const p = gameState.players[pd.slot];
+                if (p) { p.guildTag = pd.guildTag || null; p.guildId = pd.guildId || null; }
+            });
+        });
         _socket.on('bot_vote_update', (data) => {
             const el = document.getElementById('roomStatus');
             if (el) { el.textContent = `🤖 Votes bots : ${data.votes}/${data.total} (majorité requise)`; el.style.color = '#FCD34D'; }
@@ -12708,7 +12838,7 @@ async function refreshRoomSlots(roomId) {
         if (p) {
             const readyCls = p.ready ? 'yes' : 'no';
             const readyTxt = p.ready ? 'PRÊT' : '...';
-            html += `<div class="room-slot"><div class="slot-color" style="background:${esc(p.color)}"></div><span class="slot-name">${esc(p.pseudo)}</span><span class="slot-ready ${readyCls}">${readyTxt}</span></div>`;
+            html += `<div class="room-slot"><div class="slot-color" style="background:${esc(p.color)}"></div><span class="slot-name">${esc(p.pseudo)}${p.guildTag ? ' <span style="color:rgba(251,146,60,0.7);font-size:10px;">['+esc(p.guildTag)+']</span>' : ''}</span><span class="slot-ready ${readyCls}">${readyTxt}</span></div>`;
         } else {
             html += `<div class="room-slot empty"><div class="slot-color" style="background:#333"></div><span class="slot-name" style="color:#64748B;">Slot libre</span></div>`;
         }
@@ -13846,8 +13976,35 @@ document.getElementById('btnLobbyInvite').addEventListener('click', () => {
     list.textContent += (list.textContent ? ', ' : '') + pseudo;
     input.value = '';
 });
+
+document.getElementById('btnLobbyInviteGuild').addEventListener('click', () => {
+    const input = document.getElementById('multiCfgGuildInput');
+    const tag = input.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!tag) return;
+    const list = document.getElementById('multiCfgGuildList');
+    if (!list.textContent.includes('[' + tag + ']')) {
+        list.textContent += (list.textContent ? ', ' : '') + '[' + tag + ']';
+    }
+    input.value = '';
+    _updateLobbyGrisage();
+});
+
+document.getElementById('multiCfgGuildInput').addEventListener('input', (e) => {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+});
+
+document.getElementById('multiCfgFillIA').addEventListener('change', _updateLobbyGrisage);
+
+function _updateLobbyGrisage() {
+    const hasGuild = document.getElementById('multiCfgGuildList').textContent.trim().length > 0;
+    const fillNo = document.getElementById('multiCfgFillIA').value === 'no';
+    const block = document.getElementById('cfgAIBlock');
+    const grised = hasGuild || fillNo;
+    block.style.opacity = grised ? '0.35' : '1';
+    block.style.pointerEvents = grised ? 'none' : 'auto';
+}
+
 document.getElementById('multiCfgAI').addEventListener('input', (e) => { document.getElementById('multiCfgAIVal').textContent = e.target.value; });
-document.getElementById('multiCfgCleaners').addEventListener('input', (e) => { document.getElementById('multiCfgCleanersVal').textContent = e.target.value; });
 (function() {
     const sel = document.getElementById('multiCfgMap');
     MAP_LIBRARY.forEach((m, i) => {
@@ -13861,40 +14018,63 @@ document.getElementById('multiCfgCleaners').addEventListener('input', (e) => { d
         const mapVal = parseInt(sel.value) || 0;
         const m = MAP_LIBRARY[mapVal];
         const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
-        const maxP = Math.min(50, Math.max(2, np <= 10 ? np : np + 5));
+        let maxP = Math.min(50, Math.max(2, np <= 10 ? np : np + 5));
+        // Mode guilde → forcer pair
+        const hasGuild = document.getElementById('multiCfgGuildList').textContent.trim().length > 0;
+        if (hasGuild && maxP % 2 !== 0) maxP = Math.max(2, maxP - 1);
         const aiSlider = document.getElementById('multiCfgAI');
         aiSlider.max = maxP;
         if (parseInt(aiSlider.value) > maxP) { aiSlider.value = maxP; document.getElementById('multiCfgAIVal').textContent = maxP; }
     }
     sel.addEventListener('change', updatePlayerMax);
+    // Recalculer quand une guilde est ajoutée
+    document.getElementById('multiCfgGuildList').addEventListener('DOMSubtreeModified', updatePlayerMax);
     updatePlayerMax();
 })();
-document.getElementById('btnCreateRoom').addEventListener('click', () => {
+document.getElementById('btnCreateRoom').addEventListener('click', async () => {
     playClickSound();
-    const aiCount = parseInt(document.getElementById('multiCfgAI').value);
-    const fillIA = document.getElementById('multiCfgFillIA').value === 'yes';
+    const hasGuild = document.getElementById('multiCfgGuildList').textContent.trim().length > 0;
+    const aiCount = hasGuild ? 0 : parseInt(document.getElementById('multiCfgAI').value);
+    const fillIA = hasGuild ? false : document.getElementById('multiCfgFillIA').value === 'yes';
     const mapIndex = parseInt(document.getElementById('multiCfgMap').value) || 0;
     const inviteList = document.getElementById('multiCfgInviteList').textContent.split(',').map(s=>s.trim()).filter(Boolean);
+    const guildTagList = document.getElementById('multiCfgGuildList').textContent.replace(/\[|\]/g,'').split(',').map(s=>s.trim()).filter(Boolean);
+    const cleanersOn = document.getElementById('multiCfgCleaners').value === 'on';
     const settings = {
-        mapIndex: mapIndex,
+        mapIndex,
         mapName: MAP_LIBRARY[mapIndex].name,
         sunCount: MAP_LIBRARY[mapIndex].suns.length,
         difficulty: document.getElementById('multiCfgDiff').value,
         useIA: aiCount > 0 || fillIA,
-        aiCount: aiCount,
-        fillIA: fillIA,
-        cleanerCount: parseInt(document.getElementById('multiCfgCleaners').value),
+        aiCount,
+        fillIA,
+        cleanerCount: cleanersOn ? Math.max(2, (1 + inviteList.length + aiCount) * 2) : 0,
         useAsteroids: document.getElementById('multiCfgAsteroids').value === 'on',
-        playerCount: 1 + inviteList.length + aiCount
+        playerCount: 1 + inviteList.length + aiCount,
+        guildMode: hasGuild,
+        invitedGuilds: guildTagList
     };
     createRoom('custom', settings, 1 + inviteList.length);
-    // Envoyer les invitations
+    // Invitations joueurs individuels
     for (const pseudo of inviteList) {
         setTimeout(async () => {
             const { data: target } = await _supa.from('profiles').select('id,pseudo').ilike('pseudo', pseudo).single();
             if (!target || !currentRoom) return;
             const ch = _supa.channel('invite-'+target.id);
             ch.subscribe(s => { if (s==='SUBSCRIBED') { ch.send({ type:'broadcast', event:'invite', payload:{ roomId:currentRoom.id, hostPseudo:currentProfile.pseudo, settings } }); setTimeout(()=>ch.unsubscribe(),1000); } });
+        }, 1500);
+    }
+    // Invitations guildes
+    for (const tag of guildTagList) {
+        setTimeout(async () => {
+            const { data: guild } = await _supa.from('guilds').select('id').eq('tag', tag).maybeSingle();
+            if (!guild || !currentRoom) return;
+            const { data: members } = await _supa.from('guild_members').select('player_id').eq('guild_id', guild.id);
+            if (!members) return;
+            for (const m of members) {
+                const ch = _supa.channel('invite-'+m.player_id);
+                ch.subscribe(s => { if (s==='SUBSCRIBED') { ch.send({ type:'broadcast', event:'invite', payload:{ roomId:currentRoom.id, hostPseudo:currentProfile.pseudo, settings, fromGuild: tag } }); setTimeout(()=>ch.unsubscribe(),1000); } });
+            }
         }, 1500);
     }
 });
@@ -13960,6 +14140,163 @@ document.getElementById('btnLeaderboard').addEventListener('click', () => {
     showLeaderboard();
 });
 
+document.getElementById('btnGuilds').addEventListener('click', () => {
+    playClickSound();
+    showGuildScreen();
+});
+
+document.getElementById('btnGuildBack').addEventListener('click', () => {
+    playClickSound();
+    setPhase('title');
+});
+
+document.getElementById('btnCreateGuild').addEventListener('click', () => createGuild());
+document.getElementById('btnJoinGuild').addEventListener('click', () => joinGuild());
+document.getElementById('btnLeaveGuild').addEventListener('click', () => leaveGuild());
+
+document.getElementById('guildLogoInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const preview = document.getElementById('guildLogoPreview');
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+});
+
+document.getElementById('guildTagInput').addEventListener('input', (e) => {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+});
+document.getElementById('guildJoinTagInput').addEventListener('input', (e) => {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+});
+
+async function showGuildScreen() {
+    document.getElementById('titleScreen').classList.add('hidden');
+    document.getElementById('guildScreen').classList.remove('hidden');
+    await refreshGuildScreen();
+}
+
+async function refreshGuildScreen() {
+    if (!currentUser) return;
+    // Charger la guilde du joueur
+    const { data: membership } = await _supa
+        .from('guild_members')
+        .select('guild_id, role, guilds(*)')
+        .eq('player_id', currentUser.id)
+        .maybeSingle();
+
+    const myPanel = document.getElementById('myGuildPanel');
+    const noPanel = document.getElementById('noGuildPanel');
+
+    if (membership?.guilds) {
+        const g = membership.guilds;
+        myPanel.style.display = 'block';
+        noPanel.style.display = 'none';
+        document.getElementById('myGuildName').textContent = g.name;
+        document.getElementById('myGuildTag').textContent = '[' + g.tag + '] · ' + (membership.role === 'owner' ? 'Fondateur' : 'Membre');
+        document.getElementById('myGuildElo').textContent = 'ELO : ' + g.elo;
+        const logo = document.getElementById('myGuildLogo');
+        if (g.logo_url) { logo.src = g.logo_url; logo.style.display = 'block'; }
+        else logo.style.display = 'none';
+        // Membres
+        const { data: members } = await _supa
+            .from('guild_members')
+            .select('role, profiles(pseudo)')
+            .eq('guild_id', g.id);
+        if (members) {
+            document.getElementById('myGuildMembers').innerHTML =
+                '<b style="color:rgba(251,146,60,0.8);">Membres (' + members.length + ') :</b> ' +
+                members.map(m => (m.role === 'owner' ? '👑 ' : '') + (m.profiles?.pseudo || '?')).join(', ');
+        }
+        // Stocker le tag pour l'invitation de guilde
+        currentProfile._guildTag = g.tag;
+        currentProfile._guildId = g.id;
+    } else {
+        myPanel.style.display = 'none';
+        noPanel.style.display = 'block';
+        if (currentProfile) { currentProfile._guildTag = null; currentProfile._guildId = null; }
+    }
+
+    // Classement guildes
+    const { data: ranking } = await _supa
+        .from('guild_leaderboard')
+        .select('*')
+        .limit(20);
+    const lb = document.getElementById('guildLeaderboard');
+    if (ranking && ranking.length > 0) {
+        lb.innerHTML = ranking.map((g, i) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+            const eloColor = g.elo >= 1200 ? '#FFD700' : g.elo >= 1000 ? '#4ADE80' : '#94A3B8';
+            return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(251,146,60,0.1);">
+                <span style="width:24px;text-align:center;">${medal}</span>
+                ${g.logo_url ? `<img src="${g.logo_url}" style="width:24px;height:24px;border-radius:4px;object-fit:cover;">` : '<div style="width:24px;height:24px;background:rgba(251,146,60,0.2);border-radius:4px;"></div>'}
+                <span style="flex:1;color:#FB923C;">${esc(g.name)} <span style="color:rgba(251,146,60,0.5);">[${esc(g.tag)}]</span></span>
+                <span style="color:${eloColor};font-family:'Orbitron',monospace;font-size:11px;">${g.elo}</span>
+                <span style="color:#64748B;font-size:11px;">${g.member_count} mbr</span>
+            </div>`;
+        }).join('');
+    } else {
+        lb.textContent = 'Aucune guilde enregistrée.';
+    }
+}
+
+async function createGuild() {
+    const name = document.getElementById('guildNameInput').value.trim();
+    const tag = document.getElementById('guildTagInput').value.trim().toUpperCase();
+    const logoFile = document.getElementById('guildLogoInput').files[0];
+    const msg = document.getElementById('guildCreateMsg');
+    if (!name || !tag) { msg.textContent = 'Nom et tag requis.'; msg.style.color = '#F87171'; return; }
+    if (tag.length > 3) { msg.textContent = 'Tag : 3 lettres max.'; msg.style.color = '#F87171'; return; }
+    msg.textContent = 'Création en cours...'; msg.style.color = '#94A3B8';
+    try {
+        let logo_url = null;
+        if (logoFile) {
+            if (logoFile.size > 1024 * 1024) { msg.textContent = 'Logo trop lourd (max 1MB).'; msg.style.color = '#F87171'; return; }
+            const ext = logoFile.name.split('.').pop();
+            const path = currentUser.id + '_' + Date.now() + '.' + ext;
+            const { error: upErr } = await _supa.storage.from('guild-logos').upload(path, logoFile, { upsert: true });
+            if (upErr) throw upErr;
+            const { data: urlData } = _supa.storage.from('guild-logos').getPublicUrl(path);
+            logo_url = urlData.publicUrl;
+        }
+        const { data: guild, error } = await _supa.from('guilds')
+            .insert({ name, tag, logo_url, created_by: currentUser.id })
+            .select().single();
+        if (error) throw error;
+        await _supa.from('guild_members').insert({ guild_id: guild.id, player_id: currentUser.id, role: 'owner' });
+        msg.textContent = 'Guilde créée !'; msg.style.color = '#4ADE80';
+        await refreshGuildScreen();
+    } catch(e) {
+        msg.textContent = e.message?.includes('unique') ? 'Nom ou tag déjà pris.' : 'Erreur : ' + e.message;
+        msg.style.color = '#F87171';
+    }
+}
+
+async function joinGuild() {
+    const tag = document.getElementById('guildJoinTagInput').value.trim().toUpperCase();
+    const msg = document.getElementById('guildJoinMsg');
+    if (!tag) { msg.textContent = 'Entre un tag.'; msg.style.color = '#F87171'; return; }
+    msg.textContent = 'Recherche...'; msg.style.color = '#94A3B8';
+    try {
+        const { data: guild, error } = await _supa.from('guilds').select('id, name').eq('tag', tag).maybeSingle();
+        if (error || !guild) { msg.textContent = 'Guilde introuvable.'; msg.style.color = '#F87171'; return; }
+        await _supa.from('guild_members').insert({ guild_id: guild.id, player_id: currentUser.id, role: 'member' });
+        msg.textContent = 'Vous avez rejoint ' + guild.name + ' !'; msg.style.color = '#4ADE80';
+        await refreshGuildScreen();
+    } catch(e) {
+        msg.textContent = (e.message?.includes('unique') || e.message?.includes('guild_members_one_guild')) ? 'Vous appartenez déjà à une guilde. Quittez-la d\'abord.' : 'Erreur : ' + e.message;
+        msg.style.color = '#F87171';
+    }
+}
+
+async function leaveGuild() {
+    if (!confirm('Quitter votre guilde ?')) return;
+    if (!currentProfile?._guildId) return;
+    try {
+        await _supa.from('guild_members').delete().eq('guild_id', currentProfile._guildId).eq('player_id', currentUser.id);
+        await refreshGuildScreen();
+    } catch(e) { console.warn('leaveGuild:', e); }
+}
+
 document.getElementById('btnHelp').addEventListener('click', () => {
     playClickSound();
     document.getElementById('titleScreen').classList.add('hidden');
@@ -13984,34 +14321,101 @@ async function showLeaderboard() {
     body.innerHTML = '<tr><td colspan="5" style="color:#94A3B8; text-align:center; padding:20px;">Chargement...</td></tr>';
     empty.style.display = 'none';
 
+    // ── Colonne Joueurs ──
     try {
         const { data, error } = await _supa.from('leaderboard').select('*').order('elo', { ascending: false }).limit(50);
         if (error) throw error;
-        if (!data || data.length === 0) {
-            body.innerHTML = '';
-            empty.style.display = 'block';
-            return;
+        if (!data || data.length === 0) { body.innerHTML = ''; empty.style.display = 'block'; }
+        else {
+            body.innerHTML = data.map((row, i) => {
+                const rank = i + 1;
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+                const isMe = currentProfile && row.pseudo === currentProfile.pseudo;
+                const bg = isMe ? 'background:rgba(139,92,246,0.15);' : '';
+                const elo = row.elo ?? 1000;
+                const eloColor = elo >= 1200 ? '#FFD700' : elo >= 1000 ? '#4ADE80' : '#94A3B8';
+                return `<tr style="${bg} border-bottom:1px solid rgba(139,92,246,0.1);">
+                    <td style="padding:6px 4px; color:#E0E7FF;">${medal}</td>
+                    <td style="padding:6px 4px; color:${esc(row.avatar_color || '#E0E7FF')}; font-weight:${isMe ? 'bold' : 'normal'};">${esc(row.pseudo)}</td>
+                    <td style="padding:6px 4px; text-align:center; color:${eloColor}; font-family:'Orbitron',monospace; font-size:12px;">${elo}</td>
+                    <td style="padding:6px 4px; text-align:center; color:#22C55E;">${row.wins}</td>
+                    <td style="padding:6px 4px; text-align:center; color:#FBBF24;">${row.win_rate}%</td>
+                </tr>`;
+            }).join('');
         }
-        body.innerHTML = data.map((row, i) => {
-            const rank = i + 1;
-            const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
-            const isMe = currentProfile && row.pseudo === currentProfile.pseudo;
-            const bg = isMe ? 'background:rgba(139,92,246,0.15);' : '';
-            const elo = row.elo ?? 1000;
-            const eloColor = elo >= 1200 ? '#FFD700' : elo >= 1000 ? '#4ADE80' : '#94A3B8';
-            return `<tr style="${bg} border-bottom:1px solid rgba(139,92,246,0.1);">
-                <td style="padding:8px; color:#E0E7FF;">${medal}</td>
-                <td style="padding:8px; color:${esc(row.avatar_color || '#E0E7FF')}; font-weight:${isMe ? 'bold' : 'normal'};">${esc(row.pseudo)}</td>
-                <td style="padding:8px; text-align:center; color:${eloColor}; font-family:'Orbitron',monospace; font-size:13px;">${elo}</td>
-                <td style="padding:8px; text-align:center; color:#22C55E;">${row.wins}</td>
-                <td style="padding:8px; text-align:center; color:#94A3B8;">${row.total_games}</td>
-                <td style="padding:8px; text-align:center; color:#FBBF24;">${row.win_rate}%</td>
-            </tr>`;
-        }).join('');
-    } catch (e) {
-        body.innerHTML = '<tr><td colspan="5" style="color:#EF4444; text-align:center; padding:20px;">Erreur de chargement</td></tr>';
-        console.warn('Erreur leaderboard:', e);
+    } catch(e) {
+        body.innerHTML = '<tr><td colspan="5" style="color:#EF4444; text-align:center; padding:20px;">Erreur</td></tr>';
     }
+
+    // ── Colonne Guildes ──
+    const glb = document.getElementById('guildLeaderboardRanking');
+    try {
+        const { data: guilds } = await _supa.from('guild_leaderboard').select('*').limit(30);
+        if (!guilds || guilds.length === 0) { glb.textContent = 'Aucune guilde.'; return; }
+        glb.innerHTML = guilds.map((g, i) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+            const eloColor = g.elo >= 1200 ? '#FFD700' : g.elo >= 1000 ? '#4ADE80' : '#94A3B8';
+            const isMyGuild = currentProfile?._guildTag === g.tag;
+            const bg = isMyGuild ? 'background:rgba(251,146,60,0.1);' : '';
+            return `<div onclick="openGuildProfile('${g.id}')" style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:7px 4px; border-bottom:1px solid rgba(251,146,60,0.1); ${bg} border-radius:4px;">
+                <span style="width:24px; text-align:center; font-size:13px;">${medal}</span>
+                ${g.logo_url ? `<img src="${esc(g.logo_url)}" style="width:26px;height:26px;border-radius:4px;object-fit:cover;">` : '<div style="width:26px;height:26px;background:rgba(251,146,60,0.15);border-radius:4px;"></div>'}
+                <span style="flex:1; color:#FB923C; font-size:13px;">${esc(g.name)} <span style="color:rgba(251,146,60,0.5); font-size:11px;">[${esc(g.tag)}]</span></span>
+                <span style="color:${eloColor}; font-family:'Orbitron',monospace; font-size:11px;">${g.elo}</span>
+                <span style="color:#64748B; font-size:11px;">${g.member_count}m</span>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        glb.textContent = 'Erreur de chargement.';
+    }
+}
+
+async function openGuildProfile(guildId) {
+    const { data: g } = await _supa.from('guild_leaderboard').select('*').eq('id', guildId).single();
+    if (!g) return;
+    const { data: members } = await _supa.from('guild_members').select('role, profiles(pseudo, elo)').eq('guild_id', guildId);
+    const popup = document.getElementById('guildProfilePopup');
+    const logo = document.getElementById('gpLogo');
+    if (g.logo_url) { logo.src = g.logo_url; logo.style.display = 'block'; } else logo.style.display = 'none';
+    document.getElementById('gpName').textContent = g.name;
+    document.getElementById('gpTag').textContent = '[' + g.tag + '] · ' + g.member_count + ' membre(s)';
+    document.getElementById('gpElo').textContent = 'ELO Guilde : ' + g.elo;
+    document.getElementById('gpDesc').textContent = g.description || 'Aucune présentation.';
+    document.getElementById('gpDescEdit').value = g.description || '';
+    document.getElementById('gpDescEdit').style.display = 'none';
+    document.getElementById('gpDesc').style.display = 'block';
+    document.getElementById('gpSaveBtn').style.display = 'none';
+    if (members) {
+        document.getElementById('gpMembers').innerHTML = '<b style="color:rgba(251,146,60,0.6);">Membres :</b> ' +
+            members.map(m => (m.role === 'owner' ? '👑 ' : '') + (m.profiles?.pseudo || '?') + ' <span style="color:#4ADE80;font-size:10px;">(' + (m.profiles?.elo ?? 1000) + ')</span>').join(', ');
+    }
+    // Bouton édition visible seulement si fondateur
+    const isOwner = currentProfile?._guildId === guildId && members?.find(m => m.profiles?.pseudo === currentProfile?.pseudo && m.role === 'owner');
+    const editBtn = document.getElementById('gpEditBtn');
+    editBtn.style.display = isOwner ? 'inline-block' : 'none';
+    editBtn.onclick = () => {
+        document.getElementById('gpDesc').style.display = 'none';
+        document.getElementById('gpDescEdit').style.display = 'block';
+        document.getElementById('gpSaveBtn').style.display = 'inline-block';
+        editBtn.style.display = 'none';
+    };
+    document.getElementById('gpSaveBtn').onclick = async () => {
+        const desc = document.getElementById('gpDescEdit').value.trim();
+        await _supa.from('guilds').update({ description: desc }).eq('id', guildId);
+        document.getElementById('gpDesc').textContent = desc || 'Aucune présentation.';
+        document.getElementById('gpDesc').style.display = 'block';
+        document.getElementById('gpDescEdit').style.display = 'none';
+        document.getElementById('gpSaveBtn').style.display = 'none';
+        editBtn.style.display = 'inline-block';
+    };
+    document.getElementById('gpCloseBtn').onclick = closeGuildProfile;
+    document.getElementById('guildProfileOverlay').style.display = 'block';
+    popup.style.display = 'block';
+}
+
+function closeGuildProfile() {
+    document.getElementById('guildProfilePopup').style.display = 'none';
+    document.getElementById('guildProfileOverlay').style.display = 'none';
 }
 
 document.getElementById('uiResetBtn').addEventListener('click', () => {
