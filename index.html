@@ -7572,6 +7572,7 @@ function updateSporeGeneration(dt) {
                 if ((body.buildProgress || 0) >= _buildCost) {
                     body.buildProgress = 0;
                     body.buildMode = 'off'; // prod reprend automatiquement
+                    if (body.owner === localSlot()) playBuildSound();
                     if (_buildType === 'nid') {
                         body.nids = (body.nids || 0) + 1;
                         if (body.owner === localSlot()) addEvent('build', '🏗️', `Nid construit sur ${body.name} (×${body.nids})`, body, gameState.players[localSlot()]?.color);
@@ -10901,6 +10902,22 @@ function ensureAudio() {
     if (gameState.audio.ctx.state === 'suspended') {
         gameState.audio.ctx.resume();
     }
+    // Charger les buffers audio si pas encore fait
+    if (!gameState.audio._buffersLoading && Object.keys(gameState.audio.buffers).length === 0) {
+        gameState.audio._buffersLoading = true;
+        loadAudioBuffers();
+    }
+}
+
+function playBuildSound() {
+    if (!gameState.audio.initialized || gameState.audio.muted) return;
+    if (gameState.audio.buffers.build_complete) { _playBuffer('build_complete', 0.6); return; }
+    // Fallback placeholder
+    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
+    const o = ac.createOscillator(); o.type = 'triangle';
+    o.frequency.setValueAtTime(400, t); o.frequency.exponentialRampToValueAtTime(800, t + 0.3);
+    const g = ac.createGain(); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.5);
 }
 
 // ── Ambiance spatiale (drone) ──
@@ -11539,8 +11556,64 @@ function _playBuf(bufName) {
 }
 
 // ── Clic menu (3 variantes) ──
+const AUDIO_BASE = 'https://gadmy.github.io/nebula-conquest/Audio/';
+const AUDIO_FILES = {
+    click_menu:      'click_menu_v1.mp3',
+    alliance:        'Alliance_v1.mp3',
+    alliance_break:  'Alliance_break_v1.mp3',
+    banner:          'banner_v1.mp3',
+    signal:          'signal_v1.mp3',
+    nidification:    'nidification.mp3',
+    trade_orb:       'trade_orb_v1.mp3',
+    intercept:       'intercept.mp3',
+    build_complete:  'build_complet_v1.mp3',
+    title_music:     'title_music.mp3',
+    amb_calm_1:      'amb_calm_1.mp3',
+    amb_calm_2:      'amb_calm_2.mp3',
+    amb_calm_3:      'amb_calm_3.mp3',
+    amb_calm_4:      'amb_calm_4.mp3',
+    amb_calm_5:      'amb_calm_5.mp3',
+    amb_tense_1:     'amb_tense_1.mp3',
+    amb_tense_2:     'amb_tense_2.mp3',
+    amb_tense_3:     'amb_tense_3.mp3',
+    amb_tense_4:     'amb_tense_4.mp3',
+    amb_tense_5:     'amb_tense_5.mp3',
+};
+
+async function loadAudioBuffers() {
+    if (!gameState.audio.ctx) return;
+    const ac = gameState.audio.ctx;
+    for (const [key, file] of Object.entries(AUDIO_FILES)) {
+        try {
+            const resp = await fetch(AUDIO_BASE + file);
+            const arr = await resp.arrayBuffer();
+            gameState.audio.buffers[key] = await ac.decodeAudioData(arr);
+        } catch(e) {
+            console.warn('[audio] Impossible de charger', file, e.message);
+        }
+    }
+    console.log('[audio] Buffers chargés :', Object.keys(gameState.audio.buffers).length);
+}
+
+function _playBuffer(key, volume = 1.0, loop = false) {
+    if (!gameState.audio.initialized || gameState.audio.muted) return null;
+    const buf = gameState.audio.buffers[key];
+    if (!buf) return null;
+    const ac = gameState.audio.ctx;
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    src.loop = loop;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(volume, ac.currentTime);
+    src.connect(g);
+    g.connect(gameState.audio.masterGain);
+    src.start();
+    return { src, gain: g };
+}
+
 function playClickSound() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
+    if (gameState.audio.buffers.click_menu) { _playBuffer('click_menu', 0.6); return; }
     const ac = gameState.audio.ctx;
     const master = gameState.audio.masterGain;
     const t = ac.currentTime;
@@ -11567,9 +11640,10 @@ function playClickSound() {
     _rndV(variants)();
 }
 
-// ── Nidification (3 variantes) ──
+// ── Nidification ──
 function playNidificationSound() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
+    if (gameState.audio.buffers.nidification) { _playBuffer('nidification', 0.8); return; }
     const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
     const variants = [
         () => { // nidification_v1 — montée majestueuse
@@ -11585,9 +11659,10 @@ function playNidificationSound() {
     _rndV(variants)();
 }
 
-// ── Alliance / Mélange d'ADN (3 variantes) ──
+// ── Alliance ──
 function playAllianceSound() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
+    if (gameState.audio.buffers.alliance) { _playBuffer('alliance', 0.7); return; }
     const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
     const variants = [
         () => { // alliance_v1 — deux tons qui se rejoignent
@@ -11603,9 +11678,10 @@ function playAllianceSound() {
     _rndV(variants)();
 }
 
-// ── Orbe de commerce (3 variantes) ──
+// ── Orbe de commerce ──
 function playTradeOrbSound() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
+    if (gameState.audio.buffers.trade_orb) { _playBuffer('trade_orb', 0.6); return; }
     const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
     const variants = [
         () => { // trade_orb_v1 — tintement cristallin
@@ -11621,9 +11697,10 @@ function playTradeOrbSound() {
     _rndV(variants)();
 }
 
-// ── Signal émoji (3 variantes) ──
+// ── Signal émoji ──
 function playSignalSound() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
+    if (gameState.audio.buffers.signal) { _playBuffer('signal', 0.6); return; }
     const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
     const variants = [
         () => { // signal_v1 — bip court
@@ -11639,9 +11716,10 @@ function playSignalSound() {
     _rndV(variants)();
 }
 
-// ── Bannière / Notification globale (3 variantes) ──
+// ── Bannière / Notification globale ──
 function playBannerSound() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
+    if (gameState.audio.buffers.banner) { _playBuffer('banner', 0.7); return; }
     const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
     const variants = [
         () => { // banner_v1 — fanfare courte
@@ -11657,9 +11735,10 @@ function playBannerSound() {
     _rndV(variants)();
 }
 
-// ── Interception orbe (3 variantes) ──
+// ── Interception orbe ──
 function playInterceptSound() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
+    if (gameState.audio.buffers.intercept) { _playBuffer('intercept', 0.7); return; }
     const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
     const variants = [
         () => { // intercept_v1 — impact sec
@@ -11678,6 +11757,7 @@ function playInterceptSound() {
 // ── Rupture alliance (3 variantes) ──
 function playAllianceBreakSound() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
+    if (gameState.audio.buffers.alliance_break) { _playBuffer('alliance_break', 0.7); return; }
     const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
     const variants = [
         () => { // alliance_break_v1 — descente dissonante
@@ -11700,10 +11780,13 @@ function playAllianceBreakSound() {
 let _titleMusicNode = null;
 function playTitleMusic() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
-    if (_titleMusicNode) return; // déjà en cours
+    if (_titleMusicNode) return;
+    if (gameState.audio.buffers.title_music) {
+        const n = _playBuffer('title_music', 0.5, true);
+        if (n) { _titleMusicNode = n; return; }
+    }
+    // Fallback placeholder
     const ac = gameState.audio.ctx; const master = gameState.audio.masterGain;
-    // TODO: charger title_music.ogg et connecter ici
-    // PLACEHOLDER : drone ambiant simple pour le menu
     const osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.value = 55;
     const lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.08;
     const lfoGain = ac.createGain(); lfoGain.gain.value = 8;
@@ -11715,7 +11798,10 @@ function playTitleMusic() {
 }
 function stopTitleMusic() {
     if (!_titleMusicNode) return;
-    try { _titleMusicNode.osc.stop(); _titleMusicNode.lfo.stop(); } catch(e) {}
+    try {
+        if (_titleMusicNode.src) { _titleMusicNode.src.stop(); }
+        else { _titleMusicNode.osc.stop(); _titleMusicNode.lfo.stop(); }
+    } catch(e) {}
     _titleMusicNode = null;
 }
 
@@ -11751,8 +11837,22 @@ function updateAmbiance() {
     _ambianceType = targetType;
     const pool = targetType === 'tense' ? AMBIANCE_TENSE : AMBIANCE_CALM;
     _ambianceIdx = Math.floor(Math.random() * pool.length);
-    // TODO: charger pool[_ambianceIdx] et jouer en boucle
-    // PLACEHOLDER : modifie le drone existant selon la tension
+    const key = pool[_ambianceIdx];
+    if (_ambianceNode) {
+        try { _ambianceNode.src.stop(); } catch(e) {}
+        _ambianceNode = null;
+    }
+    if (gameState.audio.buffers[key]) {
+        _ambianceNode = _playBuffer(key, 0.35, true);
+    }
+}
+
+function stopAmbiance() {
+    if (_ambianceNode) {
+        try { _ambianceNode.src.stop(); } catch(e) {}
+        _ambianceNode = null;
+    }
+    _ambianceType = null;
 }
 
 function updateOrbitHum() {
