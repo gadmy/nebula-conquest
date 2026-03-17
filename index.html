@@ -1449,6 +1449,7 @@ input[type="radio"]:checked + .build-icon-btn {
                 <tr style="color:#8B5CF6; border-bottom:1px solid rgba(139,92,246,0.3);">
                     <th style="padding:8px; text-align:left;">#</th>
                     <th style="padding:8px; text-align:left;">Joueur</th>
+                    <th style="padding:8px; text-align:center;">ELO</th>
                     <th style="padding:8px; text-align:center;">Victoires</th>
                     <th style="padding:8px; text-align:center;">Parties</th>
                     <th style="padding:8px; text-align:center;">%</th>
@@ -1597,10 +1598,11 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;"><span style="color:#4ADE80;">Rejoindre</span> : depuis le menu principal, "REJOINDRE" vous place dans la prochaine partie disponible. Le compteur <span style="color:#4ADE80;">X/N joueurs</span> s'affiche en temps réel. La partie se lance automatiquement quand le lobby est plein.</p>
 <p style="margin-bottom:6px;"><span style="color:#4ADE80;">Créer une partie</span> : choisissez la carte, ajoutez des IA, invitez des amis par pseudo. Option "Compléter par IA" pour remplir les slots vides automatiquement au lancement.</p>
 <p style="margin-bottom:6px;">Les joueurs IA portent des noms générés aléatoirement (ex. [IA] Zyrex, [IA] Vorath…). Ils acceptent automatiquement les propositions d'alliance.</p>
-<p style="margin-bottom:16px;">Le nombre maximum de joueurs est calculé selon la carte : <span style="color:#FFD700;">≤ 10 planètes → max = nb planètes · > 10 planètes → max = nb planètes + 5</span> (±5% aléatoire). La partie se lance quand tous les slots sont remplis.</p>
+<p style="margin-bottom:6px;">Le nombre maximum de joueurs est calculé selon la carte : <span style="color:#FFD700;">≤ 10 planètes → max = nb planètes · > 10 planètes → max = nb planètes + 5</span>. La partie se lance quand tous les slots sont remplis.</p>
+<p style="margin-bottom:6px;"><span style="color:#A5B4FC;">👁 Spectateur</span> : si vous êtes éliminé en multijoueur, le bouton <span style="color:#A5B4FC;">REGARDER</span> apparaît sur l'écran de défaite. Cliquez dessus pour continuer à observer la partie en cours sans interagir. Un bandeau <span style="color:#A5B4FC;">👁 SPECTATEUR</span> s'affiche en haut de l'écran.</p>
+<p style="margin-bottom:16px;">Les scores de fin de partie sont enregistrés automatiquement dans le classement global (astres conquis, jets lancés, durée).</p>
 
-<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v4.3</p>
-        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🎯 OBJECTIF</p>
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v4.5</p>
         <p style="margin-bottom:16px;">Conquérir <span style="color:#FFD700;">80%</span> des astres de la galaxie. Colonisez des planètes et des lunes en envoyant vos <span style="color:#C8A0FF;">spores</span> à travers l'espace.</p>
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🚀 CONTRÔLES</p>
         <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">Clic maintenu + glisser</span> depuis un astre possédé → lance un jet de spores vers la cible</p>
@@ -8358,6 +8360,7 @@ function setupInput() {
     // ── Clic gauche ──
     canvas.addEventListener('mousedown', (e) => {
         if (e.button !== 0 || gameState.phase !== 'game') return;
+        if (gameState.isSpectator) return;
         const wp = _worldPos(e.clientX, e.clientY);
 
         // Phase aiming : maintien gauche → dézoom progressif, relâche → tir
@@ -10311,6 +10314,8 @@ function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverr
     `;
 
     document.getElementById('endScreen').classList.add('active');
+    const btnSpectate = document.getElementById('btnSpectate');
+    if (btnSpectate) btnSpectate.style.display = (!isVictory && gameState.isMulti) ? 'inline-block' : 'none';
     stopAmbiance();
     if (isVictory) playVictorySound();
     else playDefeatSound();
@@ -10335,6 +10340,23 @@ async function saveGame(isVictory, stats, human, totalBodies) {
         console.warn('Erreur sauvegarde partie:', e);
     }
 }
+
+function enterSpectatorMode() {
+    document.getElementById('endScreen').classList.remove('active');
+    gameState.phase = 'game';
+    gameState.isSpectator = true;
+    let band = document.getElementById('spectatorBand');
+    if (!band) {
+        band = document.createElement('div');
+        band.id = 'spectatorBand';
+        band.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:99;background:rgba(99,102,241,0.25);border:1px solid rgba(99,102,241,0.5);border-radius:20px;padding:4px 18px;font-family:Orbitron,monospace;font-size:10px;color:#A5B4FC;letter-spacing:2px;pointer-events:none;';
+        band.textContent = '👁 SPECTATEUR';
+        document.body.appendChild(band);
+    }
+    band.style.display = 'block';
+}
+
+document.getElementById('btnSpectate')?.addEventListener('click', enterSpectatorMode);
 
 function hideEndScreen() {
     document.getElementById('endScreen').classList.remove('active');
@@ -11941,6 +11963,7 @@ window.addEventListener('load', init);
     <div class="end-stats" id="endStats"></div>
     <div class="end-buttons">
         <button class="btn" id="btnReplay">REJOUER</button>
+        <button class="btn" id="btnSpectate" style="display:none; background:rgba(99,102,241,0.2); border-color:rgba(99,102,241,0.5); color:#A5B4FC;">REGARDER</button>
         <button class="btn" id="btnEndQuit">MENU</button>
     </div>
 </div>
@@ -12500,6 +12523,18 @@ function handleMultiEnd(data) {
     };
     showEndScreen(isVictory, stats, human, totalBodies);
     saveGame(isVictory, stats, human, totalBodies);
+    // Afficher delta ELO
+    if (data.eloResults && currentUser) {
+        const myElo = data.eloResults.find(r => r.userId === currentUser.id);
+        if (myElo) {
+            const sign = myElo.delta >= 0 ? '+' : '';
+            const color = myElo.delta >= 0 ? '#4ADE80' : '#EF4444';
+            const el = document.createElement('div');
+            el.style.cssText = `font-family:'Orbitron',monospace;font-size:18px;color:${color};text-align:center;margin-top:8px;letter-spacing:2px;`;
+            el.textContent = `ELO ${sign}${myElo.delta} → ${myElo.newElo}`;
+            document.getElementById('endStats')?.appendChild(el);
+        }
+    }
 }
 
 function applySnapshot(snap) {
@@ -13921,7 +13956,7 @@ async function showLeaderboard() {
     empty.style.display = 'none';
 
     try {
-        const { data, error } = await _supa.from('leaderboard').select('*').limit(50);
+        const { data, error } = await _supa.from('leaderboard').select('*').order('elo', { ascending: false }).limit(50);
         if (error) throw error;
         if (!data || data.length === 0) {
             body.innerHTML = '';
@@ -13933,9 +13968,12 @@ async function showLeaderboard() {
             const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
             const isMe = currentProfile && row.pseudo === currentProfile.pseudo;
             const bg = isMe ? 'background:rgba(139,92,246,0.15);' : '';
+            const elo = row.elo ?? 1000;
+            const eloColor = elo >= 1200 ? '#FFD700' : elo >= 1000 ? '#4ADE80' : '#94A3B8';
             return `<tr style="${bg} border-bottom:1px solid rgba(139,92,246,0.1);">
                 <td style="padding:8px; color:#E0E7FF;">${medal}</td>
                 <td style="padding:8px; color:${esc(row.avatar_color || '#E0E7FF')}; font-weight:${isMe ? 'bold' : 'normal'};">${esc(row.pseudo)}</td>
+                <td style="padding:8px; text-align:center; color:${eloColor}; font-family:'Orbitron',monospace; font-size:13px;">${elo}</td>
                 <td style="padding:8px; text-align:center; color:#22C55E;">${row.wins}</td>
                 <td style="padding:8px; text-align:center; color:#94A3B8;">${row.total_games}</td>
                 <td style="padding:8px; text-align:center; color:#FBBF24;">${row.win_rate}%</td>
