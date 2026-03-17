@@ -1418,6 +1418,7 @@ input[type="radio"]:checked + .build-icon-btn {
         <canvas id="qmPreview" width="320" height="120" style="display:block; margin:0 auto 8px; border-radius:6px; border:1px solid rgba(34,197,94,0.2); background:rgba(5,8,25,0.9);"></canvas>
         <div id="qmParams" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(200,210,230,0.7); margin-bottom:10px;">Chargement...</div>
         <button class="btn" id="btnQuickMatch" style="width:100%; font-size:14px; padding:10px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.6); color:#4ADE80; letter-spacing:3px;">▶ REJOINDRE</button>
+        <button class="btn" id="btnQuickMatchBots" style="width:100%; font-size:14px; padding:10px; margin-top:6px; background:rgba(251,191,36,0.15); border-color:rgba(251,191,36,0.4); color:#FCD34D; letter-spacing:2px;">🤖 REJOINDRE (OK POUR BOTS)</button>
     </div>
     <button class="btn" id="btnNewGame">NOUVELLE PARTIE (SOLO)</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">CRÉER PARTIE MULTI</button>
@@ -12494,11 +12495,24 @@ function setupGameChannel(roomId) {
         });
         _socket.on('connect', () => {
             _socket.emit('join_room', { roomId });
+            if (gameState._pendingBotVote) {
+                gameState._pendingBotVote = false;
+                setTimeout(() => _socket.emit('vote_bots'), 500);
+            }
             resolve();
         });
         _socket.on('game_snapshot', applySnapshot);
         _socket.on('game_events', (events) => events.forEach(handleGameEvent));
         _socket.on('game_end', handleMultiEnd);
+        _socket.on('bot_vote_update', (data) => {
+            const el = document.getElementById('roomStatus');
+            if (el) { el.textContent = `🤖 Votes bots : ${data.votes}/${data.total} (majorité requise)`; el.style.color = '#FCD34D'; }
+        });
+        _socket.on('bot_countdown', (data) => {
+            const el = document.getElementById('roomStatus');
+            if (el) { el.textContent = `🤖 Lancement avec bots dans ${data.remaining}s...`; el.style.color = '#FCD34D'; }
+            if (data.remaining <= 0) launchWithAI();
+        });
         _socket.on('error', (e) => console.warn('[socket] erreur:', e.msg));
         setTimeout(resolve, 3000);
     });
@@ -12784,12 +12798,13 @@ function startQmPolling(roomId) {
         }
     }, 2000);
 }
-async function quickMatch() {
+async function quickMatch(okForBots = false) {
     if (!currentUser || !currentProfile) {
         alert('Vous devez être connecté pour jouer en ligne.');
         showAuthScreen();
         return;
     }
+    if (okForBots) gameState._pendingBotVote = true;
     // Nettoyer les rooms abandonnées (>30min en waiting)
     try {
         const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
@@ -13807,7 +13822,21 @@ document.getElementById('btnQuickMatch').addEventListener('click', () => {
         alert('Vous devez attendre la fin de votre partie ou y retourner.');
         return;
     }
-    quickMatch();
+    quickMatch(false);
+});
+document.getElementById('btnQuickMatchBots').addEventListener('click', () => {
+    playClickSound();
+    if (!_checkSporeReady()) return;
+    _applyActiveSpore();
+    if (_leftRoom) {
+        if (confirm('Vous avez une partie en cours. Rejoindre ?')) {
+            rejoinGame();
+            return;
+        }
+        alert('Vous devez attendre la fin de votre partie ou y retourner.');
+        return;
+    }
+    quickMatch(true);
 });
 document.getElementById('btnLobbyInvite').addEventListener('click', () => {
     const input = document.getElementById('multiCfgInviteInput');
