@@ -1554,7 +1554,8 @@ input[type="radio"]:checked + .build-icon-btn {
 
 <!-- ═══ ÉCRAN AIDE ═══ -->
 <div id="helpScreen" class="screen hidden">
-    <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:20px; letter-spacing:3px;">LIVRE DES RÈGLES</h2>
+    <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:12px; letter-spacing:3px;">LIVRE DES RÈGLES</h2>
+    <button class="btn" id="btnStartTutorial" style="margin-bottom:16px; background:rgba(34,197,94,0.2); border:1px solid rgba(34,197,94,0.5); color:#4ADE80; font-size:13px; padding:10px 28px; letter-spacing:2px;">🎮 LANCER LE TUTORIEL</button>
     <div style="background:rgba(15,23,42,0.92); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px 28px; max-width:620px; margin:0 auto; max-height:70vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(100,180,255,0.3) transparent; font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.85); line-height:1.6;">
 
 <!-- Navigation chapitres -->
@@ -1763,6 +1764,7 @@ input[type="radio"]:checked + .build-icon-btn {
         </div>
         <div class="config-row"><label>Vaisseaux ennemis</label><select id="multiCfgCleaners"><option value="on" selected>Activés</option><option value="off">Désactivés</option></select></div>
         <div class="config-row"><label>Météorites</label><select id="multiCfgAsteroids"><option value="on" selected>Activés</option><option value="off">Désactivés</option></select></div>
+        <div class="config-row"><label>Mode équipes</label><select id="multiCfgTeams"><option value="0">Chacun pour soi</option><option value="2">2 équipes</option><option value="3">3 équipes</option><option value="4">4 équipes</option></select></div>
         <button class="btn" id="btnCreateRoom" style="width:100%; margin-top:16px; font-size:14px; padding:10px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.6); color:#4ADE80; letter-spacing:2px;">CRÉER LA PARTIE</button>
     </div>
     <button class="btn" id="btnLobbyBack" style="margin-top:16px;">RETOUR</button>
@@ -1793,6 +1795,30 @@ input[type="radio"]:checked + .build-icon-btn {
 </div>
 
 <div id="gameTopBanner"></div>
+
+<!-- ═══ OVERLAY TUTORIEL ═══ -->
+<div id="tutorialOverlay" style="display:none; position:fixed; inset:0; z-index:500; pointer-events:none;">
+    <!-- Popup -->
+    <div id="tutorialPopup" style="position:absolute; background:rgba(10,15,35,0.97); border:2px solid rgba(100,180,255,0.6); border-radius:14px; padding:18px 22px; max-width:320px; box-shadow:0 0 30px rgba(100,180,255,0.3); pointer-events:auto;">
+        <div id="tutorialStep" style="font-family:'Orbitron',monospace; font-size:9px; color:rgba(100,180,255,0.5); letter-spacing:2px; margin-bottom:8px;"></div>
+        <div id="tutorialText" style="font-family:'Exo 2',sans-serif; font-size:14px; color:#E0E7FF; line-height:1.6; margin-bottom:14px;"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button id="tutorialSkip" style="background:none; border:1px solid rgba(100,116,139,0.4); border-radius:6px; padding:6px 14px; color:#64748B; font-family:'Exo 2',sans-serif; font-size:12px; cursor:pointer; pointer-events:auto;">Passer</button>
+            <button id="tutorialNext" style="background:rgba(34,197,94,0.2); border:1px solid rgba(34,197,94,0.5); border-radius:6px; padding:6px 18px; color:#4ADE80; font-family:'Exo 2',sans-serif; font-size:13px; cursor:pointer; pointer-events:auto;">SUIVANT →</button>
+        </div>
+    </div>
+    <!-- Flèche SVG -->
+    <svg id="tutorialArrow" style="position:absolute; overflow:visible; pointer-events:none;" width="100" height="100">
+        <defs>
+            <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="#4ADE80"/>
+            </marker>
+        </defs>
+        <line id="tutorialArrowLine" x1="0" y1="0" x2="0" y2="0" stroke="#4ADE80" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrowhead)"/>
+    </svg>
+    <!-- Highlight cercle -->
+    <div id="tutorialHighlight" style="position:absolute; border:2px solid rgba(34,197,94,0.8); border-radius:50%; box-shadow:0 0 20px rgba(34,197,94,0.4); transition:all 0.3s; pointer-events:none;"></div>
+</div>
 
 <!-- ═══ POPUP INVITATION ═══ -->
 <div id="invitePopup" class="hidden" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:200; background:rgba(10,15,35,0.95); border:2px solid rgba(100,180,255,0.6); border-radius:14px; padding:24px 32px; text-align:center; box-shadow:0 0 40px rgba(100,180,255,0.3); pointer-events:auto;">
@@ -6303,7 +6329,7 @@ function startGame() {
     updateLoadingBar(0, 'Génération de l\'espace...');
 
     // Lire la config (solo seulement, en multi c'est déjà défini par onMultiGameStart)
-    if (!gameState.isMulti) {
+    if (!gameState.isMulti && !gameState.isTutorial) {
         gameState.config.difficulty = document.getElementById('cfgDifficulty').value;
         gameState.config.useIA = true;
         gameState.config.aiCount = parseInt(document.getElementById('cfgPlayers').value);
@@ -9518,7 +9544,7 @@ function _drawOwnerClustersCache(ctx) {
         ctx.beginPath();
         ctx.roundRect(cl.sx-tw/2-4, cy-fs, tw+8, fs*1.4, 3);
         ctx.fill();
-        ctx.fillStyle = player.color || '#FFF';
+        ctx.fillStyle = (gameState.config?.teamCount >= 2 && player.teamColor) ? player.teamColor : (player.color || '#FFF');
         ctx.fillText(label, cl.sx, cy);
     }
 }
@@ -10370,13 +10396,20 @@ function checkVictoryAndElimination() {
         }
 
         // Vérifier victoire (80% de la masse)
-        const pct = totalBodies > 0 ? ownedCount / totalBodies : 0;
+        const teamCount = gameState.config?.teamCount || 0;
+        let teamOwnedCount = ownedCount;
+        if (teamCount >= 2 && player.team !== undefined) {
+            teamOwnedCount = gameState.players
+                .filter(p => p.team === player.team)
+                .reduce((sum, p) => sum + p.bodies.length, 0);
+        }
+        const pct = totalBodies > 0 ? teamOwnedCount / totalBodies : 0;
         if (pct >= 0.8) {
-            if (player.isLocal) {
-                showEndScreen(true);
-            } else {
-                showEndScreen(false);
-            }
+            const localPlayer = gameState.players[localSlot()];
+            const localWins = teamCount >= 2
+                ? localPlayer?.team === player.team
+                : player.isLocal;
+            showEndScreen(localWins);
             return;
         }
     }
@@ -10386,7 +10419,8 @@ function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverr
     gameState.phase = 'end';
 
     const title = document.getElementById('endTitle');
-    title.textContent = isVictory ? 'VICTOIRE' : 'DÉFAITE';
+    const isTeamMode = (gameState.config?.teamCount || 0) >= 2;
+    title.textContent = isVictory ? (isTeamMode ? 'VICTOIRE D\'ÉQUIPE !' : 'VICTOIRE') : 'DÉFAITE';
     title.className = isVictory ? 'victory' : 'defeat';
 
     const sub = document.getElementById('endSubtitle');
@@ -12429,6 +12463,11 @@ function showPseudoStep() {
 }
 
 async function enterGame() {
+    if (!currentUser || !currentProfile) {
+        console.warn('[enterGame] pas de user/profile — redirection auth');
+        showAuthScreen();
+        return;
+    }
     document.getElementById('authScreen').classList.add('hidden');
     const pseudoEl = document.getElementById('titlePseudo');
     if (pseudoEl && currentProfile) pseudoEl.textContent = '⬡ ' + currentProfile.pseudo;
@@ -12631,8 +12670,14 @@ function setupGameChannel(roomId) {
             if (!data?.players) return;
             data.players.forEach(pd => {
                 const p = gameState.players[pd.slot];
-                if (p) { p.guildTag = pd.guildTag || null; p.guildId = pd.guildId || null; }
+                if (p) {
+                    p.guildTag  = pd.guildTag  || null;
+                    p.guildId   = pd.guildId   || null;
+                    p.team      = pd.team      ?? pd.slot;
+                    p.teamColor = pd.teamColor || null;
+                }
             });
+            if (data.config?.teamCount >= 2) gameState.config.teamCount = data.config.teamCount;
         });
         _socket.on('bot_vote_update', (data) => {
             const el = document.getElementById('roomStatus');
@@ -14050,6 +14095,7 @@ document.getElementById('btnCreateRoom').addEventListener('click', async () => {
         fillIA,
         cleanerCount: cleanersOn ? Math.max(2, (1 + inviteList.length + aiCount) * 2) : 0,
         useAsteroids: document.getElementById('multiCfgAsteroids').value === 'on',
+        teamCount: parseInt(document.getElementById('multiCfgTeams').value) || 0,
         playerCount: 1 + inviteList.length + aiCount,
         guildMode: hasGuild,
         invitedGuilds: guildTagList
@@ -14306,6 +14352,168 @@ document.getElementById('btnHelp').addEventListener('click', () => {
 document.getElementById('btnHelpBack').addEventListener('click', () => {
     playClickSound();
     setPhase('title');
+});
+
+document.getElementById('btnStartTutorial').addEventListener('click', () => {
+    playClickSound();
+    setPhase('title');
+    setTimeout(() => startTutorial(), 100);
+});
+
+// ═══ TUTORIEL ═══
+const TUTORIAL_STEPS = [
+    { text: "Bienvenue dans Nebula Conquest ! 🌌\nVotre planète de départ est mise en surbrillance. Elle produit des spores automatiquement grâce à sa Flore.", target: 'playerPlanet', popup: 'bottom-right' },
+    { text: "Faites un <b>clic droit</b> sur votre planète pour ouvrir le menu radial.", target: 'playerPlanet', popup: 'bottom-right', waitFor: 'radialOpen' },
+    { text: "Le menu radial est ouvert ! Cliquez sur <b>⚪ Normal</b> au centre pour activer le mode visée.", target: 'canvas', popup: 'top-right', waitFor: 'aimMode' },
+    { text: "Le mode visée est actif — un trait de trajectoire apparaît. Faites un <b>clic gauche</b> pour tirer vers une planète neutre.", target: 'canvas', popup: 'top-right', waitFor: 'jetFired' },
+    { text: "🎉 Bien joué ! Vos spores voyagent vers la cible. Quand elles arrivent, vous conquérez l'astre !", target: 'canvas', popup: 'top-right' },
+    { text: "Faites un <b>clic droit</b> sur une planète possédée, puis cliquez sur <b>🏗️ Nid</b> dans la couronne extérieure du menu pour augmenter la production.", target: 'playerPlanet', popup: 'bottom-right', waitFor: 'buildStarted' },
+    { text: "Faites un <b>clic droit sur le fond vide</b> de l'espace pour ouvrir le panneau Évolution.", target: 'canvas', popup: 'top-left', waitFor: 'evoOpen' },
+    { text: "Ici vous pouvez améliorer vos stats (Croissance, Vélocité, Densité) et débloquer des Mutations !", target: 'evoPanel', popup: 'left' },
+    { text: "🏆 Objectif : conquérir <b>80%</b> de tous les astres de la galaxie.\nBonne chance, Commandant !", target: null, popup: 'center', isLast: true },
+];
+
+let _tutorialStep = 0;
+let _tutorialActive = false;
+let _tutorialWaitHandled = false;
+
+function startTutorial() {
+    gameState.isMulti = false;
+    gameState.isTutorial = true;
+    _tutorialStep = 0;
+    _tutorialActive = true;
+    _tutorialWaitHandled = false;
+
+    // Utiliser la première carte de MAP_LIBRARY (Berceau Solaire — petite carte)
+    const tutMapIdx = 0;
+    gameState.config = {
+        mapIndex: tutMapIdx,
+        sunCount: MAP_LIBRARY[tutMapIdx].suns.length,
+        difficulty: 'easy',
+        useIA: true,
+        aiCount: 1,
+        fillIA: false,
+        cleanerCount: 0,
+        useComets: false,
+        useAsteroids: false,
+        playerCount: 2
+    };
+
+    // Simuler un clic sur "Nouvelle partie" avec cette config
+    document.getElementById('helpScreen').classList.add('hidden');
+    fadeTransition(() => {
+        startGame();
+        setTimeout(() => showTutorialStep(0), 2000);
+    });
+}
+
+function showTutorialStep(idx) {
+    if (!_tutorialActive) return;
+    _tutorialStep = idx;
+    _tutorialWaitHandled = false;
+    const step = TUTORIAL_STEPS[idx];
+    const overlay = document.getElementById('tutorialOverlay');
+    const popup = document.getElementById('tutorialPopup');
+    const stepEl = document.getElementById('tutorialStep');
+    const textEl = document.getElementById('tutorialText');
+    const nextBtn = document.getElementById('tutorialNext');
+
+    overlay.style.display = 'block';
+    stepEl.textContent = 'ÉTAPE ' + (idx + 1) + ' / ' + TUTORIAL_STEPS.length;
+    textEl.innerHTML = step.text.replace(/\n/g, '<br>');
+    nextBtn.textContent = step.isLast ? '🚀 JOUER !' : 'SUIVANT →';
+
+    // Positionner le popup
+    _positionTutorialPopup(step.popup);
+
+    // Highlight + flèche si target
+    if (step.target === 'playerPlanet') {
+        const slot = localSlot();
+        const player = gameState.players[slot];
+        const planet = player?.bodies?.[0] || gameState.planets.find(p => p.owner === slot);
+        if (planet) _highlightBody(planet);
+    } else if (step.target === 'evoPanel') {
+        _highlightEl(document.getElementById('evoPanel'));
+    } else {
+        document.getElementById('tutorialHighlight').style.display = 'none';
+        document.getElementById('tutorialArrow').style.display = 'none';
+    }
+
+    // Auto-avance si pas de waitFor
+    if (!step.waitFor) {
+        nextBtn.onclick = () => {
+            if (step.isLast) { endTutorial(); } else { showTutorialStep(idx + 1); }
+        };
+    } else {
+        nextBtn.style.display = 'none';
+        _watchTutorialEvent(step.waitFor, idx);
+    }
+}
+
+function _watchTutorialEvent(event, idx) {
+    const check = setInterval(() => {
+        if (!_tutorialActive) { clearInterval(check); return; }
+        let triggered = false;
+        if (event === 'radialOpen' && gameState._firePhase === 'menu') triggered = true;
+        if (event === 'aimMode' && gameState._firePhase === 'aiming') triggered = true;
+        if (event === 'jetFired' && gameState.jets.length > 0) triggered = true;
+        if (event === 'buildStarted' && gameState.planets.some(p => p.owner === localSlot() && p.buildMode !== 'off')) triggered = true;
+        if (event === 'evoOpen' && document.getElementById('evoPanel')?.style.display !== 'none') triggered = true;
+        if (triggered && !_tutorialWaitHandled) {
+            _tutorialWaitHandled = true;
+            clearInterval(check);
+            document.getElementById('tutorialNext').style.display = 'inline-block';
+            setTimeout(() => showTutorialStep(idx + 1), 600);
+        }
+    }, 300);
+}
+
+function _positionTutorialPopup(pos) {
+    const popup = document.getElementById('tutorialPopup');
+    const W = window.innerWidth, H = window.innerHeight;
+    popup.style.left = popup.style.top = popup.style.right = popup.style.bottom = 'auto';
+    if (pos === 'center') { popup.style.left = (W/2 - 160) + 'px'; popup.style.top = (H/2 - 80) + 'px'; }
+    else if (pos === 'top-right') { popup.style.right = '20px'; popup.style.top = '80px'; }
+    else if (pos === 'top-left') { popup.style.left = '20px'; popup.style.top = '80px'; }
+    else if (pos === 'bottom-right') { popup.style.right = '20px'; popup.style.bottom = '100px'; }
+    else if (pos === 'left') { popup.style.left = '20px'; popup.style.top = (H/2 - 80) + 'px'; }
+}
+
+function _highlightBody(body) {
+    const canvas = document.getElementById('gameCanvas');
+    const rect = canvas.getBoundingClientRect();
+    const cam = gameState.camera;
+    const sx = (body.x - cam.x) * cam.zoom + rect.width / 2 + rect.left;
+    const sy = (body.y - cam.y) * cam.zoom + rect.height / 2 + rect.top;
+    const r = Math.max(30, body.radius * cam.zoom * 2);
+    const hl = document.getElementById('tutorialHighlight');
+    hl.style.display = 'block';
+    hl.style.width = hl.style.height = (r * 2) + 'px';
+    hl.style.left = (sx - r) + 'px';
+    hl.style.top = (sy - r) + 'px';
+}
+
+function _highlightEl(el) {
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const hl = document.getElementById('tutorialHighlight');
+    hl.style.display = 'block';
+    hl.style.borderRadius = '8px';
+    hl.style.width = rect.width + 'px';
+    hl.style.height = rect.height + 'px';
+    hl.style.left = rect.left + 'px';
+    hl.style.top = rect.top + 'px';
+}
+
+function endTutorial() {
+    _tutorialActive = false;
+    gameState.isTutorial = false;
+    document.getElementById('tutorialOverlay').style.display = 'none';
+    document.getElementById('tutorialHighlight').style.display = 'none';
+}
+
+document.getElementById('tutorialSkip').addEventListener('click', () => {
+    endTutorial();
 });
 
 document.getElementById('btnLeaderboardBack').addEventListener('click', () => {
