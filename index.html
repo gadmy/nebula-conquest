@@ -2959,7 +2959,9 @@ const gameState = {
         tension: 0,
         tensionTarget: 0,
         orbitHum: null,
-        orbitHumGain: null
+        orbitHumGain: null,
+        buffers: {},
+        _buffersLoading: false
     },
 
     // ── Config partie ──
@@ -10911,11 +10913,11 @@ function initAudio() {
 
 function ensureAudio() {
     if (!gameState.audio.initialized) initAudio();
-    if (gameState.audio.ctx.state === 'suspended') {
+    if (gameState.audio.ctx?.state === 'suspended') {
         gameState.audio.ctx.resume();
     }
     // Charger les buffers audio si pas encore fait
-    if (!gameState.audio._buffersLoading && Object.keys(gameState.audio.buffers).length === 0) {
+    if (gameState.audio.buffers && !gameState.audio._buffersLoading && Object.keys(gameState.audio.buffers).length === 0) {
         gameState.audio._buffersLoading = true;
         loadAudioBuffers();
     }
