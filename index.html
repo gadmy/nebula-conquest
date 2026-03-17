@@ -6552,10 +6552,10 @@ function createPlayers() {
                 tech: { homing:0, tenacity:0, mimicry:0, _branchOrder:[] }
             });
         }
-        // Ajouter les IAs multi (si aiCount > 0 dans les settings)
-        const s = currentRoom.settings || {};
-        const aiCount = s.aiCount || 0;
-        if (aiCount > 0 && s.useIA) {
+        // Ajouter les IAs multi
+        const aiCount = gameState.config.aiCount || 0;
+        const useIA = gameState.config.useIA !== false;
+        if (aiCount > 0 && useIA) {
             const usedColors = roomPlayers.map(rp => rp.color);
             const aiColors = colors.filter(c => !usedColors.includes(c));
             const aiRng = mulberry32((gameState.multiSeed || 42) + 7777);
@@ -12602,7 +12602,8 @@ async function startMultiGame() {
         return;
     }
     const seed = Math.floor(Math.random() * 2147483647);
-    const settings = { ...currentRoom.settings, playerCount: players.length };
+    const aiCount = currentRoom.settings?.aiCount || 0;
+    const settings = { ...currentRoom.settings, playerCount: players.length + aiCount };
     const { error: e2 } = await _supa.from('game_rooms').update({ status: 'playing', settings, seed }).eq('id', currentRoom.id);
     if (e2) { console.warn('startMulti update error:', e2); }
 }
@@ -12614,9 +12615,10 @@ async function launchWithAI() {
     if (currentRoomChannel) { await _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
     // Charger les joueurs humains présents
     const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', currentRoom.id).order('slot_number');
-    const humanCount = players ? players.length : 1;
-    const maxPlayers = currentRoom.max_players || humanCount;
-    const aiCount = Math.max(0, maxPlayers - humanCount);
+ const humanCount = players ? players.length : 1;
+    const settingsAiCount = currentRoom.settings?.aiCount || 0;
+    const aiCount = settingsAiCount > 0 ? settingsAiCount : Math.max(0, (currentRoom.max_players || humanCount) - humanCount);
+    const maxPlayers = humanCount + aiCount;
     const seed = Math.floor(Math.random() * 2147483647);
     const settings = { ...currentRoom.settings, playerCount: maxPlayers, aiCount, useIA: true };
     // Sauvegarder la room avant update
@@ -12775,7 +12777,9 @@ async function onMultiGameStart(room) {
     gameState.config.useIA = s.useIA !== false;
     gameState.config.aiCount = s.aiCount || 0;
     gameState.config.fillIA = s.fillIA || false;
-    gameState.config.cleanerCount = s.cleanerCount || 3;
+    const cleanersOn = s.cleanerCount > 0;
+    const nbPlayers = (s.playerCount || 1);
+    gameState.config.cleanerCount = cleanersOn ? Math.min(20, nbPlayers) : 0;
     gameState.config.useAsteroids = s.useAsteroids !== false;
     gameState.config.teamCount = s.teamCount || 0;
     // Synchroniser les sliders UI (si présents)
