@@ -12773,8 +12773,11 @@ async function onMultiGameStart(room) {
     gameState.config.playerCount = s.playerCount || 4;
     gameState.config.difficulty = s.difficulty || 'normal';
     gameState.config.useIA = s.useIA !== false;
+    gameState.config.aiCount = s.aiCount || 0;
+    gameState.config.fillIA = s.fillIA || false;
     gameState.config.cleanerCount = s.cleanerCount || 3;
     gameState.config.useAsteroids = s.useAsteroids !== false;
+    gameState.config.teamCount = s.teamCount || 0;
     // Synchroniser les sliders UI (si présents)
     const _cfgPlayers = document.getElementById('cfgPlayers'); if (_cfgPlayers) _cfgPlayers.value = gameState.config.playerCount;
     // Charger les joueurs de la room et mon slot (utiliser les données déjà chargées si dispo)
