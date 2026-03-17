@@ -2953,8 +2953,8 @@ const gameState = {
         ctx: null,
         masterGain: null,
         ambDrone: null,
-        volume: 0,
-        muted: true,
+        volume: 0.7,
+        muted: false,
         initialized: false,
         tension: 0,
         tensionTarget: 0,
@@ -10914,14 +10914,41 @@ function initAudio() {
 function ensureAudio() {
     if (!gameState.audio.initialized) initAudio();
     if (gameState.audio.ctx?.state === 'suspended') {
-        gameState.audio.ctx.resume();
+        gameState.audio.ctx.resume().then(() => {
+            if (gameState.audio.buffers && !gameState.audio._buffersLoading && Object.keys(gameState.audio.buffers).length === 0) {
+                gameState.audio._buffersLoading = true;
+                loadAudioBuffers();
+            }
+        });
+        return;
     }
-    // Charger les buffers audio si pas encore fait
     if (gameState.audio.buffers && !gameState.audio._buffersLoading && Object.keys(gameState.audio.buffers).length === 0) {
         gameState.audio._buffersLoading = true;
         loadAudioBuffers();
     }
 }
+
+// Appel unique après le premier geste utilisateur
+let _audioBootstrapped = false;
+document.addEventListener('click', () => {
+    if (_audioBootstrapped) return;
+    _audioBootstrapped = true;
+    // Initialiser l'audio si pas encore fait
+    if (!gameState.audio.initialized) initAudio();
+    const ctx = gameState.audio.ctx;
+    if (!ctx) return;
+    const doLoad = () => {
+        if (!gameState.audio._buffersLoading && Object.keys(gameState.audio.buffers).length === 0) {
+            gameState.audio._buffersLoading = true;
+            loadAudioBuffers();
+        }
+    };
+    if (ctx.state === 'suspended') {
+        ctx.resume().then(doLoad);
+    } else {
+        doLoad();
+    }
+}, { once: false });
 
 function playBuildSound() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
@@ -11022,216 +11049,25 @@ function stopAmbiance() {
 }
 
 // ── Son de lancement de jet ──
-function playLaunchSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    const ac = gameState.audio.ctx;
-    const master = gameState.audio.masterGain;
-    const t = ac.currentTime;
-    const pitchVar = 0.85 + Math.random() * 0.3;
+function playLaunchSound() { _playBuffer('launch', 0.4); }
 
-    const osc = ac.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(200 * pitchVar, t);
-    osc.frequency.exponentialRampToValueAtTime(80 * pitchVar, t + 0.3);
+// ── Son de fusion ──
+function playFusionSound() { _playBuffer('fusion', 0.5); }
 
-    const gain = ac.createGain();
-    gain.gain.setValueAtTime(0.08, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+// ── Son de conquête ──
+function playConquestSound() { _playBuffer('conquest', 0.6); }
 
-    const filter = ac.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(800, t);
-    filter.frequency.exponentialRampToValueAtTime(200, t + 0.3);
+// ── Son de neutralisation ──
+function playNeutralizationSound() { _playBuffer('neutralization', 0.5); }
 
-    // Bruit granulaire
-    const noise = ac.createBufferSource();
-    const buf = ac.createBuffer(1, ac.sampleRate * 0.3, ac.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
-    noise.buffer = buf;
-    const noiseGain = ac.createGain();
-    noiseGain.gain.setValueAtTime(0.04, t);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-    const noiseFilter = ac.createBiquadFilter();
-    noiseFilter.type = 'bandpass';
-    noiseFilter.frequency.value = 400;
-    noiseFilter.Q.value = 2;
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(master);
-    noise.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(master);
-
-    osc.start(t);
-    osc.stop(t + 0.4);
-    noise.start(t);
-    noise.stop(t + 0.3);
-}
-
-// ── Son de fusion (jet arrive sur astre ami) ──
-function playFusionSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    const ac = gameState.audio.ctx;
-    const master = gameState.audio.masterGain;
-    const t = ac.currentTime;
-
-    [260, 330, 390].forEach((freq, i) => {
-        const osc = ac.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        const gain = ac.createGain();
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.05, t + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
-        osc.connect(gain);
-        gain.connect(master);
-        osc.start(t + i * 0.02);
-        osc.stop(t + 0.6);
-    });
-}
-
-// ── Son de conquête (éclosion) ──
-function playConquestSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    const ac = gameState.audio.ctx;
-    const master = gameState.audio.masterGain;
-    const t = ac.currentTime;
-
-    // Accord ascendant
-    [220, 277, 330, 440].forEach((freq, i) => {
-        const osc = ac.createOscillator();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        const gain = ac.createGain();
-        gain.gain.setValueAtTime(0, t + i * 0.08);
-        gain.gain.linearRampToValueAtTime(0.07, t + i * 0.08 + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
-        osc.connect(gain);
-        gain.connect(master);
-        osc.start(t + i * 0.08);
-        osc.stop(t + 0.9);
-    });
-
-    // Burst harmonique
-    const noise = ac.createBufferSource();
-    const buf = ac.createBuffer(1, ac.sampleRate * 0.2, ac.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
-    noise.buffer = buf;
-    const nGain = ac.createGain();
-    nGain.gain.setValueAtTime(0.06, t);
-    nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-    const nFilter = ac.createBiquadFilter();
-    nFilter.type = 'highpass';
-    nFilter.frequency.value = 2000;
-    noise.connect(nFilter);
-    nFilter.connect(nGain);
-    nGain.connect(master);
-    noise.start(t);
-    noise.stop(t + 0.2);
-}
-
-// ── Son de neutralisation (collision de jets) ──
-function playNeutralizationSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    const ac = gameState.audio.ctx;
-    const master = gameState.audio.masterGain;
-    const t = ac.currentTime;
-    const pitchVar = 0.8 + Math.random() * 0.4;
-
-    const osc = ac.createOscillator();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(100 * pitchVar, t);
-    osc.frequency.exponentialRampToValueAtTime(40 * pitchVar, t + 0.15);
-    const gain = ac.createGain();
-    gain.gain.setValueAtTime(0.08, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-    const filter = ac.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 300;
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(master);
-    osc.start(t);
-    osc.stop(t + 0.2);
-}
-
-// ── Son de vaisseau nettoyeur (ping) ──
-function playCleanerSound(cleanerX, cleanerY) {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    const ac = gameState.audio.ctx;
-    const master = gameState.audio.masterGain;
-    const t = ac.currentTime;
-
-    // Spatialisation simple (panoramique gauche/droite)
-    const pan = ac.createStereoPanner ? ac.createStereoPanner() : null;
-    if (pan) {
-        const screenX = (cleanerX - gameState.camera.x) / (gameState.width / 2 / gameState.camera.zoom);
-        pan.pan.value = Math.max(-1, Math.min(1, screenX * 0.8));
-    }
-
-    const osc = ac.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(1200, t);
-    osc.frequency.exponentialRampToValueAtTime(600, t + 0.1);
-    const gain = ac.createGain();
-    gain.gain.setValueAtTime(0.04, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-
-    osc.connect(gain);
-    if (pan) { gain.connect(pan); pan.connect(master); }
-    else { gain.connect(master); }
-    osc.start(t);
-    osc.stop(t + 0.15);
-}
+// ── Son de vaisseau nettoyeur ──
+function playCleanerSound(cleanerX, cleanerY) { _playBuffer('cleaner', 0.3); }
 
 // ── Séquence victoire ──
-function playVictorySound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    const ac = gameState.audio.ctx;
-    const master = gameState.audio.masterGain;
-    const t = ac.currentTime;
-
-    const notes = [262, 330, 392, 523, 659, 784];
-    notes.forEach((freq, i) => {
-        const osc = ac.createOscillator();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        const gain = ac.createGain();
-        gain.gain.setValueAtTime(0, t + i * 0.15);
-        gain.gain.linearRampToValueAtTime(0.08, t + i * 0.15 + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.15 + 0.5);
-        osc.connect(gain);
-        gain.connect(master);
-        osc.start(t + i * 0.15);
-        osc.stop(t + i * 0.15 + 0.5);
-    });
-}
+function playVictorySound() { _playBuffer('victory', 0.7); }
 
 // ── Séquence défaite ──
-function playDefeatSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    const ac = gameState.audio.ctx;
-    const master = gameState.audio.masterGain;
-    const t = ac.currentTime;
-
-    const notes = [392, 349, 330, 262, 220, 196];
-    notes.forEach((freq, i) => {
-        const osc = ac.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        const gain = ac.createGain();
-        gain.gain.setValueAtTime(0, t + i * 0.2);
-        gain.gain.linearRampToValueAtTime(0.06, t + i * 0.2 + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.2 + 0.6);
-        osc.connect(gain);
-        gain.connect(master);
-        osc.start(t + i * 0.2);
-        osc.stop(t + i * 0.2 + 0.6);
-    });
-}
+function playDefeatSound() { _playBuffer('defeat', 0.7); }
 
 // ── Contrôle volume ──
 function setupVolumeControl() {
@@ -11592,6 +11428,13 @@ const AUDIO_FILES = {
     amb_tense_3:     'amb_tense_3.mp3',
     amb_tense_4:     'amb_tense_4.mp3',
     amb_tense_5:     'amb_tense_5.mp3',
+    launch:          'playLaunchSound.mp3',
+    conquest:        'playConquestSound.mp3',
+    fusion:          'playFusionSound.mp3',
+    neutralization:  'playNeutralizationSound.mp3',
+    cleaner:         'playCleanerSound.mp3',
+    victory:         'playVictorySound.mp3',
+    defeat:          'playDefeatSound.mp3',
 };
 
 async function loadAudioBuffers() {
@@ -11607,6 +11450,10 @@ async function loadAudioBuffers() {
         }
     }
     console.log('[audio] Buffers chargés :', Object.keys(gameState.audio.buffers).length);
+    // Relancer la musique titre si on est sur l'écran titre
+    if (gameState.phase === 'title' && !_titleMusicNode) {
+        playTitleMusic();
+    }
 }
 
 function _playBuffer(key, volume = 1.0, loop = false) {
@@ -11626,166 +11473,29 @@ function _playBuffer(key, volume = 1.0, loop = false) {
 }
 
 function playClickSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    if (gameState.audio.buffers.click_menu) { _playBuffer('click_menu', 0.6); return; }
-    const ac = gameState.audio.ctx;
-    const master = gameState.audio.masterGain;
-    const t = ac.currentTime;
-    const variants = [
-        () => { // click_menu_v1
-            const o = ac.createOscillator(); o.type='sine';
-            o.frequency.setValueAtTime(800,t); o.frequency.exponentialRampToValueAtTime(400,t+0.06);
-            const g = ac.createGain(); g.gain.setValueAtTime(0.05,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.08);
-            o.connect(g); g.connect(master); o.start(t); o.stop(t+0.08);
-        },
-        () => { // click_menu_v2
-            const o = ac.createOscillator(); o.type='triangle';
-            o.frequency.setValueAtTime(600,t); o.frequency.exponentialRampToValueAtTime(900,t+0.04);
-            const g = ac.createGain(); g.gain.setValueAtTime(0.04,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.07);
-            o.connect(g); g.connect(master); o.start(t); o.stop(t+0.07);
-        },
-        () => { // click_menu_v3
-            const o = ac.createOscillator(); o.type='sine';
-            o.frequency.setValueAtTime(1000,t); o.frequency.exponentialRampToValueAtTime(500,t+0.05);
-            const g = ac.createGain(); g.gain.setValueAtTime(0.04,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.06);
-            o.connect(g); g.connect(master); o.start(t); o.stop(t+0.06);
-        },
-    ];
-    _rndV(variants)();
+    _playBuffer('click_menu', 0.6);
 }
 
 // ── Nidification ──
-function playNidificationSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    if (gameState.audio.buffers.nidification) { _playBuffer('nidification', 0.8); return; }
-    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
-    const variants = [
-        () => { // nidification_v1 — montée majestueuse
-            [261,329,392,523].forEach((f,i) => { const o=ac.createOscillator(); o.type='triangle'; o.frequency.value=f; const g=ac.createGain(); g.gain.setValueAtTime(0,t+i*0.12); g.gain.linearRampToValueAtTime(0.07,t+i*0.12+0.08); g.gain.exponentialRampToValueAtTime(0.001,t+i*0.12+0.6); o.connect(g); g.connect(master); o.start(t+i*0.12); o.stop(t+i*0.12+0.6); });
-        },
-        () => { // nidification_v2 — pulse grave
-            const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(80,t); o.frequency.exponentialRampToValueAtTime(200,t+0.5); const g=ac.createGain(); g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.8); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.8);
-        },
-        () => { // nidification_v3 — accord doré
-            [329,415,523,659].forEach((f,i) => { const o=ac.createOscillator(); o.type='sine'; o.frequency.value=f; const g=ac.createGain(); g.gain.setValueAtTime(0,t+i*0.08); g.gain.linearRampToValueAtTime(0.06,t+i*0.08+0.1); g.gain.exponentialRampToValueAtTime(0.001,t+i*0.08+0.7); o.connect(g); g.connect(master); o.start(t+i*0.08); o.stop(t+i*0.08+0.7); });
-        },
-    ];
-    _rndV(variants)();
-}
+function playNidificationSound() { _playBuffer('nidification', 0.8); }
 
 // ── Alliance ──
-function playAllianceSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    if (gameState.audio.buffers.alliance) { _playBuffer('alliance', 0.7); return; }
-    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
-    const variants = [
-        () => { // alliance_v1 — deux tons qui se rejoignent
-            [440,554].forEach((f,i) => { const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(f*(i?0.8:1.2),t); o.frequency.exponentialRampToValueAtTime(f,t+0.3); const g=ac.createGain(); g.gain.setValueAtTime(0.06,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.5); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.5); });
-        },
-        () => { // alliance_v2 — bip doux ascendant
-            const o=ac.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(600,t+0.25); const g=ac.createGain(); g.gain.setValueAtTime(0.05,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.35); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.35);
-        },
-        () => { // alliance_v3 — accord lumineux
-            [369,466,587].forEach((f,i) => { const o=ac.createOscillator(); o.type='sine'; o.frequency.value=f; const g=ac.createGain(); g.gain.setValueAtTime(0,t+i*0.05); g.gain.linearRampToValueAtTime(0.05,t+i*0.05+0.07); g.gain.exponentialRampToValueAtTime(0.001,t+i*0.05+0.4); o.connect(g); g.connect(master); o.start(t+i*0.05); o.stop(t+i*0.05+0.4); });
-        },
-    ];
-    _rndV(variants)();
-}
+function playAllianceSound() { _playBuffer('alliance', 0.7); }
 
 // ── Orbe de commerce ──
-function playTradeOrbSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    if (gameState.audio.buffers.trade_orb) { _playBuffer('trade_orb', 0.6); return; }
-    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
-    const variants = [
-        () => { // trade_orb_v1 — tintement cristallin
-            const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(1200,t); o.frequency.exponentialRampToValueAtTime(800,t+0.15); const g=ac.createGain(); g.gain.setValueAtTime(0.04,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.2);
-        },
-        () => { // trade_orb_v2 — double tintement
-            [0,0.1].forEach(d => { const o=ac.createOscillator(); o.type='triangle'; o.frequency.value=1000+Math.random()*200; const g=ac.createGain(); g.gain.setValueAtTime(0.03,t+d); g.gain.exponentialRampToValueAtTime(0.001,t+d+0.18); o.connect(g); g.connect(master); o.start(t+d); o.stop(t+d+0.18); });
-        },
-        () => { // trade_orb_v3 — scintillement
-            const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(900,t); o.frequency.setValueAtTime(1100,t+0.07); o.frequency.setValueAtTime(900,t+0.14); const g=ac.createGain(); g.gain.setValueAtTime(0.04,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.25); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.25);
-        },
-    ];
-    _rndV(variants)();
-}
+function playTradeOrbSound() { _playBuffer('trade_orb', 0.6); }
 
 // ── Signal émoji ──
-function playSignalSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    if (gameState.audio.buffers.signal) { _playBuffer('signal', 0.6); return; }
-    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
-    const variants = [
-        () => { // signal_v1 — bip court
-            const o=ac.createOscillator(); o.type='square'; o.frequency.value=440; const g=ac.createGain(); g.gain.setValueAtTime(0.04,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.12); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.12);
-        },
-        () => { // signal_v2 — deux bips
-            [0,0.15].forEach(d => { const o=ac.createOscillator(); o.type='square'; o.frequency.value=550; const g=ac.createGain(); g.gain.setValueAtTime(0.03,t+d); g.gain.exponentialRampToValueAtTime(0.001,t+d+0.1); o.connect(g); g.connect(master); o.start(t+d); o.stop(t+d+0.1); });
-        },
-        () => { // signal_v3 — morse court
-            [0,0.1,0.2].forEach(d => { const o=ac.createOscillator(); o.type='sine'; o.frequency.value=660; const g=ac.createGain(); g.gain.setValueAtTime(0.03,t+d); g.gain.exponentialRampToValueAtTime(0.001,t+d+0.08); o.connect(g); g.connect(master); o.start(t+d); o.stop(t+d+0.08); });
-        },
-    ];
-    _rndV(variants)();
-}
+function playSignalSound() { _playBuffer('signal', 0.6); }
 
 // ── Bannière / Notification globale ──
-function playBannerSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    if (gameState.audio.buffers.banner) { _playBuffer('banner', 0.7); return; }
-    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
-    const variants = [
-        () => { // banner_v1 — fanfare courte
-            [523,659,784].forEach((f,i) => { const o=ac.createOscillator(); o.type='triangle'; o.frequency.value=f; const g=ac.createGain(); g.gain.setValueAtTime(0,t+i*0.1); g.gain.linearRampToValueAtTime(0.06,t+i*0.1+0.06); g.gain.exponentialRampToValueAtTime(0.001,t+i*0.1+0.3); o.connect(g); g.connect(master); o.start(t+i*0.1); o.stop(t+i*0.1+0.3); });
-        },
-        () => { // banner_v2 — alerte douce
-            const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(600,t); o.frequency.exponentialRampToValueAtTime(800,t+0.2); const g=ac.createGain(); g.gain.setValueAtTime(0.07,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.35); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.35);
-        },
-        () => { // banner_v3 — gong spatial
-            const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(180,t+0.6); const g=ac.createGain(); g.gain.setValueAtTime(0.09,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.8); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.8);
-        },
-    ];
-    _rndV(variants)();
-}
+function playBannerSound() { _playBuffer('banner', 0.7); }
 
 // ── Interception orbe ──
-function playInterceptSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    if (gameState.audio.buffers.intercept) { _playBuffer('intercept', 0.7); return; }
-    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
-    const variants = [
-        () => { // intercept_v1 — impact sec
-            const o=ac.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(80,t+0.15); const g=ac.createGain(); g.gain.setValueAtTime(0.08,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.2);
-        },
-        () => { // intercept_v2 — crachat électrique
-            const o=ac.createOscillator(); o.type='square'; o.frequency.setValueAtTime(500,t); o.frequency.exponentialRampToValueAtTime(100,t+0.1); const g=ac.createGain(); g.gain.setValueAtTime(0.07,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.15); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.15);
-        },
-        () => { // intercept_v3 — écho de capture
-            [0,0.08].forEach((d,i) => { const o=ac.createOscillator(); o.type='sawtooth'; o.frequency.value=400-i*200; const g=ac.createGain(); g.gain.setValueAtTime(0.06,t+d); g.gain.exponentialRampToValueAtTime(0.001,t+d+0.15); o.connect(g); g.connect(master); o.start(t+d); o.stop(t+d+0.15); });
-        },
-    ];
-    _rndV(variants)();
-}
+function playInterceptSound() { _playBuffer('intercept', 0.7); }
 
-// ── Rupture alliance (3 variantes) ──
-function playAllianceBreakSound() {
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-    if (gameState.audio.buffers.alliance_break) { _playBuffer('alliance_break', 0.7); return; }
-    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain; const t = ac.currentTime;
-    const variants = [
-        () => { // alliance_break_v1 — descente dissonante
-            [440,415].forEach((f,i) => { const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(f,t+i*0.1); o.frequency.exponentialRampToValueAtTime(f*0.5,t+i*0.1+0.4); const g=ac.createGain(); g.gain.setValueAtTime(0.05,t+i*0.1); g.gain.exponentialRampToValueAtTime(0.001,t+i*0.1+0.5); o.connect(g); g.connect(master); o.start(t+i*0.1); o.stop(t+i*0.1+0.5); });
-        },
-        () => { // alliance_break_v2 — crack sourd
-            const o=ac.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(60,t+0.3); const g=ac.createGain(); g.gain.setValueAtTime(0.07,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.4);
-        },
-        () => { // alliance_break_v3 — vibration grave
-            const o=ac.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(100,t+0.35); const g=ac.createGain(); g.gain.setValueAtTime(0.08,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.5); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.5);
-        },
-    ];
-    _rndV(variants)();
-}
+// ── Rupture alliance ──
+function playAllianceBreakSound() { _playBuffer('alliance_break', 0.7); }
 
 // ═══════════════════════════════════════════════════════
 // MUSIQUE MENU TITRE
@@ -11795,20 +11505,8 @@ let _titleMusicNode = null;
 function playTitleMusic() {
     if (!gameState.audio.initialized || gameState.audio.muted) return;
     if (_titleMusicNode) return;
-    if (gameState.audio.buffers.title_music) {
-        const n = _playBuffer('title_music', 0.5, true);
-        if (n) { _titleMusicNode = n; return; }
-    }
-    // Fallback placeholder
-    const ac = gameState.audio.ctx; const master = gameState.audio.masterGain;
-    const osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.value = 55;
-    const lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.08;
-    const lfoGain = ac.createGain(); lfoGain.gain.value = 8;
-    const gain = ac.createGain(); gain.gain.value = 0.04;
-    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
-    osc.connect(gain); gain.connect(master);
-    lfo.start(); osc.start();
-    _titleMusicNode = { osc, lfo, gain };
+    const n = _playBuffer('title_music', 0.5, true);
+    if (n) _titleMusicNode = n;
 }
 function stopTitleMusic() {
     if (!_titleMusicNode) return;
