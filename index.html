@@ -5644,10 +5644,20 @@ function setupUI() {
     });
     const cfgPlayers = document.getElementById('cfgPlayers');
     function _updateSoloPlayerMax() {
-        const mapIdx = parseInt(cfgMap.value) || 0;
+        const val = cfgMap.value;
+        if (val === 'random') {
+            // En mode aléatoire : prendre le max parmi toutes les cartes
+            const maxAll = MAP_LIBRARY.reduce((best, m) => {
+                const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
+                return Math.max(best, np <= 10 ? np : np + 5);
+            }, 2);
+            cfgPlayers.max = maxAll - 1;
+            return;
+        }
+        const mapIdx = parseInt(val) || 0;
         const m = MAP_LIBRARY[mapIdx];
         const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
-        const maxP = Math.max(1, (np <= 10 ? np : np + 5) - 1); // -1 car le joueur humain compte
+        const maxP = Math.max(1, (np <= 10 ? np : np + 5) - 1);
         cfgPlayers.max = maxP;
         if (parseInt(cfgPlayers.value) > maxP) {
             cfgPlayers.value = maxP;
@@ -6366,7 +6376,16 @@ function startGame() {
         setTimeout(() => {
             updateLoadingBar(35, 'Systèmes solaires...');
             const mapIdx = gameState.config.mapIndex != null ? gameState.config.mapIndex : Math.floor(Math.random() * MAP_LIBRARY.length);
-            loadMapFromJSON(MAP_LIBRARY[mapIdx]);
+            const _mapData = MAP_LIBRARY[mapIdx];
+            loadMapFromJSON(_mapData);
+            // Synchroniser la config avec la carte chargée
+            gameState.config.sunCount = _mapData.suns.length;
+            const _totalPlanets = _mapData.suns.reduce((a, s) => a + s.planets.length, 0);
+            const _maxPlayers = Math.max(2, _totalPlanets);
+            if (gameState.config.playerCount > _maxPlayers) {
+                gameState.config.playerCount = _maxPlayers;
+                gameState.config.aiCount = _maxPlayers - 1;
+            }
 
             setTimeout(() => {
                 updateLoadingBar(55, 'Textures des soleils...');
