@@ -1212,7 +1212,6 @@ input[type="radio"]:checked + .build-icon-btn {
 }
 
 /* ── Contrôle volume intégré dans topRight ── */
-#volumeControl { display: none; }
 .vol-icon {
     font-size: 14px;
     cursor: pointer;
@@ -3065,8 +3064,8 @@ function init() {
     // Cacher le loading
     hideLoading();
 
-    // Démarrer sur l'écran titre
-    setPhase('title');
+    // Démarrer sur l'écran auth — initAuth() basculera sur title si session valide
+    showAuthScreen();
 }
 
 function resizeCanvas() {
@@ -8881,6 +8880,7 @@ function update(dt) {
     gameState.gameStats.timeElapsed += dt;
     updateAudioTension();
     updateOrbitHum();
+    if (gameState._hudCounter % 60 === 0) updateAmbiance();
 }
 
 
@@ -11041,14 +11041,19 @@ function startAmbiance() {
 }
 
 function stopAmbiance() {
-    const drone = gameState.audio.ambDrone;
-    if (!drone) return;
-    try {
-        drone.osc1.stop();
-        drone.osc2.stop();
-        drone.lfo.stop();
-    } catch(e) {}
-    gameState.audio.ambDrone = null;
+    if (gameState.audio.ambDrone) {
+        try {
+            gameState.audio.ambDrone.osc1.stop();
+            gameState.audio.ambDrone.osc2.stop();
+            gameState.audio.ambDrone.lfo.stop();
+        } catch(e) {}
+        gameState.audio.ambDrone = null;
+    }
+    if (_ambianceNode) {
+        try { _ambianceNode.src.stop(); } catch(e) {}
+        _ambianceNode = null;
+    }
+    _ambianceType = null;
 }
 
 // ── Son de lancement de jet ──
@@ -11400,13 +11405,6 @@ function updateAudioTension() {
 // Format cible : AudioBuffer chargé via fetch() + decodeAudioData()
 // ═══════════════════════════════════════════════════════
 
-// ── Utilitaire variante aléatoire ──
-function _rndV(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-function _playBuf(bufName) {
-    // PLACEHOLDER : joue un bip synthétique
-    // TODO: remplacer par : const src = ac.createBufferSource(); src.buffer = gameState.audio.buffers[bufName]; src.connect(master); src.start();
-    if (!gameState.audio.initialized || gameState.audio.muted) return;
-}
 
 // ── Clic menu (3 variantes) ──
 const AUDIO_BASE = 'https://gadmy.github.io/nebula-conquest/Audio/';
@@ -11560,14 +11558,6 @@ function updateAmbiance() {
     if (gameState.audio.buffers[key]) {
         _ambianceNode = _playBuffer(key, 0.35, true);
     }
-}
-
-function stopAmbiance() {
-    if (_ambianceNode) {
-        try { _ambianceNode.src.stop(); } catch(e) {}
-        _ambianceNode = null;
-    }
-    _ambianceType = null;
 }
 
 function updateOrbitHum() {
@@ -13404,7 +13394,7 @@ function updateTradeOrbs(dt) {
             const recv = o.phase==='out' ? o.targetSlot : o.ownerSlot;
             const recvBody = o.phase==='out' ? o.dstBody : o.srcBody;
             recvBody.spores = Math.min(recvBody.maxSpores, (recvBody.spores||0) + o.gain);
-            if (recv === localSlot()) addEvent('neutral', TRADE_TYPES[o.tradeType].icon, `+${o.gain} sp reçues (${TRADE_TYPES[o.tradeType].name})`, recvBody, gameState.players[recv]?.color);
+            if (recv === localSlot()) { addEvent('neutral', TRADE_TYPES[o.tradeType].icon, `+${o.gain} sp reçues (${TRADE_TYPES[o.tradeType].name})`, recvBody, gameState.players[recv]?.color); playTradeOrbSound(); }
             // Repart dans l'autre sens
             o.phase = o.phase==='out' ? 'back' : 'out';
             o.x = dst.x; o.y = dst.y;
@@ -13426,7 +13416,7 @@ function updateTradeOrbs(dt) {
                         const tdx=thiefBody.x-o.x, tdy=thiefBody.y-o.y, td=Math.sqrt(tdx*tdx+tdy*tdy);
                         o.vx=tdx/td; o.vy=tdy/td;
                         o.dstBody=thiefBody; o.targetSlot=jet.owner; o.phase='out';
-                        if (localSlot()===o.ownerSlot||localSlot()===o.targetSlot) addEvent('war','🏴‍☠️',`Orbe interceptée par ${thief?.name||'?'} !`,thiefBody,'#F87171');
+                        if (localSlot()===o.ownerSlot||localSlot()===o.targetSlot) { addEvent('war','🏴‍☠️',`Orbe interceptée par ${thief?.name||'?'} !`,thiefBody,'#F87171'); playInterceptSound(); }
                         jet.alive=false;
                     }
                     break;
