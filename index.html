@@ -6275,21 +6275,24 @@ function setPhase(phase) {
             break;
         case 'sporeLab':
             document.getElementById('sporeLabScreen').classList.remove('hidden');
+            playTitleMusic();
             break;
         case 'createMulti':
             document.getElementById('lobbyScreen').classList.remove('hidden');
             document.getElementById('titleScreen').classList.add('hidden');
+            playTitleMusic();
             break;
         case 'room':
             document.getElementById('roomScreen').classList.remove('hidden');
             document.getElementById('lobbyScreen').classList.add('hidden');
             document.getElementById('titleScreen').classList.add('hidden');
+            playTitleMusic();
             break;
         case 'config':
-            stopTitleMusic();
             document.getElementById('configScreen').classList.remove('hidden');
             break;
         case 'spawn':
+            stopTitleMusic();
             document.getElementById('gameCanvas').style.display = 'block';
             document.getElementById('spawnBanner').classList.remove('hidden');
             document.getElementById('sidePanel').style.display = 'flex';
