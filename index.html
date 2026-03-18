@@ -12178,7 +12178,10 @@ document.getElementById('spawnPopupBtn').addEventListener('click', () => { playC
 document.getElementById('spawnPopupClose').addEventListener('click', () => { playClickSound(); _spawnTarget = null; document.getElementById('spawnPopup').style.display = 'none'; });
 document.getElementById('evoSacrifice').addEventListener('input', (e) => {
     const human = gameState.players[localSlot()];
-    if (human) human.multiSacrifice = parseInt(e.target.value);
+    if (human) {
+        human.multiSacrifice = parseInt(e.target.value);
+        if (gameState.isMulti) sendAction('set_sacrifice', { value: human.multiSacrifice });
+    }
 });
 document.getElementById('evoGrowth').addEventListener('click', () => {
     const human = gameState.players[localSlot()];
@@ -12562,6 +12565,22 @@ function applySnapshot(snap) {
         if (bd.buildMode !== undefined) body.buildMode = bd.buildMode;
         if (bd.buildProgress !== undefined) body.buildProgress = bd.buildProgress;
     });
+    // Données joueurs
+    if (snap.players) {
+        snap.players.forEach(sp => {
+            const p = gameState.players[sp.slot];
+            if (!p) return;
+            if (sp.multiTier     !== undefined) p.multiTier     = sp.multiTier;
+            if (sp.multiProgress !== undefined) p.multiProgress = sp.multiProgress;
+            if (sp.stats)                       p.stats         = { ...p.stats, ...sp.stats };
+            // Déclencher le popup prolifération si le serveur le signale
+            if (sp._multiPending && !p._multiPending) {
+                p._multiPending = true;
+                if (sp.slot === localSlot()) _checkSporeReady();
+            }
+            if (!sp._multiPending) p._multiPending = false;
+        });
+    }
     if (snap.jets) {
         snap.jets.forEach(sj => {
             const j = gameState.jets.find(j => j.id === sj.id);
