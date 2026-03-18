@@ -13981,8 +13981,10 @@ document.getElementById('btnCreateRoom').addEventListener('click', async () => {
             const { data: target } = await _supa.from('profiles').select('id,pseudo').ilike('pseudo', pseudo).single();
             if (!target || !currentRoom) return;
             const ch = _supa.channel('invite-'+target.id);
-            ch.subscribe(s => { if (s==='SUBSCRIBED') { ch.send({ type:'broadcast', event:'invite', payload:{ roomId:currentRoom.id, hostPseudo:currentProfile.pseudo, settings } }); setTimeout(()=>ch.unsubscribe(),1000); } });
-        }, 1500);
+            const roomId = currentRoom?.id;
+            if (!roomId) return;
+            ch.subscribe(s => { if (s==='SUBSCRIBED') { ch.send({ type:'broadcast', event:'invite', payload:{ roomId, hostPseudo:currentProfile.pseudo, settings } }); setTimeout(()=>ch.unsubscribe(),1000); } });
+        }, 3000);
     }
     // Invitations guildes
     for (const tag of guildTagList) {
