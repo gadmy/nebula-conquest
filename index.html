@@ -12536,8 +12536,8 @@ const SERVER_URL = 'https://nebula-conquest-server-production.up.railway.app';
 let _socket = null;
 var _roomPollTimer = null;
 
-function setupGameChannel(roomId) {
-    return new Promise(resolve => {
+async function setupGameChannel(roomId) {
+    return new Promise(async resolve => {
         if (_socket) _socket.disconnect();
 const _session = await _supa.auth.getSession();
         const _token = _session?.data?.session?.access_token || null;
