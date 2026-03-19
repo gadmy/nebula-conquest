@@ -12539,14 +12539,15 @@ var _roomPollTimer = null;
 async function setupGameChannel(roomId) {
     return new Promise(async resolve => {
         if (_socket) _socket.disconnect();
-const _session = await _supa.auth.getSession();
-        const _token = _session?.data?.session?.access_token || null;
+        const _sess = await _supa.auth.getSession();
+        const _tok = _sess?.data?.session?.access_token || null;
         _socket = io(SERVER_URL, {
             auth: {
-                token: _token,
+                token: _tok,
                 pseudo: currentProfile?.pseudo || 'Joueur',
                 color: currentProfile?.color || '#C084FC',
                 guildTag: currentProfile?._guildTag || null,
+                guildId: currentProfile?._guildId || null
             }
         });
         _socket.on('connect', () => {
@@ -13022,12 +13023,22 @@ async function quickMatch(okForBots = false) {
             }
         }
     }
-    // Aucune room dispo → attendre un peu puis revérifier avant de créer
-    await new Promise(r => setTimeout(r, 500 + Math.random() * 1000));
+    // Aucune room dispo → attendre un délai aléatoire puis revérifier
+    await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
     // Revérifier une dernière fois
     const { data: rooms2 } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: true }).limit(5);
     if (rooms2) {
         for (const r of rooms2) {
+            if ((r.settings?.mode) !== 'auto') continue;
+            const count = r.game_room_players?.[0]?.count || 0;
+            if (count < r.max_players) { await joinRoom(r.id); return; }
+        }
+    }
+    // Encore aucune room → attendre encore un peu (le 2e joueur a peut-être créé entre-temps)
+    await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
+    const { data: rooms3 } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: true }).limit(5);
+    if (rooms3) {
+        for (const r of rooms3) {
             if ((r.settings?.mode) !== 'auto') continue;
             const count = r.game_room_players?.[0]?.count || 0;
             if (count < r.max_players) { await joinRoom(r.id); return; }
