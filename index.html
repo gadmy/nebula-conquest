@@ -6269,6 +6269,11 @@ function setPhase(phase) {
     document.getElementById('evoPanel').style.display = 'none';
     document.getElementById('codex').classList.remove('open');
 
+    // Si on quitte une room auto en attente → se désincrire
+    if (currentRoom && currentRoom.settings?.mode === 'auto' && currentRoom.status === 'waiting') {
+        leaveQmRoom();
+    }
+
     switch (phase) {
         case 'title':
             document.getElementById('titleScreen').classList.remove('hidden');
@@ -12477,8 +12482,43 @@ async function launchWithAI() {
     gameState._roomPlayers = players || [];
     // Mettre à jour Supabase en arrière-plan (sans attendre)
     _supa.from('game_rooms').update({ status: 'playing', settings, seed }).eq('id', currentRoom.id).then(() => {});
+    // Créer une nouvelle room auto pour les prochains joueurs
+    if (isHost) _createNextAutoRoom(currentRoom.settings);
     // Lancer immédiatement en local
     onMultiGameStart(roomSnapshot);
+}
+
+async function _createNextAutoRoom(prevSettings) {
+    try {
+        const _qmMapIdx = Math.floor(Math.random() * MAP_LIBRARY.length);
+        const _np = MAP_LIBRARY[_qmMapIdx].suns.reduce((a,s)=>a+s.planets.length,0);
+        const _base_p = _np <= 10 ? _np : _np + 5;
+        const _maxP = Math.min(50, Math.max(2, Math.round(_base_p * (0.95 + Math.random()*0.10))));
+        const autoSettings = {
+            mapIndex: _qmMapIdx,
+            mapName: MAP_LIBRARY[_qmMapIdx].name,
+            difficulty: prevSettings?.difficulty || 'normal',
+            useIA: false,
+            aiCount: 0,
+            cleanerCount: prevSettings?.cleanerCount || 3,
+            useComets: prevSettings?.useComets !== false,
+            playerCount: _maxP,
+            sunCount: MAP_LIBRARY[_qmMapIdx].suns.length,
+            mode: 'auto',
+            bot_votes: 0
+        };
+        await _supa.from('game_rooms').insert({
+            host_id: currentUser.id,
+            host_pseudo: currentProfile.pseudo,
+            settings: autoSettings,
+            max_players: _maxP,
+            status: 'waiting',
+            bot_votes: 0
+        });
+        console.log('[auto] Nouvelle room créée pour les prochains joueurs');
+    } catch(e) {
+        console.warn('[auto] Erreur création room suivante:', e);
+    }
 }
 
 let gameChannel = null;
@@ -12679,9 +12719,18 @@ async function toggleReady() {
     btn.style.borderColor = newReady ? '#4ADE80' : 'rgba(34,197,94,0.5)';
 }
 
+async function leaveQmRoom() {
+    if (!currentRoom || !currentUser) return;
+    if (_qmPollTimer) { clearInterval(_qmPollTimer); _qmPollTimer = null; }
+    await _supa.from('game_room_players').delete().eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
+    currentRoom = null;
+    isHost = false;
+}
+
 async function leaveRoom() {
     if (!currentRoom || !currentUser) return;
     if (_roomPollTimer) { clearInterval(_roomPollTimer); _roomPollTimer = null; }
+    if (_qmPollTimer) { clearInterval(_qmPollTimer); _qmPollTimer = null; }
     if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
     await _supa.from('game_room_players').delete().eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
     // Si host, supprimer la room
@@ -12881,10 +12930,8 @@ function startQmPolling(roomId) {
             if (!currentRoom) return;
             btnBots.textContent = '✅ VOTE ENVOYÉ';
             btnBots.disabled = true;
-            // Stocker le vote dans Supabase
-            const votes = (currentRoom._botVotes || 0) + 1;
-            await _supa.from('game_rooms').update({ bot_votes: votes }).eq('id', currentRoom.id);
-            currentRoom._botVotes = votes;
+            // Incrémenter le compteur dans Supabase avec RPC
+            await _supa.rpc('increment_bot_votes', { room_id: currentRoom.id });
         };
     }
 
@@ -12898,7 +12945,7 @@ function startQmPolling(roomId) {
         const max = room.max_players;
         // Vérifier votes bots
         const botVotes = room.bot_votes || 0;
-        if (botVotes >= 2 && botVotes > count / 2 && isHost && !currentRoom._launching) {
+        if (botVotes >= 2 && botVotes > count / 2 && !currentRoom._launching) {
             if (btn) { btn.textContent = `🚀 Lancement avec bots...`; btn.style.color = '#4ADE80'; }
             clearInterval(_qmPollTimer); _qmPollTimer = null;
             currentRoom._launching = true;
