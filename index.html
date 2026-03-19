@@ -12539,13 +12539,14 @@ var _roomPollTimer = null;
 function setupGameChannel(roomId) {
     return new Promise(resolve => {
         if (_socket) _socket.disconnect();
+const _session = await _supa.auth.getSession();
+        const _token = _session?.data?.session?.access_token || null;
         _socket = io(SERVER_URL, {
             auth: {
-                token: _supa.auth.getSession().then(r => r.data.session?.access_token),
+                token: _token,
                 pseudo: currentProfile?.pseudo || 'Joueur',
                 color: currentProfile?.color || '#C084FC',
                 guildTag: currentProfile?._guildTag || null,
-                guildId: currentProfile?._guildId || null
             }
         });
         _socket.on('connect', () => {
