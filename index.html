@@ -5167,7 +5167,7 @@ function loadMapFromJSON(mapData) {
 
     // Ceintures d'astéroïdes — génération aléatoire autour de chaque soleil
     const beltTypes = ['dark', 'red', 'green'];
-    const _arng = () => Math.random();
+    const _arng = () => worldRandom();
     for (const sun of gameState.suns) {
         const firstPlanet = sun.planets[0];
         const lastPlanet = sun.planets[sun.planets.length - 1];
@@ -5202,12 +5202,12 @@ function loadMapFromJSON(mapData) {
     for (let i = 0; i < cleanerCount; i++) {
         const cType = ['red','green','dark'][i % 3];
         const rSun = gameState.suns[i % gameState.suns.length];
-        const cAngle = Math.random() * Math.PI * 2;
-        const cDist = rSun.orbitRadius * 0.5 + Math.random() * rSun.orbitRadius;
+        const cAngle = worldRandom() * Math.PI * 2;
+        const cDist = rSun.orbitRadius * 0.5 + worldRandom() * rSun.orbitRadius;
         gameState.cleaners.push({
             type: cType, x: Math.cos(cAngle) * cDist, y: Math.sin(cAngle) * cDist,
-            vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2,
-            angle: Math.random()*Math.PI*2, speed: CLN_CFG.speedMin + Math.random()*(CLN_CFG.speedMax-CLN_CFG.speedMin),
+            vx: (worldRandom()-0.5)*2, vy: (worldRandom()-0.5)*2,
+            angle: worldRandom()*Math.PI*2, speed: CLN_CFG.speedMin + worldRandom()*(CLN_CFG.speedMax-CLN_CFG.speedMin),
             size: 8, targetX: 0, targetY: 0, turnTimer: 0, _target: null
         });
     }
@@ -13521,7 +13521,7 @@ function _tradeOpen(targetBody, clientX, clientY) {
         btn.onclick = () => {
             const dx = targetBody.x - src.x, dy = targetBody.y - src.y;
             const dist = Math.sqrt(dx*dx+dy*dy);
-            const gain = Math.round(td.minGain + Math.random()*(td.maxGain-td.minGain));
+            const gain = Math.round(td.minGain + gameRandom()*(td.maxGain-td.minGain));
             gameState.tradeOrbs.push({ tradeType:tm, srcBody:src, dstBody:targetBody,
                 x:src.x, y:src.y, vx:dx/dist, vy:dy/dist,
                 gain, alive:true, phase:'out', timer:0, ownerSlot:localSl, targetSlot:targetBody.owner,
