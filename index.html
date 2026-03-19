@@ -12938,7 +12938,18 @@ async function quickMatch(okForBots = false) {
             }
         }
     }
-    // Aucune room dispo → créer un lobby 4vs4 fixe
+    // Aucune room dispo → attendre un peu puis revérifier avant de créer
+    await new Promise(r => setTimeout(r, 500 + Math.random() * 1000));
+    // Revérifier une dernière fois
+    const { data: rooms2 } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: true }).limit(5);
+    if (rooms2) {
+        for (const r of rooms2) {
+            if ((r.settings?.mode) !== 'auto') continue;
+            const count = r.game_room_players?.[0]?.count || 0;
+            if (count < r.max_players) { await joinRoom(r.id); return; }
+        }
+    }
+    // Vraiment aucune room → créer
     const _qmMapIdx = Math.floor(Math.random() * MAP_LIBRARY.length);
     const _np = MAP_LIBRARY[_qmMapIdx].suns.reduce((a,s)=>a+s.planets.length,0);
     const _base_p = _np <= 10 ? _np : _np + 5;
