@@ -13006,62 +13006,47 @@ async function quickMatch(okForBots = false) {
         return;
     }
     if (okForBots) gameState._pendingBotVote = true;
-    // Nettoyer les rooms abandonnées (>30min en waiting)
-    try {
-        const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-        try { await _supa.from('game_rooms').delete().eq('status', 'waiting').lt('created_at', cutoff); } catch(e) { console.warn('Nettoyage rooms:', e); }
-    } catch(e) { /* ignore */ }
-    // Chercher une room auto en attente avec de la place
-    const { data: rooms } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: true }).limit(20);
-    if (rooms) {
-        for (const r of rooms) {
-            if ((r.settings?.mode) !== 'auto') continue;
-            const count = r.game_room_players?.[0]?.count || 0;
-            if (count < r.max_players) {
-                await joinRoom(r.id);
-                return;
-            }
+
+    const btn = document.getElementById('btnQuickMatch');
+    const btnBots = document.getElementById('btnQuickMatchBots');
+    if (btn) { btn.textContent = '⏳ Connexion...'; btn.disabled = true; }
+    if (btnBots) { btnBots.disabled = true; }
+
+    // Connexion socket Railway
+    const _sess = await _supa.auth.getSession();
+    const _tok = _sess?.data?.session?.access_token || null;
+    if (_socket) _socket.disconnect();
+    _socket = io(SERVER_URL, {
+        auth: {
+            token: _tok,
+            pseudo: currentProfile?.pseudo || 'Joueur',
+            color: currentProfile?.color || '#C084FC',
+            guildTag: currentProfile?._guildTag || null,
+            guildId: currentProfile?._guildId || null
         }
-    }
-    // Aucune room dispo → attendre un délai aléatoire puis revérifier
-    await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
-    // Revérifier une dernière fois
-    const { data: rooms2 } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: true }).limit(5);
-    if (rooms2) {
-        for (const r of rooms2) {
-            if ((r.settings?.mode) !== 'auto') continue;
-            const count = r.game_room_players?.[0]?.count || 0;
-            if (count < r.max_players) { await joinRoom(r.id); return; }
-        }
-    }
-    // Encore aucune room → attendre encore un peu (le 2e joueur a peut-être créé entre-temps)
-    await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
-    const { data: rooms3 } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: true }).limit(5);
-    if (rooms3) {
-        for (const r of rooms3) {
-            if ((r.settings?.mode) !== 'auto') continue;
-            const count = r.game_room_players?.[0]?.count || 0;
-            if (count < r.max_players) { await joinRoom(r.id); return; }
-        }
-    }
-    // Vraiment aucune room → créer
-    const _qmMapIdx = Math.floor(Math.random() * MAP_LIBRARY.length);
-    const _np = MAP_LIBRARY[_qmMapIdx].suns.reduce((a,s)=>a+s.planets.length,0);
-    const _base_p = _np <= 10 ? _np : _np + 5;
-    const _maxP = Math.min(50, Math.max(2, Math.round(_base_p * (0.95 + Math.random()*0.10))));
-    const autoSettings = {
-        mapIndex: _qmMapIdx,
-        mapName: MAP_LIBRARY[_qmMapIdx].name,
-        difficulty: 'normal',
-        useIA: false,
-        aiCount: 0,
-        cleanerCount: 3,
-        useComets: true,
-        playerCount: _maxP,
-        sunCount: 5,
-        mode: 'auto'
-    };
-    await createRoom('auto', autoSettings, _maxP);
+    });
+
+    _socket.on('connect', () => {
+        // Demander au serveur de trouver ou créer une room auto
+        _socket.emit('quick_match', { config: { sunCount: 5, mode: 'auto' } });
+    });
+
+    _socket.on('room_joined', (data) => {
+        currentRoom = { id: data.roomId, settings: { mode: 'auto' } };
+        isHost = (data.slot === 0);
+        startQmPolling(data.roomId);
+    });
+
+    _socket.on('bot_vote_update', (data) => {
+        if (btn) btn.textContent = `⏳ EN ATTENTE... 🤖 ${data.votes}/${data.total} votes`;
+    });
+    _socket.on('bot_countdown', (data) => {
+        if (btn) { btn.textContent = `🚀 Lancement dans ${data.remaining}s...`; btn.style.color = '#4ADE80'; }
+        if (data.remaining <= 0) { clearInterval(_qmPollTimer); _qmPollTimer = null; launchWithAI(); }
+    });
+    _socket.on('game_start', () => {
+        clearInterval(_qmPollTimer); _qmPollTimer = null;
+    });
 }
 
 async function createRoom(mode = 'custom', settings = null, maxPlayers = 4) {
