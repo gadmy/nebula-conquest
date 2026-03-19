@@ -12693,12 +12693,6 @@ async function leaveRoom() {
         if (!remaining || remaining.length === 0) {
             await _supa.from('game_rooms').delete().eq('id', currentRoom.id);
         }
-    } else {
-        // Vérifier si la room est vide après départ → la supprimer
-        const { data: remaining } = await _supa.from('game_room_players').select('id').eq('room_id', currentRoom.id);
-        if (!remaining || remaining.length === 0) {
-            await _supa.from('game_rooms').delete().eq('id', currentRoom.id);
-        }
     }
     currentRoom = null;
     isHost = false;
