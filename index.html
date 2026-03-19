@@ -13038,7 +13038,7 @@ async function createRoom(mode = 'custom', settings = null, maxPlayers = 4) {
         slot_number: 0, ready: true,
         stats: { ...gameState.playerStats }
     });
-    if (mode === 'auto') { startQmPolling(data.id); } else { enterRoom(data.id); }
+    if (mode === 'auto') { startQmPolling(data.id); } else { await enterRoom(data.id); }
     } catch(e) { console.warn('createRoom:', e); alert('Erreur réseau.'); }
 }
 
