@@ -11431,7 +11431,7 @@ function updateAudioTension() {
 
 
 // ── Clic menu (3 variantes) ──
-const AUDIO_BASE = 'https://gadmy.github.io/nebula-conquest/Audio/';
+const AUDIO_BASE = '/Audio/';
 const AUDIO_FILES = {
     click_menu:      'click_menu_v1.mp3',
     alliance:        'Alliance_v1.mp3',
@@ -12687,6 +12687,12 @@ async function leaveRoom() {
     // Si host, supprimer la room
     if (isHost) {
         await _supa.from('game_rooms').delete().eq('id', currentRoom.id);
+    } else {
+        // Vérifier si la room est vide après départ → la supprimer
+        const { data: remaining } = await _supa.from('game_room_players').select('id').eq('room_id', currentRoom.id);
+        if (!remaining || remaining.length === 0) {
+            await _supa.from('game_rooms').delete().eq('id', currentRoom.id);
+        }
     } else {
         // Vérifier si la room est vide après départ → la supprimer
         const { data: remaining } = await _supa.from('game_room_players').select('id').eq('room_id', currentRoom.id);
