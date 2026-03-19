@@ -12836,7 +12836,60 @@ function startQmPolling(roomId) {
     if (_qmPollTimer) { clearInterval(_qmPollTimer); _qmPollTimer = null; }
     const el = document.getElementById('qmParams');
     const btn = document.getElementById('btnQuickMatch');
+    const btnBots = document.getElementById('btnQuickMatchBots');
     if (btn) { btn.textContent = '⏳ EN ATTENTE...'; btn.disabled = true; }
+    if (btnBots) { btnBots.textContent = '🤖 VOTER BOTS'; btnBots.disabled = false; }
+
+    // Connecter le socket Railway dès maintenant pour le vote bots
+    if (!_socket || !_socket.connected) {
+        _supa.auth.getSession().then(r => {
+            const token = r.data.session?.access_token;
+            if (_socket) _socket.disconnect();
+            _socket = io(SERVER_URL, {
+                auth: {
+                    token,
+                    pseudo: currentProfile?.pseudo || 'Joueur',
+                    color: currentProfile?.color || '#C084FC',
+                    guildTag: currentProfile?._guildTag || null,
+                    guildId: currentProfile?._guildId || null
+                }
+            });
+            _socket.on('connect', () => {
+                _socket.emit('join_room', { roomId });
+                if (gameState._pendingBotVote) {
+                    gameState._pendingBotVote = false;
+                    setTimeout(() => _socket.emit('vote_bots'), 300);
+                }
+            });
+            _socket.on('bot_vote_update', (data) => {
+                if (btn) btn.textContent = `⏳ EN ATTENTE... 🤖 ${data.votes}/${data.total} votes`;
+            });
+            _socket.on('bot_countdown', (data) => {
+                if (btn) { btn.textContent = `🚀 Lancement dans ${data.remaining}s...`; btn.style.color = '#4ADE80'; }
+                if (data.remaining <= 0) { clearInterval(_qmPollTimer); _qmPollTimer = null; launchWithAI(); }
+            });
+            _socket.on('game_start', () => {
+                clearInterval(_qmPollTimer); _qmPollTimer = null;
+            });
+        });
+    }
+
+    // Rebrancher le bouton bots sur le socket
+    if (btnBots) {
+        btnBots.onclick = () => {
+            playClickSound();
+            if (_socket?.connected) {
+                _socket.emit('vote_bots');
+                btnBots.textContent = '✅ VOTE ENVOYÉ';
+                btnBots.disabled = true;
+            } else {
+                gameState._pendingBotVote = true;
+                btnBots.textContent = '✅ VOTE EN ATTENTE';
+                btnBots.disabled = true;
+            }
+        };
+    }
+
     _qmPollTimer = setInterval(async () => {
         if (!currentRoom) { clearInterval(_qmPollTimer); _qmPollTimer = null; return; }
         const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', roomId);
@@ -13789,18 +13842,39 @@ function _setupAllianceListener() {
 
 function setupInviteListener() {
     if (!currentUser || inviteChannel) return;
+    // Vérifier les invitations en attente dans Supabase au démarrage
+    _checkPendingInvites();
     inviteChannel = _supa.channel('invite-' + currentUser.id)
         .on('broadcast', { event: 'invite' }, ({ payload }) => {
             if (gameState.phase !== 'title') return;
-            pendingInvite = payload;
-            const popup = document.getElementById('invitePopup');
-            document.getElementById('invitePopupText').textContent = payload.hostPseudo + ' vous invite à jouer !';
-            const s = payload.settings || {};
-            const diffL = s.difficulty === 'easy' ? 'Facile' : s.difficulty === 'brutal' ? 'Brutal' : 'Normal';
-            document.getElementById('invitePopupParams').textContent = (s.sunCount||4) + ' soleils · ' + diffL + ' · ' + (s.cleanerCount||0) + ' vaisseaux';
-            popup.classList.remove('hidden');
+            _showInvitePopup(payload);
         })
         .subscribe();
+}
+
+async function _checkPendingInvites() {
+    if (!currentUser) return;
+    const { data } = await _supa.from('profiles').select('pending_invite').eq('id', currentUser.id).single();
+    if (data?.pending_invite) {
+        const payload = data.pending_invite;
+        // Vérifier que la room existe encore
+        const { data: room } = await _supa.from('game_rooms').select('id,status').eq('id', payload.roomId).single();
+        if (room && room.status === 'waiting') {
+            _showInvitePopup(payload);
+        }
+        // Effacer l'invitation
+        await _supa.from('profiles').update({ pending_invite: null }).eq('id', currentUser.id);
+    }
+}
+
+function _showInvitePopup(payload) {
+    pendingInvite = payload;
+    const popup = document.getElementById('invitePopup');
+    document.getElementById('invitePopupText').textContent = payload.hostPseudo + ' vous invite à jouer !';
+    const s = payload.settings || {};
+    const diffL = s.difficulty === 'easy' ? 'Facile' : s.difficulty === 'brutal' ? 'Brutal' : 'Normal';
+    document.getElementById('invitePopupParams').textContent = (s.sunCount||4) + ' soleils · ' + diffL + ' · ' + (s.cleanerCount||0) + ' vaisseaux';
+    popup.classList.remove('hidden');
 }
 
 document.getElementById('btnInviteAccept').addEventListener('click', async () => {
@@ -13989,7 +14063,15 @@ document.getElementById('btnCreateRoom').addEventListener('click', async () => {
             const ch = _supa.channel('invite-'+target.id);
             const roomId = currentRoom?.id;
             if (!roomId) return;
-            ch.subscribe(s => { if (s==='SUBSCRIBED') { ch.send({ type:'broadcast', event:'invite', payload:{ roomId, hostPseudo:currentProfile.pseudo, settings } }); setTimeout(()=>ch.unsubscribe(),1000); } });
+            ch.subscribe(async s => {
+                if (s==='SUBSCRIBED') {
+                    const invitePayload = { roomId, hostPseudo:currentProfile.pseudo, settings };
+                    // Envoyer en broadcast ET sauvegarder en base
+                    ch.send({ type:'broadcast', event:'invite', payload: invitePayload });
+                    await _supa.from('profiles').update({ pending_invite: invitePayload }).eq('id', target.id);
+                    setTimeout(()=>_supa.removeChannel(ch),1000);
+                }
+            });
         }, 3000);
     }
     // Invitations guildes
@@ -14539,6 +14621,14 @@ document.querySelectorAll('#eventLog .log-filter').forEach(btn => {
         btn.classList.add('active');
         refreshEventLog();
     });
+});
+
+// Nettoyage automatique quand la page se ferme/recharge
+window.addEventListener('beforeunload', () => {
+    if (currentRoom && currentUser) {
+        const url = `https://hcjajtpbzusqgxkyzbgc.supabase.co/rest/v1/game_room_players?room_id=eq.${currentRoom.id}&player_id=eq.${currentUser.id}`;
+        navigator.sendBeacon(url, null);
+    }
 });
 
 initAuth();
