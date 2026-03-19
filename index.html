@@ -6385,12 +6385,14 @@ function startGame() {
 
         setTimeout(() => {
             updateLoadingBar(35, 'Systèmes solaires...');
+            let _mapData;
             if (!isHost && gameState._serverUniverse) {
-                loadMapFromJSON(gameState._serverUniverse);
+                _mapData = gameState._serverUniverse;
+                loadMapFromJSON(_mapData);
                 gameState._serverUniverse = null;
             } else {
                 const mapIdx = gameState.config.mapIndex != null ? gameState.config.mapIndex : Math.floor(Math.random() * MAP_LIBRARY.length);
-                const _mapData = MAP_LIBRARY[mapIdx];
+                _mapData = MAP_LIBRARY[mapIdx];
                 loadMapFromJSON(_mapData);
             }
             // Synchroniser la config avec la carte chargée
