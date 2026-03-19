@@ -12480,11 +12480,11 @@ async function launchWithAI() {
     // Sauvegarder la room avant update
     const roomSnapshot = { ...currentRoom, settings, seed, status: 'playing' };
     gameState._roomPlayers = players || [];
-    // Mettre à jour Supabase en arrière-plan (sans attendre)
-    _supa.from('game_rooms').update({ status: 'playing', settings, seed }).eq('id', currentRoom.id).then(() => {});
+    // Attendre que Supabase écrive le seed avant de lancer
+    await _supa.from('game_rooms').update({ status: 'playing', settings, seed }).eq('id', currentRoom.id);
     // Créer une nouvelle room auto pour les prochains joueurs
     if (isHost) _createNextAutoRoom(currentRoom.settings);
-    // Lancer immédiatement en local
+    // Lancer en local
     onMultiGameStart(roomSnapshot);
 }
 
@@ -12676,6 +12676,7 @@ async function onMultiGameStart(room) {
     currentRoom = room;
     gameState.isMulti = true;
     gameState.multiSeed = room.seed;
+    console.log('[multi] onMultiGameStart seed=', room.seed, 'mapIndex=', room.settings?.mapIndex, 'settings=', JSON.stringify(room.settings));
     // Appliquer les settings de la room
     const s = room.settings || {};
     gameState.config.sunCount = s.sunCount || 4;
