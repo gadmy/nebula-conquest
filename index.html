@@ -13912,7 +13912,7 @@ function setupInviteListener() {
     _checkPendingInvites();
     inviteChannel = _supa.channel('invite-' + currentUser.id)
         .on('broadcast', { event: 'invite' }, ({ payload }) => {
-            if (gameState.phase !== 'title') return;
+            if (gameState.phase !== 'title' && gameState.phase !== 'createMulti') return;
             _showInvitePopup(payload);
         })
         .subscribe();
@@ -14120,25 +14120,23 @@ document.getElementById('btnCreateRoom').addEventListener('click', async () => {
         guildMode: hasGuild,
         invitedGuilds: guildTagList
     };
-    createRoom('custom', settings, 1 + inviteList.length);
+    await createRoom('custom', settings, 1 + inviteList.length);
     // Invitations joueurs individuels
     for (const pseudo of inviteList) {
-        setTimeout(async () => {
-            const { data: target } = await _supa.from('profiles').select('id,pseudo').ilike('pseudo', pseudo).single();
-            if (!target || !currentRoom) return;
-            const ch = _supa.channel('invite-'+target.id);
-            const roomId = currentRoom?.id;
-            if (!roomId) return;
-            ch.subscribe(async s => {
-                if (s==='SUBSCRIBED') {
-                    const invitePayload = { roomId, hostPseudo:currentProfile.pseudo, settings };
-                    // Envoyer en broadcast ET sauvegarder en base
-                    ch.send({ type:'broadcast', event:'invite', payload: invitePayload });
-                    await _supa.from('profiles').update({ pending_invite: invitePayload }).eq('id', target.id);
-                    setTimeout(()=>_supa.removeChannel(ch),1000);
-                }
-            });
-        }, 3000);
+        const { data: target } = await _supa.from('profiles').select('id,pseudo').ilike('pseudo', pseudo).single();
+        if (!target || !currentRoom) { console.warn('[invite] joueur introuvable ou room perdue:', pseudo); continue; }
+        const roomId = currentRoom.id;
+        const invitePayload = { roomId, hostPseudo: currentProfile.pseudo, settings };
+        // 1. Sauvegarder en base (fallback si le joueur n'est pas connecté)
+        _supa.from('profiles').update({ pending_invite: invitePayload }).eq('id', target.id).then(() => {});
+        // 2. Broadcast temps réel
+        const ch = _supa.channel('invite-' + target.id);
+        ch.subscribe(s => {
+            if (s === 'SUBSCRIBED') {
+                ch.send({ type: 'broadcast', event: 'invite', payload: invitePayload });
+                setTimeout(() => _supa.removeChannel(ch), 2000);
+            }
+        });
     }
     // Invitations guildes
     for (const tag of guildTagList) {
