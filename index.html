@@ -12874,19 +12874,17 @@ function startQmPolling(roomId) {
         });
     }
 
-    // Rebrancher le bouton bots sur le socket
+    // Vote bots via Supabase
     if (btnBots) {
-        btnBots.onclick = () => {
+        btnBots.onclick = async () => {
             playClickSound();
-            if (_socket?.connected) {
-                _socket.emit('vote_bots');
-                btnBots.textContent = '✅ VOTE ENVOYÉ';
-                btnBots.disabled = true;
-            } else {
-                gameState._pendingBotVote = true;
-                btnBots.textContent = '✅ VOTE EN ATTENTE';
-                btnBots.disabled = true;
-            }
+            if (!currentRoom) return;
+            btnBots.textContent = '✅ VOTE ENVOYÉ';
+            btnBots.disabled = true;
+            // Stocker le vote dans Supabase
+            const votes = (currentRoom._botVotes || 0) + 1;
+            await _supa.from('game_rooms').update({ bot_votes: votes }).eq('id', currentRoom.id);
+            currentRoom._botVotes = votes;
         };
     }
 
@@ -12898,6 +12896,16 @@ function startQmPolling(roomId) {
         if (room.status === 'playing') { clearInterval(_qmPollTimer); _qmPollTimer = null; onMultiGameStart(room); return; }
         const count = (players || []).length;
         const max = room.max_players;
+        // Vérifier votes bots
+        const botVotes = room.bot_votes || 0;
+        if (botVotes >= 2 && botVotes > count / 2 && isHost && !currentRoom._launching) {
+            if (btn) { btn.textContent = `🚀 Lancement avec bots...`; btn.style.color = '#4ADE80'; }
+            clearInterval(_qmPollTimer); _qmPollTimer = null;
+            currentRoom._launching = true;
+            await launchWithAI();
+            return;
+        }
+        if (botVotes > 0 && btn) btn.textContent = `⏳ EN ATTENTE... 🤖 ${botVotes}/${count} votes bots`;
         const mapName = MAP_LIBRARY[room.settings?.mapIndex]?.name || room.settings?.mapName || '?';
         if (el) el.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapName)}</strong> · <span style="color:#4ADE80;">${count}/${max} joueurs</span>`;
         if (count >= max) {
