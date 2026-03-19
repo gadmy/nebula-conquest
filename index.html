@@ -12689,6 +12689,7 @@ async function onMultiGameStart(room) {
     gameState.config.cleanerCount = cleanersOn ? Math.min(20, nbPlayers) : 0;
     gameState.config.useAsteroids = s.useAsteroids !== false;
     gameState.config.teamCount = s.teamCount || 0;
+    gameState.config.mapIndex = s.mapIndex != null ? s.mapIndex : null;
     // Synchroniser les sliders UI (si présents)
     const _cfgPlayers = document.getElementById('cfgPlayers'); if (_cfgPlayers) _cfgPlayers.value = gameState.config.playerCount;
     // Charger les joueurs de la room et mon slot (utiliser les données déjà chargées si dispo)
