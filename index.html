@@ -6385,9 +6385,14 @@ function startGame() {
 
         setTimeout(() => {
             updateLoadingBar(35, 'Systèmes solaires...');
-            const mapIdx = gameState.config.mapIndex != null ? gameState.config.mapIndex : Math.floor(Math.random() * MAP_LIBRARY.length);
-            const _mapData = MAP_LIBRARY[mapIdx];
-            loadMapFromJSON(_mapData);
+            if (!isHost && gameState._serverUniverse) {
+                loadMapFromJSON(gameState._serverUniverse);
+                gameState._serverUniverse = null;
+            } else {
+                const mapIdx = gameState.config.mapIndex != null ? gameState.config.mapIndex : Math.floor(Math.random() * MAP_LIBRARY.length);
+                const _mapData = MAP_LIBRARY[mapIdx];
+                loadMapFromJSON(_mapData);
+            }
             // Synchroniser la config avec la carte chargée
             gameState.config.sunCount = _mapData.suns.length;
             const _totalPlanets = _mapData.suns.reduce((a, s) => a + s.planets.length, 0);
@@ -12543,6 +12548,25 @@ function setupGameChannel(roomId) {
         });
         _socket.on('connect', () => {
             _socket.emit('join_room', { roomId });
+            // Si hôte : envoyer l'univers sérialisé pour que le serveur l'utilise
+            if (isHost) {
+                const universe = {
+                    blackHole: gameState.blackHole,
+                    suns: gameState.suns.map(s => ({
+                        name: s.name, angle: s.angle, orbitRadius: s.orbitRadius, orbitSpeed: s.orbitSpeed,
+                        radius: s.radius, color: s.color,
+                        planets: s.planets.map(p => ({
+                            name: p.name, angle: p.angle, orbitRadius: p.orbitRadius, orbitSpeed: p.orbitSpeed,
+                            radius: p.radius, flore: p.flore, faune: p.faune, maxSpores: p.maxSpores,
+                            moons: p.moons.map(m => ({
+                                name: m.name, angle: m.angle, orbitRadius: m.orbitRadius, orbitSpeed: m.orbitSpeed,
+                                radius: m.radius, flore: m.flore, faune: m.faune, maxSpores: m.maxSpores
+                            }))
+                        }))
+                    }))
+                };
+                _socket.emit('send_universe', { universe });
+            }
             if (gameState._pendingBotVote) {
                 gameState._pendingBotVote = false;
                 setTimeout(() => _socket.emit('vote_bots'), 500);
@@ -12571,6 +12595,10 @@ function setupGameChannel(roomId) {
                 }
             });
             if (data.config?.teamCount >= 2) gameState.config.teamCount = data.config.teamCount;
+            // Invité : stocker l'univers reçu pour écraser la MAP_LIBRARY au lancement
+            if (!isHost && data.universe) {
+                gameState._serverUniverse = data.universe;
+            }
         });
         _socket.on('bot_vote_update', (data) => {
             const el = document.getElementById('roomStatus');
