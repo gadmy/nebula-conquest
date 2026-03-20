@@ -12551,7 +12551,7 @@ async function setupGameChannel(roomId) {
             }
         });
         _socket.on('connect', () => {
-            _socket.emit('join_room', { roomId });
+            _socket.emit('join_room', { roomId, slot: mySlot });
             // Si hôte : envoyer l'univers sérialisé pour que le serveur l'utilise
             if (isHost) {
                 const universe = {
