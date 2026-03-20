@@ -12726,10 +12726,15 @@ async function onMultiGameStart(room) {
     // Synchroniser les sliders UI (si présents)
     const _cfgPlayers = document.getElementById('cfgPlayers'); if (_cfgPlayers) _cfgPlayers.value = gameState.config.playerCount;
     // Charger les joueurs de la room et mon slot (utiliser les données déjà chargées si dispo)
-    const rPlayers = gameState._roomPlayers?.length ? gameState._roomPlayers : (await _supa.from('game_room_players').select('*').eq('room_id', room.id).order('slot_number')).data || [];
-    gameState._roomPlayers = rPlayers;
-    const me = rPlayers.find(p => p.player_id === currentUser.id);
-    mySlot = me ? me.slot_number : 0;
+// Slot assigné par Railway (quick_match) ou Supabase (créer partie custom)
+    if (currentRoom?._railwaySlot !== undefined) {
+        mySlot = currentRoom._railwaySlot;
+    } else {
+        const rPlayers = gameState._roomPlayers?.length ? gameState._roomPlayers : (await _supa.from('game_room_players').select('*').eq('room_id', room.id).order('slot_number')).data || [];
+        gameState._roomPlayers = rPlayers;
+        const me = rPlayers.find(p => p.player_id === currentUser.id);
+        mySlot = me ? me.slot_number : 0;
+    }
     // Canal broadcast
     await setupGameChannel(room.id);
     // Lancer la partie
@@ -12794,6 +12799,8 @@ async function enterRoom(roomId) {
     const diffLabel = s.difficulty === 'easy' ? 'Facile' : s.difficulty === 'brutal' ? 'Brutal' : 'Normal';
     document.getElementById('roomParams').textContent = `${parseInt(s.sunCount) || 4} soleils · ${diffLabel} · ${s.useAsteroids !== false ? 'Météorites' : 'Sans météorites'} · ${parseInt(s.cleanerCount) || 0} vaisseaux`;
     document.getElementById('btnRoomStart').style.display = (isHost && !isAuto) ? 'inline-block' : 'none';
+    const btnLaunchAI = document.getElementById('btnRoomLaunchAI');
+    if (btnLaunchAI) btnLaunchAI.style.display = (isHost || !isAuto) ? 'inline-block' : 'none';
     document.getElementById('btnRoomReady').style.display = isAuto ? 'none' : 'inline-block';
     // Charger les joueurs
     await refreshRoomSlots(roomId);
@@ -13031,9 +13038,10 @@ async function quickMatch(okForBots = false) {
         _socket.emit('quick_match', { config: { sunCount: 5, mode: 'auto' } });
     });
 
-    _socket.on('room_joined', (data) => {
-        currentRoom = { id: data.roomId, settings: { mode: 'auto' } };
+_socket.on('room_joined', (data) => {
+        mySlot = data.slot;
         isHost = (data.slot === 0);
+        currentRoom = { id: data.roomId, settings: { mode: 'auto' }, _railwaySlot: data.slot };
         startQmPolling(data.roomId);
     });
 
