@@ -12980,31 +12980,30 @@ function startQmPolling(roomId) {
         };
     }
 
-    _qmPollTimer = setInterval(async () => {
-        if (!currentRoom) { clearInterval(_qmPollTimer); _qmPollTimer = null; return; }
-        const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', roomId);
-        const { data: room } = await _supa.from('game_rooms').select('*').eq('id', roomId).single();
-        if (!room) { clearInterval(_qmPollTimer); _qmPollTimer = null; return; }
-        if (room.status === 'playing') { clearInterval(_qmPollTimer); _qmPollTimer = null; onMultiGameStart(room); return; }
-        const count = (players || []).length;
-        const max = room.max_players;
-        // Vérifier votes bots
-        const botVotes = room.bot_votes || 0;
-        if (botVotes >= 2 && botVotes > count / 2 && !currentRoom._launching) {
-            if (btn) { btn.textContent = `🚀 Lancement avec bots...`; btn.style.color = '#4ADE80'; }
+   // Pas de polling Supabase — on écoute uniquement Railway
+    _qmPollTimer = setInterval(() => {
+        if (!currentRoom) { clearInterval(_qmPollTimer); _qmPollTimer = null; }
+    }, 5000);
+
+    // Lancement déclenché par Railway via room_state
+    if (_socket) {
+        _socket.off('room_state');
+        _socket.on('room_state', (data) => {
+            if (!data?.players) return;
+            const count = data.players.length;
+            if (el) el.innerHTML = `<span style="color:#4ADE80;">${count} joueur(s) connecté(s)</span>`;
+            if (btn) btn.textContent = `⏳ EN ATTENTE... (${count} joueur(s))`;
+            // Lancement auto si room pleine
+            if (currentRoom?._maxPlayers && count >= currentRoom._maxPlayers) {
+                clearInterval(_qmPollTimer); _qmPollTimer = null;
+                if (isHost) launchWithAI();
+            }
+        });
+        _socket.off('game_start_ack');
+        _socket.on('game_start_ack', () => {
             clearInterval(_qmPollTimer); _qmPollTimer = null;
-            currentRoom._launching = true;
-            await launchWithAI();
-            return;
-        }
-        if (botVotes > 0 && btn) btn.textContent = `⏳ EN ATTENTE... 🤖 ${botVotes}/${count} votes bots`;
-        const mapName = MAP_LIBRARY[room.settings?.mapIndex]?.name || room.settings?.mapName || '?';
-        if (el) el.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapName)}</strong> · <span style="color:#4ADE80;">${count}/${max} joueurs</span>`;
-        if (count >= max) {
-            clearInterval(_qmPollTimer); _qmPollTimer = null;
-            if (isHost) await startMultiGame();
-        }
-    }, 2000);
+        });
+    }
 }
 async function quickMatch(okForBots = false) {
     if (!currentUser || !currentProfile) {
