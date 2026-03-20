@@ -1428,7 +1428,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.6)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.7)</div>
     <div id="quickMatchPanel" style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:14px 22px; margin-bottom:14px; min-width:340px; text-align:center;">
         <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(34,197,94,0.5); letter-spacing:2px; margin-bottom:8px;">PROCHAINE PARTIE EN LIGNE</div>
         <canvas id="qmPreview" width="320" height="120" style="display:block; margin:0 auto 8px; border-radius:6px; border:1px solid rgba(34,197,94,0.2); background:rgba(5,8,25,0.9);"></canvas>
@@ -12994,9 +12994,8 @@ async function quickMatch(okForBots = false) {
     // Connexion socket Railway
     const _sess = await _supa.auth.getSession();
     const _tok = _sess?.data?.session?.access_token || null;
-if (_socket) { _socket.removeAllListeners(); }
-    if (!_socket || !_socket.connected) {
-        if (_socket) _socket.disconnect();
+if (!_socket || !_socket.connected) {
+        if (_socket) { _socket.removeAllListeners(); _socket.disconnect(); _socket = null; }
         _socket = io(SERVER_URL, {
             auth: {
                 token: _tok,
@@ -13010,7 +13009,7 @@ if (_socket) { _socket.removeAllListeners(); }
             _socket.emit('quick_match', { config: { sunCount: 5, mode: 'auto' } });
         });
     } else {
-        _socket.emit('quick_match', { config: { sunCount: 5, mode: 'auto' } });
+        _socket.removeAllListeners();
     }
 
     _socket.on('room_joined', (data) => {
