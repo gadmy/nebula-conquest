@@ -12580,7 +12580,16 @@ var _roomPollTimer = null;
 
 async function setupGameChannel(roomId) {
     return new Promise(async resolve => {
-        if (_socket) _socket.disconnect();
+        // Réutiliser le socket existant si déjà connecté
+        if (_socket && _socket.connected) {
+            _socket.emit('join_room', { roomId, slot: mySlot });
+            _socket.on('game_snapshot', applySnapshot);
+            _socket.on('game_events', (events) => events.forEach(handleGameEvent));
+            _socket.on('game_end', handleMultiEnd);
+            resolve();
+            return;
+        }
+        if (_socket) { _socket.removeAllListeners(); _socket.disconnect(); _socket = null; }
         const _sess = await _supa.auth.getSession();
         const _tok = _sess?.data?.session?.access_token || null;
         _socket = io(SERVER_URL, {
