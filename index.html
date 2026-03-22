@@ -1428,7 +1428,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.9)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.10)</div>
     <div id="quickMatchPanel" style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:14px 22px; margin-bottom:14px; min-width:340px; text-align:center;">
         <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(34,197,94,0.5); letter-spacing:2px; margin-bottom:8px;">PROCHAINE PARTIE EN LIGNE</div>
         <canvas id="qmPreview" width="320" height="120" style="display:block; margin:0 auto 8px; border-radius:6px; border:1px solid rgba(34,197,94,0.2); background:rgba(5,8,25,0.9);"></canvas>
@@ -12770,34 +12770,7 @@ function applySnapshot(snap) {
         });
     }
 }
-    // Données joueurs
-    if (snap.players) {
-        snap.players.forEach(sp => {
-            const p = gameState.players[sp.slot];
-            if (!p) return;
-            if (sp.multiTier     !== undefined) p.multiTier     = sp.multiTier;
-            if (sp.multiProgress !== undefined) p.multiProgress = sp.multiProgress;
-            if (sp.stats)                       p.stats         = { ...p.stats, ...sp.stats };
-            // Déclencher le popup prolifération si le serveur le signale
-            if (sp._multiPending && !p._multiPending) {
-                p._multiPending = true;
-                if (sp.slot === localSlot()) _checkSporeReady();
-            }
-            if (!sp._multiPending) p._multiPending = false;
-        });
     }
-    if (snap.jets) {
-        snap.jets.forEach(sj => {
-            const j = gameState.jets.find(j => j.id === sj.id);
-            if (j) { j.x = sj.x; j.y = sj.y; }
-            else if (sj.alive) gameState.jets.push({ ...sj });
-        });
-        gameState.jets = gameState.jets.filter(j => {
-            const sj = snap.jets.find(s => s.id === j.id);
-            return !sj || sj.alive;
-        });
-    }
-}
 
 function handleGameEvent(ev) {
     if (!ev) return;
