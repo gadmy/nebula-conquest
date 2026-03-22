@@ -1428,7 +1428,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.10)</div>
     <div id="quickMatchPanel" style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:14px 22px; margin-bottom:14px; min-width:340px; text-align:center;">
         <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(34,197,94,0.5); letter-spacing:2px; margin-bottom:8px;">PROCHAINE PARTIE EN LIGNE</div>
         <canvas id="qmPreview" width="320" height="120" style="display:block; margin:0 auto 8px; border-radius:6px; border:1px solid rgba(34,197,94,0.2); background:rgba(5,8,25,0.9);"></canvas>
@@ -3070,7 +3070,8 @@ function init() {
     hideLoading();
 
     // Démarrer sur l'écran auth — initAuth() basculera sur title si session valide
-    showAuthScreen();
+    // Différé pour s'assurer que tous les scripts sont parsés
+    setTimeout(() => showAuthScreen(), 0);
 }
 
 function resizeCanvas() {
@@ -6386,11 +6387,32 @@ function startGame() {
         setTimeout(() => {
             updateLoadingBar(35, 'Systèmes solaires...');
             let _mapData;
-            if (!isHost && gameState._serverUniverse) {
+            if (gameState.isMulti && gameState._serverUniverse) {
+                // Multi : utiliser la carte envoyée par le serveur (tous les clients)
                 _mapData = gameState._serverUniverse;
                 loadMapFromJSON(_mapData);
                 gameState._serverUniverse = null;
+            } else if (gameState.isMulti && !gameState._serverUniverse) {
+                // Multi mais univers pas encore reçu → attendre max 10s
+                console.log('[multi] en attente de l\'univers serveur...');
+                let waited = 0;
+                const waitUniverse = setInterval(() => {
+                    waited += 200;
+                    if (gameState._serverUniverse) {
+                        clearInterval(waitUniverse);
+                        loadMapFromJSON(gameState._serverUniverse);
+                        gameState._serverUniverse = null;
+                        console.log('[multi] univers serveur reçu et chargé');
+                    } else if (waited >= 10000) {
+                        clearInterval(waitUniverse);
+                        console.warn('[multi] timeout univers serveur, carte aléatoire utilisée');
+                        const mapIdx = Math.floor(Math.random() * MAP_LIBRARY.length);
+                        loadMapFromJSON(MAP_LIBRARY[mapIdx]);
+                    }
+                }, 200);
+                return; // sortir de startGame, il sera relancé via le callback
             } else {
+                // Solo : carte locale
                 const mapIdx = gameState.config.mapIndex != null ? gameState.config.mapIndex : Math.floor(Math.random() * MAP_LIBRARY.length);
                 _mapData = MAP_LIBRARY[mapIdx];
                 loadMapFromJSON(_mapData);
@@ -8584,8 +8606,12 @@ function setupInput() {
                 const len = Math.sqrt(dx*dx + dy*dy);
                 if (len > 10) {
                     const dX = dx/len, dY = dy/len;
-                    launchJet(src, dX, dY, gameState._fireType);
-                    if (gameState.isMulti) sendAction('jet', { srcName: src.name, dirX: dX, dirY: dY, sporeType: gameState._fireType });
+                    if (gameState.isMulti) {
+                        // En multi : envoyer au serveur uniquement, pas de simulation locale
+                        sendAction('jet', { srcName: src.name, dirX: dX, dirY: dY, sporeType: gameState._fireType });
+                    } else {
+                        launchJet(src, dX, dY, gameState._fireType);
+                    }
                 }
             }
             // Remettre zoom
@@ -8885,6 +8911,23 @@ function update(dt) {
     gameState.time += dt;
     if (gameState.phase === 'paused') return;
     updateLOD(dt);
+    // En multi : pas de simulation locale, le serveur est autoritaire
+    if (gameState.isMulti) {
+        updateCosmicEffects(dt);
+        updateConquestEffects(dt);
+        updateImpacts(dt);
+        if (gameState._hudCounter % 10 === 0) {
+            updateHUD();
+            updateMultiPanel();
+            updateTechPanel();
+        }
+        if (gameState._hudCounter % 30 === 0) {
+            updateMyPlanets();
+        }
+        gameState._hudCounter = (gameState._hudCounter || 0) + 1;
+        gameState.gameStats.timeElapsed += dt;
+        return;
+    }
     updateOrbits(dt);
     updateCosmicEffects(dt);
     // Décompte cooldown nidification
@@ -11941,8 +11984,6 @@ function refreshEventLog() {
     });
 }
 
-window.addEventListener('load', init);
-
 </script>
 
 <!-- ═══ VOLUME ═══ -->
@@ -12485,12 +12526,13 @@ async function launchWithAI() {
     const seed = Math.floor(Math.random() * 2147483647);
     const settings = { ...currentRoom.settings, playerCount: maxPlayers, aiCount, useIA: true };
     // Sauvegarder la room avant update
-    const roomSnapshot = { ...currentRoom, settings, seed, status: 'playing' };
+  const roomSnapshot = { ...currentRoom, settings, seed, status: 'playing' };
     gameState._roomPlayers = players || [];
-    // Attendre que Supabase écrive le seed avant de lancer
-    await _supa.from('game_rooms').update({ status: 'playing', settings, seed }).eq('id', currentRoom.id);
-    // Créer une nouvelle room auto pour les prochains joueurs
-    if (isHost) _createNextAutoRoom(currentRoom.settings);
+    // Supabase uniquement pour les rooms custom (pas les rooms Railway auto-xxx)
+    if (currentRoom.id && !currentRoom.id.startsWith('auto-')) {
+        await _supa.from('game_rooms').update({ status: 'playing', settings, seed }).eq('id', currentRoom.id);
+        if (isHost) _createNextAutoRoom(currentRoom.settings);
+    }
     // Lancer en local
     onMultiGameStart(roomSnapshot);
 }
@@ -12551,7 +12593,7 @@ async function setupGameChannel(roomId) {
             }
         });
         _socket.on('connect', () => {
-            _socket.emit('join_room', { roomId });
+            _socket.emit('join_room', { roomId, slot: mySlot });
             // Si hôte : envoyer l'univers sérialisé pour que le serveur l'utilise
             if (isHost) {
                 const universe = {
@@ -12599,9 +12641,11 @@ async function setupGameChannel(roomId) {
                 }
             });
             if (data.config?.teamCount >= 2) gameState.config.teamCount = data.config.teamCount;
-            // Invité : stocker l'univers reçu pour écraser la MAP_LIBRARY au lancement
-            if (!isHost && data.universe) {
+            // Stocker l'univers pour tous (hôte et invités)
+            if (data.universe) {
                 gameState._serverUniverse = data.universe;
+                // Synchroniser les _id serveur sur les corps déjà chargés
+                _syncServerIds(data.universe);
             }
         });
         _socket.on('bot_vote_update', (data) => {
@@ -12651,16 +12695,88 @@ function handleMultiEnd(data) {
     }
 }
 
+// Synchronise les _id serveur sur les corps client après game_start
+function _syncServerIds(universe) {
+    if (!universe?.suns) return;
+    for (const su of universe.suns) {
+        const clientSun = gameState.suns.find(s => s.name === su.name);
+        if (clientSun) clientSun._id = su._id;
+        for (const pu of (su.planets || [])) {
+            const clientPlanet = gameState.planets.find(p => p.name === pu.name);
+            if (clientPlanet) {
+                clientPlanet._id = pu._id;
+                for (const mu of (pu.moons || [])) {
+                    const clientMoon = gameState.moons.find(m => m.name === mu.name);
+                    if (clientMoon) clientMoon._id = mu._id;
+                }
+            }
+        }
+    }
+    console.log('[multi] _id serveur synchronisés');
+}
+
 function applySnapshot(snap) {
     if (!snap || !snap.bodies) return;
+
+    // Mettre à jour les corps depuis le serveur
     snap.bodies.forEach(bd => {
-        const body = gameState.allBodies.find(b => b.name === bd.name);
+        const body = gameState.allBodies.find(b => b._id === bd._id) ||
+                     gameState.allBodies.find(b => b.name === bd.name);
         if (!body) return;
-        if (bd.owner !== undefined) body.owner = bd.owner;
-        if (bd.spores !== undefined) body.spores = bd.spores;
-        if (bd.buildMode !== undefined) body.buildMode = bd.buildMode;
+        if (bd.owner     !== undefined) {
+            const oldOwner = body.owner;
+            body.owner = bd.owner;
+            // Mettre à jour les listes bodies des joueurs
+            if (oldOwner !== bd.owner) {
+                if (oldOwner !== null && gameState.players[oldOwner]) {
+                    gameState.players[oldOwner].bodies = gameState.players[oldOwner].bodies.filter(b => b !== body);
+                }
+                if (bd.owner !== null && gameState.players[bd.owner]) {
+                    if (!gameState.players[bd.owner].bodies.includes(body))
+                        gameState.players[bd.owner].bodies.push(body);
+                }
+            }
+        }
+        if (bd.spores        !== undefined) body.spores        = bd.spores;
+        if (bd.maxSpores     !== undefined) body.maxSpores     = bd.maxSpores;
+        if (bd.buildMode     !== undefined) body.buildMode     = bd.buildMode;
         if (bd.buildProgress !== undefined) body.buildProgress = bd.buildProgress;
+        if (bd.nids          !== undefined) body.nids          = bd.nids;
+        if (bd.biomes        !== undefined) body.biomes        = bd.biomes;
+        if (bd.alveoles      !== undefined) body.alveoles      = bd.alveoles;
+        // Positions (envoyées toutes les 5 ticks par le serveur)
+        if (bd.x !== undefined) body.x = bd.x;
+        if (bd.y !== undefined) body.y = bd.y;
+        if (bd.angle !== undefined) body.angle = bd.angle;
     });
+
+    // Jets depuis le serveur
+    if (snap.jets) {
+        // Supprimer les jets morts
+        gameState.jets = gameState.jets.filter(j => {
+            return snap.jets.some(sj => sj.id === j.id && sj.alive !== false);
+        });
+        // Mettre à jour ou créer les jets
+        snap.jets.forEach(sj => {
+            if (sj.alive === false) return;
+            const existing = gameState.jets.find(j => j.id === sj.id);
+            if (existing) {
+                existing.x = sj.x;
+                existing.y = sj.y;
+                existing.spores = sj.spores;
+            } else {
+                // Nouveau jet — créer visuellement
+                gameState.jets.push({
+                    id: sj.id, owner: sj.owner, color: sj.color,
+                    spores: sj.spores, alive: true,
+                    x: sj.x, y: sj.y,
+                    trail: [], sparkles: [], age: 0, selected: false,
+                    trajectory: [], posIndex: 0, speed: 0
+                });
+            }
+        });
+    }
+
     // Données joueurs
     if (snap.players) {
         snap.players.forEach(sp => {
@@ -12669,23 +12785,8 @@ function applySnapshot(snap) {
             if (sp.multiTier     !== undefined) p.multiTier     = sp.multiTier;
             if (sp.multiProgress !== undefined) p.multiProgress = sp.multiProgress;
             if (sp.stats)                       p.stats         = { ...p.stats, ...sp.stats };
-            // Déclencher le popup prolifération si le serveur le signale
-            if (sp._multiPending && !p._multiPending) {
-                p._multiPending = true;
-                if (sp.slot === localSlot()) _checkSporeReady();
-            }
-            if (!sp._multiPending) p._multiPending = false;
-        });
-    }
-    if (snap.jets) {
-        snap.jets.forEach(sj => {
-            const j = gameState.jets.find(j => j.id === sj.id);
-            if (j) { j.x = sj.x; j.y = sj.y; }
-            else if (sj.alive) gameState.jets.push({ ...sj });
-        });
-        gameState.jets = gameState.jets.filter(j => {
-            const sj = snap.jets.find(s => s.id === j.id);
-            return !sj || sj.alive;
+            if (sp._multiPending && !p._multiPending) p._multiPending = true;
+            if (!sp._multiPending)               p._multiPending = false;
         });
     }
 }
@@ -12726,13 +12827,34 @@ async function onMultiGameStart(room) {
     // Synchroniser les sliders UI (si présents)
     const _cfgPlayers = document.getElementById('cfgPlayers'); if (_cfgPlayers) _cfgPlayers.value = gameState.config.playerCount;
     // Charger les joueurs de la room et mon slot (utiliser les données déjà chargées si dispo)
-    const rPlayers = gameState._roomPlayers?.length ? gameState._roomPlayers : (await _supa.from('game_room_players').select('*').eq('room_id', room.id).order('slot_number')).data || [];
-    gameState._roomPlayers = rPlayers;
-    const me = rPlayers.find(p => p.player_id === currentUser.id);
-    mySlot = me ? me.slot_number : 0;
-    // Canal broadcast
+// Slot assigné par Railway (quick_match) ou Supabase (créer partie custom)
+    if (currentRoom?._railwaySlot !== undefined) {
+        mySlot = currentRoom._railwaySlot;
+        console.log('[multi] mySlot depuis Railway:', mySlot);
+    } else if (room.id && !room.id.startsWith('auto-')) {
+        const rPlayers = gameState._roomPlayers?.length ? gameState._roomPlayers : (await _supa.from('game_room_players').select('*').eq('room_id', room.id).order('slot_number')).data || [];
+        gameState._roomPlayers = rPlayers;
+        const me = rPlayers.find(p => p.player_id === currentUser.id);
+        mySlot = me ? me.slot_number : 0;
+        console.log('[multi] mySlot depuis Supabase:', mySlot);
+    } else {
+        console.warn('[multi] mySlot non défini, room inconnue:', room.id);
+    }
+    // Canal broadcast — attendre game_start avant de lancer
     await setupGameChannel(room.id);
-    // Lancer la partie
+    // Attendre que le serveur envoie l'univers via game_start (max 8s)
+    await new Promise(resolve => {
+        if (gameState._serverUniverse) { resolve(); return; }
+        let waited = 0;
+        const check = setInterval(() => {
+            waited += 100;
+            if (gameState._serverUniverse || waited >= 8000) {
+                clearInterval(check);
+                resolve();
+            }
+        }, 100);
+    });
+    console.log('[multi] univers reçu:', gameState._serverUniverse ? 'OUI' : 'NON (timeout)');
     startGame();
 }
 
@@ -12794,6 +12916,8 @@ async function enterRoom(roomId) {
     const diffLabel = s.difficulty === 'easy' ? 'Facile' : s.difficulty === 'brutal' ? 'Brutal' : 'Normal';
     document.getElementById('roomParams').textContent = `${parseInt(s.sunCount) || 4} soleils · ${diffLabel} · ${s.useAsteroids !== false ? 'Météorites' : 'Sans météorites'} · ${parseInt(s.cleanerCount) || 0} vaisseaux`;
     document.getElementById('btnRoomStart').style.display = (isHost && !isAuto) ? 'inline-block' : 'none';
+    const btnLaunchAI = document.getElementById('btnRoomLaunchAI');
+    if (btnLaunchAI) btnLaunchAI.style.display = (isHost || !isAuto) ? 'inline-block' : 'none';
     document.getElementById('btnRoomReady').style.display = isAuto ? 'none' : 'inline-block';
     // Charger les joueurs
     await refreshRoomSlots(roomId);
@@ -12927,39 +13051,7 @@ function startQmPolling(roomId) {
     if (btn) { btn.textContent = '⏳ EN ATTENTE...'; btn.disabled = true; }
     if (btnBots) { btnBots.textContent = '🤖 VOTER BOTS'; btnBots.disabled = false; }
 
-    // Connecter le socket Railway dès maintenant pour le vote bots
-    if (!_socket || !_socket.connected) {
-        _supa.auth.getSession().then(r => {
-            const token = r.data.session?.access_token;
-            if (_socket) _socket.disconnect();
-            _socket = io(SERVER_URL, {
-                auth: {
-                    token,
-                    pseudo: currentProfile?.pseudo || 'Joueur',
-                    color: currentProfile?.color || '#C084FC',
-                    guildTag: currentProfile?._guildTag || null,
-                    guildId: currentProfile?._guildId || null
-                }
-            });
-            _socket.on('connect', () => {
-                _socket.emit('join_room', { roomId });
-                if (gameState._pendingBotVote) {
-                    gameState._pendingBotVote = false;
-                    setTimeout(() => _socket.emit('vote_bots'), 300);
-                }
-            });
-            _socket.on('bot_vote_update', (data) => {
-                if (btn) btn.textContent = `⏳ EN ATTENTE... 🤖 ${data.votes}/${data.total} votes`;
-            });
-            _socket.on('bot_countdown', (data) => {
-                if (btn) { btn.textContent = `🚀 Lancement dans ${data.remaining}s...`; btn.style.color = '#4ADE80'; }
-                if (data.remaining <= 0) { clearInterval(_qmPollTimer); _qmPollTimer = null; launchWithAI(); }
-            });
-            _socket.on('game_start', () => {
-                clearInterval(_qmPollTimer); _qmPollTimer = null;
-            });
-        });
-    }
+// Socket déjà connecté via quickMatch — rien à faire ici
 
     // Vote bots via Supabase
     if (btnBots) {
@@ -12973,31 +13065,30 @@ function startQmPolling(roomId) {
         };
     }
 
-    _qmPollTimer = setInterval(async () => {
-        if (!currentRoom) { clearInterval(_qmPollTimer); _qmPollTimer = null; return; }
-        const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', roomId);
-        const { data: room } = await _supa.from('game_rooms').select('*').eq('id', roomId).single();
-        if (!room) { clearInterval(_qmPollTimer); _qmPollTimer = null; return; }
-        if (room.status === 'playing') { clearInterval(_qmPollTimer); _qmPollTimer = null; onMultiGameStart(room); return; }
-        const count = (players || []).length;
-        const max = room.max_players;
-        // Vérifier votes bots
-        const botVotes = room.bot_votes || 0;
-        if (botVotes >= 2 && botVotes > count / 2 && !currentRoom._launching) {
-            if (btn) { btn.textContent = `🚀 Lancement avec bots...`; btn.style.color = '#4ADE80'; }
+   // Pas de polling Supabase — on écoute uniquement Railway
+    _qmPollTimer = setInterval(() => {
+        if (!currentRoom) { clearInterval(_qmPollTimer); _qmPollTimer = null; }
+    }, 5000);
+
+    // Lancement déclenché par Railway via room_state
+    if (_socket) {
+        _socket.off('room_state');
+        _socket.on('room_state', (data) => {
+            if (!data?.players) return;
+            const count = data.players.length;
+            if (el) el.innerHTML = `<span style="color:#4ADE80;">${count} joueur(s) connecté(s)</span>`;
+            if (btn) btn.textContent = `⏳ EN ATTENTE... (${count} joueur(s))`;
+            // Lancement auto si room pleine
+            if (currentRoom?._maxPlayers && count >= currentRoom._maxPlayers) {
+                clearInterval(_qmPollTimer); _qmPollTimer = null;
+                if (isHost) launchWithAI();
+            }
+        });
+        _socket.off('game_start_ack');
+        _socket.on('game_start_ack', () => {
             clearInterval(_qmPollTimer); _qmPollTimer = null;
-            currentRoom._launching = true;
-            await launchWithAI();
-            return;
-        }
-        if (botVotes > 0 && btn) btn.textContent = `⏳ EN ATTENTE... 🤖 ${botVotes}/${count} votes bots`;
-        const mapName = MAP_LIBRARY[room.settings?.mapIndex]?.name || room.settings?.mapName || '?';
-        if (el) el.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapName)}</strong> · <span style="color:#4ADE80;">${count}/${max} joueurs</span>`;
-        if (count >= max) {
-            clearInterval(_qmPollTimer); _qmPollTimer = null;
-            if (isHost) await startMultiGame();
-        }
-    }, 2000);
+        });
+    }
 }
 async function quickMatch(okForBots = false) {
     if (!currentUser || !currentProfile) {
@@ -13015,25 +13106,29 @@ async function quickMatch(okForBots = false) {
     // Connexion socket Railway
     const _sess = await _supa.auth.getSession();
     const _tok = _sess?.data?.session?.access_token || null;
-    if (_socket) _socket.disconnect();
-    _socket = io(SERVER_URL, {
-        auth: {
-            token: _tok,
-            pseudo: currentProfile?.pseudo || 'Joueur',
-            color: currentProfile?.color || '#C084FC',
-            guildTag: currentProfile?._guildTag || null,
-            guildId: currentProfile?._guildId || null
-        }
-    });
-
-    _socket.on('connect', () => {
-        // Demander au serveur de trouver ou créer une room auto
+if (!_socket || !_socket.connected) {
+        if (_socket) { _socket.removeAllListeners(); _socket.disconnect(); _socket = null; }
+        _socket = io(SERVER_URL, {
+            auth: {
+                token: _tok,
+                pseudo: currentProfile?.pseudo || 'Joueur',
+                color: currentProfile?.color || '#C084FC',
+                guildTag: currentProfile?._guildTag || null,
+                guildId: currentProfile?._guildId || null
+            }
+        });
+        _socket.on('connect', () => {
+            _socket.emit('quick_match', { config: { sunCount: 5, mode: 'auto' } });
+        });
+} else {
+        _socket.removeAllListeners();
         _socket.emit('quick_match', { config: { sunCount: 5, mode: 'auto' } });
-    });
+    }
 
     _socket.on('room_joined', (data) => {
-        currentRoom = { id: data.roomId, settings: { mode: 'auto' } };
+        mySlot = data.slot;
         isHost = (data.slot === 0);
+        currentRoom = { id: data.roomId, settings: { mode: 'auto' }, _railwaySlot: data.slot };
         startQmPolling(data.roomId);
     });
 
@@ -14730,6 +14825,9 @@ window.addEventListener('beforeunload', () => {
 
 initAuth();
 
+</script>
+<script>
+window.addEventListener('load', init);
 </script>
 </body>
 </html>
