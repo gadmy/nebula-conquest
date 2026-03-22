@@ -1428,7 +1428,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.8)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.9)</div>
     <div id="quickMatchPanel" style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:14px 22px; margin-bottom:14px; min-width:340px; text-align:center;">
         <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(34,197,94,0.5); letter-spacing:2px; margin-bottom:8px;">PROCHAINE PARTIE EN LIGNE</div>
         <canvas id="qmPreview" width="320" height="120" style="display:block; margin:0 auto 8px; border-radius:6px; border:1px solid rgba(34,197,94,0.2); background:rgba(5,8,25,0.9);"></canvas>
@@ -8584,8 +8584,12 @@ function setupInput() {
                 const len = Math.sqrt(dx*dx + dy*dy);
                 if (len > 10) {
                     const dX = dx/len, dY = dy/len;
-                    launchJet(src, dX, dY, gameState._fireType);
-                    if (gameState.isMulti) sendAction('jet', { srcName: src.name, dirX: dX, dirY: dY, sporeType: gameState._fireType });
+                    if (gameState.isMulti) {
+                        // En multi : envoyer au serveur uniquement, pas de simulation locale
+                        sendAction('jet', { srcName: src.name, dirX: dX, dirY: dY, sporeType: gameState._fireType });
+                    } else {
+                        launchJet(src, dX, dY, gameState._fireType);
+                    }
                 }
             }
             // Remettre zoom
@@ -8885,6 +8889,23 @@ function update(dt) {
     gameState.time += dt;
     if (gameState.phase === 'paused') return;
     updateLOD(dt);
+    // En multi : pas de simulation locale, le serveur est autoritaire
+    if (gameState.isMulti) {
+        updateCosmicEffects(dt);
+        updateConquestEffects(dt);
+        updateImpacts(dt);
+        if (gameState._hudCounter % 10 === 0) {
+            updateHUD();
+            updateMultiPanel();
+            updateTechPanel();
+        }
+        if (gameState._hudCounter % 30 === 0) {
+            updateMyPlanets();
+        }
+        gameState._hudCounter = (gameState._hudCounter || 0) + 1;
+        gameState.gameStats.timeElapsed += dt;
+        return;
+    }
     updateOrbits(dt);
     updateCosmicEffects(dt);
     // Décompte cooldown nidification
@@ -12600,9 +12621,11 @@ async function setupGameChannel(roomId) {
                 }
             });
             if (data.config?.teamCount >= 2) gameState.config.teamCount = data.config.teamCount;
-            // Invité : stocker l'univers reçu pour écraser la MAP_LIBRARY au lancement
-            if (!isHost && data.universe) {
+            // Stocker l'univers pour tous (hôte et invités)
+            if (data.universe) {
                 gameState._serverUniverse = data.universe;
+                // Synchroniser les _id serveur sur les corps déjà chargés
+                _syncServerIds(data.universe);
             }
         });
         _socket.on('bot_vote_update', (data) => {
@@ -12652,16 +12675,101 @@ function handleMultiEnd(data) {
     }
 }
 
+// Synchronise les _id serveur sur les corps client après game_start
+function _syncServerIds(universe) {
+    if (!universe?.suns) return;
+    for (const su of universe.suns) {
+        const clientSun = gameState.suns.find(s => s.name === su.name);
+        if (clientSun) clientSun._id = su._id;
+        for (const pu of (su.planets || [])) {
+            const clientPlanet = gameState.planets.find(p => p.name === pu.name);
+            if (clientPlanet) {
+                clientPlanet._id = pu._id;
+                for (const mu of (pu.moons || [])) {
+                    const clientMoon = gameState.moons.find(m => m.name === mu.name);
+                    if (clientMoon) clientMoon._id = mu._id;
+                }
+            }
+        }
+    }
+    console.log('[multi] _id serveur synchronisés');
+}
+
 function applySnapshot(snap) {
     if (!snap || !snap.bodies) return;
+
+    // Mettre à jour les corps depuis le serveur
     snap.bodies.forEach(bd => {
-        const body = gameState.allBodies.find(b => b.name === bd.name);
+        const body = gameState.allBodies.find(b => b._id === bd._id) ||
+                     gameState.allBodies.find(b => b.name === bd.name);
         if (!body) return;
-        if (bd.owner !== undefined) body.owner = bd.owner;
-        if (bd.spores !== undefined) body.spores = bd.spores;
-        if (bd.buildMode !== undefined) body.buildMode = bd.buildMode;
+        if (bd.owner     !== undefined) {
+            const oldOwner = body.owner;
+            body.owner = bd.owner;
+            // Mettre à jour les listes bodies des joueurs
+            if (oldOwner !== bd.owner) {
+                if (oldOwner !== null && gameState.players[oldOwner]) {
+                    gameState.players[oldOwner].bodies = gameState.players[oldOwner].bodies.filter(b => b !== body);
+                }
+                if (bd.owner !== null && gameState.players[bd.owner]) {
+                    if (!gameState.players[bd.owner].bodies.includes(body))
+                        gameState.players[bd.owner].bodies.push(body);
+                }
+            }
+        }
+        if (bd.spores        !== undefined) body.spores        = bd.spores;
+        if (bd.maxSpores     !== undefined) body.maxSpores     = bd.maxSpores;
+        if (bd.buildMode     !== undefined) body.buildMode     = bd.buildMode;
         if (bd.buildProgress !== undefined) body.buildProgress = bd.buildProgress;
+        if (bd.nids          !== undefined) body.nids          = bd.nids;
+        if (bd.biomes        !== undefined) body.biomes        = bd.biomes;
+        if (bd.alveoles      !== undefined) body.alveoles      = bd.alveoles;
+        // Positions (envoyées toutes les 5 ticks par le serveur)
+        if (bd.x !== undefined) body.x = bd.x;
+        if (bd.y !== undefined) body.y = bd.y;
+        if (bd.angle !== undefined) body.angle = bd.angle;
     });
+
+    // Jets depuis le serveur
+    if (snap.jets) {
+        // Supprimer les jets morts
+        gameState.jets = gameState.jets.filter(j => {
+            return snap.jets.some(sj => sj.id === j.id && sj.alive !== false);
+        });
+        // Mettre à jour ou créer les jets
+        snap.jets.forEach(sj => {
+            if (sj.alive === false) return;
+            const existing = gameState.jets.find(j => j.id === sj.id);
+            if (existing) {
+                existing.x = sj.x;
+                existing.y = sj.y;
+                existing.spores = sj.spores;
+            } else {
+                // Nouveau jet — créer visuellement
+                gameState.jets.push({
+                    id: sj.id, owner: sj.owner, color: sj.color,
+                    spores: sj.spores, alive: true,
+                    x: sj.x, y: sj.y,
+                    trail: [], sparkles: [], age: 0, selected: false,
+                    trajectory: [], posIndex: 0, speed: 0
+                });
+            }
+        });
+    }
+
+    // Données joueurs
+    if (snap.players) {
+        snap.players.forEach(sp => {
+            const p = gameState.players[sp.slot];
+            if (!p) return;
+            if (sp.multiTier     !== undefined) p.multiTier     = sp.multiTier;
+            if (sp.multiProgress !== undefined) p.multiProgress = sp.multiProgress;
+            if (sp.stats)                       p.stats         = { ...p.stats, ...sp.stats };
+            if (sp._multiPending && !p._multiPending) p._multiPending = true;
+            if (!sp._multiPending)               p._multiPending = false;
+        });
+    }
+}
     // Données joueurs
     if (snap.players) {
         snap.players.forEach(sp => {
