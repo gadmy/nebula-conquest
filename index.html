@@ -6387,11 +6387,32 @@ function startGame() {
         setTimeout(() => {
             updateLoadingBar(35, 'Systèmes solaires...');
             let _mapData;
-            if (!isHost && gameState._serverUniverse) {
+            if (gameState.isMulti && gameState._serverUniverse) {
+                // Multi : utiliser la carte envoyée par le serveur (tous les clients)
                 _mapData = gameState._serverUniverse;
                 loadMapFromJSON(_mapData);
                 gameState._serverUniverse = null;
+            } else if (gameState.isMulti && !gameState._serverUniverse) {
+                // Multi mais univers pas encore reçu → attendre max 10s
+                console.log('[multi] en attente de l\'univers serveur...');
+                let waited = 0;
+                const waitUniverse = setInterval(() => {
+                    waited += 200;
+                    if (gameState._serverUniverse) {
+                        clearInterval(waitUniverse);
+                        loadMapFromJSON(gameState._serverUniverse);
+                        gameState._serverUniverse = null;
+                        console.log('[multi] univers serveur reçu et chargé');
+                    } else if (waited >= 10000) {
+                        clearInterval(waitUniverse);
+                        console.warn('[multi] timeout univers serveur, carte aléatoire utilisée');
+                        const mapIdx = Math.floor(Math.random() * MAP_LIBRARY.length);
+                        loadMapFromJSON(MAP_LIBRARY[mapIdx]);
+                    }
+                }, 200);
+                return; // sortir de startGame, il sera relancé via le callback
             } else {
+                // Solo : carte locale
                 const mapIdx = gameState.config.mapIndex != null ? gameState.config.mapIndex : Math.floor(Math.random() * MAP_LIBRARY.length);
                 _mapData = MAP_LIBRARY[mapIdx];
                 loadMapFromJSON(_mapData);
