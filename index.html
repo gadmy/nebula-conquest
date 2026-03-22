@@ -3070,7 +3070,8 @@ function init() {
     hideLoading();
 
     // Démarrer sur l'écran auth — initAuth() basculera sur title si session valide
-    showAuthScreen();
+    // Différé pour s'assurer que tous les scripts sont parsés
+    setTimeout(() => showAuthScreen(), 0);
 }
 
 function resizeCanvas() {
@@ -12768,7 +12769,6 @@ function applySnapshot(snap) {
         });
     }
 }
-    }
 
 function handleGameEvent(ev) {
     if (!ev) return;
