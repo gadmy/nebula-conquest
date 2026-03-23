@@ -13081,12 +13081,20 @@ function startQmPolling(roomId) {
 
     // Lancement déclenché par Railway via room_state
     if (_socket) {
-        _socket.off('room_state');
+_socket.off('room_state');
         _socket.on('room_state', (data) => {
             if (!data?.players) return;
             const count = data.players.length;
+            const max = currentRoom?._maxPlayers || data.maxPlayers || '?';
             if (el) el.innerHTML = `<span style="color:#4ADE80;">${count} joueur(s) connecté(s)</span>`;
             if (btn) btn.textContent = `⏳ EN ATTENTE... (${count} joueur(s))`;
+            // Mettre à jour le panel titre aussi
+            const qmParams = document.getElementById('qmParams');
+            if (qmParams && currentRoom) {
+                const mapIdx = currentRoom._mapIndex ?? 0;
+                const mapData = MAP_LIBRARY[mapIdx] || MAP_LIBRARY[0];
+                qmParams.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapData.name)}</strong> · <span style="color:#4ADE80;">${count}/${max} joueurs</span>`;
+            }
             // Lancement auto si room pleine
             if (currentRoom?._maxPlayers && count >= currentRoom._maxPlayers) {
                 clearInterval(_qmPollTimer); _qmPollTimer = null;
@@ -13134,10 +13142,10 @@ if (!_socket || !_socket.connected) {
         _socket.emit('quick_match', { config: { sunCount: 5, mode: 'auto' } });
     }
 
-    _socket.on('room_joined', (data) => {
+_socket.on('room_joined', (data) => {
         mySlot = data.slot;
         isHost = (data.slot === 0);
-        currentRoom = { id: data.roomId, settings: { mode: 'auto' }, _railwaySlot: data.slot };
+        currentRoom = { id: data.roomId, settings: { mode: 'auto' }, _railwaySlot: data.slot, _maxPlayers: data.maxPlayers };
         startQmPolling(data.roomId);
     });
 
