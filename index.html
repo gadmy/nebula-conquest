@@ -1428,7 +1428,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.2)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.3)</div>
     <div id="quickMatchPanel" style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:14px 22px; margin-bottom:14px; min-width:340px; text-align:center;">
         <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(34,197,94,0.5); letter-spacing:2px; margin-bottom:8px;">PROCHAINE PARTIE EN LIGNE</div>
         <canvas id="qmPreview" width="320" height="120" style="display:block; margin:0 auto 8px; border-radius:6px; border:1px solid rgba(34,197,94,0.2); background:rgba(5,8,25,0.9);"></canvas>
@@ -12655,25 +12655,7 @@ async function setupGameChannel(roomId) {
                 if (p && rp.guildTag) p.guildTag = rp.guildTag;
             });
         });
-        _socket.on('game_start', (data) => {
-            if (!data?.players) return;
-            data.players.forEach(pd => {
-                const p = gameState.players[pd.slot];
-                if (p) {
-                    p.guildTag  = pd.guildTag  || null;
-                    p.guildId   = pd.guildId   || null;
-                    p.team      = pd.team      ?? pd.slot;
-                    p.teamColor = pd.teamColor || null;
-                }
-            });
-            if (data.config?.teamCount >= 2) gameState.config.teamCount = data.config.teamCount;
-            // Stocker l'univers pour tous (hôte et invités)
-            if (data.universe) {
-                gameState._serverUniverse = data.universe;
-                // Synchroniser les _id serveur sur les corps déjà chargés
-                _syncServerIds(data.universe);
-            }
-        });
+// game_start géré dans quickMatch()
         _socket.on('bot_vote_update', (data) => {
             const el = document.getElementById('roomStatus');
             if (el) { el.textContent = `🤖 Votes bots : ${data.votes}/${data.total} (majorité requise)`; el.style.color = '#FCD34D'; }
@@ -13187,15 +13169,25 @@ if (!_socket || !_socket.connected) {
             }, 200);
         }
     });
-  _socket.on('game_start', (data) => {
+_socket.on('game_start', (data) => {
         clearInterval(_qmPollTimer); _qmPollTimer = null;
         stopLobbyPolling();
+        console.log('[game_start] reçu, univers:', data?.universe ? 'OUI' : 'NON', 'config:', JSON.stringify(data?.config));
         if (data?.universe) {
             gameState._serverUniverse = data.universe;
         }
-        if (data?.config?.mapIndex != null) {
-            if (currentRoom) currentRoom._mapIndex = data.config.mapIndex;
+        if (data?.config?.mapIndex != null && currentRoom) {
+            currentRoom._mapIndex = data.config.mapIndex;
         }
+        // Mettre à jour players si dispo
+        if (data?.players) {
+            data.players.forEach(pd => {
+                const p = gameState.players[pd.slot];
+                if (p) { p.guildTag = pd.guildTag || null; p.guildId = pd.guildId || null; p.team = pd.team ?? pd.slot; p.teamColor = pd.teamColor || null; }
+            });
+        }
+        if (data?.config?.teamCount >= 2) gameState.config.teamCount = data.config.teamCount;
+        if (data?.universe) _syncServerIds(data.universe);
     });
 }
 
