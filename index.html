@@ -12521,7 +12521,7 @@ async function launchWithAI() {
 // Room Railway auto → pas de Supabase
     if (currentRoom.id && currentRoom.id.startsWith('auto-')) {
         const mapIdx = currentRoom._mapIndex ?? 0;
-        const seed = Math.floor(Math.random() * 2147483647);
+        const seed = gameState._serverSeed || Math.floor(Math.random() * 2147483647);
         const settings = {
             mode: 'auto',
             mapIndex: mapIdx,
@@ -12531,10 +12531,6 @@ async function launchWithAI() {
             useIA: true
         };
         const roomSnapshot = { ...currentRoom, settings, seed, status: 'playing' };
-        // Injecter l'univers serveur si disponible
-        if (gameState._serverUniverse) {
-            roomSnapshot._serverUniverse = gameState._serverUniverse;
-        }
         onMultiGameStart(roomSnapshot);
         return;
     }
@@ -12832,6 +12828,19 @@ async function onMultiGameStart(room) {
     gameState.config.useAsteroids = s.useAsteroids !== false;
     gameState.config.teamCount = s.teamCount || 0;
     gameState.config.mapIndex = s.mapIndex != null ? s.mapIndex : null;
+    // Joueurs Railway
+    if (gameState._serverPlayers?.length) {
+        gameState._serverPlayers.forEach(pd => {
+            while (gameState.players.length <= pd.slot) {
+                gameState.players.push({ slot: gameState.players.length, bodies: [], spawnPlanet: null, totalSpores: 0, stats: { growth:0, velocity:0, density:0 }, isHuman: false, isAI: true });
+            }
+            gameState.players[pd.slot] = { ...gameState.players[pd.slot], ...pd, bodies: [], spawnPlanet: null, totalSpores: 0 };
+        });
+    }
+    // Initialiser les joueurs depuis les données Railway
+    if (data?.players) {
+        gameState.players = data.players;
+    }
     // Synchroniser les sliders UI (si présents)
     const _cfgPlayers = document.getElementById('cfgPlayers'); if (_cfgPlayers) _cfgPlayers.value = gameState.config.playerCount;
     // Charger les joueurs de la room et mon slot (utiliser les données déjà chargées si dispo)
@@ -13156,17 +13165,14 @@ _socket.on('game_start', (data) => {
         clearInterval(_qmPollTimer); _qmPollTimer = null;
         stopLobbyPolling();
         console.log('[game_start] reçu, univers:', data?.universe ? 'OUI' : 'NON', 'config:', JSON.stringify(data?.config));
-        if (data?.universe) gameState._serverUniverse = data.universe;
+if (data?.universe) gameState._serverUniverse = data.universe;
+        if (data?.seed) gameState._serverSeed = data.seed;
         if (data?.config?.mapIndex != null && currentRoom) currentRoom._mapIndex = data.config.mapIndex;
-        if (data?.players) {
-            data.players.forEach(pd => {
-                const p = gameState.players?.[pd.slot];
-                if (p) { p.guildTag = pd.guildTag || null; p.guildId = pd.guildId || null; p.team = pd.team ?? pd.slot; p.teamColor = pd.teamColor || null; }
-            });
-        }
+        if (data?.players) gameState._serverPlayers = data.players;
         if (data?.config?.teamCount >= 2) gameState.config.teamCount = data.config.teamCount;
         if (data?.universe) _syncServerIds(data.universe);
         // Lancer la partie directement
+        gameState._launching = false;
         launchWithAI();
     });
 }
