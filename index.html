@@ -1428,7 +1428,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.10)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.11)</div>
     <div id="quickMatchPanel" style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:14px 22px; margin-bottom:14px; min-width:340px; text-align:center;">
         <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(34,197,94,0.5); letter-spacing:2px; margin-bottom:8px;">PROCHAINE PARTIE EN LIGNE</div>
         <canvas id="qmPreview" width="320" height="120" style="display:block; margin:0 auto 8px; border-radius:6px; border:1px solid rgba(34,197,94,0.2); background:rgba(5,8,25,0.9);"></canvas>
@@ -13325,35 +13325,21 @@ async function updateQuickMatchPanel() {
     const el = document.getElementById('qmParams');
     if (!el) return;
     try {
-        const { data: rooms } = await _supa.from('game_rooms').select('*, game_room_players(count)').eq('status', 'waiting').order('created_at', { ascending: true }).limit(20);
-        let found = null;
-        if (rooms) {
-            for (const r of rooms) {
-                if (r.settings?.mode === 'auto') {
-                    const count = r.game_room_players?.[0]?.count || 0;
-                    if (count < r.max_players) { found = r; found._count = count; break; }
-                }
-            }
-        }
-        let mapData = null;
-        if (found) {
-            const s = found.settings || {};
-            const mapIdx = s.mapIndex != null ? s.mapIndex : Math.floor(Math.random() * MAP_LIBRARY.length);
-            mapData = MAP_LIBRARY[mapIdx];
-            el.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapData?.name || s.mapName || 'Aléatoire')}</strong> · <span style="color:#4ADE80;">${parseInt(found._count)||0}/${parseInt(found.max_players)||4} joueurs</span>`;
+        const resp = await fetch(SERVER_URL + '/lobby');
+        const data = await resp.json();
+        const room = data.rooms?.[0];
+        if (room) {
+            const mapIdx = room.mapIndex != null ? room.mapIndex : 0;
+            const mapData = MAP_LIBRARY[mapIdx] || MAP_LIBRARY[0];
+            el.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapData.name)}</strong> · <span style="color:#4ADE80;">${room.playerCount}/${room.maxPlayers} joueurs</span>`;
+            drawQmPreview(mapData);
         } else {
-            if (updateQuickMatchPanel._lastMapIdx == null) updateQuickMatchPanel._lastMapIdx = Math.floor(Math.random() * MAP_LIBRARY.length);
-            mapData = MAP_LIBRARY[updateQuickMatchPanel._lastMapIdx];
-            const _npQm = mapData.suns.reduce((a,s)=>a+s.planets.length,0);
-            const _bpQm = _npQm <= 10 ? _npQm : _npQm + 5;
-            const _mxQm = Math.min(50, Math.max(2, Math.round(_bpQm * 1.0)));
-            el.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapData.name)}</strong> · <span style="color:#4ADE80;">0/${_mxQm} joueurs</span>`;
+            el.innerHTML = '<span style="color:#94A3B8;">En attente du serveur...</span>';
         }
-        drawQmPreview(mapData);
     } catch(e) {
-        el.innerHTML = '4 soleils · normal · <span style="color:#94A3B8;">2-4 joueurs</span>';
+        el.innerHTML = '<span style="color:#94A3B8;">Serveur indisponible</span>';
     }
-}
+}}
 
 // ── Système d'invitation par pseudo ──
 let inviteChannel = null;
