@@ -12837,10 +12837,9 @@ async function onMultiGameStart(room) {
             gameState.players[pd.slot] = { ...gameState.players[pd.slot], ...pd, bodies: [], spawnPlanet: null, totalSpores: 0 };
         });
     }
-    // Initialiser les joueurs depuis les données Railway
-    if (data?.players) {
-        gameState.players = data.players;
-    }
+    
+// (joueurs déjà initialisés depuis _serverPlayers ci-dessus)
+
     // Synchroniser les sliders UI (si présents)
     const _cfgPlayers = document.getElementById('cfgPlayers'); if (_cfgPlayers) _cfgPlayers.value = gameState.config.playerCount;
     // Charger les joueurs de la room et mon slot (utiliser les données déjà chargées si dispo)
