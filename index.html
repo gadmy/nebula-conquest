@@ -188,28 +188,15 @@ canvas#gameCanvas.grabbing {
     margin-top: clamp(3px, 0.8vh, 8px) !important;
 }
 
-#quickMatchPanel {
-    padding: clamp(8px, 1.5vh, 14px) clamp(12px, 2vw, 22px) !important;
-    margin-bottom: clamp(6px, 1.5vh, 14px) !important;
-}
 
-#quickMatchPanel canvas {
-    height: clamp(60px, 10vh, 120px) !important;
-}
 #titleScreen.no-intro .btn,
 #titleScreen.no-intro .subtitle,
 #titleScreen.no-intro .title-letter,
-#titleScreen.no-intro #quickMatchPanel,
 #titleScreen.no-intro #titlePseudo,
 #titleScreen.no-intro #btnLogout {
     opacity: 1 !important;
     transform: none !important;
     animation: none !important;
-}
-
-#quickMatchPanel {
-    opacity: 0;
-    animation: fadeInUp 0.6s 2s forwards;
 }
 
 #titlePseudo {
@@ -1429,21 +1416,41 @@ input[type="radio"]:checked + .build-icon-btn {
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
     <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.10)</div>
-    <div id="quickMatchPanel" style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:14px 22px; margin-bottom:14px; min-width:340px; text-align:center;">
-        <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(34,197,94,0.5); letter-spacing:2px; margin-bottom:8px;">PROCHAINE PARTIE EN LIGNE</div>
-        <canvas id="qmPreview" width="320" height="120" style="display:block; margin:0 auto 8px; border-radius:6px; border:1px solid rgba(34,197,94,0.2); background:rgba(5,8,25,0.9);"></canvas>
-        <div id="qmParams" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(200,210,230,0.7); margin-bottom:10px;">Chargement...</div>
-        <button class="btn" id="btnQuickMatch" style="width:100%; font-size:14px; padding:10px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.6); color:#4ADE80; letter-spacing:3px;">▶ REJOINDRE</button>
-        <button class="btn" id="btnQuickMatchBots" style="width:100%; font-size:14px; padding:10px; margin-top:6px; background:rgba(251,191,36,0.15); border-color:rgba(251,191,36,0.4); color:#FCD34D; letter-spacing:2px;">🤖 REJOINDRE (OK POUR BOTS)</button>
-    </div>
-    <button class="btn" id="btnNewGame">NOUVELLE PARTIE (SOLO)</button>
-    <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">CRÉER PARTIE MULTI</button>
+<button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
+    <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
+    <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
     <button class="btn" id="btnSporeLab" style="margin-top:8px; background:rgba(160,120,255,0.15); border:1px solid rgba(160,120,255,0.4); color:#C8A0FF;">🧬 LABO DE SPORES</button>
     <button class="btn" id="btnGuilds" style="margin-top:8px; background:rgba(251,146,60,0.15); border:1px solid rgba(251,146,60,0.4); color:#FB923C;">⚔️ GUILDES</button>
     <button class="btn" id="btnLeaderboard" style="margin-top:8px; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4);">CLASSEMENT</button>
     <button class="btn" id="btnHelp" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">AIDE</button>
     <div id="titlePseudo" style="margin-top:20px; font-family:'Orbitron',sans-serif; font-size:11px; color:rgba(200,170,255,0.5); letter-spacing:2px;"></div>
     <button id="btnLogout" style="margin-top:8px; background:none; border:none; color:rgba(200,170,255,0.3); font-family:'Exo 2',sans-serif; font-size:11px; cursor:pointer; letter-spacing:1px;">DÉCONNEXION</button>
+</div>
+
+<!-- ═══ ÉCRAN MULTI (matchmaking) ═══ -->
+<div id="multiScreen" class="screen hidden">
+    <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:20px;">🌐 MULTI</h2>
+    <div style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:24px; max-width:380px; margin:0 auto; text-align:center;">
+        <div id="multiStatus" style="font-family:'Exo 2',sans-serif; font-size:14px; color:#E0E7FF; margin-bottom:20px; min-height:40px;">En attente d'adversaires...</div>
+        <div id="multiSlots" style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;"></div>
+        <div id="multiTimer" style="font-family:'Orbitron',sans-serif; font-size:28px; color:#4ADE80; text-shadow:0 0 12px rgba(34,197,94,0.4); margin-bottom:16px; min-height:36px;"></div>
+        <button class="btn" id="btnMultiCancel" style="font-size:12px; padding:8px 24px;">ANNULER</button>
+    </div>
+</div>
+
+<!-- ═══ ÉCRAN LOCAL (inviter par pseudo) ═══ -->
+<div id="localScreen" class="screen hidden">
+    <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:20px;">👥 PARTIE LOCALE</h2>
+    <div style="background:rgba(15,23,42,0.9); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px; max-width:380px; margin:0 auto;">
+        <div id="localSlots" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <input id="localInviteInput" type="text" placeholder="Pseudo à inviter..." style="flex:1; background:rgba(15,23,42,0.8); border:1px solid rgba(100,180,255,0.4); border-radius:6px; padding:7px 10px; color:#7DD3FC; font-family:'Exo 2',sans-serif; font-size:13px; outline:none;">
+            <button class="btn" id="btnLocalInvite" style="font-size:12px; padding:7px 14px; margin:0; background:rgba(100,180,255,0.2); border-color:rgba(100,180,255,0.5); color:#7DD3FC;">INVITER</button>
+        </div>
+        <div id="localInviteMsg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:#94A3B8; min-height:16px; margin-bottom:12px;"></div>
+        <button class="btn" id="btnLocalStart" style="width:100%; font-size:14px; padding:10px; background:rgba(100,180,255,0.2); border-color:rgba(100,180,255,0.5); color:#7DD3FC; letter-spacing:2px;" disabled>LANCER</button>
+        <button class="btn" id="btnLocalCancel" style="width:100%; margin-top:8px; font-size:12px; padding:8px;">ANNULER</button>
+    </div>
 </div>
 
 <!-- ═══ ÉCRAN LABO DE SPORES ═══ -->
@@ -1757,58 +1764,6 @@ input[type="radio"]:checked + .build-icon-btn {
         <p><span style="color:#FFD700;">👑 Partie rapide</span> — lobby 4 joueurs humains, carte aléatoire. La partie se lance automatiquement quand le lobby est complet.</p>
     </div>
     <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
-</div>
-
-<!-- ═══ ÉCRAN CRÉER PARTIE MULTI ═══ -->
-<div id="lobbyScreen" class="screen hidden">
-    <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:20px;">CRÉER UNE PARTIE</h2>
-    <div id="lobbyBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px; max-width:420px; margin:0 auto;">
-        <div class="config-row"><label>Carte</label><select id="multiCfgMap"></select></div>
-        <div id="cfgAIBlock">
-            <div class="config-row"><label>Joueurs IA</label><input type="range" id="multiCfgAI" min="0" max="8" value="2"><span class="val" id="multiCfgAIVal">2</span></div>
-            <div class="config-row"><label>Difficulté IA</label><select id="multiCfgDiff"><option value="easy">Facile</option><option value="normal" selected>Normal</option><option value="brutal">Brutal</option></select></div>
-            <div class="config-row"><label>Compléter par IA</label><select id="multiCfgFillIA"><option value="yes" selected>Oui</option><option value="no">Non</option></select></div>
-        </div>
-        <div style="margin-bottom:10px;">
-            <div style="font-family:'Exo 2',sans-serif;font-size:12px;color:rgba(200,210,230,0.7);margin-bottom:6px;">Inviter des amis (pseudo)</div>
-            <div style="display:flex;gap:6px;margin-bottom:6px;"><input id="multiCfgInviteInput" type="text" placeholder="Pseudo..." style="flex:1;background:rgba(15,23,42,0.8);border:1px solid rgba(100,130,200,0.4);border-radius:6px;padding:6px 10px;color:#E2D9F3;font-family:'Exo 2',sans-serif;font-size:12px;"><button class="btn" id="btnLobbyInvite" style="font-size:12px;padding:6px 12px;margin:0;">Inviter</button></div>
-            <div id="multiCfgInviteList" style="font-family:'Exo 2',sans-serif;font-size:11px;color:rgba(160,200,160,0.7);min-height:16px;"></div>
-        </div>
-        <div style="margin-bottom:10px;">
-            <div style="font-family:'Exo 2',sans-serif;font-size:12px;color:rgba(251,146,60,0.7);margin-bottom:6px;">Inviter une guilde (tag)</div>
-            <div style="display:flex;gap:6px;margin-bottom:6px;"><input id="multiCfgGuildInput" type="text" placeholder="Tag (ex: NEB)" maxlength="3" style="flex:1;background:rgba(15,23,42,0.8);border:1px solid rgba(251,146,60,0.4);border-radius:6px;padding:6px 10px;color:#FB923C;font-family:'Exo 2',sans-serif;font-size:12px;text-transform:uppercase;"><button class="btn" id="btnLobbyInviteGuild" style="font-size:12px;padding:6px 12px;margin:0;background:rgba(251,146,60,0.15);border-color:rgba(251,146,60,0.4);color:#FB923C;">Inviter</button></div>
-            <div id="multiCfgGuildList" style="font-family:'Exo 2',sans-serif;font-size:11px;color:rgba(251,146,60,0.7);min-height:16px;"></div>
-        </div>
-        <div class="config-row"><label>Vaisseaux ennemis</label><select id="multiCfgCleaners"><option value="on" selected>Activés</option><option value="off">Désactivés</option></select></div>
-        <div class="config-row"><label>Météorites</label><select id="multiCfgAsteroids"><option value="on" selected>Activés</option><option value="off">Désactivés</option></select></div>
-        <div class="config-row"><label>Mode équipes</label><select id="multiCfgTeams"><option value="0">Chacun pour soi</option><option value="2">2 équipes</option><option value="3">3 équipes</option><option value="4">4 équipes</option></select></div>
-        <button class="btn" id="btnCreateRoom" style="width:100%; margin-top:16px; font-size:14px; padding:10px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.6); color:#4ADE80; letter-spacing:2px;">CRÉER LA PARTIE</button>
-    </div>
-    <button class="btn" id="btnLobbyBack" style="margin-top:16px;">RETOUR</button>
-</div>
-
-<!-- ═══ ÉCRAN ROOM (salle d'attente) ═══ -->
-<div id="roomScreen" class="screen hidden">
-    <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:6px;">SALLE D'ATTENTE</h2>
-    <p id="roomCode" style="font-family:'Orbitron',monospace; font-size:11px; color:#64748B; letter-spacing:2px; margin-bottom:8px;"></p>
-    <div id="roomParams" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(200,210,230,0.6); margin-bottom:8px; text-align:center;"></div>
-    <div id="roomCounter" style="font-family:'Orbitron',sans-serif; font-size:22px; color:#4ADE80; text-shadow:0 0 12px rgba(34,197,94,0.4); margin-bottom:14px; text-align:center;"></div>
-    <div id="roomStatus" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#FBBF24; margin-bottom:14px; text-align:center; min-height:20px;"></div>
-    <div id="roomBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px; max-width:420px; margin:0 auto;">
-        <div id="roomSlots" style="display:flex; flex-direction:column; gap:8px;"></div>
-        <div style="display:flex; justify-content:center; gap:10px; margin-top:16px;">
-            <button class="btn" id="btnRoomReady" style="font-size:13px; padding:10px 24px; background:rgba(34,197,94,0.2); border-color:rgba(34,197,94,0.5); color:#4ADE80;">PRÊT</button>
-            <button class="btn" id="btnRoomStart" style="font-size:13px; padding:10px 24px; background:rgba(234,179,8,0.2); border-color:rgba(234,179,8,0.5); color:#FBBF24; display:none;">LANCER</button>
-            <button class="btn" id="btnRoomLaunchAI" style="font-size:13px; padding:10px 24px; background:rgba(139,92,246,0.2); border-color:rgba(139,92,246,0.5); color:#C084FC;">LANCER AVEC IA</button>
-        </div>
-    </div>
-    <div id="inviteBox" style="margin-top:12px; display:flex; gap:6px; justify-content:center; align-items:center;">
-        <input type="text" id="invitePseudoInput" placeholder="Pseudo à inviter..." style="font-family:'Exo 2',sans-serif; font-size:12px; padding:6px 10px; border-radius:4px; border:1px solid rgba(100,180,255,0.4); background:rgba(15,23,42,0.8); color:#7DD3FC; width:180px; outline:none;">
-        <button class="btn" id="btnInvite" style="font-size:9px; padding:5px 12px; margin:0; background:rgba(100,180,255,0.2); border-color:rgba(100,180,255,0.5); color:#7DD3FC;">INVITER</button>
-    </div>
-    <div id="inviteMsg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:#94A3B8; text-align:center; margin-top:6px; min-height:16px;"></div>
-    <button class="btn" id="btnRoomLeave" style="margin-top:16px; font-size:12px; padding:8px 20px;">QUITTER</button>
-    <button id="btnDebugFill" style="display:none;margin-top:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:6px 16px;font-family:'Orbitron',sans-serif;font-size:9px;color:#F87171;cursor:pointer;letter-spacing:1px;">⚡ DEBUG — REMPLIR IA</button>
 </div>
 
 <div id="gameTopBanner"></div>
@@ -5723,7 +5678,6 @@ function setupUI() {
                 addEvent('neutral', '🚪', player.name + ' a quitté (remplacé par IA)', null, player.color);
             }
             _leftRoom = { roomId: currentRoom.id, slot: slot, gameStateBackup: gameState };
-            if (gameChannel) { _supa.removeChannel(gameChannel); gameChannel = null; }
         }
         gameState.running = false;
         stopAmbiance();
@@ -6244,7 +6198,6 @@ function enforceStatPoints(changedIdx) {
 function setPhase(phase) {
     gameState.phase = phase;
     if (spawnCountdownInterval) { clearInterval(spawnCountdownInterval); spawnCountdownInterval = null; }
-    if (_roomPollTimer) { clearInterval(_roomPollTimer); _roomPollTimer = null; }
 
     // Cacher tous les écrans
     document.getElementById('authScreen').classList.add('hidden');
@@ -6255,8 +6208,8 @@ function setPhase(phase) {
     document.getElementById('sporeLabScreen').classList.add('hidden');
     document.getElementById('eventLog').style.display = 'block';
     document.getElementById('configScreen').classList.add('hidden');
-    document.getElementById('lobbyScreen').classList.add('hidden');
-    document.getElementById('roomScreen').classList.add('hidden');
+    if (document.getElementById('multiScreen')) document.getElementById('multiScreen').classList.add('hidden');
+    if (document.getElementById('localScreen')) document.getElementById('localScreen').classList.add('hidden');
     document.getElementById('spawnBanner').classList.add('hidden');
     document.getElementById('gameHud').style.display = 'none';
     document.getElementById('pauseOverlay').classList.remove('active');
@@ -6272,7 +6225,6 @@ function setPhase(phase) {
 
     // Si on quitte une room auto en attente → se désincrire
     if (currentRoom && currentRoom.settings?.mode === 'auto' && currentRoom.status === 'waiting') {
-        leaveQmRoom();
     }
 
     switch (phase) {
@@ -6283,12 +6235,8 @@ case 'title':
             gameState.running = false;
             const _pEl = document.getElementById('titlePseudo');
             if (_pEl) _pEl.textContent = currentProfile ? '⬡ ' + currentProfile.pseudo : '';
-            if (currentProfile) startLobbyPolling();
             gameState.isMulti = false;
             gameState.multiSeed = null;
-            if (gameChannel) { _supa.removeChannel(gameChannel); gameChannel = null; }
-            if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
-            if (_socket) { _socket.disconnect(); _socket = null; }
             currentRoom = null; isHost = false;
             stopAmbiance();
             animateTitleScreen();
@@ -6297,14 +6245,13 @@ case 'title':
             document.getElementById('sporeLabScreen').classList.remove('hidden');
             playTitleMusic();
             break;
-        case 'createMulti':
-            document.getElementById('lobbyScreen').classList.remove('hidden');
+case 'createMulti':
+            document.getElementById('multiScreen').classList.remove('hidden');
             document.getElementById('titleScreen').classList.add('hidden');
             playTitleMusic();
             break;
         case 'room':
-            document.getElementById('roomScreen').classList.remove('hidden');
-            document.getElementById('lobbyScreen').classList.add('hidden');
+            document.getElementById('localScreen').classList.remove('hidden');
             document.getElementById('titleScreen').classList.add('hidden');
             playTitleMusic();
             break;
@@ -6312,7 +6259,6 @@ case 'title':
             document.getElementById('configScreen').classList.remove('hidden');
             break;
         case 'spawn':
-            stopLobbyPolling();
             stopTitleMusic();
             document.getElementById('gameCanvas').style.display = 'block';
             document.getElementById('spawnBanner').classList.remove('hidden');
@@ -12318,8 +12264,229 @@ const _supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let currentUser = null;
 let currentProfile = null;
 let currentRoom = null;
-let currentRoomChannel = null;
 let isHost = false;
+let mySlot = 0;
+let _socket = null;
+
+const SERVER_URL = 'https://nebula-conquest-server2-production.up.railway.app';
+
+// ── Connexion socket ──────────────────────────────────────────
+
+function connectSocket() {
+    if (_socket && _socket.connected) return;
+    if (_socket) { _socket.removeAllListeners(); _socket.disconnect(); }
+    const auth = {
+        pseudo: currentProfile?.pseudo || 'Joueur',
+        color:  currentProfile?.color  || '#C084FC',
+        userId: currentUser?.id        || null
+    };
+    _socket = io(SERVER_URL, { auth });
+
+    _socket.on('connect', () => console.log('[socket] connecté'));
+    _socket.on('disconnect', () => console.log('[socket] déconnecté'));
+    _socket.on('error', e => console.warn('[socket] erreur:', e.msg));
+}
+
+function disconnectSocket() {
+    if (_socket) { _socket.removeAllListeners(); _socket.disconnect(); _socket = null; }
+}
+
+// ── sendAction (en jeu) ───────────────────────────────────────
+
+function sendAction(type, data) {
+    if (!_socket || !gameState.isMulti) return;
+    _socket.emit('player_action', { type, ...data });
+}
+
+function localSlot() { return gameState.isMulti ? mySlot : 0; }
+
+// ── MULTI : matchmaking ───────────────────────────────────────
+
+function startMultiMatchmaking() {
+    connectSocket();
+    gameState.isMulti = true;
+    setPhase('createMulti');
+
+    const statusEl = document.getElementById('multiStatus');
+    const timerEl  = document.getElementById('multiTimer');
+    const slotsEl  = document.getElementById('multiSlots');
+
+    statusEl.textContent = 'Recherche d\'adversaires...';
+    slotsEl.innerHTML = '';
+    timerEl.textContent = '';
+
+    let elapsed = 0;
+    const timer = setInterval(() => {
+        elapsed++;
+        timerEl.textContent = elapsed + 's';
+    }, 1000);
+
+    _socket.emit('multi_queue');
+
+    _socket.off('queue_status');
+    _socket.on('queue_status', ({ position, total, needed }) => {
+        statusEl.textContent = `Joueurs trouvés : ${total}/${needed}`;
+        slotsEl.innerHTML = '';
+        for (let i = 0; i < needed; i++) {
+            const div = document.createElement('div');
+            div.className = 'room-slot' + (i >= total ? ' empty' : '');
+            div.style.cssText = 'padding:8px 12px; border:1px solid rgba(34,197,94,0.3); border-radius:6px; margin-bottom:4px; font-family:Exo 2,sans-serif; font-size:13px; color:#E0E7FF;';
+            div.textContent = i < total ? '● Joueur connecté' : '○ En attente...';
+            slotsEl.appendChild(div);
+        }
+    });
+
+    _socket.off('matched');
+    _socket.on('matched', ({ roomId, slot, players }) => {
+        clearInterval(timer);
+        currentRoom = { id: roomId, mode: 'multi' };
+        mySlot = slot;
+        isHost = (slot === 0);
+        statusEl.textContent = 'Partie trouvée ! Lancement...';
+        timerEl.textContent = '';
+        _onGameReady(roomId, players);
+    });
+
+    document.getElementById('btnMultiCancel').onclick = () => {
+        clearInterval(timer);
+        _socket.emit('multi_queue_leave');
+        disconnectSocket();
+        gameState.isMulti = false;
+        fadeTransition(() => setPhase('title'));
+    };
+}
+
+// ── LOCAL : créer et inviter ──────────────────────────────────
+
+function startLocalHost() {
+    connectSocket();
+    gameState.isMulti = true;
+    setPhase('room');
+    mySlot = 0;
+    isHost = true;
+
+    _socket.emit('local_create');
+
+    _socket.off('local_created');
+    _socket.on('local_created', ({ roomId, players }) => {
+        currentRoom = { id: roomId, mode: 'local' };
+        _refreshLocalSlots(players);
+
+        const msg = document.getElementById('localInviteMsg');
+        msg.textContent = 'Code room : ' + roomId;
+        msg.style.color = '#4ADE80';
+    });
+
+    _socket.off('room_update');
+    _socket.on('room_update', ({ players }) => {
+        _refreshLocalSlots(players);
+        const startBtn = document.getElementById('btnLocalStart');
+        if (startBtn) startBtn.disabled = players.length < 2;
+    });
+
+    document.getElementById('btnLocalStart').onclick = () => {
+        if (!currentRoom) return;
+        playClickSound();
+        fadeTransition(() => _onGameReady(currentRoom.id, null));
+    };
+
+    document.getElementById('btnLocalCancel').onclick = () => {
+        disconnectSocket();
+        gameState.isMulti = false;
+        currentRoom = null;
+        fadeTransition(() => setPhase('title'));
+    };
+}
+
+function joinLocalRoom(roomId) {
+    connectSocket();
+    gameState.isMulti = true;
+
+    _socket.emit('local_join', { roomId });
+
+    _socket.off('local_joined');
+    _socket.on('local_joined', ({ slot, players }) => {
+        mySlot = slot;
+        isHost = false;
+        currentRoom = { id: roomId, mode: 'local' };
+        setPhase('room');
+        _refreshLocalSlots(players);
+    });
+
+    _socket.off('room_update');
+    _socket.on('room_update', ({ players }) => _refreshLocalSlots(players));
+}
+
+function _refreshLocalSlots(players) {
+    const el = document.getElementById('localSlots');
+    if (!el) return;
+    el.innerHTML = '';
+    for (let i = 0; i < 4; i++) {
+        const p = players.find(p => p.slot === i);
+        const div = document.createElement('div');
+        div.style.cssText = 'padding:8px 12px; border:1px solid rgba(100,180,255,' + (p ? '0.4' : '0.15') + '); border-radius:6px; margin-bottom:4px; font-family:Exo 2,sans-serif; font-size:13px; display:flex; align-items:center; gap:8px;';
+        if (p) {
+            div.innerHTML = '<span style="width:10px;height:10px;border-radius:50%;background:' + p.color + ';display:inline-block;"></span><span style="color:#E0E7FF;">' + p.pseudo + (i === mySlot ? ' (vous)' : '') + '</span>';
+        } else {
+            div.innerHTML = '<span style="color:#475569;">Slot ' + (i+1) + ' — vide</span>';
+        }
+        el.appendChild(div);
+    }
+}
+
+// ── Lancement effectif de la partie ──────────────────────────
+
+function _onGameReady(roomId, players) {
+    if (isHost) {
+        // L'hôte génère l'univers et démarre
+        fadeTransition(() => {
+            setPhase('config');
+            // Le bouton START de la config déclenchera _launchGame()
+            gameState._pendingRoomId = roomId;
+            gameState._pendingPlayers = players;
+        });
+    } else {
+        // Les autres attendent le signal du serveur
+        _socket.off('game_start');
+        _socket.on('game_start', ({ universe, players: serverPlayers }) => {
+            gameState._serverUniverse = universe;
+            gameState._serverPlayers = serverPlayers;
+            fadeTransition(() => setPhase('spawn'));
+        });
+    }
+}
+
+function _launchGame(universe) {
+    const roomId = gameState._pendingRoomId;
+    if (!roomId) return;
+    _socket.emit('game_start', { roomId, universe });
+    _socket.off('game_start');
+    // L'hôte lance aussi de son côté
+    setPhase('spawn');
+}
+
+// ── Réception snapshot ────────────────────────────────────────
+
+function applySnapshot(snap) {
+    if (!snap || !gameState.isMulti) return;
+    // Appliquer les positions/états des autres joueurs
+    if (snap.players) {
+        snap.players.forEach(sp => {
+            if (sp.slot === mySlot) return;
+            const p = gameState.players[sp.slot];
+            if (p) Object.assign(p, sp);
+        });
+    }
+}
+
+function handleGameEvent(ev) {
+    if (!ev || !ev.type) return;
+    if (ev.type === 'jet') {
+        const src = gameState.planets.find(p => p.name === ev.srcName)
+                 || gameState.moons.find(m => m.name === ev.srcName);
+        if (src) launchJet(src, ev.dirX, ev.dirY, ev.slot);
+    }
+}
 
 async function initAuth() {
     try {
@@ -12329,7 +12496,6 @@ async function initAuth() {
             await _supa.auth.signOut();
             currentUser = null;
             currentProfile = null;
-            if (inviteChannel) { _supa.removeChannel(inviteChannel); inviteChannel = null; }
             showAuthScreen();
             return;
         }
@@ -12352,7 +12518,6 @@ async function initAuth() {
     }
     currentUser = null;
     currentProfile = null;
-    if (inviteChannel) { _supa.removeChannel(inviteChannel); inviteChannel = null; }
     showAuthScreen();
 }
 
@@ -12410,7 +12575,6 @@ async function enterGame() {
     document.getElementById('authScreen').classList.add('hidden');
     const pseudoEl = document.getElementById('titlePseudo');
     if (pseudoEl && currentProfile) pseudoEl.textContent = '⬡ ' + currentProfile.pseudo;
-    setupInviteListener();
     setPhase('title');
 }
 
@@ -12526,1833 +12690,6 @@ document.getElementById('btnAuthPseudo').addEventListener('click', async () => {
     }
 });
 
-async function startMultiGame() {
-    if (!isHost || !currentRoom) { console.warn('startMulti: not host or no room'); return; }
-    const { data: players, error } = await _supa.from('game_room_players').select('*').eq('room_id', currentRoom.id).order('slot_number');
-    if (error) { console.warn('startMulti error:', error); return; }
-    if (!players || players.length < 2) {
-        document.getElementById('roomStatus').textContent = 'Il faut au moins 2 joueurs.';
-        document.getElementById('roomStatus').style.color = '#F87171';
-        return;
-    }
-    if (!players.every(p => p.ready)) {
-        document.getElementById('roomStatus').textContent = 'Tous les joueurs doivent être PRÊT.';
-        document.getElementById('roomStatus').style.color = '#F87171';
-        return;
-    }
-    const seed = Math.floor(Math.random() * 2147483647);
-    const aiCount = currentRoom.settings?.aiCount || 0;
-    const settings = { ...currentRoom.settings, playerCount: players.length + aiCount };
-    const { error: e2 } = await _supa.from('game_rooms').update({ status: 'playing', settings, seed }).eq('id', currentRoom.id);
-    if (e2) { console.warn('startMulti update error:', e2); }
-}
-
-async function launchWithAI() {
-    if (!currentRoom) { console.warn('launchWithAI: no room'); return; }
-    if (_roomPollTimer) { clearInterval(_roomPollTimer); _roomPollTimer = null; }
-    if (currentRoomChannel) { await _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
-
-// Room Railway auto → pas de Supabase
-    if (currentRoom.id && currentRoom.id.startsWith('auto-')) {
-        const mapIdx = currentRoom._mapIndex ?? 0;
-        const seed = gameState._serverSeed || Math.floor(Math.random() * 2147483647);
-        const settings = {
-            mode: 'auto',
-            mapIndex: mapIdx,
-            mapName: MAP_LIBRARY[mapIdx]?.name || '',
-            playerCount: currentRoom._maxPlayers || 2,
-            aiCount: 0,
-            useIA: true
-        };
-        const roomSnapshot = { ...currentRoom, settings, seed, status: 'playing' };
-        onMultiGameStart(roomSnapshot);
-        return;
-    }
-
-    // Room Supabase custom
-    const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', currentRoom.id).order('slot_number');
-    const humanCount = players ? players.length : 1;
-    const settingsAiCount = currentRoom.settings?.aiCount || 0;
-    const aiCount = settingsAiCount > 0 ? settingsAiCount : Math.max(0, (currentRoom.max_players || humanCount) - humanCount);
-    const maxPlayers = humanCount + aiCount;
-    const seed = Math.floor(Math.random() * 2147483647);
-    const settings = { ...currentRoom.settings, playerCount: maxPlayers, aiCount, useIA: true };
-    const roomSnapshot = { ...currentRoom, settings, seed, status: 'playing' };
-    gameState._roomPlayers = players || [];
-    await _supa.from('game_rooms').update({ status: 'playing', settings, seed }).eq('id', currentRoom.id);
-    if (isHost) _createNextAutoRoom(currentRoom.settings);
-    onMultiGameStart(roomSnapshot);
-}
-
-async function _createNextAutoRoom(prevSettings) {
-    try {
-        const _qmMapIdx = Math.floor(Math.random() * MAP_LIBRARY.length);
-        const _np = MAP_LIBRARY[_qmMapIdx].suns.reduce((a,s)=>a+s.planets.length,0);
-        const _base_p = _np <= 10 ? _np : _np + 5;
-        const _maxP = Math.min(50, Math.max(2, Math.round(_base_p * (0.95 + Math.random()*0.10))));
-        const autoSettings = {
-            mapIndex: _qmMapIdx,
-            mapName: MAP_LIBRARY[_qmMapIdx].name,
-            difficulty: prevSettings?.difficulty || 'normal',
-            useIA: false,
-            aiCount: 0,
-            cleanerCount: prevSettings?.cleanerCount || 3,
-            useComets: prevSettings?.useComets !== false,
-            playerCount: _maxP,
-            sunCount: MAP_LIBRARY[_qmMapIdx].suns.length,
-            mode: 'auto',
-            bot_votes: 0
-        };
-        await _supa.from('game_rooms').insert({
-            host_id: currentUser.id,
-            host_pseudo: currentProfile.pseudo,
-            settings: autoSettings,
-            max_players: _maxP,
-            status: 'waiting',
-            bot_votes: 0
-        });
-        console.log('[auto] Nouvelle room créée pour les prochains joueurs');
-    } catch(e) {
-        console.warn('[auto] Erreur création room suivante:', e);
-    }
-}
-
-let gameChannel = null;
-let mySlot = -1;
-function localSlot() { return gameState.isMulti ? mySlot : 0; }
-
-const SERVER_URL = 'https://nebula-conquest-server-production.up.railway.app';
-let _socket = null;
-var _roomPollTimer = null;
-
-async function setupGameChannel(roomId) {
-    return new Promise(async resolve => {
-        // Réutiliser le socket existant si déjà connecté
-        if (_socket && _socket.connected) {
-            // En mode Railway (auto-) le socket est déjà dans la room, pas besoin de join_room
-            if (!roomId.startsWith('auto-')) {
-                _socket.emit('join_room', { roomId, slot: mySlot });
-            }
-            _socket.off('game_snapshot'); _socket.on('game_snapshot', applySnapshot);
-            _socket.off('game_events');   _socket.on('game_events', (events) => events.forEach(handleGameEvent));
-            _socket.off('game_end');      _socket.on('game_end', handleMultiEnd);
-            resolve();
-            return;
-        }
-        if (_socket) { _socket.removeAllListeners(); _socket.disconnect(); _socket = null; }
-        const _sess = await _supa.auth.getSession();
-        const _tok = _sess?.data?.session?.access_token || null;
-        _socket = io(SERVER_URL, {
-            auth: {
-                token: _tok,
-                pseudo: currentProfile?.pseudo || 'Joueur',
-                color: currentProfile?.color || '#C084FC',
-                guildTag: currentProfile?._guildTag || null,
-                guildId: currentProfile?._guildId || null
-            }
-        });
-        _socket.on('connect', () => {
-            _socket.emit('join_room', { roomId, slot: mySlot });
-            // Si hôte : envoyer l'univers sérialisé pour que le serveur l'utilise
-            if (isHost) {
-                const universe = {
-                    blackHole: gameState.blackHole,
-                    suns: gameState.suns.map(s => ({
-                        name: s.name, angle: s.angle, orbitRadius: s.orbitRadius, orbitSpeed: s.orbitSpeed,
-                        radius: s.radius, color: s.color,
-                        planets: s.planets.map(p => ({
-                            name: p.name, angle: p.angle, orbitRadius: p.orbitRadius, orbitSpeed: p.orbitSpeed,
-                            radius: p.radius, flore: p.flore, faune: p.faune, maxSpores: p.maxSpores,
-                            moons: p.moons.map(m => ({
-                                name: m.name, angle: m.angle, orbitRadius: m.orbitRadius, orbitSpeed: m.orbitSpeed,
-                                radius: m.radius, flore: m.flore, faune: m.faune, maxSpores: m.maxSpores
-                            }))
-                        }))
-                    }))
-                };
-                _socket.emit('send_universe', { universe });
-            }
-            if (gameState._pendingBotVote) {
-                gameState._pendingBotVote = false;
-                setTimeout(() => _socket.emit('vote_bots'), 500);
-            }
-            resolve();
-        });
-        _socket.on('game_snapshot', applySnapshot);
-        _socket.on('game_events', (events) => events.forEach(handleGameEvent));
-        _socket.on('game_end', handleMultiEnd);
-        _socket.on('room_state', (data) => {
-            if (!data?.players) return;
-            data.players.forEach(rp => {
-                const p = gameState.players[rp.slot];
-                if (p && rp.guildTag) p.guildTag = rp.guildTag;
-            });
-        });
-// game_start géré dans quickMatch()
-        _socket.on('bot_vote_update', (data) => {
-            const el = document.getElementById('roomStatus');
-            if (el) { el.textContent = `🤖 Votes bots : ${data.votes}/${data.total} (majorité requise)`; el.style.color = '#FCD34D'; }
-        });
-        _socket.on('bot_countdown', (data) => {
-            const el = document.getElementById('roomStatus');
-            if (el) { el.textContent = `🤖 Lancement avec bots dans ${data.remaining}s...`; el.style.color = '#FCD34D'; }
-            if (data.remaining <= 0) launchWithAI();
-        });
-        _socket.on('error', (e) => console.warn('[socket] erreur:', e.msg));
-        setTimeout(resolve, 3000);
-    });
-}
-
-function sendAction(type, data) {
-    if (!_socket || !gameState.isMulti) return;
-    _socket.emit('player_action', { type, ...data });
-}
-
-function handleMultiEnd(data) {
-    const slot = localSlot();
-    const isVictory = data.winnerSlot === slot;
-    const human = gameState.players[slot];
-    const totalBodies = gameState.planets.length + gameState.moons.length;
-    const stats = {
-        bodiesConquered: data.stats?.bodiesConquered?.[slot] ?? 0,
-        jetsLaunched:    data.stats?.jetsLaunched?.[slot]    ?? 0,
-        jetsNeutralized: data.stats?.jetsNeutralized?.[slot] ?? 0,
-        sporesProduced:  data.stats?.sporesProduced?.[slot]  ?? 0,
-        timeElapsed:     data.stats?.timeElapsed             ?? gameState.time,
-    };
-    showEndScreen(isVictory, stats, human, totalBodies);
-    saveGame(isVictory, stats, human, totalBodies);
-    // Afficher delta ELO
-    if (data.eloResults && currentUser) {
-        const myElo = data.eloResults.find(r => r.userId === currentUser.id);
-        if (myElo) {
-            const sign = myElo.delta >= 0 ? '+' : '';
-            const color = myElo.delta >= 0 ? '#4ADE80' : '#EF4444';
-            const el = document.createElement('div');
-            el.style.cssText = `font-family:'Orbitron',monospace;font-size:18px;color:${color};text-align:center;margin-top:8px;letter-spacing:2px;`;
-            el.textContent = `ELO ${sign}${myElo.delta} → ${myElo.newElo}`;
-            document.getElementById('endStats')?.appendChild(el);
-        }
-    }
-}
-
-// Synchronise les _id serveur sur les corps client après game_start
-function _syncServerIds(universe) {
-    if (!universe?.suns) return;
-    for (const su of universe.suns) {
-        const clientSun = gameState.suns.find(s => s.name === su.name);
-        if (clientSun) clientSun._id = su._id;
-        for (const pu of (su.planets || [])) {
-            const clientPlanet = gameState.planets.find(p => p.name === pu.name);
-            if (clientPlanet) {
-                clientPlanet._id = pu._id;
-                for (const mu of (pu.moons || [])) {
-                    const clientMoon = gameState.moons.find(m => m.name === mu.name);
-                    if (clientMoon) clientMoon._id = mu._id;
-                }
-            }
-        }
-    }
-    console.log('[multi] _id serveur synchronisés');
-}
-
-function _buildBodyIndex() {
-    gameState._bodyIndex = {};
-    for (const b of gameState.allBodies) gameState._bodyIndex[b._id] = b;
-    for (const b of gameState.suns)      gameState._bodyIndex[b._id] = b;
-}
-
-function applySnapshot(snap) {
-    if (!snap || !snap.bodies) return;
-    if (!gameState._bodyIndex) _buildBodyIndex();
-
-    // Mettre à jour les corps depuis le serveur
-    snap.bodies.forEach(bd => {
-        const body = gameState._bodyIndex[bd._id] ||
-                     gameState.allBodies.find(b => b.name === bd.name);
-        if (!body) return;
-        if (bd.owner     !== undefined) {
-            const oldOwner = body.owner;
-            body.owner = bd.owner;
-            // Mettre à jour les listes bodies des joueurs
-            if (oldOwner !== bd.owner) {
-                if (oldOwner !== null && gameState.players[oldOwner]) {
-                    gameState.players[oldOwner].bodies = gameState.players[oldOwner].bodies.filter(b => b !== body);
-                }
-                if (bd.owner !== null && gameState.players[bd.owner]) {
-                    if (!gameState.players[bd.owner].bodies.includes(body))
-                        gameState.players[bd.owner].bodies.push(body);
-                }
-            }
-        }
-        if (bd.spores        !== undefined) body.spores        = bd.spores;
-        if (bd.maxSpores     !== undefined) body.maxSpores     = bd.maxSpores;
-        if (bd.buildMode     !== undefined) body.buildMode     = bd.buildMode;
-        if (bd.buildProgress !== undefined) body.buildProgress = bd.buildProgress;
-        if (bd.nids          !== undefined) body.nids          = bd.nids;
-        if (bd.biomes        !== undefined) body.biomes        = bd.biomes;
-        if (bd.alveoles      !== undefined) body.alveoles      = bd.alveoles;
-        // Positions (envoyées toutes les 5 ticks par le serveur)
-        if (bd.x !== undefined) body.x = bd.x;
-        if (bd.y !== undefined) body.y = bd.y;
-        if (bd.angle !== undefined) body.angle = bd.angle;
-    });
-
-    // Jets depuis le serveur
-    if (snap.jets) {
-        // Supprimer les jets morts
-        gameState.jets = gameState.jets.filter(j => {
-            return snap.jets.some(sj => sj.id === j.id && sj.alive !== false);
-        });
-        // Mettre à jour ou créer les jets
-        snap.jets.forEach(sj => {
-            if (sj.alive === false) return;
-            const existing = gameState.jets.find(j => j.id === sj.id);
-            if (existing) {
-                existing.x = sj.x;
-                existing.y = sj.y;
-                existing.spores = sj.spores;
-            } else {
-                // Nouveau jet — créer visuellement
-                gameState.jets.push({
-                    id: sj.id, owner: sj.owner, color: sj.color,
-                    spores: sj.spores, alive: true,
-                    x: sj.x, y: sj.y,
-                    trail: [], sparkles: [], age: 0, selected: false,
-                    trajectory: [], posIndex: 0, speed: 0
-                });
-            }
-        });
-    }
-
-    // Données joueurs
-    if (snap.players) {
-        snap.players.forEach(sp => {
-            const p = gameState.players[sp.slot];
-            if (!p) return;
-            if (sp.multiTier     !== undefined) p.multiTier     = sp.multiTier;
-            if (sp.multiProgress !== undefined) p.multiProgress = sp.multiProgress;
-            if (sp.stats)                       p.stats         = { ...p.stats, ...sp.stats };
-            if (sp._multiPending && !p._multiPending) p._multiPending = true;
-            if (!sp._multiPending)               p._multiPending = false;
-        });
-    }
-}
-
-function handleGameEvent(ev) {
-    if (!ev) return;
-    switch (ev.type) {
-        case 'jet_launched': break;
-        case 'build_started':
-        case 'build_cancelled': break;
-        case 'conquest':
-            addEvent('conquest', '⚔️', ev.bodyName + ' conquise', null, '#fff');
-            break;
-    }
-}
-
-async function onMultiGameStart(room) {
-    if (gameState.phase === 'game' || gameState._launching) return;
-    gameState._launching = true;
-    currentRoom = room;
-    gameState.isMulti = true;
-    gameState.multiSeed = room.seed;
-    console.log('[multi] onMultiGameStart seed=', room.seed, 'mapIndex=', room.settings?.mapIndex, 'settings=', JSON.stringify(room.settings));
-    // Appliquer les settings de la room
-    const s = room.settings || {};
-    gameState.config.sunCount = s.sunCount || 4;
-    gameState.config.playerCount = s.playerCount || 4;
-    gameState.config.difficulty = s.difficulty || 'normal';
-    gameState.config.useIA = s.useIA !== false;
-    gameState.config.aiCount = s.aiCount || 0;
-    gameState.config.fillIA = s.fillIA || false;
-    const cleanersOn = s.cleanerCount > 0;
-    const nbPlayers = (s.playerCount || 1);
-    gameState.config.cleanerCount = cleanersOn ? Math.min(20, nbPlayers) : 0;
-    gameState.config.useAsteroids = s.useAsteroids !== false;
-    gameState.config.teamCount = s.teamCount || 0;
-    gameState.config.mapIndex = s.mapIndex != null ? s.mapIndex : null;
-    // Joueurs Railway
-    if (gameState._serverPlayers?.length) {
-        gameState._serverPlayers.forEach(pd => {
-            while (gameState.players.length <= pd.slot) {
-                gameState.players.push({ slot: gameState.players.length, bodies: [], spawnPlanet: null, totalSpores: 0, stats: { growth:0, velocity:0, density:0 }, isHuman: false, isAI: true });
-            }
-            gameState.players[pd.slot] = { ...gameState.players[pd.slot], ...pd, bodies: [], spawnPlanet: null, totalSpores: 0 };
-        });
-    }
-
-// (joueurs déjà initialisés depuis _serverPlayers ci-dessus)
-
-    // Synchroniser les sliders UI (si présents)
-    const _cfgPlayers = document.getElementById('cfgPlayers'); if (_cfgPlayers) _cfgPlayers.value = gameState.config.playerCount;
-    // Charger les joueurs de la room et mon slot (utiliser les données déjà chargées si dispo)
-// Slot assigné par Railway (quick_match) ou Supabase (créer partie custom)
-    if (currentRoom?._railwaySlot !== undefined) {
-        mySlot = currentRoom._railwaySlot;
-        console.log('[multi] mySlot depuis Railway:', mySlot);
-    } else if (room.id && !room.id.startsWith('auto-')) {
-        const rPlayers = gameState._roomPlayers?.length ? gameState._roomPlayers : (await _supa.from('game_room_players').select('*').eq('room_id', room.id).order('slot_number')).data || [];
-        gameState._roomPlayers = rPlayers;
-        const me = rPlayers.find(p => p.player_id === currentUser.id);
-        mySlot = me ? me.slot_number : 0;
-        console.log('[multi] mySlot depuis Supabase:', mySlot);
-    } else {
-        console.warn('[multi] mySlot non défini, room inconnue:', room.id);
-    }
-    // Canal broadcast — attendre game_start avant de lancer
-    await setupGameChannel(room.id);
-    // Attendre que le serveur envoie l'univers via game_start (max 8s)
-    await new Promise(resolve => {
-        if (gameState._serverUniverse) { resolve(); return; }
-        let waited = 0;
-        const check = setInterval(() => {
-            waited += 100;
-            if (gameState._serverUniverse || waited >= 8000) {
-                clearInterval(check);
-                resolve();
-            }
-        }, 100);
-    });
-    console.log('[multi] univers reçu:', gameState._serverUniverse ? 'OUI' : 'NON (timeout)');
-    startGame();
-}
-
-async function toggleReady() {
-    if (!currentRoom || !currentUser) { console.warn('toggleReady: no room or user'); return; }
-    const { data: { session } } = await _supa.auth.getSession();
-    if (!session) { alert('Session expirée. Reconnectez-vous.'); initAuth(); return; }
-    const { data, error: e1 } = await _supa.from('game_room_players').select('ready').eq('room_id', currentRoom.id).eq('player_id', currentUser.id).maybeSingle();
-    if (e1) { console.warn('toggleReady select:', e1); return; }
-    if (!data) { console.warn('toggleReady: player not found in room'); return; }
-    const newReady = !data.ready;
-    const updateData = { ready: newReady };
-    if (newReady) updateData.stats = { ...gameState.playerStats };
-    const { error: e2 } = await _supa.from('game_room_players').update(updateData).eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
-    if (e2) { console.warn('toggleReady update:', e2); return; }
-    const btn = document.getElementById('btnRoomReady');
-    btn.textContent = newReady ? '✓ PRÊT' : 'PRÊT';
-    btn.style.borderColor = newReady ? '#4ADE80' : 'rgba(34,197,94,0.5)';
-}
-
-async function leaveQmRoom() {
-    if (!currentRoom || !currentUser) return;
-    if (_qmPollTimer) { clearInterval(_qmPollTimer); _qmPollTimer = null; }
-    await _supa.from('game_room_players').delete().eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
-    currentRoom = null;
-    isHost = false;
-}
-
-async function leaveRoom() {
-    if (!currentRoom || !currentUser) return;
-    if (_roomPollTimer) { clearInterval(_roomPollTimer); _roomPollTimer = null; }
-    if (_qmPollTimer) { clearInterval(_qmPollTimer); _qmPollTimer = null; }
-    if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
-    await _supa.from('game_room_players').delete().eq('room_id', currentRoom.id).eq('player_id', currentUser.id);
-    // Si host, supprimer la room
-    if (isHost) {
-        await _supa.from('game_rooms').delete().eq('id', currentRoom.id);
-    } else {
-        // Vérifier si la room est vide après départ → la supprimer
-        const { data: remaining } = await _supa.from('game_room_players').select('id').eq('room_id', currentRoom.id);
-        if (!remaining || remaining.length === 0) {
-            await _supa.from('game_rooms').delete().eq('id', currentRoom.id);
-        }
-    }
-    currentRoom = null;
-    isHost = false;
-    setPhase('title');
-}
-
-
-
-async function enterRoom(roomId) {
-    setPhase('room');
-    _showDebugIfAdmin();
-    document.getElementById('roomCode').textContent = 'CODE : ' + roomId.substring(0, 8).toUpperCase();
-    const isAuto = currentRoom && currentRoom.settings?.mode === 'auto';
-    // Afficher les paramètres de la partie
-    const s = currentRoom ? currentRoom.settings || {} : {};
-    const diffLabel = s.difficulty === 'easy' ? 'Facile' : s.difficulty === 'brutal' ? 'Brutal' : 'Normal';
-    document.getElementById('roomParams').textContent = `${parseInt(s.sunCount) || 4} soleils · ${diffLabel} · ${s.useAsteroids !== false ? 'Météorites' : 'Sans météorites'} · ${parseInt(s.cleanerCount) || 0} vaisseaux`;
-    document.getElementById('btnRoomStart').style.display = (isHost && !isAuto) ? 'inline-block' : 'none';
-    const btnLaunchAI = document.getElementById('btnRoomLaunchAI');
-    if (btnLaunchAI) btnLaunchAI.style.display = (isHost || !isAuto) ? 'inline-block' : 'none';
-    document.getElementById('btnRoomReady').style.display = isAuto ? 'none' : 'inline-block';
-    // Charger les joueurs
-    await refreshRoomSlots(roomId);
-    // Subscribe Realtime sur la table game_room_players
-    if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); }
-    currentRoomChannel = _supa.channel('room-' + roomId)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'game_room_players', filter: 'room_id=eq.' + roomId }, () => {
-            refreshRoomSlots(roomId);
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_rooms', filter: 'id=eq.' + roomId }, async (payload) => {
-            if (payload.new.status === 'playing') {
-                // Recharger la room complète pour avoir le seed et les settings
-                const { data: fullRoom } = await _supa.from('game_rooms').select('*').eq('id', payload.new.id).single();
-                onMultiGameStart(fullRoom || payload.new);
-            }
-        })
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'game_rooms', filter: 'id=eq.' + roomId }, () => {
-            if (_roomPollTimer) { clearInterval(_roomPollTimer); _roomPollTimer = null; }
-            if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
-            currentRoom = null; isHost = false;
-            alert('L\'hôte a fermé la partie.');
-            setPhase('title');
-        })
-        .subscribe();
-    // Polling de secours (3s) au cas où Realtime ne notifie pas
-    if (_roomPollTimer) clearInterval(_roomPollTimer);
-    _roomPollTimer = setInterval(async () => {
-        if (!currentRoom) { clearInterval(_roomPollTimer); _roomPollTimer = null; return; }
-        await refreshRoomSlots(roomId);
-        // Vérifier aussi si la room a été lancée
-        const { data: room } = await _supa.from('game_rooms').select('status, seed, settings').eq('id', roomId).single();
-        if (!room) {
-            clearInterval(_roomPollTimer); _roomPollTimer = null;
-            if (currentRoomChannel) { _supa.removeChannel(currentRoomChannel); currentRoomChannel = null; }
-            currentRoom = null; isHost = false;
-            alert('L\'hôte a fermé la partie.');
-            setPhase('title');
-            return;
-        }
-        if (room && room.status === 'playing') {
-            clearInterval(_roomPollTimer); _roomPollTimer = null;
-            onMultiGameStart({ ...currentRoom, ...room });
-        }
-    }, 3000);
-}
-
-async function refreshRoomSlots(roomId) {
-    const { data: players } = await _supa.from('game_room_players').select('*').eq('room_id', roomId).order('slot_number');
-    const max = currentRoom ? currentRoom.max_players : 4;
-    const slotsEl = document.getElementById('roomSlots');
-    let html = '';
-    for (let i = 0; i < max; i++) {
-        const p = (players || []).find(x => x.slot_number === i);
-        if (p) {
-            const readyCls = p.ready ? 'yes' : 'no';
-            const readyTxt = p.ready ? 'PRÊT' : '...';
-            html += `<div class="room-slot"><div class="slot-color" style="background:${esc(p.color)}"></div><span class="slot-name">${esc(p.pseudo)}${p.guildTag ? ' <span style="color:rgba(251,146,60,0.7);font-size:10px;">['+esc(p.guildTag)+']</span>' : ''}</span><span class="slot-ready ${readyCls}">${readyTxt}</span></div>`;
-        } else {
-            html += `<div class="room-slot empty"><div class="slot-color" style="background:#333"></div><span class="slot-name" style="color:#64748B;">Slot libre</span></div>`;
-        }
-    }
-    slotsEl.innerHTML = html;
-    // Compteur joueurs
-    const count = (players || []).length;
-    document.getElementById('roomCounter').textContent = count + ' / ' + max;
-    const allReady2 = players && players.length > 0 && players.every(p => p.ready);
-    if (count >= max && allReady2) {
-        document.getElementById('roomStatus').textContent = '✓ TOUS PRÊTS — LANCEMENT...';
-        document.getElementById('roomStatus').style.color = '#4ADE80';
-    } else if (count >= max) {
-        document.getElementById('roomStatus').textContent = 'En attente que tous soient PRÊT...';
-        document.getElementById('roomStatus').style.color = '#FBBF24';
-    } else {
-        document.getElementById('roomStatus').textContent = 'En attente de joueurs... (' + count + '/' + max + ')';
-        document.getElementById('roomStatus').style.color = '#FBBF24';
-    }
-    // Activer le bouton LANCER si host et tous prêts
-    if (isHost) {
-        const allReady = players && players.length > 0 && players.every(p => p.ready);
-        document.getElementById('btnRoomStart').style.opacity = allReady ? '1' : '0.4';
-        document.getElementById('btnRoomStart').style.pointerEvents = allReady ? 'auto' : 'none';
-    }
-    // Auto-lancement pour les rooms auto quand pleine et tous prêts
-    if (currentRoom && currentRoom.settings?.mode === 'auto') {
-        const max = currentRoom.max_players;
-        const allReady = players && players.length >= max && players.every(p => p.ready);
-        if (allReady && isHost && !currentRoom._launching) {
-            currentRoom._launching = true;
-            startMultiGame();
-        }
-    }
-}
-
-async function joinRoom(roomId) {
-    if (!currentUser || !currentProfile) return;
-    try {
-    // Charger la room
-    const { data: room, error: re } = await _supa.from('game_rooms').select('*').eq('id', roomId).single();
-    if (re || !room || room.status !== 'waiting') { alert('Partie indisponible.'); loadRoomList(); return; }
-    // Trouver le prochain slot libre
-    const { data: players } = await _supa.from('game_room_players').select('slot_number').eq('room_id', roomId);
-    const taken = (players || []).map(p => p.slot_number);
-    let slot = -1;
-    for (let i = 0; i < room.max_players; i++) { if (!taken.includes(i)) { slot = i; break; } }
-    if (slot === -1) { alert('Partie pleine.'); quickMatch(); return; }
-    const autoReady = (room.settings?.mode === 'auto');
-    if (autoReady) { currentRoom = room; await _supa.from('game_room_players').insert({ room_id: roomId, player_id: currentUser.id, pseudo: currentProfile.pseudo, color: gameState.teamColors[Math.floor(Math.random()*gameState.teamColors.length)], slot_number: slot, ready: true, stats: { ...gameState.playerStats } }); startQmPolling(roomId); return; }
-    const { error } = await _supa.from('game_room_players').insert({
-        room_id: roomId, player_id: currentUser.id,
-        pseudo: currentProfile.pseudo,
-        color: gameState.teamColors[slot % gameState.teamColors.length],
-        slot_number: slot, ready: autoReady,
-        stats: autoReady ? { ...gameState.playerStats } : null
-    });
-    if (error) {
-        if (error.code === '23505') { currentRoom = room; isHost = (room.host_id === currentUser.id); enterRoom(roomId); return; }
-        console.warn('Erreur join:', error); return;
-    }
-    currentRoom = room;
-    isHost = (room.host_id === currentUser.id);
-    enterRoom(roomId);
-    } catch(e) { console.warn('joinRoom:', e); alert('Erreur réseau.'); }
-}
-
-let _qmPollTimer = null;
-function startQmPolling(roomId) {
-    if (_qmPollTimer) { clearInterval(_qmPollTimer); _qmPollTimer = null; }
-    const el = document.getElementById('qmParams');
-    const btn = document.getElementById('btnQuickMatch');
-    const btnBots = document.getElementById('btnQuickMatchBots');
-    if (btn) { btn.textContent = '⏳ EN ATTENTE...'; btn.disabled = true; }
-    if (btnBots) { btnBots.textContent = '🤖 VOTER BOTS'; btnBots.disabled = false; }
-
-// Socket déjà connecté via quickMatch — rien à faire ici
-
-    // Vote bots via Supabase
-    if (btnBots) {
-btnBots.style.display = 'none';
-    }
-
-   // Pas de polling Supabase — on écoute uniquement Railway
-    _qmPollTimer = setInterval(() => {
-        if (!currentRoom) { clearInterval(_qmPollTimer); _qmPollTimer = null; }
-    }, 5000);
-
-    // Lancement déclenché par Railway via room_state
-    if (_socket) {
-_socket.off('room_state');
-        _socket.on('room_state', (data) => {
-            if (!data?.players) return;
-            const count = data.players.length;
-            const max = currentRoom?._maxPlayers || data.maxPlayers || '?';
-            if (el) el.innerHTML = `<span style="color:#4ADE80;">${count} joueur(s) connecté(s)</span>`;
-            if (btn) btn.textContent = `⏳ EN ATTENTE... (${count} joueur(s))`;
-            // Mettre à jour le panel titre aussi
-            const qmParams = document.getElementById('qmParams');
-            if (qmParams && currentRoom) {
-                const mapIdx = currentRoom._mapIndex ?? 0;
-                const mapData = MAP_LIBRARY[mapIdx] || MAP_LIBRARY[0];
-                qmParams.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapData.name)}</strong> · <span style="color:#4ADE80;">${count}/${max} joueurs</span>`;
-            }
-            // Lancement auto si room pleine
-            if (currentRoom?._maxPlayers && count >= currentRoom._maxPlayers) {
-                clearInterval(_qmPollTimer); _qmPollTimer = null;
-                if (isHost) launchWithAI();
-            }
-        });
-        _socket.off('game_start_ack');
-        _socket.on('game_start_ack', () => {
-            clearInterval(_qmPollTimer); _qmPollTimer = null;
-        });
-    }
-}
-async function quickMatch(okForBots = false) {
-    if (!currentUser || !currentProfile) {
-        alert('Vous devez être connecté pour jouer en ligne.');
-        showAuthScreen();
-        return;
-    }
-    if (okForBots) gameState._pendingBotVote = true;
-
-    const btn = document.getElementById('btnQuickMatch');
-    const btnBots = document.getElementById('btnQuickMatchBots');
-    if (btn) { btn.textContent = '⏳ Connexion...'; btn.disabled = true; }
-    if (btnBots) { btnBots.disabled = true; }
-
-    // Connexion socket Railway
-    const _sess = await _supa.auth.getSession();
-    const _tok = _sess?.data?.session?.access_token || null;
-if (!_socket || !_socket.connected) {
-        if (_socket) { _socket.removeAllListeners(); _socket.disconnect(); _socket = null; }
-        _socket = io(SERVER_URL, {
-            auth: {
-                token: _tok,
-                pseudo: currentProfile?.pseudo || 'Joueur',
-                color: currentProfile?.color || '#C084FC',
-                guildTag: currentProfile?._guildTag || null,
-                guildId: currentProfile?._guildId || null
-            }
-        });
-    } else {
-        _socket.removeAllListeners();
-    }
-    _socket.off('room_joined');
-    _socket.on('room_joined', (data) => {
-        mySlot = data.slot;
-        isHost = (data.slot === 0);
-        currentRoom = { id: data.roomId, settings: { mode: 'auto', mapIndex: data.mapIndex, mapName: data.mapName }, _railwaySlot: data.slot, _maxPlayers: data.maxPlayers, _mapIndex: data.mapIndex };
-        startQmPolling(data.roomId);
-        const btn2 = document.getElementById('btnQuickMatch');
-        if (btn2) { btn2.textContent = '⏳ EN ATTENTE...'; btn2.disabled = true; }
-    });
-    _socket.on('connect', () => {
-        _socket.emit('quick_match', { config: { sunCount: 5, mode: 'auto' } });
-    });
-    if (_socket.connected) {
-        _socket.emit('quick_match', { config: { sunCount: 5, mode: 'auto' } });
-    }
-
-    _socket.on('bot_vote_update', (data) => {
-        if (btn) btn.textContent = `⏳ EN ATTENTE... 🤖 ${data.votes}/${data.total} votes`;
-    });
-_socket.on('bot_countdown', (data) => {
-        if (btn) { btn.textContent = `🚀 Lancement dans ${data.remaining}s...`; btn.style.color = '#4ADE80'; }
-        // Ne rien faire à 0 — c'est game_start qui déclenche le lancement
-    });
-_socket.on('game_start', (data) => {
-        clearInterval(_qmPollTimer); _qmPollTimer = null;
-        stopLobbyPolling();
-        console.log('[game_start] reçu, univers:', data?.universe ? 'OUI' : 'NON', 'config:', JSON.stringify(data?.config));
-if (data?.universe) gameState._serverUniverse = data.universe;
-        if (data?.seed) gameState._serverSeed = data.seed;
-        if (data?.config?.mapIndex != null && currentRoom) currentRoom._mapIndex = data.config.mapIndex;
-        if (data?.players) gameState._serverPlayers = data.players;
-        if (data?.config?.teamCount >= 2) gameState.config.teamCount = data.config.teamCount;
- // Lancer la partie directement
-        gameState._launching = false;
-        launchWithAI();
-    });
-}
-
-async function createRoom(mode = 'custom', settings = null, maxPlayers = 4) {
-    if (!currentUser || !currentProfile) return;
-    try {
-    if (!settings) settings = { sunCount: 4, difficulty: 'normal', useIA: true, cleanerCount: 3, useAsteroids: true };
-    const { data, error } = await _supa.from('game_rooms').insert({
-        host_id: currentUser.id,
-        host_pseudo: currentProfile.pseudo,
-        settings: { ...settings, mode },
-        max_players: maxPlayers,
-        status: 'waiting'
-    }).select().single();
-    if (error) { console.warn('Erreur création room:', error); return; }
-    currentRoom = data;
-    isHost = true;
-    // S'ajouter comme joueur slot 0
-    await _supa.from('game_room_players').insert({
-        room_id: data.id, player_id: currentUser.id,
-        pseudo: currentProfile.pseudo,
-        color: gameState.teamColors[0],
-        slot_number: 0, ready: true,
-        stats: { ...gameState.playerStats }
-    });
-    if (mode === 'auto') { startQmPolling(data.id); } else { await enterRoom(data.id); }
-    } catch(e) { console.warn('createRoom:', e); alert('Erreur réseau.'); }
-}
-
-async function rejoinGame() {
-    if (!_leftRoom) return;
-    const { roomId, slot, gameStateBackup } = _leftRoom;
-    // Vérifier que la room existe encore
-    const { data: room } = await _supa.from('game_rooms').select('*').eq('id', roomId).single();
-    if (!room || room.status !== 'playing') {
-        _leftRoom = null;
-        alert('La partie est terminée.');
-        return;
-    }
-    currentRoom = room;
-    mySlot = slot;
-    gameState.isMulti = true;
-    await setupGameChannel(roomId);
-    setTimeout(_setupAllianceListener, 2000);
-    setTimeout(_setupSignalListener, 2000);
-    setTimeout(_setupNidListener, 2000);
-    // Reprendre le contrôle du joueur
-    const player = gameState.players[slot];
-    if (player) {
-        player.isHuman = true;
-        player.isLocal = true;
-        player.name = player.name.replace(/^IA-/, '');
-        sendAction('playerRejoined', { slot: slot });
-        addEvent('neutral', '🔄', player.name + ' a repris le contrôle', null, player.color);
-    }
-    _leftRoom = null;
-    document.getElementById('gameCanvas').style.display = 'block';
-    document.getElementById('gameHud').style.display = 'block';
-    document.getElementById('minimap').style.display = 'block';
-    document.getElementById('uiZoomControl').style.display = 'block';
-    document.getElementById('eventLog').style.display = 'block';
-    gameState.phase = 'game';
-    gameState.running = true;
-    initPanels();
-}
-
-function drawQmPreview(map) {
-    const canvas = document.getElementById('qmPreview');
-    if (!canvas || !map) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width, H = canvas.height;
-    ctx.clearRect(0, 0, W, H);
-
-    // Fond étoilé
-    ctx.fillStyle = 'rgba(5,8,25,0.95)';
-    ctx.fillRect(0, 0, W, H);
-    for (let i = 0; i < 60; i++) {
-        const sx = Math.random() * W, sy = Math.random() * H;
-        const sr = Math.random() * 0.8 + 0.2;
-        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI*2);
-        ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.5+0.2})`; ctx.fill();
-    }
-
-    // Trouver la bounding box du système
-    const suns = map.suns || [];
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    const cx0 = 0, cy0 = 0;
-    for (const sun of suns) {
-        const or = sun.orbitRadius || 0;
-        minX = Math.min(minX, cx0 - or - 200); maxX = Math.max(maxX, cx0 + or + 200);
-        minY = Math.min(minY, cy0 - or - 200); maxY = Math.max(maxY, cy0 + or + 200);
-    }
-    const mapW = maxX - minX, mapH = maxY - minY;
-    const scale = Math.min((W - 20) / mapW, (H - 20) / mapH);
-    const offX = W/2 - (minX + mapW/2) * scale;
-    const offY = H/2 - (minY + mapH/2) * scale;
-
-    const toScreen = (wx, wy) => ({ x: wx * scale + offX, y: wy * scale + offY });
-
-    // Trou noir
-    const bh = toScreen(0, 0);
-    const bhR = Math.max(3, (map.blackHole?.radius || 200) * scale);
-    const bhGrad = ctx.createRadialGradient(bh.x, bh.y, 0, bh.x, bh.y, bhR);
-    bhGrad.addColorStop(0, 'rgba(0,0,0,1)');
-    bhGrad.addColorStop(0.6, 'rgba(30,0,60,0.6)');
-    bhGrad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.arc(bh.x, bh.y, bhR, 0, Math.PI*2);
-    ctx.fillStyle = bhGrad; ctx.fill();
-
-    let totalPlanets = 0, totalMoons = 0;
-
-    for (const sun of suns) {
-        const angle = sun.angle || 0;
-        const sx = Math.cos(angle) * (sun.orbitRadius || 0);
-        const sy = Math.sin(angle) * (sun.orbitRadius || 0);
-        const sp = toScreen(sx, sy);
-        const sr = Math.max(4, sun.radius * scale * 0.4);
-
-        // Orbite soleil
-        const or = (sun.orbitRadius || 0) * scale;
-        ctx.beginPath(); ctx.arc(bh.x, bh.y, or, 0, Math.PI*2);
-        ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; ctx.stroke();
-
-        // Soleil
-        const sunColor = sun.color || '#FFE44D';
-        const sg = ctx.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, sr*1.5);
-        sg.addColorStop(0, sunColor);
-        sg.addColorStop(0.5, sunColor + 'AA');
-        sg.addColorStop(1, 'transparent');
-        ctx.beginPath(); ctx.arc(sp.x, sp.y, sr*1.5, 0, Math.PI*2);
-        ctx.fillStyle = sg; ctx.fill();
-        ctx.beginPath(); ctx.arc(sp.x, sp.y, sr, 0, Math.PI*2);
-        ctx.fillStyle = sunColor; ctx.fill();
-
-        for (const planet of (sun.planets || [])) {
-            totalPlanets++;
-            const pa = planet.angle || 0;
-            const pr_dist = (planet.orbitRadius || 0);
-            const px = sx + Math.cos(pa) * pr_dist;
-            const py = sy + Math.sin(pa) * pr_dist;
-            const pp = toScreen(px, py);
-            const pr = Math.max(2, planet.radius * scale * 0.4);
-
-            // Orbite planète
-            ctx.beginPath(); ctx.arc(sp.x, sp.y, pr_dist * scale, 0, Math.PI*2);
-            ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5; ctx.stroke();
-
-            // Planète
-            ctx.beginPath(); ctx.arc(pp.x, pp.y, pr, 0, Math.PI*2);
-            ctx.fillStyle = '#7BA7BC'; ctx.fill();
-
-            for (const moon of (planet.moons || [])) {
-                totalMoons++;
-                const ma = moon.angle || 0;
-                const mx = px + Math.cos(ma) * (moon.orbitRadius || 0);
-                const my = py + Math.sin(ma) * (moon.orbitRadius || 0);
-                const mp = toScreen(mx, my);
-                const mr = Math.max(1, moon.radius * scale * 0.4);
-                ctx.beginPath(); ctx.arc(mp.x, mp.y, mr, 0, Math.PI*2);
-                ctx.fillStyle = '#8899AA'; ctx.fill();
-            }
-        }
-    }
-
-    // Légende
-    ctx.font = '9px Exo 2, sans-serif';
-    ctx.fillStyle = 'rgba(200,210,230,0.6)';
-    ctx.textAlign = 'left';
-    ctx.fillText(`☀ ${suns.length}  🪐 ${totalPlanets}  🌑 ${totalMoons}`, 6, H - 6);
-}
-
-let _lobbyPollTimer = null;
-
-async function updateQuickMatchPanel() {
-    const el = document.getElementById('qmParams');
-    if (!el) return;
-    try {
-        const resp = await fetch(SERVER_URL + '/lobby');
-        const data = await resp.json();
-        const room = data.rooms?.[0];
-        if (room) {
-            const mapIdx = room.mapIndex != null ? room.mapIndex : 0;
-            const mapData = MAP_LIBRARY[mapIdx] || MAP_LIBRARY[0];
-            el.innerHTML = `<strong style="color:#E2D9F3;">${esc(mapData.name)}</strong> · <span style="color:#4ADE80;">${room.playerCount}/${room.maxPlayers} joueurs</span>`;
-            drawQmPreview(mapData);
-        } else {
-            el.innerHTML = '<span style="color:#94A3B8;">En attente du serveur...</span>';
-        }
-    } catch(e) {
-        el.innerHTML = '<span style="color:#94A3B8;">Serveur indisponible</span>';
-    }
-}
-
-function startLobbyPolling() {
-    stopLobbyPolling();
-    updateQuickMatchPanel();
-    _lobbyPollTimer = setInterval(updateQuickMatchPanel, 2000);
-}
-
-function stopLobbyPolling() {
-    if (_lobbyPollTimer) { clearInterval(_lobbyPollTimer); _lobbyPollTimer = null; }
-}
-
-// ── Système d'invitation par pseudo ──
-let inviteChannel = null;
-let pendingInvite = null;
-
-// ── Menu type spore ──
-function _closeSporMenu() { document.getElementById('sporeTypeMenu').style.display = 'none'; _stmLiveBody = null; }
-let _stmLiveBody = null;
-function _stmRefreshLive() {
-    const menu = document.getElementById('sporeTypeMenu');
-    if (!_stmLiveBody || menu.style.display === 'none') return;
-    const body = _stmLiveBody;
-    const ratio = gameState.jetRatio;
-    const norm = Math.floor((body.spores || 0) * ratio);
-    const att = Math.floor((body.sporesAttaque || 0) * ratio);
-    const def = Math.floor((body.sporesDefense || 0) * ratio);
-    const paraCount = body.parasiteSpore || 0;
-    _stmSectors.forEach((s, i) => {
-        if (s.type === 'normal')   s.count = norm + ' sp';
-        if (s.type === 'attaque')  s.count = att + ' sp';
-        if (s.type === 'defense')  s.count = def + ' sp';
-        if (s.type === 'parasite') s.count = paraCount + ' prête';
-    });
-    _stmDraw();
-}
-function _selectSporeType(type) {
-    _closeSporMenu();
-    gameState._fireType = type;
-    gameState._firePhase = 'aiming';
-}
-// ── Menu radial canvas ──
-const _stmCanvas = document.getElementById('stmCanvas');
-const _stmCtx = _stmCanvas.getContext('2d');
-const STM_SIZE = 300, STM_INNER = 32, STM_R = 90, STM_R2 = 140;
-let _stmSectors = [];
-let _stmBldSectors = [];
-let _stmHover = -1;   // -1=dehors -2=codex >=0=spore
-let _stmHoverB = -1;  // bâtiment survolé
-
-// Tooltip bâtiment
-let _stmTT = null;
-function _stmShowTip(text, x, y) {
-    if (!_stmTT) {
-        _stmTT = document.createElement('div');
-        _stmTT.style.cssText = 'position:fixed;z-index:300;background:rgba(10,8,35,0.97);border:1px solid rgba(100,70,180,0.5);border-radius:6px;padding:6px 10px;font-family:"Exo 2",sans-serif;font-size:11px;color:#E2D9F3;pointer-events:none;max-width:200px;line-height:1.5;white-space:normal;';
-        document.body.appendChild(_stmTT);
-    }
-    _stmTT.textContent = text;
-    _stmTT.style.left = (x + 14) + 'px';
-    _stmTT.style.top  = (y - 10) + 'px';
-    _stmTT.style.display = 'block';
-}
-function _stmHideTip() { if (_stmTT) _stmTT.style.display = 'none'; }
-
-function _stmDraw() {
-    const ctx = _stmCtx;
-    const cx = STM_SIZE/2, cy = STM_SIZE/2;
-    ctx.clearRect(0, 0, STM_SIZE, STM_SIZE);
-
-    // ── Couronne 1 : types de spores ──
-    const n = _stmSectors.length;
-    const asp = (Math.PI * 2) / n;
-    const off = -Math.PI / 2;
-    for (let i = 0; i < n; i++) {
-        const s = _stmSectors[i];
-        const a1 = off + i * asp, a2 = a1 + asp;
-        const isH = _stmHover === i;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, STM_R, a1, a2);
-        ctx.closePath();
-        ctx.fillStyle = s.disabled ? 'rgba(30,30,40,0.7)' : (isH ? s.colorHover : s.color);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 2; ctx.stroke();
-        const midA = (a1+a2)/2;
-        const lr = (STM_R+STM_INNER)/2;
-        const lx = cx+Math.cos(midA)*lr, ly = cy+Math.sin(midA)*lr;
-        ctx.save();
-        ctx.font='18px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(s.icon, lx, ly-7);
-        ctx.font=`bold 8px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.9)';
-        ctx.fillText(s.label, lx, ly+8);
-        if (s.count) { ctx.font=`7px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillText(s.count, lx, ly+18); }
-        ctx.restore();
-    }
-
-    // ── Couronne 2 : bâtiments ──
-    const nb = _stmBldSectors.length;
-    if (nb > 0) {
-        const bsp = (Math.PI * 2) / nb;
-        for (let i = 0; i < nb; i++) {
-            const b = _stmBldSectors[i];
-            const a1 = off + i * bsp, a2 = a1 + bsp;
-            const isH = _stmHoverB === i;
-            // Anneau externe : donut entre STM_R+4 et STM_R2
-            ctx.beginPath();
-            ctx.arc(cx, cy, STM_R2, a1, a2);
-            ctx.arc(cx, cy, STM_R+4, a2, a1, true);
-            ctx.closePath();
-            const baseCol = b.active ? b.color.replace('0.3','0.85') : (isH ? b.color.replace('0.3','0.6') : b.color);
-            ctx.fillStyle = b.active ? baseCol : (isH ? baseCol : b.color);
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
-            const midA = (a1+a2)/2;
-            const lr2 = (STM_R2+STM_R+4)/2;
-            const lx = cx+Math.cos(midA)*lr2, ly = cy+Math.sin(midA)*lr2;
-            ctx.save();
-            ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-            ctx.globalAlpha = b.disabled ? 0.35 : 1;
-            ctx.fillText(b.icon, lx, ly-4);
-            ctx.font=`bold 7px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.85)';
-            ctx.fillText(b.name.split(' ')[0], lx, ly+7);
-            ctx.restore();
-        }
-    }
-
-    // ── Cercle intérieur Codex ──
-    ctx.beginPath();
-    ctx.arc(cx, cy, STM_INNER, 0, Math.PI*2);
-    ctx.fillStyle = _stmHover === -2 ? 'rgba(100,70,200,0.9)' : 'rgba(20,15,50,0.9)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(160,120,255,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('📖', cx, cy);
-}
-
-function _stmGetSector(x, y) {
-    const cx = STM_SIZE/2, cy = STM_SIZE/2;
-    const dx = x-cx, dy = y-cy;
-    const dist = Math.sqrt(dx*dx+dy*dy);
-    if (dist < STM_INNER) return { zone:'codex' };
-    if (dist <= STM_R) {
-        const angle = Math.atan2(dy, dx);
-        const n = _stmSectors.length;
-        const asp = (Math.PI*2)/n;
-        let a = angle - (-Math.PI/2); if (a<0) a+=Math.PI*2;
-        return { zone:'spore', idx: Math.floor(a/asp) };
-    }
-    if (dist <= STM_R2 && _stmBldSectors.length > 0) {
-        const angle = Math.atan2(dy, dx);
-        const nb = _stmBldSectors.length;
-        const bsp = (Math.PI*2)/nb;
-        let a = angle - (-Math.PI/2); if (a<0) a+=Math.PI*2;
-        return { zone:'bld', idx: Math.floor(a/bsp) };
-    }
-    return { zone:'outside' };
-}
-
-_stmCanvas.addEventListener('mousemove', (e) => {
-    const r = _stmCanvas.getBoundingClientRect();
-    const x = e.clientX-r.left, y = e.clientY-r.top;
-    const hit = _stmGetSector(x, y);
-    const prevH = _stmHover, prevB = _stmHoverB;
-    _stmHover = hit.zone==='spore' ? hit.idx : (hit.zone==='codex' ? -2 : -1);
-    _stmHoverB = hit.zone==='bld' ? hit.idx : -1;
-    if (_stmHover !== prevH || _stmHoverB !== prevB) _stmDraw();
-    if (hit.zone==='bld') {
-        const b = _stmBldSectors[hit.idx];
-        if (b) _stmShowTip(b.tip || b.name, e.clientX, e.clientY);
-    } else { _stmHideTip(); }
-});
-
-_stmCanvas.addEventListener('mouseleave', () => { _stmHover=-1; _stmHoverB=-1; _stmDraw(); _stmHideTip(); });
-
-_stmCanvas.addEventListener('click', (e) => {
-    const r = _stmCanvas.getBoundingClientRect();
-    const x = e.clientX-r.left, y = e.clientY-r.top;
-    const hit = _stmGetSector(x, y);
-    if (hit.zone==='codex') {
-        const body = gameState._fireSource;
-        _closeSporMenu();
-        gameState._firePhase = null;
-        if (body) { openCodex._cx=e.clientX; openCodex._cy=e.clientY; openCodex(body); }
-    } else if (hit.zone==='spore' && hit.idx>=0 && hit.idx<_stmSectors.length) {
-        const _sec = _stmSectors[hit.idx];
-        if (!_sec.disabled) {
-            if (_sec.type === 'nidification') {
-                _triggerNidification(_stmLiveBody);
-                _closeSporMenu();
-            } else {
-                _selectSporeType(_sec.type);
-            }
-        }
-    } else if (hit.zone==='bld' && hit.idx>=0 && hit.idx<_stmBldSectors.length) {
-        const b = _stmBldSectors[hit.idx];
-        if (!b.disabled && _stmLiveBody) {
-            const body = _stmLiveBody;
-            const _terminals = ['gorge','ectoplasme','antre','fourme'];
-            if (_terminals.includes(b.mode)) {
-                for (const _t of _terminals) {
-                    if (body[_t] && _t!==b.mode) {
-                        body[_t]=false;
-                        gameState.tradeOrbs=gameState.tradeOrbs.filter(o=>!(o.tradeType===_t&&(o.srcBody===body||o.dstBody===body)));
-                    }
-                }
-            }
-            body.buildMode = b.mode;
-            body.buildProgress = 0;
-            _closeSporMenu();
-            addEvent('build', b.icon, `${b.name} activé sur ${body.name}`, body, gameState.players[localSlot()]?.color);
-        }
-    }
-});
-
-function _stmOpen(body, clientX, clientY) {
-    const ratio = gameState.jetRatio;
-    const norm = Math.floor((body.spores || 0) * ratio);
-    const att = Math.floor((body.sporesAttaque || 0) * ratio);
-    const def = Math.floor((body.sporesDefense || 0) * ratio);
-    const hasPara = (body.parasiteSpore || 0) >= 1;
-
-    const paraCount = (body.parasiteSpore || 0);
-    const _isMotherPlanet = !!body.isMotherPlanet;
-    const _nidCooldown = body._nidCooldown || 0;
-    const _nidReady2 = _isMotherPlanet && _nidCooldown <= 0;
-    const _nidLabel = _nidCooldown > 0 ? Math.ceil(_nidCooldown/60)+'min' : (_isMotherPlanet ? 'Prêt' : 'Inactif');
-    _stmSectors = [
-        { type:'normal',      icon:'⚪', label:'Normal',      count: norm + ' sp',         color:'rgba(60,40,120,0.85)',  colorHover:'rgba(100,70,180,0.95)', disabled: norm < 5 },
-        { type:'attaque',     icon:'🔴', label:'Attaque',     count: att + ' sp',          color:'rgba(120,15,15,0.85)', colorHover:'rgba(200,30,30,0.95)',  disabled: att < 5 },
-        { type:'defense',     icon:'🔵', label:'Défense',     count: def + ' sp',          color:'rgba(10,50,110,0.85)', colorHover:'rgba(20,80,180,0.95)',  disabled: def < 5 },
-        { type:'parasite',    icon:'🦠', label:'Parasite',    count: paraCount + ' prête', color:'rgba(10,60,25,0.85)',  colorHover:'rgba(20,120,50,0.95)',  disabled: paraCount < 1 },
-        { type:'nidification',icon:'👑', label:'Nidif.',      count: _nidLabel,            color: _nidReady2 ? 'rgba(180,140,0,0.85)' : 'rgba(60,50,30,0.7)', colorHover:'rgba(255,200,0,0.95)', disabled: !_nidReady2 },
-    ];
-
-    // Couronne 2 : bâtiments disponibles pour cet astre
-    const _base = body.baseMaxSpores || body.maxSpores || 0;
-    const _BLD_ALL = [
-        { mode:'off',       icon:'⬛', name:'OFF',         color:'rgba(100,70,180,0.3)',  tip:'Production normale.',                                                   disabled:false },
-        { mode:'alveole',   icon:'🍯', name:'ALVÉOLE',     color:'rgba(234,179,8,0.3)',   tip:`+5% stock max · Coût: ${Math.floor(_base*0.10)} sp`,                    disabled: body.spores < Math.floor(_base*0.10) },
-        { mode:'nid',       icon:'🏗️', name:'NID',         color:'rgba(34,197,94,0.3)',   tip:`+2.5% prod · Coût: ${Math.floor(_base*0.15)} sp`,                       disabled: body.spores < Math.floor(_base*0.15) },
-        { mode:'biome',     icon:'🛡️', name:'BIOME',       color:'rgba(59,130,246,0.3)',  tip:`+5% défense · Coût: ${Math.floor(_base*0.20)} sp`,                      disabled: body.spores < Math.floor(_base*0.20) },
-        { mode:'ruche',     icon:'🔴', name:'RUSH',        color:'rgba(220,38,38,0.3)',   tip:'Produit des spores d\'attaque (50% du rate).',                          disabled:false },
-        { mode:'mare',      icon:'🔵', name:'MARE',        color:'rgba(14,165,233,0.3)',  tip:'Produit des spores de défense (50% du rate).',                          disabled:false },
-        { mode:'parasite',  icon:'🦠', name:'PARASITE',    color:'rgba(10,80,30,0.3)',    tip:'2 min → 1 spore parasitaire.',                                          disabled:(body.parasiteSpore||0)>=1 },
-        { mode:'gorge',     icon:'🌫️', name:'GORGE',       color:'rgba(180,80,20,0.3)',   tip:'Terminal Miasme · Coût: 500 sp normales.',                              disabled: body.spores < 500 },
-        { mode:'ectoplasme',icon:'🫧', name:'ECTO',        color:'rgba(80,180,200,0.3)',  tip:'Terminal Particule · Coût: 1000 sp normales.',                          disabled: body.spores < 1000 },
-        ...( body.type!=='moon' ? [
-        { mode:'antre',     icon:'🕳️', name:'ANTRE',       color:'rgba(120,40,180,0.3)',  tip:'Terminal Molécule · Coût: 100 sp défense.',                             disabled:(body.sporesDefense||0)<100 },
-        { mode:'fourme',    icon:'🍄', name:'FOURME',      color:'rgba(200,140,20,0.3)',  tip:'Terminal ADN · Coût: 200 sp attaque.',                                  disabled:(body.sporesAttaque||0)<200 },
-        ] : []),
-    ];
-    _stmBldSectors = _BLD_ALL.map(b => ({ ...b, active: body.buildMode===b.mode }));
-
-    _stmLiveBody = body;
-    _stmHover = -1;
-    _stmHoverB = -1;
-    _stmDraw();
-
-    const menu = document.getElementById('sporeTypeMenu');
-    menu.style.display = 'block';
-    const _mx = Math.max(8, Math.min(window.innerWidth - STM_SIZE - 8, clientX - STM_SIZE/2));
-    const _my = Math.max(8, Math.min(window.innerHeight - STM_SIZE - 8, clientY - STM_SIZE/2));
-    menu.style.left = _mx + 'px';
-    menu.style.top  = _my + 'px';
-}
-
-// ─── COMMERCE ───────────────────────────────
-const TRADE_TYPES = {
-    gorge:      { icon:'🌫️', name:'Miasme',   minGain:1,   maxGain:10   },
-    ectoplasme: { icon:'🫧', name:'Particule', minGain:25,  maxGain:50   },
-    antre:      { icon:'🕳️', name:'Molécule',  minGain:65,  maxGain:100  },
-    fourme:     { icon:'🍄', name:'ADN',       minGain:650, maxGain:1000 },
-};
-const TRADE_SPEED = 40; // unités monde/sec
-
-function _tradeOpen(targetBody, clientX, clientY) {
-    const localSl = localSlot();
-    if (targetBody.owner === localSl) return; // pas de commerce avec soi-même
-    // Planètes locales avec terminal construit
-    const myBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)]
-        .filter(b => b.owner === localSl);
-
-    if (_diplomacyPopup) { _diplomacyPopup.remove(); _diplomacyPopup = null; }
-    const popup = document.createElement('div');
-    popup.style.cssText = `position:fixed;z-index:9999;background:rgba(8,6,30,0.95);border:1px solid rgba(160,120,255,0.4);border-radius:10px;padding:14px 18px;font-family:'Exo 2',sans-serif;font-size:13px;color:#E2D9F3;min-width:220px;`;
-    popup.style.left = Math.min(clientX, window.innerWidth-240)+'px';
-    popup.style.top  = Math.min(clientY, window.innerHeight-220)+'px';
-    const tName = gameState.players[targetBody.owner]?.name || '?';
-    popup.innerHTML = `<div style="font-family:'Orbitron',sans-serif;font-size:11px;color:rgba(160,120,255,0.7);margin-bottom:10px;letter-spacing:1px;">COMMERCE — ${esc(tName)} · ${esc(targetBody.name)}</div>`;
-
-    let added = 0;
-    for (const [tm, td] of Object.entries(TRADE_TYPES)) {
-        if (!targetBody[tm]) continue; // cible n'a pas le terminal
-        const src = myBodies.find(b => b[tm]);
-        if (!src) continue; // on n'a pas le terminal non plus
-        // Vérifier qu'un orbe identique n'existe pas déjà
-        const already = gameState.tradeOrbs.some(o => o.tradeType===tm && ((o.srcBody===src&&o.dstBody===targetBody)||(o.srcBody===targetBody&&o.dstBody===src)));
-        const srcBusy = gameState.tradeOrbs.some(o => o.srcBody===src||o.dstBody===src);
-        const dstBusy = gameState.tradeOrbs.some(o => (o.srcBody===targetBody||o.dstBody===targetBody) && !already);
-        const btn = document.createElement('button');
-        btn.className = 'btn';
-        btn.style.cssText = 'width:100%;font-size:12px;padding:7px;margin-bottom:5px;' + (already ? 'opacity:0.4;' : '');
-        btn.textContent = (already?'✓ ':'')+td.icon+' '+td.name+' ('+td.minGain+'–'+td.maxGain+' sp)';
-        btn.disabled = already || srcBusy || dstBusy;
-        if (srcBusy && !already) btn.textContent = '⚠ Votre astre commerce déjà';
-        if (dstBusy && !already) btn.textContent = '⚠ Cet astre commerce déjà';
-        btn.onclick = () => {
-            const dx = targetBody.x - src.x, dy = targetBody.y - src.y;
-            const dist = Math.sqrt(dx*dx+dy*dy);
-            const gain = Math.round(td.minGain + gameRandom()*(td.maxGain-td.minGain));
-            gameState.tradeOrbs.push({ tradeType:tm, srcBody:src, dstBody:targetBody,
-                x:src.x, y:src.y, vx:dx/dist, vy:dy/dist,
-                gain, alive:true, phase:'out', timer:0, ownerSlot:localSl, targetSlot:targetBody.owner,
-                color: tm==='gorge'?'#FB923C': tm==='ectoplasme'?'#38BDF8': tm==='antre'?'#A78BFA':'#FBBF24' });
-            addEvent('neutral', td.icon, `Échange ${td.name} lancé : ${src.name} ↔ ${targetBody.name}`, src, gameState.players[localSl]?.color);
-            popup.remove(); _diplomacyPopup = null;
-        };
-        popup.appendChild(btn);
-        added++;
-    }
-    if (added === 0) {
-        const info = document.createElement('div');
-        info.style.cssText = 'color:rgba(200,170,255,0.5);font-size:12px;';
-        info.textContent = 'Aucun terminal compatible entre vos planètes.';
-        popup.appendChild(info);
-    }
-    const closeBtn = document.createElement('div');
-    closeBtn.style.cssText = 'text-align:right;margin-top:8px;font-size:11px;color:rgba(200,170,255,0.4);cursor:pointer;';
-    closeBtn.textContent = '✕ fermer';
-    closeBtn.onclick = () => { popup.remove(); _diplomacyPopup = null; };
-    popup.appendChild(closeBtn);
-    document.body.appendChild(popup);
-    _diplomacyPopup = popup;
-    setTimeout(() => { document.addEventListener('click', function _cls(ev) { if (!popup.contains(ev.target)) { popup.remove(); _diplomacyPopup = null; document.removeEventListener('click',_cls); } }); }, 100);
-}
-
-function updateTradeOrbs(dt) {
-    const orbs = gameState.tradeOrbs;
-    for (let i = orbs.length-1; i >= 0; i--) {
-        const o = orbs[i];
-        if (!o.alive) { orbs.splice(i,1); continue; }
-        // Vérifier que les deux planètes existent toujours et ont le terminal
-        if (!o.srcBody[o.tradeType] || !o.dstBody[o.tradeType]) { o.alive=false; continue; }
-        // Vérifier alliance encore active
-        if (!_isAllied(o.ownerSlot, o.targetSlot)) { o.alive=false; continue; }
-
-        const dst = o.phase==='out' ? o.dstBody : o.srcBody;
-        const dx = dst.x - o.x, dy = dst.y - o.y;
-        const dist = Math.sqrt(dx*dx+dy*dy);
-
-        if (dist < dst.radius + 5) {
-            // Livraison
-            const recv = o.phase==='out' ? o.targetSlot : o.ownerSlot;
-            const recvBody = o.phase==='out' ? o.dstBody : o.srcBody;
-            recvBody.spores = Math.min(recvBody.maxSpores, (recvBody.spores||0) + o.gain);
-            if (recv === localSlot()) { addEvent('neutral', TRADE_TYPES[o.tradeType].icon, `+${o.gain} sp reçues (${TRADE_TYPES[o.tradeType].name})`, recvBody, gameState.players[recv]?.color); playTradeOrbSound(); }
-            // Repart dans l'autre sens
-            o.phase = o.phase==='out' ? 'back' : 'out';
-            o.x = dst.x; o.y = dst.y;
-            const ndst = o.phase==='out' ? o.dstBody : o.srcBody;
-            const ndx = ndst.x - o.x, ndy = ndst.y - o.y, nd = Math.sqrt(ndx*ndx+ndy*ndy);
-            o.vx = ndx/nd; o.vy = ndy/nd;
-        } else {
-            // Interception par jet ennemi
-            for (const jet of gameState.jets) {
-                if (!jet.alive) continue;
-                if (_isAllied(jet.owner, o.ownerSlot) || _isAllied(jet.owner, o.targetSlot)) continue;
-                const jdx = jet.x - o.x, jdy = jet.y - o.y;
-                if (Math.sqrt(jdx*jdx+jdy*jdy) < 20) {
-                    // Redirigé vers le voleur
-                    const thief = gameState.players[jet.owner];
-                    const allBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
-                    const thiefBody = allBodies.find(b=>b.owner===jet.owner);
-                    if (thiefBody) {
-                        const tdx=thiefBody.x-o.x, tdy=thiefBody.y-o.y, td=Math.sqrt(tdx*tdx+tdy*tdy);
-                        o.vx=tdx/td; o.vy=tdy/td;
-                        o.dstBody=thiefBody; o.targetSlot=jet.owner; o.phase='out';
-                        if (localSlot()===o.ownerSlot||localSlot()===o.targetSlot) { addEvent('war','🏴‍☠️',`Orbe interceptée par ${thief?.name||'?'} !`,thiefBody,'#F87171'); playInterceptSound(); }
-                        jet.alive=false;
-                    }
-                    break;
-                }
-            }
-            o.x += o.vx * TRADE_SPEED * dt;
-            o.y += o.vy * TRADE_SPEED * dt;
-        }
-    }
-}
-
-function drawTradeOrbs(ctx) {
-    const t = gameState.time || 0;
-    for (const o of gameState.tradeOrbs) {
-        if (!o.alive) continue;
-        ctx.save();
-        const pulse = 0.7 + 0.3*Math.sin(t*4);
-        const r = 6 * pulse;
-        const grd = ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,r*2.5);
-        grd.addColorStop(0,'#FFF');
-        grd.addColorStop(0.3,o.color);
-        grd.addColorStop(1,'rgba(0,0,0,0)');
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.arc(o.x,o.y,r*2.5,0,Math.PI*2);
-        ctx.fill();
-        // Icône
-        ctx.font = `${Math.max(8,10)}px sans-serif`;
-        ctx.textAlign='center';
-        ctx.fillText(TRADE_TYPES[o.tradeType]?.icon||'●', o.x, o.y - r*2.5 - 3);
-        ctx.restore();
-    }
-}
-
-function _triggerNidification(motherPlanet) {
-    const slot = localSlot();
-    const player = gameState.players[slot];
-    if (!player || !motherPlanet) return;
-    // Aspirer 50% des spores normales de TOUTES les planètes et lunes de la carte
-    let total = 0;
-    const allBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
-    for (const b of allBodies) {
-        if (b.owner !== slot || b === motherPlanet) continue;
-        const take = Math.floor((b.spores || 0) * 0.5);
-        b.spores -= take;
-        total += take;
-    }
-    motherPlanet.spores = Math.min(motherPlanet.maxSpores, (motherPlanet.spores||0) + total);
-    // Cooldown 3 min
-    motherPlanet._nidCooldown = 180;
-    // Effets visuels
-    gameState.conquestEffects.push({ x:motherPlanet.x, y:motherPlanet.y-motherPlanet.radius-15, baseX:motherPlanet.x, text:'👑 +'+total+' sp', color:'#FFD700', age:0, maxAge:3 });
-    addEvent('build', '👑', `Nidification ! ${Math.floor(total)} spores aspirées sur ${motherPlanet.name}`, motherPlanet, player.color);
-    // Bannière top-center pour tous
-    _showGameBanner(`👑 ${player.name} — Planète mère : ${motherPlanet.name}`, motherPlanet);
-    playNidificationSound();
-    playBannerSound();
-    // Multi : broadcast
-    if (gameState.isMulti && _supa) {
-        const ch = _supa.channel('nid-notif-global');
-        ch.subscribe(s => { if (s==='SUBSCRIBED') { ch.send({ type:'broadcast', event:'nid', payload:{ playerName:player.name, bodyName:motherPlanet.name, x:motherPlanet.x, y:motherPlanet.y } }); setTimeout(()=>ch.unsubscribe(),1000); } });
-    }
-}
-
-let _gameTopBannerTimer = null;
-function _showGameBanner(text, targetBody) {
-    const el = document.getElementById('gameTopBanner');
-    if (!el) return;
-    el.textContent = text;
-    el.style.display = 'block';
-    el.onclick = () => {
-        if (targetBody) { gameState.camera.x = targetBody.x; gameState.camera.y = targetBody.y; }
-        el.style.display = 'none';
-    };
-    if (_gameTopBannerTimer) clearTimeout(_gameTopBannerTimer);
-    _gameTopBannerTimer = setTimeout(() => { el.style.display = 'none'; }, 6000);
-}
-
-function _setupNidListener() {
-    const ch = _supa.channel('nid-notif-global');
-    ch.on('broadcast', { event:'nid' }, ({ payload }) => {
-        const allBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
-        const tb = allBodies.find(b=>b.name===payload.bodyName);
-        _showGameBanner(`👑 ${payload.playerName} — Planète mère : ${payload.bodyName}`, tb||null);
-    }).subscribe();
-}
-
-function _isAllied(slotA, slotB) {
-    return gameState.alliances.some(a => (a[0]===slotA&&a[1]===slotB)||(a[0]===slotB&&a[1]===slotA));
-}
-function _addAlliance(slotA, slotB) {
-    if (!_isAllied(slotA, slotB)) gameState.alliances.push([slotA, slotB]);
-}
-function _removeAlliance(slotA, slotB) {
-    gameState.alliances = gameState.alliances.filter(a => !((a[0]===slotA&&a[1]===slotB)||(a[0]===slotB&&a[1]===slotA)));
-}
-
-let _diplomacyPopup = null;
-function _diplomacyOpen(body, clientX, clientY) {
-    const targetSlot = body.owner;
-    const localSl = localSlot();
-    const allied = _isAllied(localSl, targetSlot);
-    const targetName = gameState.players[targetSlot]?.name || ('J'+targetSlot);
-
-    // Fermer popup existant
-    if (_diplomacyPopup) { _diplomacyPopup.remove(); _diplomacyPopup = null; }
-
-    const popup = document.createElement('div');
-    popup.style.cssText = `position:fixed;z-index:9999;background:rgba(8,6,30,0.95);border:1px solid rgba(160,120,255,0.4);border-radius:10px;padding:14px 18px;font-family:'Exo 2',sans-serif;font-size:13px;color:#E2D9F3;min-width:200px;`;
-    popup.style.left = Math.min(clientX, window.innerWidth-220)+'px';
-    popup.style.top = Math.min(clientY, window.innerHeight-160)+'px';
-
-    popup.innerHTML = `<div style="font-family:'Orbitron',sans-serif;font-size:11px;color:rgba(160,120,255,0.7);margin-bottom:10px;letter-spacing:1px;">DIPLOMATIE — ${esc(targetName)}</div>`;
-
-    if (!allied) {
-        const btn = document.createElement('button');
-        btn.className = 'btn';
-        btn.style.cssText = 'width:100%;font-size:12px;padding:8px;background:rgba(34,197,94,0.2);border-color:rgba(34,197,94,0.5);color:#4ADE80;';
-        btn.textContent = '🧬 Mélange d\'ADN';
-        btn.onclick = () => {
-            _sendAllianceRequest(targetSlot, body);
-            popup.remove(); _diplomacyPopup = null;
-        };
-        popup.appendChild(btn);
-    } else {
-        const info = document.createElement('div');
-        info.style.cssText = 'color:#4ADE80;font-size:12px;margin-bottom:8px;';
-        info.textContent = '✦ Alliance active';
-        popup.appendChild(info);
-        const btn = document.createElement('button');
-        btn.className = 'btn';
-        btn.style.cssText = 'width:100%;font-size:12px;padding:8px;background:rgba(239,68,68,0.2);border-color:rgba(239,68,68,0.5);color:#F87171;';
-        btn.textContent = '✗ Rompre l\'alliance';
-        btn.onclick = () => { _removeAlliance(localSl, targetSlot); popup.remove(); _diplomacyPopup = null; addEvent('neutral','💔',`Alliance rompue avec ${targetName}`,null,gameState.players[localSl]?.color); playAllianceBreakSound(); };
-        popup.appendChild(btn);
-    }
-
-    // Bouton signaux émoji
-    const sigBtn = document.createElement('button');
-    sigBtn.className = 'btn';
-    sigBtn.style.cssText = 'width:100%;font-size:12px;padding:7px;margin-top:6px;background:rgba(251,191,36,0.15);border-color:rgba(251,191,36,0.4);color:#FCD34D;';
-    sigBtn.textContent = '📡 Signaux';
-    sigBtn.onclick = () => { _signalOpen(targetSlot, popup); };
-    popup.appendChild(sigBtn);
-
-    const closeBtn = document.createElement('div');
-    closeBtn.style.cssText = 'text-align:right;margin-top:8px;font-size:11px;color:rgba(200,170,255,0.4);cursor:pointer;';
-    closeBtn.textContent = '✕ fermer';
-    closeBtn.onclick = () => { popup.remove(); _diplomacyPopup = null; };
-    popup.appendChild(closeBtn);
-
-    document.body.appendChild(popup);
-    _diplomacyPopup = popup;
-    setTimeout(() => { document.addEventListener('click', function _cls(ev) { if (!popup.contains(ev.target)) { popup.remove(); _diplomacyPopup = null; document.removeEventListener('click',_cls); } }); }, 100);
-}
-
-const SIGNAL_EMOJIS = [
-    { e:'🌫️', label:'Miasme ?' },
-    { e:'🫧',  label:'Particule ?' },
-    { e:'🕳️', label:'Molécule ?' },
-    { e:'🍄',  label:'ADN ?' },
-    { e:'🧬',  label:'Alliance ?' },
-    { e:'⚔️',  label:'Guerre !' },
-    { e:'🏳️', label:'Paix' },
-    { e:'👑',  label:'Respect' },
-    { e:'😈',  label:'Méfie-toi' },
-    { e:'🤝',  label:'Accord' },
-    { e:'💀',  label:'Tu vas mourir' },
-    { e:'😂',  label:'Haha' },
-];
-const _floatingBubbles = [];
-
-function _signalOpen(targetSlot, parentPopup) {
-    const existing = document.getElementById('_signalPanel');
-    if (existing) existing.remove();
-    const panel = document.createElement('div');
-    panel.id = '_signalPanel';
-    panel.style.cssText = 'position:fixed;z-index:10000;background:rgba(8,6,30,0.97);border:1px solid rgba(251,191,36,0.4);border-radius:10px;padding:12px;display:flex;flex-wrap:wrap;gap:8px;max-width:240px;';
-    const pr = parentPopup.getBoundingClientRect();
-    panel.style.left = (pr.right + 8) + 'px';
-    panel.style.top = pr.top + 'px';
-    const _needsTarget = ['⚔️','🏳️','🌫️','🫧','🕳️','🍄','🧬','🤝'];
-    for (const sig of SIGNAL_EMOJIS) {
-        const btn = document.createElement('button');
-        btn.title = sig.label;
-        btn.style.cssText = 'background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;padding:6px;font-size:20px;cursor:pointer;position:relative;';
-        btn.textContent = sig.e;
-        btn.onclick = () => {
-            if (_needsTarget.includes(sig.e)) {
-                // Afficher liste des joueurs
-                const existing = document.getElementById('_signalPlayerList');
-                if (existing) existing.remove();
-                const sub = document.createElement('div');
-                sub.id = '_signalPlayerList';
-                sub.style.cssText = 'position:fixed;z-index:10001;background:rgba(8,6,30,0.97);border:1px solid rgba(251,191,36,0.5);border-radius:8px;padding:8px;min-width:160px;';
-                const pb = btn.getBoundingClientRect();
-                sub.style.left = (pb.right+6)+'px'; sub.style.top = pb.top+'px';
-                const title = document.createElement('div');
-                title.style.cssText = 'font-family:"Orbitron",sans-serif;font-size:9px;color:rgba(251,191,36,0.6);margin-bottom:6px;letter-spacing:1px;';
-                title.textContent = sig.e + ' ' + sig.label + ' — À qui ?';
-                sub.appendChild(title);
-                const localSl = localSlot();
-                gameState.players.forEach((p, idx) => {
-                    if (!p || idx === localSl) return;
-                    const pb2 = document.createElement('button');
-                    pb2.style.cssText = 'width:100%;text-align:left;background:rgba(251,191,36,0.08);border:none;border-radius:4px;padding:5px 8px;color:#E2D9F3;font-family:"Exo 2",sans-serif;font-size:12px;cursor:pointer;margin-bottom:3px;display:flex;align-items:center;gap:6px;';
-                    pb2.innerHTML = `<span style="width:10px;height:10px;border-radius:50%;background:${esc(p.color||'#FFF')};display:inline-block;"></span>${esc(p.name||('J'+idx))}`;
-                    pb2.onmouseenter = () => pb2.style.background='rgba(251,191,36,0.2)';
-                    pb2.onmouseleave = () => pb2.style.background='rgba(251,191,36,0.08)';
-                    pb2.onclick = () => { _sendSignal(idx, sig.e, sig.label); sub.remove(); panel.remove(); };
-                    sub.appendChild(pb2);
-                });
-                document.body.appendChild(sub);
-                setTimeout(()=>{ document.addEventListener('click', function _cls2(ev){ if(!sub.contains(ev.target)&&!btn.contains(ev.target)){ sub.remove(); document.removeEventListener('click',_cls2); } }); }, 100);
-            } else {
-                _sendSignal(targetSlot, sig.e, sig.label);
-                panel.remove();
-            }
-        };
-        panel.appendChild(btn);
-    }
-    document.body.appendChild(panel);
-    setTimeout(() => { document.addEventListener('click', function _cls(ev) { if (!panel.contains(ev.target) && !parentPopup.contains(ev.target)) { panel.remove(); document.removeEventListener('click',_cls); } }); }, 100);
-}
-
-function _sendSignal(targetSlot, emoji, label) {
-    const localSl = localSlot();
-    const fromName = gameState.players[localSl]?.name || '?';
-    // Trouver une planète du joueur cible pour y afficher la bulle
-    const allBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
-    const targetBody = allBodies.find(b=>b.owner===targetSlot);
-    if (targetBody) _addFloatingBubble(targetBody, emoji, fromName);
-    // En multi : broadcast
-    if (gameState.isMulti && _supa) {
-        const ch = _supa.channel('signal-' + targetSlot);
-        ch.subscribe((s) => {
-            if (s === 'SUBSCRIBED') {
-                ch.send({ type:'broadcast', event:'signal', payload:{ fromSlot:localSl, fromName, emoji, label } });
-        playSignalSound();
-                setTimeout(()=>ch.unsubscribe(), 1000);
-            }
-        });
-    }
-    addEvent('neutral', emoji, `Signal "${label}" envoyé à ${gameState.players[targetSlot]?.name||'?'}`, targetBody, gameState.players[localSl]?.color);
-}
-
-function _addFloatingBubble(body, emoji, fromName) {
-    _floatingBubbles.push({ body, emoji, fromName, timer:0, duration:3.5 });
-}
-
-function drawFloatingBubbles(ctx) {
-    const t = gameState.time || 0;
-    for (let i = _floatingBubbles.length-1; i >= 0; i--) {
-        const b = _floatingBubbles[i];
-        b.timer += 0.016;
-        if (b.timer > b.duration) { _floatingBubbles.splice(i,1); continue; }
-        const alpha = b.timer < 0.3 ? b.timer/0.3 : b.timer > b.duration-0.5 ? (b.duration-b.timer)/0.5 : 1;
-        const yOff = b.body.y - b.body.radius - 30 - b.timer*8;
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = 'rgba(8,6,30,0.9)';
-        ctx.beginPath();
-        ctx.roundRect(b.body.x-28, yOff-22, 56, 30, 8);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(251,191,36,0.6)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.font = '18px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#FFF';
-        ctx.fillText(b.emoji, b.body.x, yOff-2);
-        ctx.restore();
-    }
-}
-
-function _setupSignalListener() {
-    const sl = localSlot();
-    if (sl < 0) return;
-    const ch = _supa.channel('signal-' + sl);
-    ch.on('broadcast', { event:'signal' }, ({ payload }) => {
-        const allBodies = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
-        const myBody = allBodies.find(b=>b.owner===sl);
-        if (myBody) _addFloatingBubble(myBody, payload.emoji, payload.fromName);
-        addEvent('neutral', payload.emoji, `Signal de ${payload.fromName} : "${payload.label}"`, myBody, gameState.players[payload.fromSlot]?.color);
-    }).subscribe();
-}
-
-let _allianceChannel = null;
-function _sendAllianceRequest(targetSlot, body) {
-    const localSl = localSlot();
-    const targetPlayer = gameState.players[targetSlot];
-    const localPlayer = gameState.players[localSl];
-    // Solo : acceptation auto IA
-    if (!targetPlayer?.isHuman) {
-        _addAlliance(localSl, targetSlot);
-        addEvent('neutral','🧬',`Alliance avec ${targetPlayer?.name||'IA'} conclue !`,null,localPlayer?.color);
-        playAllianceSound();
-        return;
-    }
-    // Multi : notification via Supabase
-    if (_allianceChannel) _allianceChannel.unsubscribe();
-    _allianceChannel = _supa.channel('alliance-req-' + localSl + '-' + targetSlot);
-    _allianceChannel.subscribe();
-    _allianceChannel.send({ type:'broadcast', event:'alliance_request', payload:{ fromSlot: localSl, fromName: localPlayer?.name || 'Inconnu', toSlot: targetSlot } });
-    addEvent('neutral','🧬',`Demande d'alliance envoyée à ${targetPlayer?.name}...`,null,localPlayer?.color);
-}
-
-function _setupAllianceListener() {
-    const sl = localSlot();
-    if (sl < 0) return;
-    const ch = _supa.channel('alliance-req-0-' + sl);
-    ch.on('broadcast', { event:'alliance_request' }, ({ payload }) => {
-        if (payload.toSlot !== sl) return;
-        const fromName = payload.fromName || ('J'+payload.fromSlot);
-        if (confirm(`${fromName} vous propose un Mélange d'ADN (alliance). Accepter ?`)) {
-            _addAlliance(sl, payload.fromSlot);
-            addEvent('neutral','🧬',`Alliance avec ${fromName} conclue !`,null,gameState.players[sl]?.color);
-        }
-    }).subscribe();
-}
-
-function setupInviteListener() {
-    if (!currentUser || inviteChannel) return;
-    // Vérifier les invitations en attente dans Supabase au démarrage
-    _checkPendingInvites();
-    inviteChannel = _supa.channel('invite-' + currentUser.id)
-        .on('broadcast', { event: 'invite' }, ({ payload }) => {
-            if (gameState.phase !== 'title' && gameState.phase !== 'createMulti') return;
-            _showInvitePopup(payload);
-        })
-        .subscribe();
-}
-
-async function _checkPendingInvites() {
-    if (!currentUser) return;
-    const { data } = await _supa.from('profiles').select('pending_invite').eq('id', currentUser.id).single();
-    if (data?.pending_invite) {
-        const payload = data.pending_invite;
-        // Vérifier que la room existe encore
-        const { data: room } = await _supa.from('game_rooms').select('id,status').eq('id', payload.roomId).single();
-        if (room && room.status === 'waiting') {
-            _showInvitePopup(payload);
-        }
-        // Effacer l'invitation
-        await _supa.from('profiles').update({ pending_invite: null }).eq('id', currentUser.id);
-    }
-}
-
-function _showInvitePopup(payload) {
-    pendingInvite = payload;
-    const popup = document.getElementById('invitePopup');
-    document.getElementById('invitePopupText').textContent = payload.hostPseudo + ' vous invite à jouer !';
-    const s = payload.settings || {};
-    const diffL = s.difficulty === 'easy' ? 'Facile' : s.difficulty === 'brutal' ? 'Brutal' : 'Normal';
-    document.getElementById('invitePopupParams').textContent = (s.sunCount||4) + ' soleils · ' + diffL + ' · ' + (s.cleanerCount||0) + ' vaisseaux';
-    popup.classList.remove('hidden');
-}
-
-document.getElementById('btnInviteAccept').addEventListener('click', async () => {
-    document.getElementById('invitePopup').classList.add('hidden');
-    if (pendingInvite && pendingInvite.roomId) {
-        await joinRoom(pendingInvite.roomId);
-    }
-    pendingInvite = null;
-});
-
-document.getElementById('btnInviteDecline').addEventListener('click', () => {
-    document.getElementById('invitePopup').classList.add('hidden');
-    pendingInvite = null;
-});
-
-document.getElementById('btnInvite').addEventListener('click', async () => {
-    const input = document.getElementById('invitePseudoInput');
-    const msg = document.getElementById('inviteMsg');
-    const pseudo = input.value.trim();
-    if (!pseudo) { msg.textContent = 'Entrez un pseudo.'; return; }
-    if (!currentRoom) { msg.textContent = 'Aucune room active.'; return; }
-    // Trouver le joueur par pseudo
-    const { data: target } = await _supa.from('profiles').select('id, pseudo').ilike('pseudo', pseudo).single();
-    if (!target) { msg.textContent = 'Joueur "' + pseudo + '" introuvable.'; msg.style.color = '#F87171'; return; }
-    // Envoyer l'invitation via Broadcast sur le channel du joueur cible
-    const ch = _supa.channel('invite-' + target.id);
-    ch.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-            ch.send({ type: 'broadcast', event: 'invite', payload: {
-                roomId: currentRoom.id,
-                hostPseudo: currentProfile.pseudo,
-                settings: currentRoom.settings
-            }});
-            setTimeout(() => _supa.removeChannel(ch), 2000);
-        }
-    });
-    msg.textContent = 'Invitation envoyée à ' + pseudo + ' ✓';
-    msg.style.color = '#4ADE80';
-    input.value = '';
-    setTimeout(() => { msg.textContent = ''; }, 4000);
-});
-
-async function loadRoomList() {
-    setPhase('title');
-}
-
-document.getElementById('btnMulti').addEventListener('click', () => {
-    if (!_checkSporeReady()) return;
-    _applyActiveSpore();
-    playClickSound();
-    if (_leftRoom) {
-        if (confirm('Vous avez une partie en cours. Rejoindre ?')) {
-            rejoinGame();
-            return;
-        }
-        alert('Vous devez attendre la fin de votre partie ou y retourner.');
-        return;
-    }
-    fadeTransition(() => setPhase('createMulti'));
-});
-document.getElementById('btnLobbyBack').addEventListener('click', () => {
-    playClickSound();
-    fadeTransition(() => setPhase('title'));
-});
-document.getElementById('btnQuickMatch').addEventListener('click', () => {
-    playClickSound();
-    if (!_checkSporeReady()) return;
-    _applyActiveSpore();
-    if (_leftRoom) {
-        if (confirm('Vous avez une partie en cours. Rejoindre ?')) {
-            rejoinGame();
-            return;
-        }
-        alert('Vous devez attendre la fin de votre partie ou y retourner.');
-        return;
-    }
-    quickMatch(false);
-});
-document.getElementById('btnQuickMatchBots').addEventListener('click', () => {
-    playClickSound();
-    if (!_checkSporeReady()) return;
-    _applyActiveSpore();
-    if (_leftRoom) {
-        if (confirm('Vous avez une partie en cours. Rejoindre ?')) {
-            rejoinGame();
-            return;
-        }
-        alert('Vous devez attendre la fin de votre partie ou y retourner.');
-        return;
-    }
-    quickMatch(true);
-});
-document.getElementById('btnLobbyInvite').addEventListener('click', () => {
-    const input = document.getElementById('multiCfgInviteInput');
-    const pseudo = input.value.trim();
-    if (!pseudo) return;
-    const list = document.getElementById('multiCfgInviteList');
-    list.textContent += (list.textContent ? ', ' : '') + pseudo;
-    input.value = '';
-});
-
-document.getElementById('btnLobbyInviteGuild').addEventListener('click', () => {
-    const input = document.getElementById('multiCfgGuildInput');
-    const tag = input.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (!tag) return;
-    const list = document.getElementById('multiCfgGuildList');
-    if (!list.textContent.includes('[' + tag + ']')) {
-        list.textContent += (list.textContent ? ', ' : '') + '[' + tag + ']';
-    }
-    input.value = '';
-    _updateLobbyGrisage();
-});
-
-document.getElementById('multiCfgGuildInput').addEventListener('input', (e) => {
-    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-});
-
-document.getElementById('multiCfgFillIA').addEventListener('change', _updateLobbyGrisage);
-
-function _updateLobbyGrisage() {
-    const hasGuild = document.getElementById('multiCfgGuildList').textContent.trim().length > 0;
-    const fillNo = document.getElementById('multiCfgFillIA').value === 'no';
-    const block = document.getElementById('cfgAIBlock');
-    const grised = hasGuild || fillNo;
-    block.style.opacity = grised ? '0.35' : '1';
-    block.style.pointerEvents = grised ? 'none' : 'auto';
-}
-
-document.getElementById('multiCfgAI').addEventListener('input', (e) => { document.getElementById('multiCfgAIVal').textContent = e.target.value; });
-(function() {
-    const sel = document.getElementById('multiCfgMap');
-    MAP_LIBRARY.forEach((m, i) => {
-        const opt = document.createElement('option');
-        const _np = m.suns.reduce((a,s)=>a+s.planets.length,0);
-        const _mx = Math.min(50, Math.max(2, _np <= 10 ? _np : _np + 5));
-        opt.value = i; opt.textContent = m.name + ' · ' + _mx + ' joueurs max';
-        sel.appendChild(opt);
-    });
-    function updatePlayerMax() {
-        const mapVal = parseInt(sel.value) || 0;
-        const m = MAP_LIBRARY[mapVal];
-        const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
-        let maxP = Math.min(50, Math.max(2, np <= 10 ? np : np + 5));
-        // Mode guilde → forcer pair
-        const hasGuild = document.getElementById('multiCfgGuildList').textContent.trim().length > 0;
-        if (hasGuild && maxP % 2 !== 0) maxP = Math.max(2, maxP - 1);
-        const aiSlider = document.getElementById('multiCfgAI');
-        aiSlider.max = maxP;
-        if (parseInt(aiSlider.value) > maxP) { aiSlider.value = maxP; document.getElementById('multiCfgAIVal').textContent = maxP; }
-    }
-    sel.addEventListener('change', updatePlayerMax);
-    // Recalculer quand une guilde est ajoutée
-    document.getElementById('multiCfgGuildList').addEventListener('DOMSubtreeModified', updatePlayerMax);
-    updatePlayerMax();
-})();
-document.getElementById('btnCreateRoom').addEventListener('click', async () => {
-    playClickSound();
-    const hasGuild = document.getElementById('multiCfgGuildList').textContent.trim().length > 0;
-    const aiCount = hasGuild ? 0 : parseInt(document.getElementById('multiCfgAI').value);
-    const fillIA = hasGuild ? false : document.getElementById('multiCfgFillIA').value === 'yes';
-    const mapIndex = parseInt(document.getElementById('multiCfgMap').value) || 0;
-    const inviteList = document.getElementById('multiCfgInviteList').textContent.split(',').map(s=>s.trim()).filter(Boolean);
-    const guildTagList = document.getElementById('multiCfgGuildList').textContent.replace(/\[|\]/g,'').split(',').map(s=>s.trim()).filter(Boolean);
-    const cleanersOn = document.getElementById('multiCfgCleaners').value === 'on';
-    const settings = {
-        mapIndex,
-        mapName: MAP_LIBRARY[mapIndex].name,
-        sunCount: MAP_LIBRARY[mapIndex].suns.length,
-        difficulty: document.getElementById('multiCfgDiff').value,
-        useIA: aiCount > 0 || fillIA,
-        aiCount,
-        fillIA,
-        cleanerCount: cleanersOn ? Math.max(2, (1 + inviteList.length + aiCount) * 2) : 0,
-        useAsteroids: document.getElementById('multiCfgAsteroids').value === 'on',
-        teamCount: parseInt(document.getElementById('multiCfgTeams').value) || 0,
-        playerCount: 1 + inviteList.length + aiCount,
-        guildMode: hasGuild,
-        invitedGuilds: guildTagList
-    };
-    await createRoom('custom', settings, 1 + inviteList.length);
-    // Invitations joueurs individuels
-    for (const pseudo of inviteList) {
-        const { data: target } = await _supa.from('profiles').select('id,pseudo').ilike('pseudo', pseudo).single();
-        if (!target || !currentRoom) { console.warn('[invite] joueur introuvable ou room perdue:', pseudo); continue; }
-        const roomId = currentRoom.id;
-        const invitePayload = { roomId, hostPseudo: currentProfile.pseudo, settings };
-        // 1. Sauvegarder en base (fallback si le joueur n'est pas connecté)
-        _supa.from('profiles').update({ pending_invite: invitePayload }).eq('id', target.id).then(() => {});
-        // 2. Broadcast temps réel
-        const ch = _supa.channel('invite-' + target.id);
-        ch.subscribe(s => {
-            if (s === 'SUBSCRIBED') {
-                ch.send({ type: 'broadcast', event: 'invite', payload: invitePayload });
-                setTimeout(() => _supa.removeChannel(ch), 2000);
-            }
-        });
-    }
-    // Invitations guildes
-    for (const tag of guildTagList) {
-        setTimeout(async () => {
-            const { data: guild } = await _supa.from('guilds').select('id').eq('tag', tag).maybeSingle();
-            if (!guild || !currentRoom) return;
-            const { data: members } = await _supa.from('guild_members').select('player_id').eq('guild_id', guild.id);
-            if (!members) return;
-            for (const m of members) {
-                const ch = _supa.channel('invite-'+m.player_id);
-                ch.subscribe(s => { if (s==='SUBSCRIBED') { ch.send({ type:'broadcast', event:'invite', payload:{ roomId:currentRoom.id, hostPseudo:currentProfile.pseudo, settings, fromGuild: tag } }); setTimeout(()=>ch.unsubscribe(),1000); } });
-            }
-        }, 1500);
-    }
-});
 // ── DEBUG bouton (ga.dmy@ikmail.com uniquement) ──
 function _showDebugIfAdmin() {
     if (currentUser?.email === 'ga.dmy@ikmail.com') {
@@ -14360,42 +12697,7 @@ function _showDebugIfAdmin() {
         if (btn) btn.style.display = 'inline-block';
     }
 }
-document.getElementById('btnDebugFill').addEventListener('click', async () => {
-    if (!currentRoom || !currentUser) return;
-    const max = currentRoom.max_players;
-    const { data: existing } = await _supa.from('game_room_players').select('slot_number').eq('room_id', currentRoom.id);
-    const taken = (existing||[]).map(p=>p.slot_number);
-    const inserts = [];
-    for (let i = 0; i < max; i++) {
-        if (taken.includes(i)) continue;
-        inserts.push({ room_id: currentRoom.id, player_id: currentUser.id + '-debug-' + i,
-            pseudo: randomAiName(), color: gameState.teamColors[i % gameState.teamColors.length],
-            slot_number: i, ready: true, stats: { growth:3, velocity:3, density:4 } });
-    }
-    if (inserts.length > 0) {
-        // Insérer par batch de 10
-        for (let b = 0; b < inserts.length; b += 10) {
-            await _supa.from('game_room_players').insert(inserts.slice(b, b+10));
-        }
-    }
-    document.getElementById('btnDebugFill').textContent = '✓ ' + inserts.length + ' slots remplis';
-});
-document.getElementById('btnRoomLeave').addEventListener('click', () => {
-    playClickSound();
-    leaveRoom();
-});
-document.getElementById('btnRoomReady').addEventListener('click', () => {
-    playClickSound();
-    toggleReady();
-});
-document.getElementById('btnRoomStart').addEventListener('click', () => {
-    playClickSound();
-    startMultiGame();
-});
-document.getElementById('btnRoomLaunchAI').addEventListener('click', () => {
-    playClickSound();
-    launchWithAI();
-});
+
 document.getElementById('btnLogout').addEventListener('click', async () => {
     playClickSound();
     try { await _supa.auth.signOut(); } catch(e) { console.warn('Erreur logout:', e); }
@@ -14888,12 +13190,18 @@ document.querySelectorAll('#eventLog .log-filter').forEach(btn => {
     });
 });
 
-// Nettoyage automatique quand la page se ferme/recharge
-window.addEventListener('beforeunload', () => {
-    if (currentRoom && currentUser) {
-        const url = `https://hcjajtpbzusqgxkyzbgc.supabase.co/rest/v1/game_room_players?room_id=eq.${currentRoom.id}&player_id=eq.${currentUser.id}`;
-        navigator.sendBeacon(url, null);
-    }
+document.getElementById('btnMulti').addEventListener('click', () => {
+    ensureAudio(); playClickSound();
+    if (!_checkSporeReady()) return;
+    _applyActiveSpore();
+    startMultiMatchmaking();
+});
+
+document.getElementById('btnLocal').addEventListener('click', () => {
+    ensureAudio(); playClickSound();
+    if (!_checkSporeReady()) return;
+    _applyActiveSpore();
+    startLocalHost();
 });
 
 initAuth();
