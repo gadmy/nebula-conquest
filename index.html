@@ -1428,7 +1428,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.7)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v5.1.8)</div>
     <div id="quickMatchPanel" style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:14px 22px; margin-bottom:14px; min-width:340px; text-align:center;">
         <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(34,197,94,0.5); letter-spacing:2px; margin-bottom:8px;">PROCHAINE PARTIE EN LIGNE</div>
         <canvas id="qmPreview" width="320" height="120" style="display:block; margin:0 auto 8px; border-radius:6px; border:1px solid rgba(34,197,94,0.2); background:rgba(5,8,25,0.9);"></canvas>
@@ -6388,10 +6388,11 @@ function startGame() {
         setTimeout(() => {
             updateLoadingBar(35, 'Systèmes solaires...');
             let _mapData;
-            if (gameState.isMulti && gameState._serverUniverse) {
+           if (gameState.isMulti && gameState._serverUniverse) {
                 // Multi : utiliser la carte envoyée par le serveur (tous les clients)
                 _mapData = gameState._serverUniverse;
                 loadMapFromJSON(_mapData);
+                _syncServerIds(_mapData);
                 gameState._serverUniverse = null;
             } else if (gameState.isMulti && !gameState._serverUniverse) {
                 // Multi mais univers pas encore reçu → attendre max 10s
@@ -6402,6 +6403,7 @@ function startGame() {
                     if (gameState._serverUniverse) {
                         clearInterval(waitUniverse);
                         loadMapFromJSON(gameState._serverUniverse);
+                        _syncServerIds(gameState._serverUniverse);
                         gameState._serverUniverse = null;
                         console.log('[multi] univers serveur reçu et chargé');
                     } else if (waited >= 10000) {
@@ -13175,8 +13177,7 @@ if (data?.universe) gameState._serverUniverse = data.universe;
         if (data?.config?.mapIndex != null && currentRoom) currentRoom._mapIndex = data.config.mapIndex;
         if (data?.players) gameState._serverPlayers = data.players;
         if (data?.config?.teamCount >= 2) gameState.config.teamCount = data.config.teamCount;
-        if (data?.universe) _syncServerIds(data.universe);
-        // Lancer la partie directement
+ // Lancer la partie directement
         gameState._launching = false;
         launchWithAI();
     });
