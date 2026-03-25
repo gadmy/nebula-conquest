@@ -6368,10 +6368,14 @@ function startGame() {
                 }, 200);
                 return; // sortir de startGame, il sera relancé via le callback
             } else {
-                // Solo : carte locale
+                // Solo / hôte multi : carte locale
                 const mapIdx = gameState.config.mapIndex != null ? gameState.config.mapIndex : Math.floor(Math.random() * MAP_LIBRARY.length);
                 _mapData = MAP_LIBRARY[mapIdx];
                 loadMapFromJSON(_mapData);
+                // Hôte multi : envoyer l'univers aux autres joueurs
+                if (gameState.isMulti && gameState._pendingRoomId) {
+                    _launchGame(_mapData);
+                }
             }
             // Synchroniser la config avec la carte chargée
             gameState.config.sunCount = _mapData.suns.length;
@@ -10468,6 +10472,22 @@ function checkVictoryAndElimination() {
 
     const totalBodies = gameState.planets.length + gameState.moons.length;
 
+    // Timer 1v1 multi : 10 minutes → victoire au plus grand nombre de planètes
+    if (gameState.isMulti && gameState.time >= 600) {
+        const alivePlayers = gameState.players.filter(p => p.alive);
+        if (alivePlayers.length >= 2) {
+            const best = alivePlayers.reduce((a, b) => b.bodies.length > a.bodies.length ? b : a);
+            const localPlayer = gameState.players[localSlot()];
+            const localWins = best === localPlayer;
+            showEndScreen(localWins,
+                { ...gameState.gameStats, timeElapsed: gameState.time },
+                localPlayer,
+                totalBodies
+            );
+            return;
+        }
+    }
+
     for (const player of gameState.players) {
         if (!player.alive) continue;
 
@@ -12273,6 +12293,8 @@ function connectSocket() {
     _socket.on('connect', () => console.log('[socket] connecté'));
     _socket.on('disconnect', () => console.log('[socket] déconnecté'));
     _socket.on('error', e => console.warn('[socket] erreur:', e.msg));
+    _socket.on('player_action', (data) => { handleGameEvent(data); });
+    _socket.on('game_snapshot', (snap) => { applySnapshot(snap); });
 }
 
 function disconnectSocket() {
@@ -13265,13 +13287,23 @@ function _renderBracket(players) {
 
 function _tournamentRegister() {
     if (!currentProfile) return;
-    // Ajouter le joueur localement en attendant le serveur
-    if (!_tournamentData) _tournamentData = { players: [], status: 'open' };
-    const already = _tournamentData.players.find(p => p.pseudo === currentProfile.pseudo);
-    if (!already) {
-        _tournamentData.players.push({ pseudo: currentProfile.pseudo, color: currentProfile.color });
-    }
-    _refreshTournamentUI();
+    // Connexion socket + émission vers le serveur
+    connectSocket();
+    _socket.emit('tournament_register');
+    // Recevoir les mises à jour du bracket en temps réel
+    _socket.off('tournament_update');
+    _socket.on('tournament_update', (state) => {
+        _tournamentData = state;
+        _refreshTournamentUI();
+    });
+    // Tournoi terminé → afficher le champion
+    _socket.off('tournament_finished');
+    _socket.on('tournament_finished', ({ champion }) => {
+        const statusEl = document.getElementById('tournamentStatus');
+        if (statusEl) statusEl.textContent = '🏆 Champion : ' + champion + ' !';
+    });
+    // Demander l'état actuel immédiatement
+    _socket.emit('tournament_state');
 }
 
 function _refreshTournamentUI() {
