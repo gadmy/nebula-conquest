@@ -1392,7 +1392,7 @@ input[type="radio"]:checked + .build-icon-btn {
 
 <!-- ═══ ÉCRAN TITRE ═══ -->
 <!-- ═══ ÉCRAN AUTH ═══ -->
-<div id="authScreen" class="screen">
+<div id="authScreen" class="screen hidden">
     <h1 class="title-glow" style="font-family:'Orbitron',monospace; font-size:2.5rem; color:#E0E7FF; text-shadow:0 0 30px rgba(139,92,246,0.5); margin-bottom:30px;">NEBULA CONQUEST</h1>
     <div id="authBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:30px; max-width:360px; margin:0 auto; text-align:center;">
         <div id="authStep1">
@@ -1419,9 +1419,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
-    <button class="btn" id="btnSporeLab" style="margin-top:8px; background:rgba(160,120,255,0.15); border:1px solid rgba(160,120,255,0.4); color:#C8A0FF;">🧬 LABO DE SPORES</button>
-    <button class="btn" id="btnGuilds" style="margin-top:8px; background:rgba(251,146,60,0.15); border:1px solid rgba(251,146,60,0.4); color:#FB923C;">⚔️ GUILDES</button>
-    <button class="btn" id="btnLeaderboard" style="margin-top:8px; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4);">CLASSEMENT</button>
+    <button class="btn" id="btnTournament" style="margin-top:8px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); color:#FFD700;">🏆 TOURNOI (32 joueurs)</button>
     <button class="btn" id="btnHelp" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">AIDE</button>
     <div id="titlePseudo" style="margin-top:20px; font-family:'Orbitron',sans-serif; font-size:11px; color:rgba(200,170,255,0.5); letter-spacing:2px;"></div>
     <button id="btnLogout" style="margin-top:8px; background:none; border:none; color:rgba(200,170,255,0.3); font-family:'Exo 2',sans-serif; font-size:11px; cursor:pointer; letter-spacing:1px;">DÉCONNEXION</button>
@@ -1453,16 +1451,20 @@ input[type="radio"]:checked + .build-icon-btn {
     </div>
 </div>
 
-<!-- ═══ ÉCRAN LABO DE SPORES ═══ -->
-<div id="sporeLabScreen" class="screen hidden">
-    <h2 style="font-family:'Orbitron',monospace; color:#C8A0FF; text-shadow:0 0 20px rgba(160,120,255,0.4); margin-bottom:6px; letter-spacing:3px;">🧬 LABO DE SPORES</h2>
-    <p style="font-family:'Exo 2',sans-serif; font-size:11px; color:rgba(180,190,220,0.5); margin-bottom:18px; letter-spacing:1px;">Créez jusqu'à 5 types de spores personnalisés. Total : 10 points à répartir.</p>
-    <div id="sporeLabSlots" style="display:flex; flex-direction:column; gap:10px; max-width:480px; margin:0 auto; max-height:60vh; overflow-y:auto; padding-right:4px;"></div>
-    <div style="max-width:480px; margin:14px auto 0; display:flex; gap:10px;">
-        <button class="btn" id="btnSporeLabSave" style="flex:1; background:rgba(160,120,255,0.25); border-color:rgba(160,120,255,0.6); color:#C8A0FF;">💾 SAUVEGARDER</button>
-        <button class="btn" id="btnSporeLabBack" style="flex:1;">RETOUR</button>
+<!-- ═══ ÉCRAN TOURNOI ═══ -->
+<div id="tournamentScreen" class="screen hidden" style="background:rgba(5,8,25,0.98); overflow-y:auto; justify-content:flex-start; padding:20px 16px;">
+    <h2 style="font-family:'Orbitron',monospace; color:#FFD700; text-shadow:0 0 20px rgba(255,215,0,0.4); margin-bottom:6px; letter-spacing:3px; flex-shrink:0;">🏆 TOURNOI</h2>
+    <div id="tournamentStatus" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#94A3B8; margin-bottom:10px; letter-spacing:1px; flex-shrink:0;">Chargement...</div>
+    <div id="tournamentJoinPanel" style="background:rgba(15,23,42,0.9); border:1px solid rgba(255,215,0,0.3); border-radius:12px; padding:14px 20px; max-width:500px; width:100%; margin:0 auto 12px; text-align:center; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div id="tournamentPlayerCount" style="font-family:'Orbitron',sans-serif; font-size:22px; color:#FFD700; text-shadow:0 0 12px rgba(255,215,0,0.4); white-space:nowrap;">0 / 32</div>
+        <div id="tournamentJoinMsg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:#4ADE80; flex:1; text-align:center;"></div>
+        <button class="btn" id="btnTournamentJoin" style="font-size:12px; padding:8px 16px; background:rgba(255,215,0,0.2); border-color:rgba(255,215,0,0.6); color:#FFD700; letter-spacing:1px; white-space:nowrap; margin:0;">S'INSCRIRE</button>
     </div>
-    <p id="sporeLabMsg" style="font-family:'Exo 2',sans-serif; font-size:11px; text-align:center; margin-top:10px; color:#22C55E; min-height:16px;"></p>
+    <div style="background:rgba(15,23,42,0.9); border:1px solid rgba(255,215,0,0.2); border-radius:12px; padding:12px; max-width:860px; width:100%; margin:0 auto;">
+        <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(255,215,0,0.5); letter-spacing:2px; margin-bottom:10px; text-align:center;">TOUR 1 — 16 MATCHS</div>
+        <div id="bracketGrid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;"></div>
+    </div>
+    <button class="btn" id="btnTournamentBack" style="margin-top:14px; font-size:12px; padding:8px 24px; flex-shrink:0;">RETOUR</button>
 </div>
 
 <!-- ═══ ÉCRAN LEADERBOARD ═══ -->
@@ -1523,7 +1525,7 @@ input[type="radio"]:checked + .build-icon-btn {
     <button class="btn" id="btnGuildBack" style="margin-top:16px;">RETOUR</button>
 </div>
 
-<div id="leaderboardScreen" class="screen hidden">
+<div id="leaderboardScreen" class="screen hidden" style="display:none!important;">
     <h2 style="font-family:'Orbitron',monospace; color:#E0E7FF; text-shadow:0 0 20px rgba(139,92,246,0.4); margin-bottom:20px;">CLASSEMENT</h2>
     <div style="display:flex; gap:14px; max-width:900px; margin:0 auto; max-height:65vh;">
 
@@ -6202,13 +6204,11 @@ function setPhase(phase) {
     // Cacher tous les écrans
     document.getElementById('authScreen').classList.add('hidden');
     document.getElementById('titleScreen').classList.add('hidden');
-    document.getElementById('leaderboardScreen').classList.add('hidden');
     document.getElementById('helpScreen').classList.add('hidden');
-    document.getElementById('guildScreen').classList.add('hidden');
-    document.getElementById('sporeLabScreen').classList.add('hidden');
     document.getElementById('eventLog').style.display = 'block';
     document.getElementById('configScreen').classList.add('hidden');
     if (document.getElementById('multiScreen')) document.getElementById('multiScreen').classList.add('hidden');
+    if (document.getElementById('tournamentScreen')) document.getElementById('tournamentScreen').classList.add('hidden');
     if (document.getElementById('localScreen')) document.getElementById('localScreen').classList.add('hidden');
     document.getElementById('spawnBanner').classList.add('hidden');
     document.getElementById('gameHud').style.display = 'none';
@@ -6240,6 +6240,11 @@ case 'title':
             currentRoom = null; isHost = false;
             stopAmbiance();
             animateTitleScreen();
+            break;
+        case 'tournament':
+            document.getElementById('tournamentScreen').classList.remove('hidden');
+            playTitleMusic();
+            _refreshTournamentUI();
             break;
         case 'sporeLab':
             document.getElementById('sporeLabScreen').classList.remove('hidden');
@@ -12044,7 +12049,7 @@ const SPORE_LAB_DEFAULT = () => Array.from({length:5}, (_,i) => ({
 let _sporeTypes = SPORE_LAB_DEFAULT();
 
 function _sporeLabRender() {
-    const container = document.getElementById('sporeLabSlots');
+    return; const container = document.getElementById('sporeLabSlots');
     if (!container) return;
     container.innerHTML = '';
     _sporeTypes.forEach((sp, idx) => {
@@ -12097,15 +12102,6 @@ function _sporeLabRender() {
     });
 }
 
-document.getElementById('sporeLabSlots').addEventListener('mouseover', e => {
-    const wrap = e.target.closest('.sl-tip-wrap');
-    if (wrap) wrap.querySelector('.sl-tip').style.display = 'block';
-});
-document.getElementById('sporeLabSlots').addEventListener('mouseout', e => {
-    const wrap = e.target.closest('.sl-tip-wrap');
-    if (wrap) wrap.querySelector('.sl-tip').style.display = 'none';
-});
-
 function _slToggleActive(idx) {
     const sp = _sporeTypes[idx];
     const total = sp.growth + sp.velocity + sp.density;
@@ -12128,7 +12124,7 @@ function _slAdj(idx, key, delta) {
 }
 
 async function _sporeLabSave() {
-    const msg = document.getElementById('sporeLabMsg');
+    return; const msg = document.getElementById('sporeLabMsg');
     // Lire les noms depuis les inputs
     _sporeTypes.forEach((sp,i) => {
         const el = document.getElementById(`slName${i}`);
@@ -12149,7 +12145,8 @@ function _sporeLabLoad(profile) {
     }
 }
 
-function _applyActiveSpore() {
+function _applyActiveSpore() { /* spores uniformes — labo supprimé */ }
+function _applyActiveSpore_UNUSED() {
     const active = _sporeTypes.find(sp => sp.active && (sp.growth + sp.velocity + sp.density) > 0);
     if (!active) return;
     // Sanitisation stricte : entiers, min 0, max par stat 10, total max 10
@@ -12164,7 +12161,8 @@ function _applyActiveSpore() {
     gameState.playerStats = { growth: g, velocity: v, density: d };
 }
 
-function _checkSporeReady() {
+function _checkSporeReady() { return true; }
+function _checkSporeReady_UNUSED() {
     const hasActive = _sporeTypes.some(sp => sp.active && (sp.growth + sp.velocity + sp.density) > 0);
     if (!hasActive) {
         // Afficher le panneau d'alerte
@@ -12195,16 +12193,6 @@ function _checkSporeReady() {
     }
     return true;
 }
-
-document.getElementById('btnSporeLab').addEventListener('click', () => {
-    playClickSound();
-    _sporeLabRender();
-    setPhase('sporeLab');
-});
-document.getElementById('btnSporeLabBack').addEventListener('click', () => {
-    playClickSound(); setPhase('title');
-});
-document.getElementById('btnSporeLabSave').addEventListener('click', _sporeLabSave);
 
 // Onglets codex
 document.querySelectorAll('#codex .codex-tab').forEach(tab => {
@@ -12712,7 +12700,7 @@ document.getElementById('btnLogout').addEventListener('click', async () => {
     showAuthScreen();
 });
 
-document.getElementById('btnLeaderboard').addEventListener('click', () => {
+false && document.getElementById('btnLeaderboard_DEAD').addEventListener('click', () => {
     playClickSound();
     showLeaderboard();
 });
@@ -13049,7 +13037,7 @@ document.getElementById('tutorialSkip').addEventListener('click', () => {
     endTutorial();
 });
 
-document.getElementById('btnLeaderboardBack').addEventListener('click', () => {
+false && document.getElementById('btnLeaderboardBack_DEAD').addEventListener('click', () => {
     playClickSound();
     setPhase('title');
 });
@@ -13190,6 +13178,29 @@ document.querySelectorAll('#eventLog .log-filter').forEach(btn => {
     });
 });
 
+document.getElementById('btnTournament').addEventListener('click', () => {
+    ensureAudio(); playClickSound();
+    fadeTransition(() => setPhase('tournament'));
+});
+
+document.getElementById('btnTournamentBack').addEventListener('click', () => {
+    playClickSound();
+    fadeTransition(() => setPhase('title'));
+});
+
+document.getElementById('btnTournamentJoin').addEventListener('click', () => {
+    const msg = document.getElementById('tournamentJoinMsg');
+    const btn = document.getElementById('btnTournamentJoin');
+    if (!currentProfile) { msg.textContent = 'Connectez-vous d\'abord.'; return; }
+    btn.disabled = true;
+    btn.textContent = '✓ INSCRIT';
+    btn.style.opacity = '0.6';
+    msg.textContent = 'En attente du lancement...';
+    msg.style.color = '#4ADE80';
+    _tournamentRegister();
+    document.getElementById('titleScreen').classList.add('hidden');
+});
+
 document.getElementById('btnMulti').addEventListener('click', () => {
     ensureAudio(); playClickSound();
     if (!_checkSporeReady()) return;
@@ -13203,6 +13214,82 @@ document.getElementById('btnLocal').addEventListener('click', () => {
     _applyActiveSpore();
     startLocalHost();
 });
+
+// ── Tournoi ──────────────────────────────────────────────────
+
+let _tournamentData = null;
+let _tournamentPollTimer = null;
+
+function _renderBracket(players) {
+    const grid = document.getElementById('bracketGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const me = currentProfile?.pseudo || null;
+
+    for (let i = 0; i < 16; i++) {
+        const p1 = players[i * 2]     || null;
+        const p2 = players[i * 2 + 1] || null;
+        const iAm1 = me && p1 && p1.pseudo === me;
+        const iAm2 = me && p2 && p2.pseudo === me;
+        const isMyMatch = iAm1 || iAm2;
+
+        const div = document.createElement('div');
+        div.style.cssText = `
+            background:${isMyMatch ? 'rgba(255,215,0,0.07)' : 'rgba(5,8,25,0.8)'};
+            border:${isMyMatch ? '2px solid rgba(255,215,0,0.7)' : '1px solid rgba(255,215,0,0.15)'};
+            border-radius:8px; padding:10px 12px; position:relative;`;
+
+        // Badge "VOTRE MATCH" si c'est le mien
+        const badge = isMyMatch
+            ? `<div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#FFD700;color:#0F172A;font-family:'Orbitron',sans-serif;font-size:8px;font-weight:bold;padding:2px 8px;border-radius:10px;letter-spacing:1px;">VOTRE MATCH</div>`
+            : '';
+
+        const styleP = (p, isMe) => p
+            ? `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
+                <span style="width:8px;height:8px;border-radius:50%;background:${p.color || '#94A3B8'};display:inline-block;flex-shrink:0;"></span>
+                <span style="font-family:'Exo 2',sans-serif;font-size:${isMe ? '13px' : '12px'};color:${isMe ? '#FFD700' : '#E0E7FF'};font-weight:${isMe ? 'bold' : 'normal'};">${p.pseudo}</span>
+                ${isMe ? '<span style="font-size:9px;color:rgba(255,215,0,0.6);margin-left:2px;">(vous)</span>' : ''}
+               </div>`
+            : `<div style="padding:4px 0;font-family:'Exo 2',sans-serif;font-size:11px;color:#334155;">○ En attente...</div>`;
+
+        div.innerHTML = `
+            ${badge}
+            <div style="font-family:'Orbitron',sans-serif;font-size:8px;color:rgba(255,215,0,0.35);letter-spacing:1px;margin-bottom:6px;">MATCH ${i+1}</div>
+            ${styleP(p1, iAm1)}
+            <div style="font-family:'Exo 2',sans-serif;font-size:9px;color:rgba(200,210,230,0.25);text-align:center;margin:1px 0;">— vs —</div>
+            ${styleP(p2, iAm2)}`;
+
+        grid.appendChild(div);
+    }
+}
+
+function _tournamentRegister() {
+    if (!currentProfile) return;
+    // Ajouter le joueur localement en attendant le serveur
+    if (!_tournamentData) _tournamentData = { players: [], status: 'open' };
+    const already = _tournamentData.players.find(p => p.pseudo === currentProfile.pseudo);
+    if (!already) {
+        _tournamentData.players.push({ pseudo: currentProfile.pseudo, color: currentProfile.color });
+    }
+    _refreshTournamentUI();
+}
+
+function _refreshTournamentUI() {
+    if (!_tournamentData) return;
+    const players = _tournamentData.players || [];
+    const count = players.length;
+    const countEl = document.getElementById('tournamentPlayerCount');
+    const statusEl = document.getElementById('tournamentStatus');
+    if (countEl) countEl.textContent = count + ' / 32';
+    if (statusEl) {
+        if (count < 32) statusEl.textContent = count + ' joueur(s) inscrit(s) — en attente de ' + (32 - count) + ' de plus';
+        else statusEl.textContent = '🚀 Tournoi complet ! Lancement imminent...';
+    }
+    // Remplir le bracket avec les joueurs inscrits (par paires)
+    const slots = [];
+    for (let i = 0; i < 32; i++) slots.push(players[i] || null);
+    _renderBracket(slots);
+}
 
 initAuth();
 
