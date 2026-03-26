@@ -12155,12 +12155,6 @@ function startLocalHost() {
         document.getElementById('localInviteMsg').textContent = 'Invitation envoyée à ' + pseudo + '...';
     };
 
-    document.getElementById('btnLocalStart').onclick = () => {
-        if (!currentRoom) return;
-        playClickSound();
-        fadeTransition(() => _onGameReady(currentRoom.id, null));
-    };
-
     document.getElementById('btnLocalCancel').onclick = () => {
         disconnectSocket();
         gameState.isMulti = false;
