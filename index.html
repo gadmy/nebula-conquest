@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v6.9.1)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v6.9.2)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -1422,11 +1422,14 @@ input[type="radio"]:checked + .build-icon-btn {
 </div>
 
 <!-- ═══ ÉCRAN LOCAL (inviter par pseudo) ═══ -->
-<div id="localScreen" class="screen hidden">
+<div id="localScreen" class="screen hidden" style="background:rgba(5,8,25,0.98);">
     <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:20px;">👥 PARTIE LOCALE</h2>
     <div style="background:rgba(15,23,42,0.9); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px; max-width:380px; margin:0 auto;">
         <div id="localSlots" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
-        <button id="btnCopyCode" onclick="if(window._localRoomId){navigator.clipboard.writeText(window._localRoomId).then(()=>{this.textContent='✓ Copié !';setTimeout(()=>this.textContent='📋 Copier le code',1500);})}" style="width:100%; padding:7px; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); border-radius:6px; color:#4ADE80; font-family:'Exo 2',sans-serif; font-size:12px; cursor:pointer; margin-bottom:12px;">📋 Copier le code</button>
+<div style="display:flex; gap:8px; margin-bottom:12px;">
+            <input id="localInviteInput" type="text" placeholder="Pseudo à inviter..." style="flex:1; background:rgba(15,23,42,0.8); border:1px solid rgba(100,180,255,0.4); border-radius:6px; padding:7px 10px; color:#7DD3FC; font-family:'Exo 2',sans-serif; font-size:13px; outline:none;">
+            <button class="btn" id="btnLocalInvite" style="font-size:12px; padding:7px 14px; margin:0; background:rgba(100,180,255,0.2); border-color:rgba(100,180,255,0.5); color:#7DD3FC;">INVITER</button>
+        </div>
         <div id="localInviteMsg" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#4ADE80; min-height:16px; margin-bottom:12px; text-align:center;"></div>
         <button class="btn" id="btnLocalStart" style="width:100%; font-size:14px; padding:10px; background:rgba(100,180,255,0.2); border-color:rgba(100,180,255,0.5); color:#7DD3FC; letter-spacing:2px;" disabled>LANCER</button>
         <button class="btn" id="btnLocalCancel" style="width:100%; margin-top:8px; font-size:12px; padding:8px;">ANNULER</button>
@@ -2410,7 +2413,7 @@ input[type="radio"]:checked + .build-icon-btn {
    ── PHASE 4 : v2.4.6 à v6.9
    (Divers essai, echec multi joueur à 100. Nouveau concept 1vs1.)
    v6.9   ✅ Fix multi : isRailway 'multi-'/'local-', slot vs slot_number, _onGameReady direct, player_disconnected écouté
-   v6.9   ✅ Fix LOCAL : 2 slots (1v1), champ invite supprimé → bouton copier code room
+   v6.9   ✅ Fix LOCAL : 2 slots (1v1), système invitation par pseudo (invite_received/invite_error), fond opaque écran local
    ══════════════════════════════════════════════════════════════════════ */
 
 
@@ -12005,6 +12008,15 @@ function connectSocket() {
     _socket.on('error', e => console.warn('[socket] erreur:', e.msg));
     _socket.on('player_action', (data) => { handleGameEvent(data); });
     _socket.on('game_snapshot', (snap) => { applySnapshot(snap); });
+    _socket.on('invite_error', ({ msg }) => {
+        const el = document.getElementById('localInviteMsg');
+        if (el) { el.textContent = '⚠ ' + msg; el.style.color = '#F87171'; }
+    });
+    _socket.on('invite_received', ({ roomId, fromPseudo }) => {
+        if (confirm(fromPseudo + ' vous invite à jouer. Accepter ?')) {
+            joinLocalRoom(roomId);
+        }
+    });
     _socket.on('player_disconnected', ({ slot, pseudo }) => {
         console.warn('[multi] joueur déconnecté:', pseudo, 'slot', slot);
         const p = gameState.players.find(p => p.id === slot);
@@ -12110,6 +12122,14 @@ function startLocalHost() {
         const startBtn = document.getElementById('btnLocalStart');
         if (startBtn) startBtn.disabled = players.length < 2;
     });
+
+    document.getElementById('btnLocalInvite').onclick = () => {
+        const pseudo = document.getElementById('localInviteInput').value.trim();
+        if (!pseudo || !currentRoom) return;
+        _socket.emit('local_invite', { roomId: currentRoom.id, targetPseudo: pseudo });
+        document.getElementById('localInviteInput').value = '';
+        document.getElementById('localInviteMsg').textContent = 'Invitation envoyée à ' + pseudo + '...';
+    };
 
     document.getElementById('btnLocalStart').onclick = () => {
         if (!currentRoom) return;
