@@ -5782,7 +5782,8 @@ function setPhase(phase) {
 case 'title':
             document.getElementById('titleScreen').classList.remove('hidden');
             setTimeout(() => { ensureAudio(); playTitleMusic(); }, 500);
-            if (!_socket || !_socket.connected) connectSocket();
+            connectSocket();
+            setTimeout(() => { if (_socket && currentProfile) _socket.emit('register_pseudo', { pseudo: currentProfile.pseudo }); }, 1000);
             if (_titleAnimPlayed) document.getElementById('titleScreen').classList.add('no-intro');
             gameState.running = false;
             const _pEl = document.getElementById('titlePseudo');
