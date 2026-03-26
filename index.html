@@ -1,7 +1,9 @@
 <!-- © 2025 Guillaume de Mauroy — Tous droits réservés
      Nebula Conquest — https://nebulaconquest.com
      Toute reproduction ou distribution sans autorisation expresse est interdite.
-     Contact : ga.dmy@ikmail.com -->
+     Contact : ga.dmy@ikmail.com
+
+	 -->
 	 
 <!DOCTYPE html>
 <html lang="fr">
@@ -361,23 +363,6 @@ canvas#gameCanvas.grabbing {
     border-radius: 3px;
 }
 
-.stat-group { margin: 16px 0 8px; }
-
-.stat-group .stat-title {
-    color: rgba(180, 190, 220, 0.6);
-    font-size: 12px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-}
-
-.stat-group .points-left {
-    color: #FFD700;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 13px;
-    text-align: center;
-    margin-bottom: 6px;
-}
 
 .color-picker {
     display: flex;
@@ -1841,26 +1826,6 @@ input[type="radio"]:checked + .build-icon-btn {
             </select>
         </div>
 
-        <div class="stat-group">
-            <div class="stat-title">ATTRIBUTS DU JOUEUR</div>
-            <div class="points-left">Points restants : <span id="pointsLeft">10</span></div>
-            <div class="config-row">
-                <label>Croissance</label>
-                <input type="range" id="statGrowth" min="0" max="10" value="0">
-                <span class="val" id="statGrowthVal">0</span>
-            </div>
-            <div class="config-row">
-                <label>Vélocité</label>
-                <input type="range" id="statVelocity" min="0" max="10" value="0">
-                <span class="val" id="statVelocityVal">0</span>
-            </div>
-            <div class="config-row">
-                <label>Densité</label>
-                <input type="range" id="statDensity" min="0" max="10" value="0">
-                <span class="val" id="statDensityVal">0</span>
-            </div>
-        </div>
-
         <div class="config-buttons">
             <button class="btn" id="btnBack">RETOUR</button>
             <button class="btn" id="btnStart">LANCER</button>
@@ -2104,6 +2069,21 @@ input[type="radio"]:checked + .build-icon-btn {
    Version: 1.1.0
 
    ══════════════════════════════════════════════════════════════════════
+   
+    METHODE DE TRAVAIL
+    - pour chaque travail demandé par l'utilisateur :
+    - Claude donne un seul "cherche + la ligne" et "remplace par"
+    - l'utilisateur fait le cherche et remplace sur le fichier. 
+    - Puis l'utilisateur renvoie le fichier à claude qui renvoie le deuxième cherche et remplace. 
+    - Ainsi de suite jusqu'à ce que le travail soit fini.
+	- Qd le travail est fini, Claude met à jour le log. 
+    - Puis l'utilisateur donne un nouveau travail à Claude. 
+	
+	- Jamais claude n'écrit ou ne modifie un fichier entier de lui même, sauf si l'utilisateur le demande. 
+	- Dès que Claude sens que sa mémoire sature, il fait un résumé de ce qui a été fait, de ce qu'on veut faire pour une nouvelle conversation. 
+   
+   
+   
    DEV LOG
    ──────────────────────────────────────────────────────────────────────
    v2.4.8 | 2026-02-28 | Corrections, aide & nidification améliorée
@@ -2893,7 +2873,7 @@ const gameState = {
     blackHole: null,
     suns: [],
     alliances: [],
-    tradeOrbs: [],
+    
     planets: [],
     moons: [],
 
@@ -2939,7 +2919,7 @@ const gameState = {
     playerStats: {
         growth: 3,
         velocity: 4,
-        density: 3
+        density: 2
     },
     playerColor: '#8B5CF6',
 
@@ -5637,20 +5617,8 @@ function setupUI() {
         document.getElementById('cfgCleanersVal').textContent = cfgCleaners.value;
     });
 
-    // ── Sliders stats (total = 10) ──
-    const sliders = ['statGrowth', 'statVelocity', 'statDensity'];
-    const keys = ['growth', 'velocity', 'density'];
-    // Synchroniser les sliders avec les valeurs par défaut
-    sliders.forEach((id, idx) => {
-        document.getElementById(id).value = gameState.playerStats[keys[idx]];
-        document.getElementById(id + 'Val').textContent = gameState.playerStats[keys[idx]];
-        document.getElementById(id).addEventListener('input', () => {
-            enforceStatPoints(idx);
-        });
-    });
     document.getElementById('cfgPlayersVal').textContent = cfgPlayers.value;
     document.getElementById('cfgCleanersVal').textContent = cfgCleaners.value;
-    enforceStatPoints(0);
 
     // ── Boutons navigation ──
     document.getElementById('btnNewGame').addEventListener('click', () => { ensureAudio(); playClickSound(); if (!_checkSporeReady()) return; _applyActiveSpore(); fadeTransition(() => setPhase('config')); });
@@ -6169,33 +6137,6 @@ function setupUI() {
     });
 }
 
-function enforceStatPoints(changedIdx) {
-    const ids = ['statGrowth', 'statVelocity', 'statDensity'];
-    const keys = ['growth', 'velocity', 'density'];
-    const vals = ids.map(id => parseInt(document.getElementById(id).value));
-    const total = vals.reduce((a, b) => a + b, 0);
-
-    if (total > 10) {
-        // Réduire les autres proportionnellement
-        const excess = total - 10;
-        const others = [0, 1, 2].filter(i => i !== changedIdx);
-        let remaining = excess;
-        for (const oi of others) {
-            const reduce = Math.min(vals[oi], Math.ceil(remaining / (others.length - others.indexOf(oi))));
-            vals[oi] -= reduce;
-            remaining -= reduce;
-            if (remaining <= 0) break;
-        }
-        ids.forEach((id, i) => document.getElementById(id).value = vals[i]);
-    }
-
-    ids.forEach((id, i) => {
-        gameState.playerStats[keys[i]] = vals[i];
-        document.getElementById(id + 'Val').textContent = vals[i];
-    });
-    const used = vals.reduce((a, b) => a + b, 0);
-    document.getElementById('pointsLeft').textContent = 10 - used;
-}
 
 function setPhase(phase) {
     gameState.phase = phase;
@@ -6416,6 +6357,57 @@ function startGame() {
     }, 50);
 }
 
+function _isAllied() { return false; }
+
+// ── STM — Menu radial (global) ────────────────────────────────
+function _closeSporMenu() { document.getElementById('sporeTypeMenu').style.display = 'none'; _stmLiveBody = null; }
+let _stmLiveBody = null;
+var _stmCanvas = null;
+var _stmCtx = null;
+function _stmInit() {
+    if (_stmCanvas) return;
+    _stmCanvas = document.getElementById('stmCanvas');
+    if (!_stmCanvas) return;
+    _stmCtx = _stmCanvas.getContext('2d');
+    _stmCanvas.addEventListener('mousemove', (e) => {
+        const r = _stmCanvas.getBoundingClientRect();
+        const x = e.clientX-r.left, y = e.clientY-r.top;
+        const hit = _stmGetSector(x, y);
+        const prevH = _stmHover, prevB = _stmHoverB;
+        _stmHover = hit.zone==='spore' ? hit.idx : (hit.zone==='codex' ? -2 : -1);
+        _stmHoverB = hit.zone==='bld' ? hit.idx : -1;
+        if (_stmHover !== prevH || _stmHoverB !== prevB) _stmDraw();
+        if (hit.zone==='bld') { const b = _stmBldSectors[hit.idx]; if (b) _stmShowTip(b.tip || b.name, e.clientX, e.clientY); } else { _stmHideTip(); }
+    });
+    _stmCanvas.addEventListener('mouseleave', () => { _stmHover=-1; _stmHoverB=-1; _stmDraw(); _stmHideTip(); });
+    _stmCanvas.addEventListener('click', (e) => {
+        const r = _stmCanvas.getBoundingClientRect();
+        const x = e.clientX-r.left, y = e.clientY-r.top;
+        const hit = _stmGetSector(x, y);
+        if (hit.zone==='codex') {
+            const body = gameState._fireSource;
+            _closeSporMenu();
+            gameState._firePhase = null;
+            if (body) { openCodex._cx=e.clientX; openCodex._cy=e.clientY; openCodex(body); }
+        } else if (hit.zone==='spore' && hit.idx>=0 && hit.idx<_stmSectors.length) {
+            const _sec = _stmSectors[hit.idx];
+            if (!_sec.disabled) { _selectSporeType(_sec.type); }
+        } else if (hit.zone==='bld' && hit.idx>=0 && hit.idx<_stmBldSectors.length) {
+            const b = _stmBldSectors[hit.idx];
+            if (!b.disabled && _stmLiveBody) {
+                const body = _stmLiveBody;
+                body.buildMode = b.mode;
+                body.buildProgress = 0;
+                _closeSporMenu();
+                addEvent('build', b.icon, `${b.name} activé sur ${body.name}`, body, gameState.players[localSlot()]?.color);
+            }
+        }
+    });
+}
+var STM_SIZE = 300, STM_INNER = 32, STM_R = 90, STM_R2 = 140;
+let _stmSectors = [], _stmBldSectors = [], _stmHover = -1, _stmHoverB = -1, _stmTT = null;
+function _stmShowTip(text, x, y) { if (!_stmTT) { _stmTT = document.createElement('div'); _stmTT.style.cssText = 'position:fixed;z-index:300;background:rgba(10,8,35,0.97);border:1px solid rgba(100,70,180,0.5);border-radius:6px;padding:6px 10px;font-family:"Exo 2",sans-serif;font-size:11px;color:#E2D9F3;pointer-events:none;max-width:200px;line-height:1.5;'; document.body.appendChild(_stmTT); } _stmTT.textContent = text; _stmTT.style.left = (x+14)+'px'; _stmTT.style.top = (y-10)+'px'; _stmTT.style.display = 'block'; }
+function _stmHideTip() { if (_stmTT) _stmTT.style.display = 'none'; }
 function finishStartGame() {
 
     // Reset stats
@@ -6424,7 +6416,7 @@ function finishStartGame() {
         bodiesConquered: 0, sporesProduced: 0, timeElapsed: 0
     };
     gameState.jets = [];
-    gameState.tradeOrbs = [];
+   
     gameState.alliances = [];
     gameState.conquestEffects = [];
     gameState.bloomEffects = [];
@@ -6435,7 +6427,8 @@ function finishStartGame() {
     gameState.time = 0;
     gameState._maxRangeCache = null;
     _lastScoreHash = '';
-    _floatingBubbles.length = 0;
+    if (typeof _floatingBubbles !== 'undefined') _floatingBubbles.length = 0;
+
     _ownerClustersCache = [];
     const _logBody = document.querySelector('#eventLog .log-body');
     if (_logBody) _logBody.innerHTML = '';
@@ -6482,6 +6475,173 @@ function finishStartGame() {
     if (gameState.isMulti) startSpawnCountdown();
 }
 
+function _selectSporeType(type) {
+    _closeSporMenu();
+    gameState._fireType = type;
+    gameState._firePhase = 'aiming';
+}
+function _stmRefreshLive() {
+    const menu = document.getElementById('sporeTypeMenu');
+    if (!_stmLiveBody || menu.style.display === 'none') return;
+    const body = _stmLiveBody;
+    const ratio = gameState.jetRatio;
+    const norm = Math.floor((body.spores || 0) * ratio);
+    const att = Math.floor((body.sporesAttaque || 0) * ratio);
+    const def = Math.floor((body.sporesDefense || 0) * ratio);
+    const paraCount = body.parasiteSpore || 0;
+    _stmSectors.forEach((s, i) => {
+        if (s.type === 'normal')   s.count = norm + ' sp';
+        if (s.type === 'attaque')  s.count = att + ' sp';
+        if (s.type === 'defense')  s.count = def + ' sp';
+        if (s.type === 'parasite') s.count = paraCount + ' prête';
+    });
+    _stmDraw();
+}
+function _tradeOpen() {}
+function _diplomacyOpen() {}
+function _syncServerIds() {}
+function _buildBodyIndex() {}
+function _triggerNidification(planet) { console.warn('[stub] _triggerNidification non implémenté', planet?.name); }
+function updateTradeOrbs() {}
+function drawTradeOrbs() {}
+function drawFloatingBubbles() {}
+
+function _stmDraw() {
+    const ctx = _stmCtx;
+    const cx = STM_SIZE/2, cy = STM_SIZE/2;
+    ctx.clearRect(0, 0, STM_SIZE, STM_SIZE);
+    const n = _stmSectors.length;
+    const asp = (Math.PI * 2) / n;
+    const off = -Math.PI / 2;
+    for (let i = 0; i < n; i++) {
+        const s = _stmSectors[i];
+        const a1 = off + i * asp, a2 = a1 + asp;
+        const isH = _stmHover === i;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, STM_R, a1, a2);
+        ctx.closePath();
+        ctx.fillStyle = s.disabled ? 'rgba(30,30,40,0.7)' : (isH ? s.colorHover : s.color);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+        const midA = (a1+a2)/2;
+        const lr = (STM_R+STM_INNER)/2;
+        const lx = cx+Math.cos(midA)*lr, ly = cy+Math.sin(midA)*lr;
+        ctx.save();
+        ctx.font='18px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(s.icon, lx, ly-7);
+        ctx.font=`bold 8px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.9)';
+        ctx.fillText(s.label, lx, ly+8);
+        if (s.count) { ctx.font=`7px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillText(s.count, lx, ly+18); }
+        ctx.restore();
+    }
+    const nb = _stmBldSectors.length;
+    if (nb > 0) {
+        const bsp = (Math.PI * 2) / nb;
+        for (let i = 0; i < nb; i++) {
+            const b = _stmBldSectors[i];
+            const a1 = off + i * bsp, a2 = a1 + bsp;
+            const isH = _stmHoverB === i;
+            ctx.beginPath();
+            ctx.arc(cx, cy, STM_R2, a1, a2);
+            ctx.arc(cx, cy, STM_R+4, a2, a1, true);
+            ctx.closePath();
+            const baseCol = b.active ? b.color.replace('0.3','0.85') : (isH ? b.color.replace('0.3','0.6') : b.color);
+            ctx.fillStyle = b.active ? baseCol : (isH ? baseCol : b.color);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
+            const midA = (a1+a2)/2;
+            const lr2 = (STM_R2+STM_R+4)/2;
+            const lx = cx+Math.cos(midA)*lr2, ly = cy+Math.sin(midA)*lr2;
+            ctx.save();
+            ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.globalAlpha = b.disabled ? 0.35 : 1;
+            ctx.fillText(b.icon, lx, ly-4);
+            ctx.font=`bold 7px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.85)';
+            ctx.fillText(b.name.split(' ')[0], lx, ly+7);
+            ctx.restore();
+        }
+    }
+    ctx.beginPath();
+    ctx.arc(cx, cy, STM_INNER, 0, Math.PI*2);
+    ctx.fillStyle = _stmHover === -2 ? 'rgba(100,70,200,0.9)' : 'rgba(20,15,50,0.9)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(160,120,255,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('📖', cx, cy);
+}
+function _stmGetSector(x, y) {
+    const cx = STM_SIZE/2, cy = STM_SIZE/2;
+    const dx = x-cx, dy = y-cy;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    if (dist < STM_INNER) return { zone:'codex' };
+    if (dist <= STM_R) {
+        const angle = Math.atan2(dy, dx);
+        const n = _stmSectors.length;
+        const asp = (Math.PI*2)/n;
+        let a = angle - (-Math.PI/2); if (a<0) a+=Math.PI*2;
+        return { zone:'spore', idx: Math.floor(a/asp) };
+    }
+    if (dist <= STM_R2 && _stmBldSectors.length > 0) {
+        const angle = Math.atan2(dy, dx);
+        const nb = _stmBldSectors.length;
+        const bsp = (Math.PI*2)/nb;
+        let a = angle - (-Math.PI/2); if (a<0) a+=Math.PI*2;
+        return { zone:'bld', idx: Math.floor(a/bsp) };
+    }
+    return { zone:'outside' };
+}
+if (false) { _stmCanvas.addEventListener('mousemove', (e) => {
+    const r = _stmCanvas.getBoundingClientRect();
+    const x = e.clientX-r.left, y = e.clientY-r.top;
+    const hit = _stmGetSector(x, y);
+    const prevH = _stmHover, prevB = _stmHoverB;
+    _stmHover = hit.zone==='spore' ? hit.idx : (hit.zone==='codex' ? -2 : -1);
+    _stmHoverB = hit.zone==='bld' ? hit.idx : -1;
+    if (_stmHover !== prevH || _stmHoverB !== prevB) _stmDraw();
+   if (hit.zone==='bld') { const b = _stmBldSectors[hit.idx]; if (b) _stmShowTip(b.tip || b.name, e.clientX, e.clientY); } else { _stmHideTip(); }
+}); }
+
+function _stmOpen(body, clientX, clientY) {
+    _stmInit();
+    const ratio = gameState.jetRatio;
+    const norm = Math.floor((body.spores || 0) * ratio);
+    const att = Math.floor((body.sporesAttaque || 0) * ratio);
+    const def = Math.floor((body.sporesDefense || 0) * ratio);
+    const paraCount = (body.parasiteSpore || 0);
+    const _isMotherPlanet = !!body.isMotherPlanet;
+    const _nidCooldown = body._nidCooldown || 0;
+    const _nidReady2 = _isMotherPlanet && _nidCooldown <= 0;
+    const _nidLabel = _nidCooldown > 0 ? Math.ceil(_nidCooldown/60)+'min' : (_isMotherPlanet ? 'Prêt' : 'Inactif');
+    _stmSectors = [
+        { type:'normal',      icon:'⚪', label:'Normal',  count: norm + ' sp',         color:'rgba(60,40,120,0.85)',  colorHover:'rgba(100,70,180,0.95)', disabled: norm < 5 },
+        { type:'attaque',     icon:'🔴', label:'Attaque', count: att + ' sp',          color:'rgba(120,15,15,0.85)', colorHover:'rgba(200,30,30,0.95)',  disabled: att < 5 },
+        { type:'defense',     icon:'🔵', label:'Défense', count: def + ' sp',          color:'rgba(10,50,110,0.85)', colorHover:'rgba(20,80,180,0.95)',  disabled: def < 5 },
+        { type:'parasite',    icon:'🦠', label:'Parasite',count: paraCount + ' prête', color:'rgba(10,60,25,0.85)',  colorHover:'rgba(20,120,50,0.95)',  disabled: paraCount < 1 },
+        { type:'nidification',icon:'👑', label:'Nidif.',  count: _nidLabel,            color: _nidReady2 ? 'rgba(180,140,0,0.85)' : 'rgba(60,50,30,0.7)', colorHover:'rgba(255,200,0,0.95)', disabled: !_nidReady2 },
+    ];
+    const _base = body.baseMaxSpores || body.maxSpores || 0;
+    const _BLD_ALL = [
+        { mode:'off',     icon:'⬛', name:'OFF',     color:'rgba(100,70,180,0.3)',  tip:'Production normale.',                              disabled:false },
+        { mode:'alveole', icon:'🍯', name:'ALVÉOLE', color:'rgba(234,179,8,0.3)',   tip:`+5% stock max · Coût: ${Math.floor(_base*0.10)} sp`, disabled: body.spores < Math.floor(_base*0.10) },
+        { mode:'nid',     icon:'🏗️', name:'NID',     color:'rgba(34,197,94,0.3)',   tip:`+2.5% prod · Coût: ${Math.floor(_base*0.15)} sp`,   disabled: body.spores < Math.floor(_base*0.15) },
+        { mode:'biome',   icon:'🛡️', name:'BIOME',   color:'rgba(59,130,246,0.3)',  tip:`+5% défense · Coût: ${Math.floor(_base*0.20)} sp`,  disabled: body.spores < Math.floor(_base*0.20) },
+        { mode:'ruche',   icon:'🔴', name:'RUSH',    color:'rgba(220,38,38,0.3)',   tip:'Produit des spores d\'attaque (50% du rate).',      disabled:false },
+        { mode:'mare',    icon:'🔵', name:'MARE',    color:'rgba(14,165,233,0.3)',  tip:'Produit des spores de défense (50% du rate).',      disabled:false },
+        { mode:'parasite',icon:'🦠', name:'PARASITE',color:'rgba(10,80,30,0.3)',    tip:'2 min → 1 spore parasitaire.',                      disabled:(body.parasiteSpore||0)>=1 },
+    ];
+    _stmBldSectors = _BLD_ALL.map(b => ({ ...b, active: body.buildMode===b.mode }));
+    _stmLiveBody = body;
+    _stmHover = -1;
+    _stmHoverB = -1;
+    _stmDraw();
+    const menu = document.getElementById('sporeTypeMenu');
+    menu.style.display = 'block';
+    const _mx = Math.max(8, Math.min(window.innerWidth - STM_SIZE - 8, clientX - STM_SIZE/2));
+    const _my = Math.max(8, Math.min(window.innerHeight - STM_SIZE - 8, clientY - STM_SIZE/2));
+    menu.style.left = _mx + 'px';
+    menu.style.top  = _my + 'px';
+}
 let spawnCountdownInterval = null;
 
 function startSpawnCountdown() {
@@ -6564,21 +6724,17 @@ function createPlayers() {
     const colors = [...gameState.teamColors];
 
   if (gameState.isMulti && currentRoom) {
-        // Mode multi : Railway (auto-) → _serverPlayers, Supabase → _roomPlayers
-        const isRailway = currentRoom.id?.startsWith('auto-');
-        const roomPlayers = isRailway
-            ? (gameState._serverPlayers || []).map(p => ({ slot_number: p.slot, pseudo: p.pseudo, color: p.color, stats: null }))
-            : (gameState._roomPlayers || []);
+        const roomPlayers = (gameState._serverPlayers || []);
         for (let i = 0; i < roomPlayers.length; i++) {
             const rp = roomPlayers[i];
-            const isMe = (rp.slot_number === mySlot);
+            const isMe = (rp.slot === mySlot);
             gameState.players.push({
-                id: rp.slot_number,
+                id: rp.slot,
                 name: rp.pseudo,
                 color: rp.color,
                 isHuman: true,
                 isLocal: isMe,
-                stats: isMe ? { ...gameState.playerStats } : (rp.stats || { growth: 3, velocity: 4, density: 3 }),
+                stats: isMe ? { ...gameState.playerStats } : (rp.stats || { growth: 3, velocity: 4, density: 2 }),
                 bodies: [],
                 totalSpores: 0,
                 alive: true,
@@ -6596,19 +6752,15 @@ function createPlayers() {
         if (aiCount > 0 && useIA) {
             const usedColors = roomPlayers.map(rp => rp.color);
             const aiColors = colors.filter(c => !usedColors.includes(c));
-            const aiRng = mulberry32((gameState.multiSeed || 42) + 7777);
             for (let a = 0; a < aiCount; a++) {
                 const aiId = roomPlayers.length + a;
                 const aiColor = aiColors[a % aiColors.length] || colors[a % colors.length];
-                const s1 = Math.floor(aiRng() * 5) + 1;
-                const s2 = Math.floor(aiRng() * (10 - s1)) + 1;
-                const s3 = 10 - s1 - s2;
                 gameState.players.push({
                     id: aiId,
                     name: randomAiName(),
                     color: aiColor,
                     isHuman: false,
-                    stats: { growth: s1, velocity: s2, density: s3 },
+                    stats: { growth: 3, velocity: 4, density: 2 },
                     bodies: [],
                     totalSpores: 0,
                     alive: true,
@@ -6650,16 +6802,12 @@ function createPlayers() {
 
     for (let i = 1; i < gameState.config.playerCount; i++) {
         const aiColor = colors[(i - 1) % colors.length];
-        // Stats aléatoires pour les IAs (total = 10)
-        const s1 = Math.floor(gameRandom() * 5) + 1;
-        const s2 = Math.floor(gameRandom() * (10 - s1)) + 1;
-        const s3 = 10 - s1 - s2;
         gameState.players.push({
             id: i,
             name: randomAiName(),
             color: aiColor,
             isHuman: false,
-            stats: { growth: s1, velocity: s2, density: s3 },
+            stats: { growth: 3, velocity: 4, density: 2 },
             bodies: [],
             totalSpores: 0,
             alive: true,
@@ -6745,7 +6893,7 @@ function updateMultiPanel() {
 
     // Mise à jour panneau stats + effets
     const s = human.stats;
-    const base = gameState.playerStats || { growth: 3, velocity: 4, density: 3 };
+    const base = gameState.playerStats || { growth: 3, velocity: 4, density: 2 };
     document.getElementById('evoStatGrowth').textContent = s.growth;
     document.getElementById('evoStatVelocity').textContent = s.velocity;
     document.getElementById('evoStatDensity').textContent = s.density;
@@ -6984,12 +7132,7 @@ function updateCodexBuild(body) {
         { mode:'ruche',   icon:'🔴', name:'RUSH',     desc:'Produit des spores attaque', color:'rgba(220,38,38,0.3)' },
         { mode:'mare',    icon:'🔵', name:'MARE',     desc:'Produit des spores défense', color:'rgba(14,165,233,0.3)' },
         { mode:'parasite',  icon:'🦠', name:'PARASITE',    desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
-        { mode:'gorge',     icon:'🌫️', name:'GORGE CHAUDE', desc:'Terminal Miasme · Coût: 500 sp',   color:'rgba(180,80,20,0.3)',  tip:'Terminal de commerce niveau 1. Échange des Miasmes entre deux planètes alliées équipées. Coût : 500 spores normales.' },
-        { mode:'ectoplasme',icon:'🫧', name:'ECTOPLASME',   desc:'Terminal Particule · Coût: 1000 sp', color:'rgba(80,180,200,0.3)', tip:'Terminal de commerce niveau 2. Échange des Particules entre deux planètes alliées équipées. Coût : 1000 spores normales.' },
-        ...(body.type !== 'moon' ? [
-        { mode:'antre',     icon:'🕳️', name:'ANTRE',        desc:'Terminal Molécule · Coût: 100 sp.déf', color:'rgba(120,40,180,0.3)', tip:'Terminal de commerce niveau 3. Échange des Molécules entre deux planètes alliées équipées. Coût : 100 spores de défense.' },
-        { mode:'fourme',    icon:'🍄', name:'FOURME',       desc:'Terminal ADN · Coût: 200 sp.att', color:'rgba(200,140,20,0.3)',  tip:'Terminal de commerce niveau 4. Échange des ADN entre deux planètes alliées équipées. Coût : 200 spores d\'attaque.' },
-        ] : []),
+
     ];
 
     grid.innerHTML = '';
@@ -6997,7 +7140,7 @@ function updateCodexBuild(body) {
         const card = document.createElement('div');
         card.className = 'bld-card' + (body.buildMode === b.mode ? ' active' : '');
         card.style.borderColor = body.buildMode === b.mode ? b.color.replace('0.3','0.8') : '';
-        const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.10) : b.mode==='nid' ? Math.floor(_base*0.15) : b.mode==='biome' ? Math.floor(_base*0.20) : b.mode==='gorge' ? 500 : b.mode==='ectoplasme' ? 1000 : b.mode==='antre' ? 100 : b.mode==='fourme' ? 200 : 0;
+const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.10) : b.mode==='nid' ? Math.floor(_base*0.15) : b.mode==='biome' ? Math.floor(_base*0.20) : 0;
         const countTxt = b.mode==='alveole' ? (body.alveoles||0)+' construites'
             : b.mode==='nid' ? (body.nids||0)+' construits'
             : b.mode==='biome' ? (body.biomes||0)+' construits'
@@ -7039,16 +7182,6 @@ function updateCodexBuild(body) {
             card.appendChild(prog);
         }
         card.addEventListener('click', () => {
-            // Si on pose un terminal, détruire l'ancien et annuler l'orbe liée
-            const _terminals = ['gorge','ectoplasme','antre','fourme'];
-            if (_terminals.includes(b.mode)) {
-                for (const _t of _terminals) {
-                    if (body[_t] && _t !== b.mode) {
-                        body[_t] = false;
-                        gameState.tradeOrbs = gameState.tradeOrbs.filter(o => !(o.tradeType===_t && (o.srcBody===body||o.dstBody===body)));
-                    }
-                }
-            }
             body.buildMode = b.mode;
             if (b.mode === 'off' || (b.mode !== 'nid' && b.mode !== 'biome')) body.buildProgress = 0;
             grid._lastMode = null;
@@ -7144,7 +7277,6 @@ function updateHUD() {
 
     // Minimap (throttle toutes les 15 frames)
     if (gameState._hudCounter % 15 === 0) drawMinimap();
-    if (gameState._hudCounter % 20 === 0) _stmRefreshLive();
 
     // Codex si ouvert : rafraîchir les données sans repositionner
     if (gameState.codexOpen && gameState.selectedBody) {
@@ -7635,19 +7767,6 @@ function updateSporeGeneration(dt) {
                 }
             } else {
                 body.buildMode = 'off';
-            }
-        } else if (body.buildMode === 'gorge' || body.buildMode === 'ectoplasme' || body.buildMode === 'antre' || body.buildMode === 'fourme') {
-            const _tm = body.buildMode;
-            const _tcost = _tm==='gorge' ? 500 : _tm==='ectoplasme' ? 1000 : _tm==='antre' ? 100 : 200;
-            const _tstock = _tm==='antre' ? (body.sporesDefense||0) : _tm==='fourme' ? (body.sporesAttaque||0) : body.spores;
-            const _ticon = _tm==='gorge' ? '🌫️' : _tm==='ectoplasme' ? '🫧' : _tm==='antre' ? '🕳️' : '🍄';
-            if (_tstock >= _tcost) {
-                if (_tm==='antre') body.sporesDefense = (body.sporesDefense||0) - _tcost;
-                else if (_tm==='fourme') body.sporesAttaque = (body.sporesAttaque||0) - _tcost;
-                else body.spores -= _tcost;
-                body[_tm] = true; // terminal construit
-                body.buildMode = 'off';
-                if (body.owner === localSlot()) addEvent('build', _ticon, `Terminal ${_tm} construit sur ${body.name}`, body, gameState.players[localSlot()]?.color);
             }
         } else if (body.buildMode === 'ruche') {
             // Production spores attaque (max 50% du rate)
@@ -8592,7 +8711,7 @@ function setupInput() {
             if (gameState.phase === 'game') {
                 const wp = _worldPos(e.clientX, e.clientY);
                 const body = _bodyAt(wp.x, wp.y);
-                if (body && body.owner === localSlot() && (e.button === 2)) {
+if (body && body.owner === localSlot() && (e.button === 2)) {
                     followingBody = body;
                     gameState._firePhase = 'menu';
                     gameState._fireSource = body;
@@ -8600,15 +8719,6 @@ function setupInput() {
                     return;
                 }
                 if (body && body.owner !== null && body.owner !== localSlot() && body.owner >= 0 && (e.button === 2)) {
-                    if (_isAllied(localSlot(), body.owner)) {
-                        const _allB = [...gameState.planets, ...gameState.planets.flatMap(p=>p.moons)];
-                        const _myB = _allB.filter(b=>b.owner===localSlot());
-                        const _hasMatch = Object.keys(TRADE_TYPES).some(tm => body[tm] && _myB.some(b=>b[tm]));
-                        if (_hasMatch) _tradeOpen(body, e.clientX, e.clientY);
-                        else _diplomacyOpen(body, e.clientX, e.clientY);
-                    } else {
-                        _diplomacyOpen(body, e.clientX, e.clientY);
-                    }
                     return;
                 }
                 // Clic droit sur fond vide → toggle evoPanel
@@ -8930,7 +9040,6 @@ if (gameState.isMulti) {
     if ((gameState._hudCounter & 1) === 0) updateAI(dt);
     updateCleaners(dt);
     updateJets(dt);
-    updateTradeOrbs(dt);
     updateImpacts(dt);
     updateConquestEffects(dt);
     updateCameraFollow();
@@ -9050,8 +9159,6 @@ function render() {
 
     // ── Jets de spores ──
     drawJets(ctx);
-    drawTradeOrbs(ctx);
-    drawFloatingBubbles(ctx);
 
     // ── Prévisualisation de lancement ──
     // Recalculer la preview à chaque frame (la planète orbite même si la souris ne bouge pas)
@@ -10640,9 +10747,6 @@ function selectMotherPlanet(sun, planet) {
         if (moon.owner === slot) moon.invincible = true;
     }
 
-    // Aspirer 50% des spores de toute la carte
-    _triggerNidification(planet);
-
     // Événement journal
     addEvent('build', '👑', 'Planète mère : ' + planet.name + ' (système ' + sun.name + ')', planet, human.color);
 
@@ -10840,7 +10944,6 @@ function updateMyPlanets() {
                     nidBtn.textContent = '👑 NIDIFIER';
                     nidBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        _triggerNidification(body);
                     });
                     item.appendChild(nidBtn);
                 }
@@ -11988,8 +12091,8 @@ function refreshEventLog() {
             }
         });
     });
-}
 
+}
 </script>
 
 <!-- ═══ VOLUME ═══ -->
@@ -12008,7 +12111,7 @@ function refreshEventLog() {
 </div>
 
 
-<script>
+c<script>
 const CLN_CFG = {
     speedMin: 67, speedMax: 120, turnInterval: 15,
     detectRange: 200, fireRate: 1.5, dmgMin: 34, dmgMax: 106
@@ -12295,6 +12398,12 @@ function connectSocket() {
     _socket.on('error', e => console.warn('[socket] erreur:', e.msg));
     _socket.on('player_action', (data) => { handleGameEvent(data); });
     _socket.on('game_snapshot', (snap) => { applySnapshot(snap); });
+    _socket.on('player_disconnected', ({ slot, pseudo }) => {
+        console.warn('[multi] joueur déconnecté:', pseudo, 'slot', slot);
+        const p = gameState.players.find(p => p.id === slot);
+        if (p) p.alive = false;
+        addEvent('disconnect', '⚡', `${pseudo || 'Joueur'} a quitté la partie`, null, '#F87171');
+    });
 }
 
 function disconnectSocket() {
@@ -12448,13 +12557,17 @@ function _refreshLocalSlots(players) {
 
 function _onGameReady(roomId, players) {
     if (isHost) {
-        // L'hôte génère l'univers et démarre
-        fadeTransition(() => {
-            setPhase('config');
-            // Le bouton START de la config déclenchera _launchGame()
-            gameState._pendingRoomId = roomId;
-            gameState._pendingPlayers = players;
-        });
+        // L'hôte génère l'univers et démarre directement (pas d'écran config en multi)
+        gameState._pendingRoomId = roomId;
+        gameState._pendingPlayers = players;
+        // Config multi par défaut
+        gameState.config.useIA = false;
+        gameState.config.aiCount = 0;
+        gameState.config.playerCount = players ? players.length : 2;
+        gameState.config.mapIndex = Math.floor(Math.random() * MAP_LIBRARY.length);
+        gameState.config.useComets = true;
+        gameState.config.cleanerCount = 2;
+        fadeTransition(() => startGame());
     } else {
         // Les autres attendent le signal du serveur
         _socket.off('game_start');
@@ -12727,17 +12840,17 @@ false && document.getElementById('btnLeaderboard_DEAD').addEventListener('click'
     showLeaderboard();
 });
 
-document.getElementById('btnGuilds').addEventListener('click', () => {
+false && document.getElementById('btnGuilds_DEAD').addEventListener('click', () => {
     playClickSound();
     showGuildScreen();
 });
 
-document.getElementById('btnGuildBack').addEventListener('click', () => {
+false && document.getElementById('btnGuildBack_DEAD').addEventListener('click', () => {
     playClickSound();
     setPhase('title');
 });
 
-document.getElementById('btnCreateGuild').addEventListener('click', () => createGuild());
+false && document.getElementById('btnCreateGuild_DEAD').addEventListener('click', () => createGuild());
 document.getElementById('btnJoinGuild').addEventListener('click', () => joinGuild());
 document.getElementById('btnLeaveGuild').addEventListener('click', () => leaveGuild());
 
@@ -13326,8 +13439,6 @@ function _refreshTournamentUI() {
 initAuth();
 
 </script>
-<script>
-window.addEventListener('load', init);
-</script>
+<script>window.addEventListener('load', init);</script>
 </body>
 </html>
