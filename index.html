@@ -1426,11 +1426,8 @@ input[type="radio"]:checked + .build-icon-btn {
     <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:20px;">👥 PARTIE LOCALE</h2>
     <div style="background:rgba(15,23,42,0.9); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px; max-width:380px; margin:0 auto;">
         <div id="localSlots" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
-        <div style="display:flex; gap:8px; margin-bottom:12px;">
-            <input id="localInviteInput" type="text" placeholder="Pseudo à inviter..." style="flex:1; background:rgba(15,23,42,0.8); border:1px solid rgba(100,180,255,0.4); border-radius:6px; padding:7px 10px; color:#7DD3FC; font-family:'Exo 2',sans-serif; font-size:13px; outline:none;">
-            <button class="btn" id="btnLocalInvite" style="font-size:12px; padding:7px 14px; margin:0; background:rgba(100,180,255,0.2); border-color:rgba(100,180,255,0.5); color:#7DD3FC;">INVITER</button>
-        </div>
-        <div id="localInviteMsg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:#94A3B8; min-height:16px; margin-bottom:12px;"></div>
+        <button id="btnCopyCode" onclick="if(window._localRoomId){navigator.clipboard.writeText(window._localRoomId).then(()=>{this.textContent='✓ Copié !';setTimeout(()=>this.textContent='📋 Copier le code',1500);})}" style="width:100%; padding:7px; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); border-radius:6px; color:#4ADE80; font-family:'Exo 2',sans-serif; font-size:12px; cursor:pointer; margin-bottom:12px;">📋 Copier le code</button>
+        <div id="localInviteMsg" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#4ADE80; min-height:16px; margin-bottom:12px; text-align:center;"></div>
         <button class="btn" id="btnLocalStart" style="width:100%; font-size:14px; padding:10px; background:rgba(100,180,255,0.2); border-color:rgba(100,180,255,0.5); color:#7DD3FC; letter-spacing:2px;" disabled>LANCER</button>
         <button class="btn" id="btnLocalCancel" style="width:100%; margin-top:8px; font-size:12px; padding:8px;">ANNULER</button>
     </div>
@@ -2072,10 +2069,12 @@ input[type="radio"]:checked + .build-icon-btn {
    
     METHODE DE TRAVAIL
     - pour chaque travail demandé par l'utilisateur :
-    - Claude donne un seul "cherche + la ligne" et "remplace par"
+    - Claude établie un plan en plusieurs (si besoins) "cherche + ligne" et "remplace"
+    - Claude donne le premier "cherche + la ligne" et "remplace par"
     - l'utilisateur fait le cherche et remplace sur le fichier. 
-    - Puis l'utilisateur renvoie le fichier à claude qui renvoie le deuxième cherche et remplace. 
-    - Ainsi de suite jusqu'à ce que le travail soit fini.
+    - L'utilisateur dit ok à Claude. 
+    - Claude renvoie le deuxième cherche et remplace qui concerne ce même travail. 
+    - Ainsi de suite jusqu'à ce que le travail paticulier soit fini.
 	- Qd le travail est fini, Claude met à jour le log. 
     - Puis l'utilisateur donne un nouveau travail à Claude. 
 	
@@ -2369,7 +2368,7 @@ input[type="radio"]:checked + .build-icon-btn {
      - Génération d'étoiles de fond (décor statique)
 
    ══════════════════════════════════════════════════════════════════════
-   MÉTHODE DE TRAVAIL
+   EtapE DE TRAVAIL
    ──────────────────────────────────────────────────────────────────────
    Étapes du projet :
      1. ✅ Squelette & Canvas
@@ -2408,402 +2407,10 @@ input[type="radio"]:checked + .build-icon-btn {
     v2.4.5 ✅ Panneaux UI (scale tous panneaux, snap magnétique, reset positions, 8 panneaux draggables)
     v2.4.6 🔧 Multijoueur & minification
 
-   ── PHASE 4 : Mode Partie Longue ──
-   PLAN DE TRAVAIL (16 étapes — CHERCHE/REMPLACE par session)
-   ──────────────────────────────────────────────────────────
-   ÉTAPE 1  ✅ Menu : bouton PARTIE LONGUE + écran sélection ligue
-   ÉTAPE 2  ✅ Structure gameState.longGame (données partie longue)
-   ÉTAPE 3  ✅ Genèse : décor (nuages animés + trou noir + titre)
-   ÉTAPE 4  ✅ Genèse : création astres (S/P/L + clic, sélection parent)
-   ÉTAPE 5  ✅ Genèse : physique (orbites temps réel + collisions + ceintures)
-   ÉTAPE 6  ✅ Genèse : budget matière + timer + fin de phase (nommage TODO étape 8)
-   ÉTAPE 7  ✅ Supabase : tables BDD partie longue (SQL scripts)
-   ÉTAPE 8  ✅ Persistance genèse (sauvegarde système en BDD)
-   ÉTAPE 9  ✅ Immunité J1-J3 (phase solo + production offline)
-   ÉTAPE 10 ✅ Carte stratégique galactique (vue macro inter-systèmes)
-   ÉTAPE 11 ✅ Expéditions inter-systèmes (raids asynchrones)
-   ÉTAPE 12 ✅ Bâtiments Sporange & Sclérote + 3 stocks de spores
-   ÉTAPE 13 ✅ Diplomatie ADN (pactes, trahisons, sondes)
-   ÉTAPE 14 ✅ Système d'Instinct (moral d'empire)
-ÉTAPE 15 ✅ Conditions de victoire + fin de partie
-   ÉTAPE 16 ✅ MMR & ligues (classement post-partie)
-
-   ════════════════════════════════════════════════════════════════
-   PLAN D'ATTAQUE v1.7 — FINALISATION MODE PARTIE LONGUE
-   ════════════════════════════════════════════════════════════════
-
-   CONTEXTE TECHNIQUE :
-   - Fichier unique HTML+CSS+JS (~11300 lignes)
-   - Backend Supabase : tables long_games, long_players, long_systems,
-     long_bodies, long_spores, long_expeditions, long_diplomacy, long_mmr
-   - Suppression en cascade configurée (DELETE long_games → tout supprimé)
-   - Variables globales clés : gameState.longGame (état partie longue),
-     currentUser (auth Supabase), currentProfile (pseudo/couleur),
-     _supa (client Supabase)
-   - Phases existantes : 'genesis' → 'immunity' → 'war' → 'galaxymap'
-   - render() branché : genesis→drawGenesis(), immunity→drawImmunity()
-   - drawImmunity() utilise des graphismes basiques (à remplacer par vrais)
-   - Vrais rendus disponibles : drawSuns(), drawPlanets(), drawBlackHole(),
-     drawAsteroidBelts(), drawComets(), drawCosmicEffects()
-   - createSunTexture(), createPlanetTexture(), createMoonTexture() existent
-
-   ÉTAT ACTUEL DES FONCTIONS PARTIE LONGUE :
-   - initGenesis() : initialise nuages + trou noir genèse ✅
-   - updateGenesis() : anime nuages + timer + collisions ✅
-   - updateGenesisOrbits() : met à jour positions suns/planets/moons ✅
-   - drawGenesis() : rendu basique genèse (à garder pour genèse) ✅
-   - drawImmunity() : rendu basique immunity (À REMPLACER par vrais rendus)
-   - onGenesisClick() : création astres S/P/L ✅ (UX à améliorer)
-   - destroyGenesisBody() : destruction + ceinture (cascade manquante) ⚠️
-   - checkGenesisCollisions() : détecte collisions ✅
-   - saveGenesisToDB() : sauvegarde suns/planets/moons en BDD ✅
-   - showImmunityBanner() : bannière verte + countdown ✅
-   - updateImmunityBanner() : met à jour timer + instinct ✅
-   - showGalaxyMap() / drawGalaxyMap() : carte galactique ✅
-   - onGalaxyMapClick() : clic système → panneau attaque/diplo/sonde ✅
-   - launchExpedition() : insert en BDD, pas d'arrivée gérée ⚠️
-   - showDiplomacyPanel() / proposePact() / betrayPact() ✅
-   - sendProbe() : révèle stocks depuis BDD ✅
-   - updateSporeProduction() : production passive locale ✅
-   - changeInstinct() / getInstinctBonus() ✅
-   - checkVictory() : vérifie 80% systèmes ✅
-   - endLongGame() : supprime partie + écran fin ✅
-   - injectFakeEnemies() : bouton DEBUG carte galactique ✅
-
-   ════════════════════════════════════════════════════════════════
-   BLOC A — Fix Genèse (UX + Physique)           [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   A1 [x] Touches S/P/L : keyup → _genesisKeys.active = null
-           NOTE : touches devenues obsolètes avec la nouvelle logique A2
-           Conservées dans le code mais non nécessaires
-           (actuellement le mode reste actif après relâchement)
-   A2 [x] Clic sur astre sans touche → sélection + mode enfant auto
-           REFONDU : logique entièrement sans touches
-           - Clic vide = soleil (sans sélection)
-           - Soleil sélectionné + clic vide = planète (reste sur soleil)
-           - Planète sélectionnée + clic vide = lune (reste sur planète)
-           - Clic sur astre = sélection + panneau stats
-           - Reclic sur astre sélectionné = grossissement
-           - Clic droit = désélectionne + cache panneau
-           - Lunes détectées dans findGenesisBody()
-           - Panneau stats : nom éditable, rayon, flore/faune, nb enfants
-           soleil cliqué → _genesisKeys.active = 'p' + showGenesisMode
-           planète cliquée → _genesisKeys.active = 'l' + showGenesisMode
-           (actuellement nécessite Échap puis retoucher S/P/L)
-   A3 [x] Clics multiples sur astre existant → grossissement
-           Si clic sur astre déjà existant ET mode actif : +radius +coût matière
-           Coût = body.radius * 0.5 de matière par clic
-           Max radius : soleils 120, planètes 60, lunes 25
-   A4 [ ] Enfant plus gros que parent → déstabilisation orbitale
-           Si planet.radius >= parent.radius : planet.spiraling = true
-           Si spiraling : planet.orbitRadius -= 2*dt par frame
-           Quand orbitRadius < parent.radius + planet.radius → collision
-   A5 [ ] Destruction en cascade dans destroyGenesisBody()
-           Si soleil détruit → détruire toutes ses planètes → toutes leurs lunes
-           Si planète détruite → détruire toutes ses lunes
-           Chaque destruction → sa propre ceinture d'astéroïdes
-   A6 [ ] Absorption trou noir : si sun.orbitRadius < 60 → détruit + absorbé
-           Pas de ceinture (absorbé). Message "Absorbé par le trou noir !"
-   A7 [ ] Échappement : si sun.orbitRadius > gameState.width*0.6 → fuit
-           Emporte toutes ses planètes et lunes. Message "Système échappé !"
-   A8 [ ] Trajectoires prévisionnelles : au survol du canvas en mode S/P/L
-           Dessiner cercle pointillé montrant l'orbite qui serait créée
-
-   ════════════════════════════════════════════════════════════════
-   BLOC B — Reconnexion Partie en Cours          [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   B1 [ ] Au login (après onAuthStateChange) : vérifier long_games
-           SELECT long_games WHERE status IN ('genesis','immunity','war')
-           JOIN long_players WHERE user_id = currentUser.id
-   B2 [ ] Si partie trouvée → proposer "REPRENDRE MA PARTIE" sur titleScreen
-           Bouton violet sous les boutons existants
-   B3 [ ] resumeLongGame() : charge depuis BDD
-           - Charger long_systems → gameState.longGame.systemId/gameId/playerId
-           - Charger long_bodies → reconstruire gameState.suns/planets/moons
-           - Restaurer la phase correcte (immunity/war)
-           - Recalculer dayStart depuis long_games.created_at
-   B4 [ ] Reconstruire les objets JS depuis les données BDD
-           Chaque body doit avoir : x,y,angle,orbitRadius,orbitSpeed,radius,
-           parent (référence objet), planets[], moons[]
-   B5 [ ] Après chargement : appeler createSunTexture() etc. puis
-           afficher vue immunity/war selon la phase
-
-   ════════════════════════════════════════════════════════════════
-   BLOC C — Vrais Graphismes Vue Système         [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   C1 [ ] Dans render() : remplacer drawImmunity() par le vrai pipeline
-           ctx.save() → translate(w/2,h/2) → scale(zoom) → translate(-cam.x,-cam.y)
-           drawBackground() → drawBlackHole() → drawSuns() → drawPlanets()
-           → drawAsteroidBelts() → drawComets() → ctx.restore()
-   C2 [ ] Créer les textures au démarrage de la phase immunity
-           Appeler createSunTexture(s) pour chaque soleil
-           Appeler createPlanetTexture(p) pour chaque planète
-           Appeler createMoonTexture(m) pour chaque lune
-   C3 [ ] Adapter le trou noir : en partie longue le trou noir est au centre
-           gameState.blackHole = { x:0, y:0, radius:40 }
-   C4 [ ] Cacher le timer "00:00" en mode partie longue
-           Dans updateHUD() : if (gameState.longGame.active) return;
-   C5 [ ] HUD adapté partie longue : afficher instinct + spores + jour
-           Réutiliser la bannière immunité existante
-
-   ════════════════════════════════════════════════════════════════
-   BLOC D — Interface Bâtiments & Spores         [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   D1 [ ] Codex adapté pour partie longue
-           Détecter gameState.longGame.active dans openCodex()
-           Afficher onglet "BÂTIMENTS" avec les 5 types
-           Afficher les 4 stocks de spores de la planète
-   D2 [ ] Construction bâtiments depuis le Codex
-           Boutons : Nid / Biome / Sporange / Sclérote / Lithocyste
-           Coût en spores classiques, décrémente le stock
-   D3 [ ] Jauge de déstabilisation Lithocyste
-           Barre rouge sur la planète proportionnelle à lithospores/seuil
-           Seuil = planet.radius * 500
-   D4 [ ] Allocation production : slider 0-50% bâtiments / 0-50% tech
-           Stocké dans planet.allocationBuild / planet.allocationTech
-
-   ════════════════════════════════════════════════════════════════
-   BLOC E — Lithocyste & Suicide Planétaire      [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   E1 [ ] Lithocyste produit des lithospores dans updateSporeProduction()
-           rate = buildings.lithocystes * 0.5 lithospores/sec
-           Stocké dans spores.lithospores sur la planète
-   E2 [ ] Accumulation → déstabilisation dans updateGenesisOrbits() / update()
-           planet.orbitRadius -= (lithospores / seuil) * 0.1 * dt
-   E3 [ ] Seuil critique → spirale → destruction système
-           Quand planet.orbitRadius < sun.radius + planet.radius :
-           détruire la planète → ceinture → vérifier si soleil a encore des planètes
-   E4 [ ] Si tout le système détruit → ceinture géante sur carte galactique
-           Marquer le système comme 'destroyed' en BDD
-           Le point disparaît de la carte et une zone de débris apparaît
-   E5 [ ] Impact instinct : changeInstinct(-5, 'Sacrifice planétaire')
-
-   ════════════════════════════════════════════════════════════════
-   BLOC F — Expéditions : Arrivée & Bataille     [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   F1 [ ] Polling Supabase toutes les 60s : expéditions arrivées ?
-           SELECT long_expeditions WHERE arrives_at <= now()
-           AND (from_system = monSystemId OR to_body IN mes planètes)
-           AND status = 'travelling'
-   F2 [ ] Bataille automatique à l'arrivée
-           spores_attaque vs spores_defense de la planète cible
-           Résultat = attaque > défense → conquête, sinon repoussé
-           Calcul : attaque * getInstinctBonus() vs defense * 5
-   F3 [ ] Conquête : changer owner de la planète en BDD
-           Planète conquise perd 50% de ses bâtiments
-           Attaquant choisit répartition spores restantes
-   F4 [ ] Notification dans le jeu : bannière rouge "ATTAQUE ENTRANTE !"
-           Email optionnel (via Supabase Edge Function)
-   F5 [ ] Annulation expédition : UPDATE status='cancelled'
-           Pénalité 20% des spores envoyées (perdues)
-
-   ════════════════════════════════════════════════════════════════
-   BLOC G — Production Offline                   [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   G1 [ ] Ajouter colonne last_seen TIMESTAMPTZ dans long_players
-           SQL : ALTER TABLE long_players ADD COLUMN last_seen TIMESTAMPTZ;
-   G2 [ ] Au reconnexion : calculer elapsed = now() - last_seen
-   G3 [ ] Appliquer production : spores += rate * elapsed_seconds
-           Plafonné à la capacité de stockage
-   G4 [ ] Mettre à jour last_seen = now() à chaque reconnexion
-           Et toutes les 5 minutes pendant la session
-
-   ════════════════════════════════════════════════════════════════
-   BLOC H — Rooms de Ligue                       [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   H1 [ ] Table long_rooms en Supabase
-           SQL : CREATE TABLE long_rooms (id uuid, league text,
-           status text, player_count int, launches_at timestamptz)
-   H2 [ ] Écran de salle d'attente après choix de ligue
-           Afficher : nb joueurs inscrits / min-max / timer
-   H3 [ ] Lancement automatique : polling toutes les 30s
-           Si player_count >= min OU launches_at <= now() → start
-   H4 [ ] Une fois lancée : créer long_games et distribuer les joueurs
-
-   ════════════════════════════════════════════════════════════════
-   BLOC I — Polish & Finitions                   [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   I1 [ ] Timer "00:00" caché : if(gameState.longGame.active) skip updateHUD
-   I2 [ ] Sons : ambiance spatiale pour genèse, son création astre
-   I3 [ ] Marque "Traître" sur carte galactique (icône rouge sur le point)
-   I4 [ ] Flèches animées expéditions en cours sur carte galactique
-   I5 [ ] Zones danger genèse : cercle rouge autour trou noir (seuil absorption)
-           Cercle orange pour seuil d'échappement
-   I6 [ ] Trajectoires prévisionnelles genèse (cercle pointillé orbite)
-   I7 [ ] Compte-rendu fin de partie : classement + stats + spores produites
-   I8 [ ] Pseudo unique par partie (actuellement utilise currentProfile.pseudo)
-   I9 [ ] Couleur de faction choisie à l'inscription (pas forcément #C084FC)
-
-   ════════════════════════════════════════════════════════════════
-   ORDRE D'EXÉCUTION RECOMMANDÉ :
-   A (critique UX) → B (critique reconnexion) → C (vrais graphismes)
-   → D (interface) → E (lithocyste) → F (batailles) → G (offline)
-   → H (rooms) → I (polish)
-   ════════════════════════════════════════════════════════════════
-
-   Protocole par session :
-     1. Uploader le fichier HTML actuel
-     2. Préciser la fonctionnalité ou correction souhaitée
-     3. Claude analyse et propose une stratégie
-     4. Modifications en CHERCHE/REMPLACE (≤150 car.)
-     5. Appliquer chaque modification par copier-coller
-     6. Tester dans le navigateur après chaque changement
-     7. Valider ou signaler un problème
-     8. Itérer jusqu'à complétion
-
-   Règles :
-     - Jamais de réécriture en bloc
-     - Tester après chaque CHERCHE/REMPLACE
-     - Un problème = on corrige avant de continuer
-     - Versionnement décidé par le développeur uniquement
-     - Backup avant chaque session
-   ══════════════════════════════════════════════════════════════════════
-
-   ════════════════════════════════════════════════════════════════════════
-   PLAN D'ATTAQUE v4.0 — MIGRATION SERVEUR NODE.JS (50 JOUEURS)
-   ════════════════════════════════════════════════════════════════════════
-
-   CONTEXTE :
-   - Client : fichier HTML unique (nebula-conquest_v3_4.html)
-   - Actuel  : P2P via Supabase Realtime → limite ~4 joueurs
-   - Cible   : Serveur Node.js autoritaire sur Railway → 50 joueurs
-   - Auth    : Supabase conservé pour login/profils/labo de spores
-   - Comms   : Supabase Realtime remplacé par socket.io WebSocket
-   - Supabase URL : https://hcjajtpbzusqgxkyzbgc.supabase.co
-
-   PRINCIPES ARCHITECTURE :
-   - Le serveur calcule TOUT (jets, conquête, production, bâtiments)
-   - Les clients envoient uniquement des INPUTS (lancer jet, choisir planète)
-   - Le serveur envoie des SNAPSHOTS delta toutes les 50ms (20 tick/s)
-   - Les clients interpolent entre snapshots pour le rendu fluide
-   - Anti-triche : toute action validée côté serveur avant application
-
-   REPO SERVEUR : repo GitHub séparé (nebula-conquest-server)
-   DÉPLOIEMENT  : Railway (tier gratuit, ~500h/mois)
-   STACK        : Node.js + socket.io + même logique JS que le client
-
-   ════════════════════════════════════════════════════════════════
-   PHASE S1 — Serveur minimal (repo séparé)      [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   S1.1 [ ] Créer repo nebula-conquest-server
-            Structure : server.js, package.json, game/gameLoop.js,
-            game/state.js, game/physics.js, game/actions.js
-   S1.2 [ ] server.js : HTTP + socket.io, écoute port 3000
-            Events entrants : 'join_room', 'leave_room', 'player_action'
-            Events sortants : 'room_state', 'game_snapshot', 'game_event'
-   S1.3 [ ] Rooms : Map() de parties actives
-            Chaque room : { id, players[], gameState, tickInterval }
-            Max 50 joueurs/room, création auto si room pleine
-   S1.4 [ ] Auth bridge : client envoie son token Supabase JWT
-            Serveur vérifie via Supabase Admin API (service_role key)
-            Si invalide → refus de connexion
-   S1.5 [ ] Lobby : liste des rooms disponibles, rejoindre par code
-            Event 'lobby_list' → liste rooms publiques avec nb joueurs
-   S1.6 [ ] Phase spawn : serveur attend que tous les joueurs aient spawné
-            Timeout 30s → spawn auto IA pour les manquants
-   S1.7 [ ] Déploiement Railway : railway.json, variables d'env
-            SUPABASE_URL, SUPABASE_SERVICE_KEY, PORT
-
-   ════════════════════════════════════════════════════════════════
-   PHASE S2 — Logique de jeu côté serveur        [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   S2.1 [ ] Porter generateUniverse() dans game/state.js
-            Même seed déterministe (mulberry32) → univers identique
-            allBodies, suns, planets, moons, asteroidBelts
-   S2.2 [ ] Boucle de jeu : setInterval 50ms (20 tick/s)
-            updateOrbits(dt) → updateProduction(dt) → updateJets(dt)
-            → updateBuildMode(dt) → checkConquests()
-   S2.3 [ ] Porter updateJets() + checkJetCollision() + applyConquest()
-            Identique au client, retiré du client côté rendu seulement
-   S2.4 [ ] Porter updateProduction() (spores, nids, biomes, alvéoles)
-   S2.5 [ ] Snapshots delta : ne transmettre que les champs modifiés
-            Format : { tick, bodies: [{id, spores, owner, buildProgress}],
-            jets: [{id, x, y, alive}], events: [] }
-            Compression : ignorer les corps hors zone d'influence du joueur
-   S2.6 [ ] Actions client validées :
-            'launch_jet' : vérifier owner + spores suffisantes
-            'set_build_mode' : vérifier owner + coût
-            'choose_spawn' : vérifier phase spawn + corps libre
-
-   ════════════════════════════════════════════════════════════════
-   PHASE S3 — Migration client                   [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   S3.1 [ ] Ajouter socket.io-client dans le HTML
-            <script src="https://cdn.socket.io/4.7.2/socket.io.min.js">
-   S3.2 [ ] Remplacer _supa.channel() par socket.on/emit
-            sendAction() → socket.emit('player_action', payload)
-            Réception snapshots → applySnapshot(data)
-   S3.3 [ ] applySnapshot() côté client :
-            Mettre à jour bodies depuis snapshot delta
-            Interpoler positions jets entre deux snapshots
-            Déclencher effets visuels depuis events[]
-   S3.4 [ ] Désactiver côté client :
-            updateJets(), updateProduction(), applyConquest()
-            → ces fonctions tournent sur le serveur uniquement
-            Garder : drawJets(), drawPlanets(), effets visuels
-   S3.5 [ ] Conserver Supabase pour :
-            Auth (login/logout/session)
-            Profils (pseudo, couleur, labo de spores)
-            Leaderboard (écriture fin de partie depuis serveur)
-   S3.6 [ ] Mode solo : conserver la logique locale complète
-            Si gameState.isMulti === false → pas de socket, tout local
-            Si gameState.isMulti === true → socket.io, client léger
-
-   ════════════════════════════════════════════════════════════════
-   PHASE S4 — 50 joueurs & optimisations         [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   S4.1 [ ] Zone d'intérêt (Interest Management) :
-            Chaque joueur reçoit uniquement les corps à <2000px
-            Jets hors zone → flèche indicateur seulement
-   S4.2 [ ] Compression binaire snapshots :
-            Remplacer JSON par MessagePack ou buffer binaire
-            Réduction ~70% taille des paquets
-   S4.3 [ ] Interpolation client améliorée :
-            Buffer de 3 snapshots, interpolation linéaire
-            Compensation lag : timestamp serveur dans chaque snapshot
-   S4.4 [ ] IA côté serveur uniquement :
-            updateAI() déplacé dans game/ai.js
-            Les IA ne génèrent pas de trafic réseau supplémentaire
-   S4.5 [ ] Test de charge : simuler 50 clients avec script Node.js
-            Mesurer : latence, CPU serveur, taille paquets, FPS client
-   S4.6 [ ] Gestion déconnexion :
-            Joueur déco → ses planètes passent en IA passive
-            Reconnexion dans les 60s → état restauré
-
-   ════════════════════════════════════════════════════════════════
-   PHASE S5 — Polish multijoueur 50j             [ ] EN ATTENTE
-   ════════════════════════════════════════════════════════════════
-   S5.1 [ ] Lobby public : liste parties, filtre nb joueurs, ping
-   S5.2 [ ] Système d'équipes : 2-5 équipes de N joueurs
-            Planètes alliées non attaquables entre coéquipiers
-   S5.3 [ ] Chat en jeu : socket.emit('chat', msg)
-            Affiché dans le journal d'événements
-   S5.4 [ ] Spectateur : rejoindre partie en cours sans jouer
-            Vue globale de la map, suivi d'un joueur
-   S5.5 [ ] Fin de partie : serveur calcule scores + envoie à Supabase
-            leaderboard mis à jour, stats par joueur
-
-   ════════════════════════════════════════════════════════════════
-   ORDRE D'EXÉCUTION :
-   S1 (serveur minimal) → S2 (logique jeu) → S3 (migration client)
-   → S4 (50 joueurs) → S5 (polish)
-
-   PAR SESSION :
-     1. Uploader nebula-conquest_v3_X.html
-     2. Préciser la phase/étape (ex: "on attaque S1.2")
-     3. Pour le serveur : Claude génère les fichiers server-side
-     4. Pour le client : modifications CHERCHE/REMPLACE habituelles
-     5. Tester localement (node server.js + ouvrir HTML)
-     6. Déployer sur Railway quand phase stable
-
-   VARIABLES D'ENV SERVEUR :
-     SUPABASE_URL=https://hcjajtpbzusqgxkyzbgc.supabase.co
-     SUPABASE_SERVICE_KEY=<service_role key — ne pas mettre ici>
-     PORT=3000
-     MAX_PLAYERS_PER_ROOM=50
-     TICK_RATE=20
-   ════════════════════════════════════════════════════════════════════════
-
+   ── PHASE 4 : v2.4.6 à v6.9
+   (Divers essai, echec multi joueur à 100. Nouveau concept 1vs1.)
+   v6.9   ✅ Fix multi : isRailway 'multi-'/'local-', slot vs slot_number, _onGameReady direct, player_disconnected écouté
+   v6.9   ✅ Fix LOCAL : 2 slots (1v1), champ invite supprimé → bouton copier code room
    ══════════════════════════════════════════════════════════════════════ */
 
 
@@ -3319,7 +2926,7 @@ function createMoonTexture(moon) {
 
     // Points lumineux volcaniques
     if (moon.moonType === 'volcanic') {
-        for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 2; i++) {
             const lx = rng() * size;
             const ly = rng() * size;
             const lr = rng() * 2 + 0.5;
@@ -12491,8 +12098,9 @@ function startLocalHost() {
         currentRoom = { id: roomId, mode: 'local' };
         _refreshLocalSlots(players);
 
+        window._localRoomId = roomId;
         const msg = document.getElementById('localInviteMsg');
-        msg.textContent = 'Code room : ' + roomId;
+        msg.textContent = 'Code : ' + roomId;
         msg.style.color = '#4ADE80';
     });
 
@@ -12540,7 +12148,7 @@ function _refreshLocalSlots(players) {
     const el = document.getElementById('localSlots');
     if (!el) return;
     el.innerHTML = '';
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 2; i++) {
         const p = players.find(p => p.slot === i);
         const div = document.createElement('div');
         div.style.cssText = 'padding:8px 12px; border:1px solid rgba(100,180,255,' + (p ? '0.4' : '0.15') + '); border-radius:6px; margin-bottom:4px; font-family:Exo 2,sans-serif; font-size:13px; display:flex; align-items:center; gap:8px;';
