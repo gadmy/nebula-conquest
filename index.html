@@ -1431,7 +1431,7 @@ input[type="radio"]:checked + .build-icon-btn {
             <button class="btn" id="btnLocalInvite" style="font-size:12px; padding:7px 14px; margin:0; background:rgba(100,180,255,0.2); border-color:rgba(100,180,255,0.5); color:#7DD3FC;">INVITER</button>
         </div>
         <div id="localInviteMsg" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#4ADE80; min-height:16px; margin-bottom:12px; text-align:center;"></div>
-        <button class="btn" id="btnLocalStart" style="width:100%; font-size:14px; padding:10px; background:rgba(100,180,255,0.2); border-color:rgba(100,180,255,0.5); color:#7DD3FC; letter-spacing:2px;" disabled>LANCER</button>
+        <div id="localWaitMsg" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#94A3B8; text-align:center; padding:10px 0;">En attente d'une réponse...</div>
         <button class="btn" id="btnLocalCancel" style="width:100%; margin-top:8px; font-size:12px; padding:8px;">ANNULER</button>
     </div>
 </div>
@@ -5782,7 +5782,7 @@ function setPhase(phase) {
 case 'title':
             document.getElementById('titleScreen').classList.remove('hidden');
             setTimeout(() => { ensureAudio(); playTitleMusic(); }, 500);
-            connectSocket();
+            if (!_socket || !_socket.connected) connectSocket();
             if (_titleAnimPlayed) document.getElementById('titleScreen').classList.add('no-intro');
             gameState.running = false;
             const _pEl = document.getElementById('titlePseudo');
@@ -12013,10 +12013,36 @@ function connectSocket() {
         const el = document.getElementById('localInviteMsg');
         if (el) { el.textContent = '⚠ ' + msg; el.style.color = '#F87171'; }
     });
-    _socket.on('invite_received', ({ roomId, fromPseudo }) => {
-        if (confirm(fromPseudo + ' vous invite à jouer. Accepter ?')) {
-            joinLocalRoom(roomId);
+    _socket.on('invite_declined', ({ fromPseudo }) => {
+        const el = document.getElementById('localInviteMsg');
+        if (el) { el.textContent = '✗ ' + fromPseudo + ' a décliné.'; el.style.color = '#F87171'; }
+        const w = document.getElementById('localWaitMsg');
+        if (w) w.textContent = 'En attente d\'une réponse...';
+    });
+    _socket.on('room_update', ({ players }) => {
+        if (players.length >= 2 && currentRoom && isHost) {
+            fadeTransition(() => _onGameReady(currentRoom.id, players));
         }
+    });
+    _socket.on('invite_received', ({ roomId, fromPseudo }) => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML = `<div style="background:rgba(10,15,35,0.98);border:1px solid rgba(100,180,255,0.4);border-radius:14px;padding:28px 32px;text-align:center;font-family:'Exo 2',sans-serif;max-width:320px;">
+            <div style="font-size:15px;color:#E0E7FF;margin-bottom:20px;"><b>${fromPseudo}</b> vous invite à jouer</div>
+            <div style="display:flex;gap:12px;justify-content:center;">
+                <button id="btnAcceptInvite" style="padding:10px 24px;background:rgba(34,197,94,0.25);border:1px solid rgba(34,197,94,0.6);border-radius:8px;color:#4ADE80;font-family:'Exo 2',sans-serif;font-size:13px;cursor:pointer;">LANCER</button>
+                <button id="btnDeclineInvite" style="padding:10px 24px;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.5);border-radius:8px;color:#F87171;font-family:'Exo 2',sans-serif;font-size:13px;cursor:pointer;">DÉCLINER</button>
+            </div>
+        </div>`;
+        document.body.appendChild(overlay);
+        document.getElementById('btnAcceptInvite').onclick = () => {
+            overlay.remove();
+            joinLocalRoom(roomId);
+        };
+        document.getElementById('btnDeclineInvite').onclick = () => {
+            overlay.remove();
+            _socket.emit('invite_declined', { targetPseudo: fromPseudo });
+        };
     });
     _socket.on('player_disconnected', ({ slot, pseudo }) => {
         console.warn('[multi] joueur déconnecté:', pseudo, 'slot', slot);
