@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v7.8)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v7.9)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -5899,7 +5899,7 @@ function startGame() {
                 _syncServerIds(_mapData);
                 _buildBodyIndex();
                 gameState._serverUniverse = null;
-            } else if (gameState.isMulti && !gameState._serverUniverse) {
+            } else if (gameState.isMulti && !gameState._serverUniverse && !isHost) {
                 // Multi mais univers pas encore reçu → attendre max 10s
                 console.log('[multi] en attente de l\'univers serveur...');
                 let waited = 0;
