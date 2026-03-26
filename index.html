@@ -12014,7 +12014,7 @@ function connectSocket() {
         if (el) { el.textContent = '⚠ ' + msg; el.style.color = '#F87171'; }
     });
     _socket.on('invite_declined', ({ fromPseudo }) => {
-        const el = document.getElementById('localInviteMsg');Nebula-conquest-parie-v6.9
+        const el = document.getElementById('localInviteMsg');
         if (el) { el.textContent = '✗ ' + fromPseudo + ' a décliné.'; el.style.color = '#F87171'; }
         const w = document.getElementById('localWaitMsg');
         if (w) w.textContent = 'En attente d\'une réponse...';
