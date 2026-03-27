@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v8.5)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.1)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2419,6 +2419,15 @@ input[type="radio"]:checked + .build-icon-btn {
    v7.x   ✅ Simulation locale réactivée en multi (spores, jets, conquêtes, IA)
    v7.x   ✅ handleGameEvent gère spawn + jets avec sporeType
    v7.x   🔧 Désynchronisation multi : chaque client simule indépendamment → à corriger par snapshots hôte autoritaire
+   v8.x   ✅ Snapshots hôte→invité : planètes, lunes, jets, joueurs toutes les 100ms
+   v8.x   ✅ Invité n'envoie que ses inputs, n'applique que les snapshots
+   v8.x   ✅ autoSpawnAIs ne spawne pas les humains distants en multi
+   v8.x   🔧 Problème fondamental : hôte simule via rAF → pause si onglet caché → désync
+   v8.x   🎯 PROCHAINE ÉTAPE : porter toute la simulation dans server.js (gameLoop.js)
+           Fonctions à porter : updateOrbits, updateSporeGeneration, updateJets,
+           applyConquest, updateAI, updateComets, updateCleaners, updateBuildMode,
+           updateMultiplicity, updateNidification
+           Architecture cible : setInterval 50ms serveur, clients = affichage pur
    ══════════════════════════════════════════════════════════════════════ */
 
 
@@ -8635,15 +8644,9 @@ function update(dt) {
     gameState.time += dt;
     if (gameState.phase === 'paused') return;
     updateLOD(dt);
-    // En multi : hôte simule tout, invité applique snapshots
+    // En multi : le serveur simule tout, le client applique les snapshots et affiche
     if (gameState.isMulti) {
         updateOrbits(dt);
-        if (isHost) {
-            updateSporeGeneration(dt);
-            updateJets(dt);
-            updateComets(dt);
-            if ((gameState._hudCounter & 1) === 0) updateAI(dt);
-        }
         updateCosmicEffects(dt);
         updateConquestEffects(dt);
         updateImpacts(dt);
@@ -8654,9 +8657,6 @@ function update(dt) {
         }
         if (gameState._hudCounter % 30 === 0) {
             updateMyPlanets();
-        }
-        if (isHost && gameState._hudCounter % 6 === 0) {
-            _sendSnapshot();
         }
         gameState._hudCounter = (gameState._hudCounter || 0) + 1;
         gameState.gameStats.timeElapsed += dt;
@@ -12283,7 +12283,7 @@ function _launchGame(universe) {
 // ── Réception snapshot ────────────────────────────────────────
 
 function applySnapshot(snap) {
-    if (!snap || !gameState.isMulti || isHost) return;
+    if (!snap || !gameState.isMulti) return;
     if (snap.planets) snap.planets.forEach(sp => {
         const p = gameState.planets.find(p => p.name === sp.name);
         if (p) { p.owner = sp.owner; p.spores = sp.spores; p.sporesAttaque = sp.sporesAttaque; p.sporesDefense = sp.sporesDefense; }
