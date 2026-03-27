@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v8.3)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v8.4)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -12258,7 +12258,7 @@ function _sendSnapshot() {
     const snap = {
         planets: gameState.planets.map(p => ({ name: p.name, owner: p.owner, spores: Math.round(p.spores), sporesAttaque: Math.round(p.sporesAttaque||0), sporesDefense: Math.round(p.sporesDefense||0) })),
         moons: gameState.moons.map(m => ({ name: m.name, owner: m.owner, spores: Math.round(m.spores) })),
-        jets: gameState.jets.map(j => ({ id: j.id, x: Math.round(j.x), y: Math.round(j.y), alive: j.alive, owner: j.owner, spores: Math.round(j.spores||0) })),
+        jets: gameState.jets.map(j => ({ id: j.id, x: Math.round(j.x), y: Math.round(j.y), alive: j.alive, owner: j.owner, spores: Math.round(j.spores||0), dirX: j.dirX, dirY: j.dirY, speed: j.speed, type: j.type, color: j.color })),
         players: gameState.players.map(p => ({ id: p.id, alive: p.alive, totalSpores: Math.round(p.totalSpores||0) }))
     };
     _socket.emit('game_snapshot', snap);
