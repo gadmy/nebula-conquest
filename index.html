@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v8.2)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v8.3)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2414,6 +2414,11 @@ input[type="radio"]:checked + .build-icon-btn {
    (Divers essai, echec multi joueur à 100. Nouveau concept 1vs1.)
    v6.9   ✅ Fix multi : isRailway 'multi-'/'local-', slot vs slot_number, _onGameReady direct, player_disconnected écouté
    v6.9   ✅ Fix LOCAL : 2 slots (1v1), système invitation par pseudo (invite_received/invite_error), fond opaque écran local
+   v7.x   ✅ LOCAL 1v1 fonctionnel : invitation par pseudo, popup LANCER/DÉCLINER, player_ready synchronisé
+   v7.x   ✅ Fix isMulti branche hôte/invité, _serverPlayers peuplé depuis room.slots serveur
+   v7.x   ✅ Simulation locale réactivée en multi (spores, jets, conquêtes, IA)
+   v7.x   ✅ handleGameEvent gère spawn + jets avec sporeType
+   v7.x   🔧 Désynchronisation multi : chaque client simule indépendamment → à corriger par snapshots hôte autoritaire
    ══════════════════════════════════════════════════════════════════════ */
 
 
@@ -8624,16 +8629,18 @@ function update(dt) {
     gameState.time += dt;
     if (gameState.phase === 'paused') return;
     updateLOD(dt);
-    // En multi : simulation locale complète (architecture host-based)
+    // En multi : hôte simule tout, invité applique snapshots
     if (gameState.isMulti) {
         updateOrbits(dt);
-        updateSporeGeneration(dt);
-        updateJets(dt);
+        if (isHost) {
+            updateSporeGeneration(dt);
+            updateJets(dt);
+            updateComets(dt);
+            if ((gameState._hudCounter & 1) === 0) updateAI(dt);
+        }
         updateCosmicEffects(dt);
         updateConquestEffects(dt);
         updateImpacts(dt);
-        updateComets(dt);
-        if ((gameState._hudCounter & 1) === 0) updateAI(dt);
         if (gameState._hudCounter % 10 === 0) {
             updateHUD();
             updateMultiPanel();
@@ -8641,6 +8648,9 @@ function update(dt) {
         }
         if (gameState._hudCounter % 30 === 0) {
             updateMyPlanets();
+        }
+        if (isHost && gameState._hudCounter % 6 === 0) {
+            _sendSnapshot();
         }
         gameState._hudCounter = (gameState._hudCounter || 0) + 1;
         gameState.gameStats.timeElapsed += dt;
@@ -12243,6 +12253,17 @@ function _onGameReady(roomId, players) {
     }
 }
 
+function _sendSnapshot() {
+    if (!_socket || !currentRoom) return;
+    const snap = {
+        planets: gameState.planets.map(p => ({ name: p.name, owner: p.owner, spores: Math.round(p.spores), sporesAttaque: Math.round(p.sporesAttaque||0), sporesDefense: Math.round(p.sporesDefense||0) })),
+        moons: gameState.moons.map(m => ({ name: m.name, owner: m.owner, spores: Math.round(m.spores) })),
+        jets: gameState.jets.map(j => ({ id: j.id, x: Math.round(j.x), y: Math.round(j.y), alive: j.alive, owner: j.owner, spores: Math.round(j.spores||0) })),
+        players: gameState.players.map(p => ({ id: p.id, alive: p.alive, totalSpores: Math.round(p.totalSpores||0) }))
+    };
+    _socket.emit('game_snapshot', snap);
+}
+
 function _launchGame(universe) {
     const roomId = gameState._pendingRoomId;
     console.log('[_launchGame] roomId=', roomId, 'socket=', !!_socket);
@@ -12256,15 +12277,27 @@ function _launchGame(universe) {
 // ── Réception snapshot ────────────────────────────────────────
 
 function applySnapshot(snap) {
-    if (!snap || !gameState.isMulti) return;
-    // Appliquer les positions/états des autres joueurs
-    if (snap.players) {
-        snap.players.forEach(sp => {
-            if (sp.slot === mySlot) return;
-            const p = gameState.players[sp.slot];
-            if (p) Object.assign(p, sp);
+    if (!snap || !gameState.isMulti || isHost) return;
+    if (snap.planets) snap.planets.forEach(sp => {
+        const p = gameState.planets.find(p => p.name === sp.name);
+        if (p) { p.owner = sp.owner; p.spores = sp.spores; p.sporesAttaque = sp.sporesAttaque; p.sporesDefense = sp.sporesDefense; }
+    });
+    if (snap.moons) snap.moons.forEach(sm => {
+        const m = gameState.moons.find(m => m.name === sm.name);
+        if (m) { m.owner = sm.owner; m.spores = sm.spores; }
+    });
+    if (snap.jets) {
+        snap.jets.forEach(sj => {
+            const j = gameState.jets.find(j => j.id === sj.id);
+            if (j) { j.x = sj.x; j.y = sj.y; j.alive = sj.alive; }
+            else if (sj.alive) gameState.jets.push({ ...sj, trail: [], age: 0, speed: 220 });
         });
+        gameState.jets = gameState.jets.filter(j => snap.jets.find(sj => sj.id === j.id) || j.owner === mySlot);
     }
+    if (snap.players) snap.players.forEach(sp => {
+        const p = gameState.players.find(p => p.id === sp.id);
+        if (p) { p.alive = sp.alive; p.totalSpores = sp.totalSpores; }
+    });
 }
 
 function handleGameEvent(ev) {
