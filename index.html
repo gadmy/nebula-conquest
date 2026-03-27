@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.2)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -5942,14 +5942,47 @@ function startGame() {
                 // Hôte multi : envoyer l'univers aux autres joueurs
                 console.log('[startGame] isMulti=', gameState.isMulti, '_pendingRoomId=', gameState._pendingRoomId);
 if (gameState.isMulti && gameState._pendingRoomId) {
+                    // Sérialiser sans références circulaires (parent, etc.)
+                    const _serializeBody = (b) => ({
+                        name: b.name, type: b.type, radius: b.radius,
+                        flore: b.flore, faune: b.faune, _baseFaune: b._baseFaune,
+                        maxSpores: b.maxSpores, baseMaxSpores: b.baseMaxSpores,
+                        orbitRadius: b.orbitRadius, orbitSpeed: b.orbitSpeed,
+                        angle: b.angle, x: b.x, y: b.y,
+                        owner: b.owner, spores: b.spores,
+                        symbiosis: b.symbiosis || 0, symOwnerTime: b.symOwnerTime || 0,
+                        buildMode: b.buildMode || 'off', nids: b.nids || 0,
+                        biomes: b.biomes || 0, alveoles: b.alveoles || 0,
+                        isMotherPlanet: b.isMotherPlanet || false,
+                    });
                     const _universe = {
-                        multiSeed:     gameState.multiSeed,
-                        blackHole:     gameState.blackHole,
-                        suns:          gameState.suns,
-                        asteroidBelts: gameState.asteroidBelts || [],
-                        players:       gameState.players,
-                        config:        gameState.config,
-                        jetRatio:      gameState.jetRatio,
+                        multiSeed:      gameState.multiSeed,
+                        blackHole:      { x: gameState.blackHole.x, y: gameState.blackHole.y, radius: gameState.blackHole.radius, dangerZone: gameState.blackHole.dangerZone, gravityRange: gameState.blackHole.gravityRange, gravityStrength: gameState.blackHole.gravityStrength },
+                        suns:           gameState.suns.map(s => ({
+                            name: s.name, type: 'sun', radius: s.radius,
+                            orbitRadius: s.orbitRadius, orbitSpeed: s.orbitSpeed,
+                            angle: s.angle, x: s.x, y: s.y, color: s.color,
+                            planets: s.planets.map(p => ({
+                                ..._serializeBody(p),
+                                moons: (p.moons || []).map(m => _serializeBody(m)),
+                            })),
+                        })),
+                        asteroidBelts:  (gameState.asteroidBelts || []).map(b => ({
+                            radius: b.radius, orbitSpeed: b.orbitSpeed,
+                            rocks: b.rocks.map(r => ({ angle: r.angle, radiusOff: r.radiusOff, type: r.type })),
+                        })),
+                        players:        gameState.players.map(p => ({
+                            id: p.id, name: p.name, color: p.color,
+                            isHuman: p.isHuman, alive: p.alive,
+                            stats: p.stats, tech: p.tech,
+                            multiSacrifice: p.multiSacrifice || 0,
+                            multiTier: p.multiTier || 0,
+                            aiTimer: p.aiTimer || 0,
+                            aiCooldown: p.aiCooldown || 1.5,
+                            bodies: [],
+                        })),
+                        config:         { ...gameState.config },
+                        jetRatio:       gameState.jetRatio,
                         universeRadius: gameState.universeRadius,
                     };
                     _launchGame(_universe);
