@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v8.1)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v8.2)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -7003,8 +7003,10 @@ function confirmSpawn() {
     document.getElementById('spawnPopup').style.display = 'none';
 
     if (gameState.isMulti) {
-        sendAction('spawn', { bodyName: _spawnTarget.name });
+        sendAction('spawn', { bodyName: _spawnTarget.name, fromSlot: mySlot });
         _spawnTarget = null;
+        autoSpawnAIs();
+        setPhase('game');
         return;
     }
     _spawnTarget = null;
@@ -8302,7 +8304,7 @@ function setupInput() {
                 if (len > 10) {
                     const dX = dx/len, dY = dy/len;
                     if (gameState.isMulti) {
-                        // En multi : envoyer au serveur uniquement, pas de simulation locale
+                        launchJet(src, dX, dY, gameState._fireType);
                         sendAction('jet', { srcName: src.name, dirX: dX, dirY: dY, sporeType: gameState._fireType });
                     } else {
                         launchJet(src, dX, dY, gameState._fireType);
@@ -8511,7 +8513,7 @@ if (body && body.owner === localSlot() && (e.button === 2)) {
                 const len = Math.sqrt(dx*dx + dy*dy);
                 if (len > 10) {
                     launchJet(src, dx/len, dy/len);
-                    if (gameState.isMulti) sendAction('jet', { srcName: src.name, dirX: dx/len, dirY: dy/len });
+                    if (gameState.isMulti) { launchJet(src, dx/len, dy/len, gameState._fireType); sendAction('jet', { srcName: src.name, dirX: dx/len, dirY: dy/len, sporeType: gameState._fireType }); }
                 }
             }
             gameState.launching = false;
@@ -8622,13 +8624,16 @@ function update(dt) {
     gameState.time += dt;
     if (gameState.phase === 'paused') return;
     updateLOD(dt);
-    // En multi : pas de simulation locale, le serveur est autoritaire
-if (gameState.isMulti) {
+    // En multi : simulation locale complète (architecture host-based)
+    if (gameState.isMulti) {
         updateOrbits(dt);
-        _updateMultiJets(dt);
+        updateSporeGeneration(dt);
+        updateJets(dt);
         updateCosmicEffects(dt);
         updateConquestEffects(dt);
         updateImpacts(dt);
+        updateComets(dt);
+        if ((gameState._hudCounter & 1) === 0) updateAI(dt);
         if (gameState._hudCounter % 10 === 0) {
             updateHUD();
             updateMultiPanel();
@@ -12267,7 +12272,19 @@ function handleGameEvent(ev) {
     if (ev.type === 'jet') {
         const src = gameState.planets.find(p => p.name === ev.srcName)
                  || gameState.moons.find(m => m.name === ev.srcName);
-        if (src) launchJet(src, ev.dirX, ev.dirY, ev.slot);
+        if (src) launchJet(src, ev.dirX, ev.dirY, ev.sporeType || 'normal');
+    }
+    if (ev.type === 'spawn') {
+        const slot = ev.fromSlot !== undefined ? ev.fromSlot : ev.slot;
+        const body = gameState.planets.find(p => p.name === ev.bodyName)
+                  || gameState.moons.find(m => m.name === ev.bodyName);
+        const player = gameState.players.find(p => p.id === slot);
+        if (body && player) {
+            body.owner = slot;
+            body.spores = body.maxSpores * 0.5;
+            player.bodies = [body];
+            player.spawnPlanet = body;
+        }
     }
 }
 
