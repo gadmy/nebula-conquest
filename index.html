@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.1)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.2)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -5941,8 +5941,18 @@ function startGame() {
                 loadMapFromJSON(_mapData);
                 // Hôte multi : envoyer l'univers aux autres joueurs
                 console.log('[startGame] isMulti=', gameState.isMulti, '_pendingRoomId=', gameState._pendingRoomId);
-                if (gameState.isMulti && gameState._pendingRoomId) {
-                    _launchGame(_mapData);
+if (gameState.isMulti && gameState._pendingRoomId) {
+                    const _universe = {
+                        multiSeed:     gameState.multiSeed,
+                        blackHole:     gameState.blackHole,
+                        suns:          gameState.suns,
+                        asteroidBelts: gameState.asteroidBelts || [],
+                        players:       gameState.players,
+                        config:        gameState.config,
+                        jetRatio:      gameState.jetRatio,
+                        universeRadius: gameState.universeRadius,
+                    };
+                    _launchGame(_universe);
                 }
             }
             // Synchroniser la config avec la carte chargée
@@ -7017,9 +7027,10 @@ function confirmSpawn() {
     document.getElementById('spawnPopup').style.display = 'none';
 
     if (gameState.isMulti) {
+        // En multi : le serveur applique le spawn, on attend le snapshot
         sendAction('spawn', { bodyName: _spawnTarget.name, fromSlot: mySlot });
+        document.getElementById('spawnPopup').style.display = 'none';
         _spawnTarget = null;
-        autoSpawnAIs();
         setPhase('game');
         return;
     }
@@ -12284,22 +12295,53 @@ function _launchGame(universe) {
 
 function applySnapshot(snap) {
     if (!snap || !gameState.isMulti) return;
+
     if (snap.planets) snap.planets.forEach(sp => {
         const p = gameState.planets.find(p => p.name === sp.name);
-        if (p) { p.owner = sp.owner; p.spores = sp.spores; p.sporesAttaque = sp.sporesAttaque; p.sporesDefense = sp.sporesDefense; }
+        if (!p) return;
+        const ownerChanged = p.owner !== sp.owner;
+        p.owner         = sp.owner;
+        p.spores        = sp.spores;
+        p.sporesAttaque = sp.sporesAttaque ?? p.sporesAttaque;
+        p.sporesDefense = sp.sporesDefense ?? p.sporesDefense;
+        p.symbiosis     = sp.symbiosis     ?? p.symbiosis;
+        p.nids          = sp.nids          ?? p.nids;
+        p.biomes        = sp.biomes        ?? p.biomes;
+        p.alveoles      = sp.alveoles      ?? p.alveoles;
+        p.buildMode     = sp.buildMode     ?? p.buildMode;
+        // Mettre à jour bodies/spawnPlanet pour chaque joueur
+        if (ownerChanged) {
+            for (const player of gameState.players) {
+                player.bodies = gameState.planets.filter(b => b.owner === player.id)
+                              .concat(gameState.moons.filter(b => b.owner === player.id));
+                if (!player.spawnPlanet && p.owner === player.id) player.spawnPlanet = p;
+            }
+        }
     });
+
     if (snap.moons) snap.moons.forEach(sm => {
         const m = gameState.moons.find(m => m.name === sm.name);
-        if (m) { m.owner = sm.owner; m.spores = sm.spores; }
+        if (!m) return;
+        const ownerChanged = m.owner !== sm.owner;
+        m.owner  = sm.owner;
+        m.spores = sm.spores;
+        if (ownerChanged) {
+            for (const player of gameState.players) {
+                player.bodies = gameState.planets.filter(b => b.owner === player.id)
+                              .concat(gameState.moons.filter(b => b.owner === player.id));
+            }
+        }
     });
+
     if (snap.jets) {
         snap.jets.forEach(sj => {
             const j = gameState.jets.find(j => j.id === sj.id);
-            if (j) { j.x = sj.x; j.y = sj.y; j.alive = sj.alive; }
-            else if (sj.alive) gameState.jets.push({ ...sj, trail: [], age: 0, speed: 220 });
+            if (j) { j.x = sj.x; j.y = sj.y; j.alive = sj.alive; j.spores = sj.spores; }
+            else if (sj.alive) gameState.jets.push({ ...sj, trail: [], age: 0, speed: 220, trajectory: [], posIndex: 0 });
         });
-        gameState.jets = gameState.jets.filter(j => snap.jets.find(sj => sj.id === j.id) || j.owner === mySlot);
+        gameState.jets = gameState.jets.filter(j => snap.jets.find(sj => sj.id === j.id));
     }
+
     if (snap.players) snap.players.forEach(sp => {
         const p = gameState.players.find(p => p.id === sp.id);
         if (p) { p.alive = sp.alive; p.totalSpores = sp.totalSpores; }
