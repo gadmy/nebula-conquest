@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.18)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.19)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -5911,10 +5911,17 @@ function startGame() {
         setTimeout(() => {
             updateLoadingBar(35, 'Systèmes solaires...');
             let _mapData;
-           if (gameState.isMulti && gameState._serverUniverse) {
+if (gameState.isMulti && gameState._serverUniverse) {
                 // Multi : utiliser la carte envoyée par le serveur (tous les clients)
                 _mapData = gameState._serverUniverse;
-                 loadMapFromJSON(_mapData);
+                loadMapFromJSON(_mapData);
+                // Écraser les belts régénérés aléatoirement par ceux de l'hôte
+                if (_mapData.asteroidBelts && _mapData.asteroidBelts.length > 0) {
+                    gameState.asteroidBelts = _mapData.asteroidBelts.map(b => ({
+                        ...b,
+                        sun: gameState.suns[b.sunIndex] || gameState.suns[0],
+                    }));
+                }
                 _syncServerIds(_mapData);
                 _buildBodyIndex();
                 gameState._serverUniverse = null;
@@ -6063,11 +6070,14 @@ function _buildMultiUniverse() {
                 moons: (p.moons || []).map(m => _serializeBody(m)),
             })),
         })),
-        asteroidBelts:  (gameState.asteroidBelts || []).map(b => ({
-            radius: b.radius, orbitSpeed: b.orbitSpeed,
-            sunIndex: gameState.suns.indexOf(b.sun),
-            rocks: b.rocks.map(r => ({ angle: r.angle, radiusOff: r.radiusOff, type: r.type })),
-        })),
+                        asteroidBelts:  (gameState.asteroidBelts || []).map(b => ({
+                            radius: b.radius, orbitSpeed: b.orbitSpeed,
+                            sunIndex: gameState.suns.indexOf(b.sun),
+                            rocks: b.rocks.map(r => ({
+                                angle: r.angle, radiusOff: r.radiusOff, type: r.type,
+                                subRocks: (r.subRocks || []).map(s => ({ offX: s.offX, offY: s.offY, size: s.size, color: s.color })),
+                            })),
+                        })),
         players:        gameState.players.map(p => ({
             id: p.id, name: p.name, color: p.color,
             isHuman: p.isHuman, alive: p.alive,
