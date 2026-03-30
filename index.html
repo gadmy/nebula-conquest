@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.23)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.24)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -12441,12 +12441,13 @@ function applySnapshot(snap) {
             if (j) {
                 j.x = sj.x;
                 j.y = sj.y;
+                j.spores = sj.spores ?? j.spores;
                 if (!sj.alive) j.alive = false;
             }
         });
-        gameState.jets = gameState.jets.filter(j =>
-            !j._serverDriven || snap.jets.find(sj => sj.id === j.id)
-        );
+        // Supprimer les jets que le serveur ne connaît plus
+        const serverIds = new Set(snap.jets.map(sj => sj.id));
+        gameState.jets = gameState.jets.filter(j => !j._serverDriven || serverIds.has(j.id));
     }
 
 // Sync orbites et timer
