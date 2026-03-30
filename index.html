@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.25)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.26)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -12106,6 +12106,15 @@ function connectSocket() {
     _socket.on('error', e => console.warn('[socket] erreur:', e.msg));
     _socket.on('player_action', (data) => { handleGameEvent(data); });
     _socket.on('game_snapshot', (snap) => { applySnapshot(snap); });
+    _socket.on('cleaner_hit', (ev) => {
+        if (ev.type === 'red') {
+            spawnImpact(ev.x, ev.y, '#FF4444');
+            gameState.conquestEffects.push({ x: ev.x, y: ev.y - 10, baseX: ev.x, text: '-' + ev.damage, color: '#FF4444', age: 0, maxAge: 1.5 });
+        } else if (ev.type === 'green') {
+            spawnImpact(ev.x, ev.y, '#44FF44');
+            gameState.conquestEffects.push({ x: ev.x, y: ev.y - 10, baseX: ev.x, text: 'x2', color: '#44FF44', age: 0, maxAge: 1.5 });
+        }
+    });
     _socket.on('jet_fired', (ev) => {
         const src = gameState.planets.find(p => p.name === ev.srcName)
                  || gameState.moons.find(m => m.name === ev.srcName);
