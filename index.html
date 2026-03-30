@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.13)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.14)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2424,6 +2424,11 @@ input[type="radio"]:checked + .build-icon-btn {
    v8.x   ✅ autoSpawnAIs ne spawne pas les humains distants en multi
    v8.x   🔧 Problème fondamental : hôte simule via rAF → pause si onglet caché → désync
    v8.x   🎯 PROCHAINE ÉTAPE : porter toute la simulation dans server.js (gameLoop.js)
+   v8.x   ✅ gameLoop.js créé : simulation autoritaire serveur (updateOrbits, updateSporeGeneration, updateJets, applyConquest, updateComets, updateAI)
+   v8.x   ✅ Snapshots serveur→clients 100ms : owner/spores/players (sans jets)
+   v8.x   ✅ Inputs joueurs (jet, spawn, set_sacrifice, build_mode) routés vers handleInput
+   v8.x   ✅ Client allégé : plus de simulation hôte, applySnapshot universel
+   v8.x   🎯 PROCHAINE ÉTAPE : jets côté client (animation locale 60fps, serveur autoritaire sur conquête uniquement)
            Fonctions à porter : updateOrbits, updateSporeGeneration, updateJets,
            applyConquest, updateAI, updateComets, updateCleaners, updateBuildMode,
            updateMultiplicity, updateNidification
@@ -12068,6 +12073,25 @@ function connectSocket() {
     _socket.on('error', e => console.warn('[socket] erreur:', e.msg));
     _socket.on('player_action', (data) => { handleGameEvent(data); });
     _socket.on('game_snapshot', (snap) => { applySnapshot(snap); });
+    _socket.on('jet_fired', (ev) => {
+        const src = gameState.planets.find(p => p.name === ev.srcName)
+                 || gameState.moons.find(m => m.name === ev.srcName);
+        if (!src) return;
+        // Sauvegarder et restaurer les spores (le serveur est autoritaire)
+        const savedSpores        = src.spores;
+        const savedSporesAttaque = src.sporesAttaque;
+        const savedSporesDefense = src.sporesDefense;
+        src.spores        = ev.spores * 2; // assez pour que launchJet ne refuse pas
+        src.sporesAttaque = ev.spores * 2;
+        src.sporesDefense = ev.spores * 2;
+        launchJet(src, ev.dirX, ev.dirY, ev.sporeType);
+        src.spores        = savedSpores;
+        src.sporesAttaque = savedSporesAttaque;
+        src.sporesDefense = savedSporesDefense;
+        // Corriger le dernier jet ajouté : forcer id, spores, color du serveur
+        const j = gameState.jets[gameState.jets.length - 1];
+        if (j) { j.id = ev.id; j.spores = ev.spores; j.color = ev.color; j._serverDriven = true; }
+    });
     _socket.on('invite_error', ({ msg }) => {
         const el = document.getElementById('localInviteMsg');
         if (el) { el.textContent = '⚠ ' + msg; el.style.color = '#F87171'; }
@@ -12358,24 +12382,7 @@ function applySnapshot(snap) {
         }
     });
 
-    if (snap.jets) {
-        snap.jets.forEach(sj => {
-            const j = gameState.jets.find(j => j.id === sj.id);
-            if (j) {
-                j.x = sj.x; j.y = sj.y; j.alive = sj.alive; j.spores = sj.spores;
-            } else if (sj.alive) {
-                gameState.jets.push({
-                    ...sj,
-                    trail: [], age: 0,
-                    trajectory: [], posIndex: 0,
-                    sparkles: [],
-                    _serverDriven: true,
-                });
-            }
-        });
-        gameState.jets = gameState.jets.filter(j => snap.jets.find(sj => sj.id === j.id));
-    }
-
+// Jets animés localement — pas de sync snapshot
     if (snap.players) snap.players.forEach(sp => {
         const p = gameState.players.find(p => p.id === sp.id);
         if (p) { p.alive = sp.alive; p.totalSpores = sp.totalSpores; }
