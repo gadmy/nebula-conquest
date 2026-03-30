@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.29)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.1)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2429,6 +2429,13 @@ input[type="radio"]:checked + .build-icon-btn {
    v8.x   ✅ Inputs joueurs (jet, spawn, set_sacrifice, build_mode) routés vers handleInput
    v8.x   ✅ Client allégé : plus de simulation hôte, applySnapshot universel
    v8.x   🎯 PROCHAINE ÉTAPE : jets côté client (animation locale 60fps, serveur autoritaire sur conquête uniquement)
+   v9.x   ✅ Jets animés côté client (trajectory serveur, 60fps local, conquête autoritaire serveur)
+   v9.x    ✅ Orbites synchronisées via snapshot (angles suns/planets/moons/belts)
+   v9.x    ✅ Cleaners synchronisés via snapshot (positions serveur + interpolation locale)
+   v9.x   ✅ Cleaners interactifs : rouge (-spores), vert (×2), noir (renvoi jet) avec events visuels
+   v9.x   ✅ Spawn multi : 30s countdown, lancement immédiat quand tous ont choisi
+   v9.x   ✅ Spawn multi : planètes prises visibles + nom joueur pendant countdown
+   v9.x   🎯 PROCHAINE ÉTAPE : fin de partie, victoire/élimination, reconnexion
            Fonctions à porter : updateOrbits, updateSporeGeneration, updateJets,
            applyConquest, updateAI, updateComets, updateCleaners, updateBuildMode,
            updateMultiplicity, updateNidification
@@ -8758,7 +8765,7 @@ if (gameState.isMulti) {
     gameState._hudCounter = (gameState._hudCounter || 0) + 1;
     if (gameState._hudCounter % 30 === 0) {
         updateMyPlanets();
-        checkVictoryAndElimination();
+        if (!gameState.isMulti) checkVictoryAndElimination();
     }
     if (gameState._hudCounter % 10 === 0) {
         updateHUD();
@@ -12183,6 +12190,24 @@ function connectSocket() {
             _socket.emit('invite_declined', { targetPseudo: fromPseudo });
         };
     });
+    _socket.on('player_eliminated', ({ slot, pseudo }) => {
+        const p = gameState.players.find(p => p.id === slot);
+        if (p) { p.alive = false; p._inSursis = false; }
+        addEvent('neutral', '💀', (pseudo || 'Joueur') + ' est éliminé !', null, '#EF4444');
+    });
+
+           _socket.on('game_over', ({ winnerSlot, stats }) => {
+        if (gameState.phase === 'end') return;
+        const localPlayer = gameState.players[localSlot()];
+        const isVictory = winnerSlot !== -1 && (localPlayer && localPlayer.id === winnerSlot);
+        const totalBodies = gameState.planets.length + gameState.moons.length;
+        showEndScreen(isVictory,
+            stats ? { ...stats, timeElapsed: stats.timeElapsed || gameState.time } : null,
+            localPlayer,
+            totalBodies
+        );
+    });
+
     _socket.on('player_disconnected', ({ slot, pseudo }) => {
         console.warn('[multi] joueur déconnecté:', pseudo, 'slot', slot);
         const p = gameState.players.find(p => p.id === slot);
