@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.19)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.20)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -5064,7 +5064,13 @@ function generateUniverse() {
 
     // ── Amas de météorites (4 ceintures : 1 interne + 3 externes) ──
     gameState.asteroidBelts = [];
-    if (gameState.config.useAsteroids) {
+    // En multi : les belts viennent de l'hôte via _serverUniverse, on skip la régénération
+    if (gameState.isMulti && mapData.asteroidBelts && mapData.asteroidBelts.length > 0) {
+        gameState.asteroidBelts = mapData.asteroidBelts.map(b => ({
+            ...b,
+            sun: gameState.suns[b.sunIndex] || gameState.suns[0],
+        }));
+    } else if (gameState.config.useAsteroids) {
         const beltTypes = ['dark', 'red', 'green'];
         for (const sun of gameState.suns) {
             const firstPlanet = sun.planets[0];
@@ -5121,7 +5127,7 @@ function generateUniverse() {
                 });
             }
         }
-    }
+    } // fin else if useAsteroids
 }
 
 
