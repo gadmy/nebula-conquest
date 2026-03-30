@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.26)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.27)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -6347,7 +6347,7 @@ function _stmOpen(body, clientX, clientY) {
 let spawnCountdownInterval = null;
 
 function startSpawnCountdown() {
-    let remaining = 10;
+    let remaining = 30;
     const banner = document.getElementById('spawnBanner');
     if (banner) banner.textContent = 'CHOISISSEZ VOTRE PLANÈTE — ' + remaining + 's';
     spawnCountdownInterval = setInterval(() => {
@@ -7082,6 +7082,17 @@ function confirmSpawn() {
     if (human.spawnPlanet) return;
     if (_spawnTarget.owner !== null) { _spawnTarget = null; document.getElementById('spawnPopup').style.display = 'none'; return; }
 
+if (gameState.isMulti) {
+        // En multi : le serveur applique le spawn, on attend le snapshot
+        sendAction('spawn', { bodyName: _spawnTarget.name, fromSlot: mySlot });
+        sendAction('spawn_done', { slot: mySlot });
+        addEvent('mine', '🌍', `Vous colonisez ${_spawnTarget.name} !`, _spawnTarget, human.color);
+        document.getElementById('spawnPopup').style.display = 'none';
+        _spawnTarget = null;
+        setPhase('game');
+        return;
+    }
+
     _spawnTarget.owner = slot;
     _spawnTarget.spores = _spawnTarget.maxSpores * 0.5;
     human.bodies = [_spawnTarget];
@@ -7090,15 +7101,6 @@ function confirmSpawn() {
     if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
     gameState._spawnFlashes.push({ body: _spawnTarget, age: 0, maxAge: 2.5, color: human.color });
     document.getElementById('spawnPopup').style.display = 'none';
-
-    if (gameState.isMulti) {
-        // En multi : le serveur applique le spawn, on attend le snapshot
-        sendAction('spawn', { bodyName: _spawnTarget.name, fromSlot: mySlot });
-        document.getElementById('spawnPopup').style.display = 'none';
-        _spawnTarget = null;
-        setPhase('game');
-        return;
-    }
     _spawnTarget = null;
     autoSpawnAIs();
     setPhase('game');
@@ -12106,6 +12108,10 @@ function connectSocket() {
     _socket.on('error', e => console.warn('[socket] erreur:', e.msg));
     _socket.on('player_action', (data) => { handleGameEvent(data); });
     _socket.on('game_snapshot', (snap) => { applySnapshot(snap); });
+    _socket.on('all_spawned', () => {
+        if (spawnCountdownInterval) { clearInterval(spawnCountdownInterval); spawnCountdownInterval = null; }
+        finishMultiSpawn();
+    });
     _socket.on('cleaner_hit', (ev) => {
         if (ev.type === 'red') {
             spawnImpact(ev.x, ev.y, '#FF4444');
@@ -12113,6 +12119,9 @@ function connectSocket() {
         } else if (ev.type === 'green') {
             spawnImpact(ev.x, ev.y, '#44FF44');
             gameState.conquestEffects.push({ x: ev.x, y: ev.y - 10, baseX: ev.x, text: 'x2', color: '#44FF44', age: 0, maxAge: 1.5 });
+        } else if (ev.type === 'dark') {
+            spawnImpact(ev.x, ev.y, '#9966FF');
+            gameState.conquestEffects.push({ x: ev.x, y: ev.y - 10, baseX: ev.x, text: '↩', color: '#9966FF', age: 0, maxAge: 1.5 });
         }
     });
     _socket.on('jet_fired', (ev) => {
