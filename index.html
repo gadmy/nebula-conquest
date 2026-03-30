@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.16)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.17)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -12384,6 +12384,25 @@ function applySnapshot(snap) {
     });
 
 // Jets animés localement — pas de sync snapshot
+
+    // Sync orbites et timer
+    if (snap.time !== undefined) gameState.time = snap.time;
+    if (snap.orbits) {
+        snap.orbits.forEach((so, si) => {
+            const sun = gameState.suns[si];
+            if (!sun) return;
+            sun.angle = so.a;
+            so.planets.forEach((sp, pi) => {
+                const planet = sun.planets[pi];
+                if (!planet) return;
+                planet.angle = sp.a;
+                sp.moons.forEach((sm, mi) => {
+                    const moon = planet.moons[mi];
+                    if (moon) moon.angle = sm.a;
+                });
+            });
+        });
+    }
     if (snap.players) snap.players.forEach(sp => {
         const p = gameState.players.find(p => p.id === sp.id);
         if (p) { p.alive = sp.alive; p.totalSpores = sp.totalSpores; }
