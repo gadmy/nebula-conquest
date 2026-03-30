@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.21)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.22)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -6099,6 +6099,9 @@ function _buildMultiUniverse() {
         config:         { ...gameState.config },
         jetRatio:       gameState.jetRatio,
         universeRadius: gameState.universeRadius,
+        cleaners:       (gameState.cleaners || []).map(c => ({
+            type: c.type, x: c.x, y: c.y, vx: c.vx || 0, vy: c.vy || 0, angle: c.angle || 0, size: c.size || 8,
+        })),
     };
 }
 
@@ -12410,7 +12413,28 @@ function applySnapshot(snap) {
         }
     });
 
-// Jets animés localement — pas de sync snapshot
+// Sync cleaners depuis snapshot serveur
+    if (snap.cleaners) {
+        snap.cleaners.forEach((sc, i) => {
+            const cl = gameState.cleaners[i];
+            if (cl) { cl.x = sc.x; cl.y = sc.y; cl.angle = sc.angle; }
+        });
+    }
+
+    // Correction position jets depuis snapshot serveur
+    if (snap.jets) {
+        snap.jets.forEach(sj => {
+            const j = gameState.jets.find(j => j.id === sj.id);
+            if (j) {
+                j.x = sj.x;
+                j.y = sj.y;
+                if (!sj.alive) j.alive = false;
+            }
+        });
+        gameState.jets = gameState.jets.filter(j =>
+            !j._serverDriven || snap.jets.find(sj => sj.id === j.id)
+        );
+    }
 
 // Sync orbites et timer
     if (snap.time !== undefined) {
