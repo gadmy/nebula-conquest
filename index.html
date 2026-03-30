@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.11)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.12)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -12079,10 +12079,7 @@ function connectSocket() {
     _socket.on('disconnect', () => console.log('[socket] déconnecté'));
     _socket.on('error', e => console.warn('[socket] erreur:', e.msg));
     _socket.on('player_action', (data) => { handleGameEvent(data); });
-    _socket.on('game_snapshot', (snap) => { 
-        if (snap.jets?.length > 0) console.log('[snapshot reçu] jets:', snap.jets.length);
-        applySnapshot(snap); 
-    });
+    _socket.on('game_snapshot', (snap) => { applySnapshot(snap); });
     _socket.on('invite_error', ({ msg }) => {
         const el = document.getElementById('localInviteMsg');
         if (el) { el.textContent = '⚠ ' + msg; el.style.color = '#F87171'; }
@@ -12374,18 +12371,17 @@ function applySnapshot(snap) {
     });
 
     if (snap.jets) {
-        if (snap.jets.length > 0) console.log('[applySnapshot] jets reçus:', snap.jets.length, snap.jets[0]);
         snap.jets.forEach(sj => {
             const j = gameState.jets.find(j => j.id === sj.id);
             if (j) {
                 j.x = sj.x; j.y = sj.y; j.alive = sj.alive; j.spores = sj.spores;
             } else if (sj.alive) {
-                // Nouveau jet : positionner directement sans trajectoire (le serveur est la source de vérité)
                 gameState.jets.push({
                     ...sj,
                     trail: [], age: 0,
                     trajectory: [], posIndex: 0,
-                    _serverDriven: true,  // ce jet est piloté par le serveur
+                    sparkles: [],
+                    _serverDriven: true,
                 });
             }
         });
