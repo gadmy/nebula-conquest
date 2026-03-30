@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.22)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.23)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -8709,6 +8709,13 @@ function update(dt) {
 if (gameState.isMulti) {
         updateOrbits(dt);
         updateJets(dt);
+        // Interpoler les cleaners localement entre snapshots
+        for (const cl of gameState.cleaners) {
+            if (cl.vx !== undefined) {
+                cl.x += cl.vx * dt;
+                cl.y += cl.vy * dt;
+            }
+        }
         updateCosmicEffects(dt);
         updateConquestEffects(dt);
         updateImpacts(dt);
@@ -12417,7 +12424,13 @@ function applySnapshot(snap) {
     if (snap.cleaners) {
         snap.cleaners.forEach((sc, i) => {
             const cl = gameState.cleaners[i];
-            if (cl) { cl.x = sc.x; cl.y = sc.y; cl.angle = sc.angle; }
+            if (cl) {
+                cl.x     = sc.x;
+                cl.y     = sc.y;
+                cl.vx    = sc.vx;
+                cl.vy    = sc.vy;
+                cl.angle = sc.angle;
+            }
         });
     }
 
