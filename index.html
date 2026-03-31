@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.1)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.2)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -10373,9 +10373,12 @@ function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverr
     const human = humanOverride || gameState.players[localSlot()];
     const totalBodies = totalBodiesOverride || (gameState.planets.length + gameState.moons.length);
     const ownedPct = Math.round((human.bodies.length / totalBodies) * 100);
-    sub.textContent = isVictory
-        ? 'Vous contrôlez ' + ownedPct + '% de l\'univers !'
-        : 'Votre empire s\'est effondré...';
+    const isForfeit = isVictory && gameState._endReason === 'disconnect';
+    sub.textContent = isForfeit
+        ? 'Victoire par forfait !'
+        : isVictory
+            ? 'Vous contrôlez ' + ownedPct + '% de l\'univers !'
+            : 'Votre empire s\'est effondré...';
 
     const stats = statsOverride || gameState.gameStats;
     if (!statsOverride) stats.timeElapsed = gameState.time;
@@ -10383,10 +10386,6 @@ function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverr
     const seconds = Math.floor(stats.timeElapsed % 60);
 
     document.getElementById('endStats').innerHTML = `
-        <div class="end-stat-row"><span>Astres conquis</span><span class="end-stat-val">${stats.bodiesConquered}</span></div>
-        <div class="end-stat-row"><span>Jets lancés</span><span class="end-stat-val">${stats.jetsLaunched}</span></div>
-        <div class="end-stat-row"><span>Jets neutralisés</span><span class="end-stat-val">${stats.jetsNeutralized}</span></div>
-        <div class="end-stat-row"><span>Spores produites</span><span class="end-stat-val">${Math.floor(stats.sporesProduced)}</span></div>
         <div class="end-stat-row"><span>Astres possédés</span><span class="end-stat-val">${human.bodies.length} / ${totalBodies}</span></div>
         <div class="end-stat-row"><span>Durée</span><span class="end-stat-val">${minutes}m ${seconds}s</span></div>
     `;
@@ -10394,6 +10393,13 @@ function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverr
     document.getElementById('endScreen').classList.add('active');
     const btnSpectate = document.getElementById('btnSpectate');
     if (btnSpectate) btnSpectate.style.display = (!isVictory && gameState.isMulti) ? 'inline-block' : 'none';
+    const btnReplay = document.getElementById('btnReplay');
+    if (isForfeit) {
+        if (btnReplay) btnReplay.style.display = 'none';
+        if (btnSpectate) btnSpectate.style.display = 'none';
+    } else {
+        if (btnReplay) btnReplay.style.display = '';
+    }
     stopAmbiance();
     if (isVictory) playVictorySound();
     else playDefeatSound();
@@ -11231,7 +11237,7 @@ function drawOffscreenIndicators() {
 // ─────────────────────────────────────────────
 function updateGameTimer() {
     if (gameState.phase !== 'game') return;
-    const elapsed = gameState.gameStats.timeElapsed;
+    const elapsed = gameState.isMulti ? gameState.time : gameState.gameStats.timeElapsed;
     const min = Math.floor(elapsed / 60);
     const sec = Math.floor(elapsed % 60);
     const str = String(min).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
@@ -12196,13 +12202,14 @@ function connectSocket() {
         addEvent('neutral', '💀', (pseudo || 'Joueur') + ' est éliminé !', null, '#EF4444');
     });
 
-           _socket.on('game_over', ({ winnerSlot, stats }) => {
+           _socket.on('game_over', ({ winnerSlot, reason, stats }) => {
         if (gameState.phase === 'end') return;
+        gameState._endReason = reason;
         const localPlayer = gameState.players[localSlot()];
         const isVictory = winnerSlot !== -1 && (localPlayer && localPlayer.id === winnerSlot);
         const totalBodies = gameState.planets.length + gameState.moons.length;
         showEndScreen(isVictory,
-            stats ? { ...stats, timeElapsed: stats.timeElapsed || gameState.time } : null,
+            { ...gameState.gameStats, timeElapsed: stats?.timeElapsed || gameState.time },
             localPlayer,
             totalBodies
         );
