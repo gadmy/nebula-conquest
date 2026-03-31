@@ -427,6 +427,29 @@ canvas#gameCanvas.grabbing {
     font-size: 22px;
     color: #FFD700;
 }
+#sporeCounter .spore-mods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 3px;
+    max-width: 200px;
+}
+#sporeCounter .spore-mod {
+    font-size: 9px;
+    font-family: 'Exo 2', sans-serif;
+    padding: 1px 5px;
+    border-radius: 3px;
+    cursor: default;
+    white-space: nowrap;
+}
+#sporeCounter .spore-mod.pos { background: rgba(34,197,94,0.2); color: #4ADE80; border: 1px solid rgba(34,197,94,0.4); }
+#sporeCounter .spore-mod.neg { background: rgba(239,68,68,0.2); color: #F87171; border: 1px solid rgba(239,68,68,0.4); }
+#sporeCounter .spore-mod.neu { background: rgba(100,70,180,0.2); color: #C084FC; border: 1px solid rgba(100,70,180,0.4); }
+.planet-mods {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 8px;
+    pointer-events: none;
+}
 
 #evoPanel {
     position: fixed;
@@ -1400,7 +1423,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.12)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.13)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -1864,7 +1887,7 @@ input[type="radio"]:checked + .build-icon-btn {
 
 <!-- ═══ HUD EN JEU ═══ -->
 <div id="gameHud">
-    <div id="sporeCounter" title="Total de spores sur tous vos astres">SPORES <span class="count" id="sporeCount">0</span></div>
+    <div id="sporeCounter" title="Total de spores sur tous vos astres">SPORES <span class="count" id="sporeCount">0</span><div class="spore-mods" id="sporeMods"></div></div>
     <div id="evoPanel">
         <span class="evo-close" id="evoClose">✕</span>
         <div class="evo-tabs">
@@ -6977,6 +7000,29 @@ function updateHUD() {
     const human = gameState.players[localSlot()];
     if (human && DOM.sporeCount) {
         DOM.sporeCount.textContent = Math.floor(human.totalSpores);
+        const modsEl = document.getElementById('sporeMods');
+        if (modsEl) {
+            const mods = [];
+            const sacPct = human.multiSacrifice || 0;
+            let totalRate = 0;
+            for (const body of human.bodies) {
+                if (!body.flore || body.flore <= 0) continue;
+                const symM = 1+((body.symbiosis||0)/100)*(body.type==='planet'?0.20:0.10);
+                const nidM = 1+(body.nids||0)*0.025;
+                const sacM = 1-Math.min(sacPct/100,0.5);
+                totalRate += (0.4+(body.flore/100)*0.6)*(1+human.stats.growth*0.3)*2.5*symM*nidM*sacM;
+            }
+            let sysBonusCount = 0;
+            for (const sun of gameState.suns) {
+                if (isSystemComplete(sun, localSlot())) sysBonusCount++;
+            }
+            if (totalRate > 0) mods.push({ cls:'pos', label:`+${Math.round(totalRate)}/s`, tip:'Production totale (sp/s)' });
+            if (sacPct > 0) mods.push({ cls:'neg', label:`-${sacPct}% sacr.`, tip:'Spores sacrifiées pour la multiplicité' });
+            if (sysBonusCount > 0) mods.push({ cls:'pos', label:`+${sysBonusCount*3}% sys.`, tip:`${sysBonusCount} système(s) complet(s)` });
+            modsEl.innerHTML = mods.map(m =>
+                `<span class="spore-mod ${m.cls}" title="${m.tip}">${m.label}</span>`
+            ).join('');
+        }
     }
 
     // Tableau des scores
@@ -10235,6 +10281,17 @@ function drawSporeCountOnBodies(ctx) {
             ctx.textAlign = 'center';
             ctx.fillStyle = col + 'BB';
             ctx.fillText(Math.floor(body.spores), body.x, body.y + body.radius + 10 * scale);
+            // Taux de production en permanence (planètes du joueur local seulement)
+            if (body.owner === localSlot() && body.flore > 0) {
+                const _pl = gameState.players[localSlot()];
+                const _sacM = 1 - Math.min((_pl?.multiSacrifice||0)/100, 0.5);
+                const _symM = 1+((body.symbiosis||0)/100)*(body.type==='planet'?0.20:0.10);
+                const _nidM = 1+(body.nids||0)*0.025;
+                const _rate = (0.4+(body.flore/100)*0.6)*(1+((_pl?.stats?.growth)||0)*0.3)*2.5*_symM*_nidM*_sacM;
+                ctx.font = (7 * scale) + 'px Exo 2';
+                ctx.fillStyle = 'rgba(74,222,128,0.7)';
+                ctx.fillText('+' + Math.round(_rate) + '/s', body.x, body.y + body.radius + 20 * scale);
+            }
         }
 
         // Tooltip au survol (toutes planètes et lunes, même neutres)
@@ -10261,6 +10318,22 @@ function drawSporeCountOnBodies(ctx) {
             const def = Math.floor(body.sporesDefense || 0);
             if (att > 0) lines.push('🔴 ' + att + ' att');
             if (def > 0) lines.push('🔵 ' + def + ' déf');
+            // Modificateurs production
+            if (body.owner === localSlot() && body.flore > 0) {
+                const _player = gameState.players[localSlot()];
+                const _sac = _player?.multiSacrifice || 0;
+                const _sym = Math.round(((body.symbiosis||0)/100)*(body.type==='planet'?20:10));
+                const _nid = Math.round((body.nids||0)*2.5);
+                const _symM = 1+((body.symbiosis||0)/100)*(body.type==='planet'?0.20:0.10);
+                const _nidM = 1+(body.nids||0)*0.025;
+                const _prodPct = 1-Math.min(_sac/100,0.5);
+                const _rate = (0.4+(body.flore/100)*0.6)*(1+(_player?.stats?.growth||0)*0.3)*2.5*_symM*_nidM*_prodPct;
+                lines.push('⚡ +' + Math.round(_rate) + ' sp/s');
+                if (_sac > 0) lines.push('🔻 -' + _sac + '% sacrifice');
+                if (_sym > 0) lines.push('🟢 +' + _sym + '% symbiose');
+                if (_nid > 0) lines.push('🏗️ +' + _nid + '% nids');
+                if (body.buildMode && body.buildMode !== 'off') lines.push('🔧 mode: ' + body.buildMode);
+            }
         }
         const bgW = fixedSize * 8;
         const bgH = lineH * lines.length + fixedSize * 0.8;
@@ -11258,7 +11331,26 @@ function drawOffscreenIndicators() {
 // ─────────────────────────────────────────────
 // TIMER DE PARTIE
 // ─────────────────────────────────────────────
-function updateGameTimer() {
+function _getPlanetModsText(body, player) {
+    if (!body || !player || body.owner !== player.id) return null;
+    const lines = [];
+    const sacPct = player.multiSacrifice || 0;
+    const symBonus = Math.round(((body.symbiosis||0) / 100) * (body.type==='planet' ? 20 : 10));
+    const nidBonus = Math.round((body.nids||0) * 2.5);
+    const prodPct = 1 - Math.min(sacPct/100, 0.5);
+    const symBonusMult = 1 + ((body.symbiosis||0)/100)*(body.type==='planet'?0.20:0.10);
+    const nidBonusMult = 1 + (body.nids||0)*0.025;
+    const rate = body.flore > 0
+        ? (0.4+(body.flore/100)*0.6)*(1+player.stats.growth*0.3)*2.5*symBonusMult*nidBonusMult*prodPct
+        : 0;
+    const parts = [];
+    if (rate > 0) parts.push(`+${Math.round(rate)}/s`);
+    if (sacPct > 0) parts.push(`-${sacPct}%sac`);
+    if (symBonus > 0) parts.push(`+${symBonus}%sym`);
+    if (nidBonus > 0) parts.push(`+${nidBonus}%nid`);
+    if (body.buildMode && body.buildMode !== 'off') parts.push(`[${body.buildMode}]`);
+    return parts.join(' ');
+}
     if (gameState.phase !== 'game') return;
     const elapsed = gameState.isMulti ? gameState.time : gameState.gameStats.timeElapsed;
     const min = Math.floor(elapsed / 60);
