@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.8)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.9)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -6530,7 +6530,7 @@ function createPlayers() {
 // MULTIPLICITÉ — Fonctions
 // ─────────────────────────────────────────────
 function getMultiTierCost(currentTier) {
-    return Math.floor(500 * Math.pow(1.8, currentTier));
+    return (currentTier + 1) * 100;
 }
 
 function aiChooseMultiStat(player) {
@@ -12213,6 +12213,13 @@ function connectSocket() {
             _socket.emit('invite_declined', { targetPseudo: fromPseudo });
         };
     });
+   _socket.on('multi_pending', ({ slot }) => {
+        const localPlayer = gameState.players[localSlot()];
+        if (localPlayer && localPlayer.id === slot) {
+            localPlayer._multiPending = true;
+        }
+    });
+
     _socket.on('player_eliminated', ({ slot, pseudo }) => {
         const p = gameState.players.find(p => p.id === slot);
         if (p) { p.alive = false; p._inSursis = false; }
@@ -12570,12 +12577,8 @@ function applySnapshot(snap) {
         if (!p) return;
         p.alive = sp.alive;
         p.totalSpores = sp.totalSpores;
-        if (sp.multiProgress !== undefined) {
+    if (sp.multiProgress !== undefined) {
             p.multiProgress = sp.multiProgress;
-            // Détecter palier atteint
-            if (sp.multiTier > p.multiTier && p.isLocal) {
-                p._multiPending = true;
-            }
             p.multiTier = sp.multiTier;
             if (sp.stats) p.stats = sp.stats;
         }
