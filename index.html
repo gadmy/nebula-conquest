@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.6)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.7)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -5280,18 +5280,8 @@ function setupUI() {
         playClickSound();
         document.getElementById('pauseOverlay').classList.remove('active');
         if (gameState.isMulti && currentRoom) {
-            const slot = localSlot();
-            const player = gameState.players[slot];
-            if (player && player.alive) {
-                player.isHuman = false;
-                player.isLocal = false;
-                player.aiTimer = 0;
-                player.aiCooldown = gameState.config.difficulty === 'easy' ? 3 : gameState.config.difficulty === 'normal' ? 1.5 : 0.5;
-                player.name = 'IA-' + player.name;
-                sendAction('playerLeft', { slot: slot });
-                addEvent('neutral', '🚪', player.name + ' a quitté (remplacé par IA)', null, player.color);
-            }
-            _leftRoom = { roomId: currentRoom.id, slot: slot, gameStateBackup: gameState };
+            // Déconnexion franche → l'adversaire gagne
+            disconnectSocket();
         }
         gameState.running = false;
         stopAmbiance();
