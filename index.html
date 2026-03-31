@@ -1423,7 +1423,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.15) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.16) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -8423,6 +8423,18 @@ function setupInput() {
         if (gameState.isSpectator) return;
         const wp = _worldPos(e.clientX, e.clientY);
 
+        // Fermer le menu radial si ouvert et clic hors du menu
+        if (document.getElementById('sporeTypeMenu').style.display !== 'none') {
+            const menuEl = document.getElementById('sporeTypeMenu');
+            const mr = menuEl.getBoundingClientRect();
+            if (e.clientX < mr.left || e.clientX > mr.right || e.clientY < mr.top || e.clientY > mr.bottom) {
+                _closeSporMenu();
+                gameState._firePhase = null;
+                gameState._fireSource = null;
+                return;
+            }
+        }
+
         // Phase aiming : maintien gauche → dézoom progressif, relâche → tir
         if (gameState._firePhase === 'aiming') {
             gameState._aimHolding = true;
@@ -9399,12 +9411,22 @@ function drawPlanets(ctx) {
                 ctx.restore();
             }
 
+			// Halo parasite (visible par le propriétaire ET par l'attaquant)
+            if (p.parasite && (p.owner === localSlot() || p.parasite.ownerSlot === localSlot())) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(34,197,94,0.7)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius + 6, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
+
             // Icônes bâtiments sous la planète (si possédée par le joueur local)
             if (p.owner === localSlot() && gameState.lod >= 1) {
                 const icons = [];
-                if ((p.alveoles || 0) > 0) icons.push('🍯');
-                if ((p.nids || 0) > 0) icons.push('🪺');
-                if ((p.biomes || 0) > 0) icons.push('🛡️');
                 if (p.buildMode === 'ruche') icons.push('🔴');
                 if (p.buildMode === 'mare') icons.push('🔵');
                 if (p.buildMode === 'parasite') icons.push('🦠');
@@ -12586,6 +12608,7 @@ function applySnapshot(snap) {
         p.parasiteProgress = sp.parasiteProgress  ?? p.parasiteProgress;
         if (sp.maxSpores !== undefined)      p.maxSpores      = sp.maxSpores;
         if (sp.baseMaxSpores !== undefined)  p.baseMaxSpores  = sp.baseMaxSpores;
+        if (sp.parasite !== undefined)       p.parasite       = sp.parasite;
         // Mettre à jour bodies/spawnPlanet pour chaque joueur
         if (ownerChanged) {
             for (const player of gameState.players) {
