@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.3)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.4)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -7010,7 +7010,6 @@ function updateScoreBoard() {
     let hash = '';
     let html = '';
     for (const player of gameState.players) {
-        if (!player.alive) continue;
         const owned = player.bodies ? player.bodies.length : 0;
         const pct = totalBodies > 0 ? Math.round((owned / totalBodies) * 100) : 0;
         hash += player.id + ':' + pct + ',';
@@ -10392,13 +10391,13 @@ function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverr
 
     document.getElementById('endScreen').classList.add('active');
     const btnSpectate = document.getElementById('btnSpectate');
-    if (btnSpectate) btnSpectate.style.display = (!isVictory && gameState.isMulti) ? 'inline-block' : 'none';
     const btnReplay = document.getElementById('btnReplay');
-    if (isForfeit) {
+    if (gameState.isMulti) {
         if (btnReplay) btnReplay.style.display = 'none';
         if (btnSpectate) btnSpectate.style.display = 'none';
     } else {
         if (btnReplay) btnReplay.style.display = '';
+        if (btnSpectate) btnSpectate.style.display = (!isVictory) ? 'inline-block' : 'none';
     }
     stopAmbiance();
     if (isVictory) playVictorySound();
