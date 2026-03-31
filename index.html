@@ -1400,7 +1400,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.7)</div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.8)</div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2435,11 +2435,15 @@ input[type="radio"]:checked + .build-icon-btn {
    v9.x   ✅ Cleaners interactifs : rouge (-spores), vert (×2), noir (renvoi jet) avec events visuels
    v9.x   ✅ Spawn multi : 30s countdown, lancement immédiat quand tous ont choisi
    v9.x   ✅ Spawn multi : planètes prises visibles + nom joueur pendant countdown
-   v9.x   🎯 PROCHAINE ÉTAPE : fin de partie, victoire/élimination, reconnexion
-           Fonctions à porter : updateOrbits, updateSporeGeneration, updateJets,
-           applyConquest, updateAI, updateComets, updateCleaners, updateBuildMode,
-           updateMultiplicity, updateNidification
-           Architecture cible : setInterval 50ms serveur, clients = affichage pur
+   v9.x   ✅ Fin de partie autoritaire serveur : victoire/élimination détectées dans gameLoop.js
+   v9.x   ✅ Déconnexion / Quitter → victoire immédiate pour l'adversaire (server.js)
+   v9.x   ✅ Écran de fin : "Victoire par forfait", timer correct, bouton MENU uniquement en multi
+   v9.x   ✅ Scores visibles en multi (reconstruction player.bodies depuis snapshot)
+   v9.x   ✅ Timer de partie fonctionnel (state.time incrémenté dans gameLoop._step)
+   v9.x   ✅ Build mode envoyé au serveur via sendAction('build_mode')
+   v9.x   ✅ Nidification implémentée : aspire 50% spores système → planète mère (cooldown 3min)
+   v9.x   ✅ Multiplicité : multiProgress/multiTier dans snapshot, event 'multi' géré serveur
+   v9.x   🎯 PROCHAINE ÉTAPE : tests build mode / multiplicité en partie réelle, sons, itch.io
    ══════════════════════════════════════════════════════════════════════ */
 
 
@@ -6042,6 +6046,7 @@ function _stmInit() {
                 body.buildProgress = 0;
                 _closeSporMenu();
                 addEvent('build', b.icon, `${b.name} activé sur ${body.name}`, body, gameState.players[localSlot()]?.color);
+                if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: b.mode });
             }
         }
     });
@@ -10441,6 +10446,21 @@ function hideEndScreen() {
 // ─────────────────────────────────────────────
 let followingBody = null;
 
+function _applyNidification(motherBody, player) {
+    const total = [...gameState.planets, ...gameState.moons]
+        .filter(b => b.owner === player.id && b !== motherBody);
+    let gathered = 0;
+    for (const b of total) {
+        const take = Math.floor(b.spores * 0.5);
+        b.spores -= take;
+        gathered += take;
+    }
+    motherBody.spores = Math.min(motherBody.maxSpores, motherBody.spores + gathered);
+    motherBody._nidCooldown = 180;
+    playNidificationSound();
+    addEvent('build', '👑', `Nidification : +${gathered} spores sur ${motherBody.name}`, motherBody, player.color);
+}
+
 function selectMotherPlanet(sun, planet) {
     const slot = localSlot();
     const human = gameState.players[slot];
@@ -10656,6 +10676,14 @@ function updateMyPlanets() {
                     nidBtn.textContent = '👑 NIDIFIER';
                     nidBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
+                        const slot = localSlot();
+                        const human = gameState.players[slot];
+                        if (!human || body._nidCooldown > 0) return;
+                        if (gameState.isMulti) {
+                            sendAction('nidification', { bodyName: body.name });
+                        } else {
+                            _applyNidification(body, human);
+                        }
                     });
                     item.appendChild(nidBtn);
                 }
@@ -12539,7 +12567,18 @@ function applySnapshot(snap) {
     }
     if (snap.players) snap.players.forEach(sp => {
         const p = gameState.players.find(p => p.id === sp.id);
-        if (p) { p.alive = sp.alive; p.totalSpores = sp.totalSpores; }
+        if (!p) return;
+        p.alive = sp.alive;
+        p.totalSpores = sp.totalSpores;
+        if (sp.multiProgress !== undefined) {
+            p.multiProgress = sp.multiProgress;
+            // Détecter palier atteint
+            if (sp.multiTier > p.multiTier && p.isLocal) {
+                p._multiPending = true;
+            }
+            p.multiTier = sp.multiTier;
+            if (sp.stats) p.stats = sp.stats;
+        }
     });
 
     // Reconstruire player.bodies depuis les owners des planètes/lunes
