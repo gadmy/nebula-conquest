@@ -1423,7 +1423,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.19) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.20) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -8434,7 +8434,7 @@ function setupInput() {
             { id: 'codex',    close: () => closeCodex() },
             { id: 'evoPanel', close: () => { document.getElementById('evoPanel').style.display = 'none'; } },
         ].map(m => ({ ...m, el: document.getElementById(m.id) }))
-         .filter(m => m.el && m.el.style.display !== 'none' && m.el.offsetParent !== null);
+         .filter(m => m.el && m.el.offsetParent !== null);
         for (const menu of _openMenus) {
             const mr = menu.el.getBoundingClientRect();
             if (e.clientX < mr.left || e.clientX > mr.right || e.clientY < mr.top || e.clientY > mr.bottom) {
