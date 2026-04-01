@@ -1423,7 +1423,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.18) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.19) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -8450,10 +8450,24 @@ function setupInput() {
             return;
         }
 
+        // Fermer les menus ouverts si clic hors
+        const _menus = [
+            { id: 'sporeTypeMenu', close: () => { _closeSporMenu(); gameState._firePhase = null; gameState._fireSource = null; } },
+            { id: 'codex',         close: () => closeCodex() },
+            { id: 'evoPanel',      close: () => { document.getElementById('evoPanel').style.display = 'none'; } },
+        ];
+        for (const m of _menus) {
+            const el = document.getElementById(m.id);
+            if (!el || el.style.display === 'none' || !el.offsetParent) continue;
+            const r = el.getBoundingClientRect();
+            if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
+                m.close();
+            }
+        }
+
         // Sinon : centrer caméra sur l'astre
         const body = _bodyAt(wp.x, wp.y);
         if (body) { followingBody = body; }
-        else closeCodex();
     });
 
     window.addEventListener('mouseup', (e) => {
@@ -12626,7 +12640,15 @@ function applySnapshot(snap) {
         p.parasiteProgress = sp.parasiteProgress  ?? p.parasiteProgress;
         if (sp.maxSpores !== undefined)      p.maxSpores      = sp.maxSpores;
         if (sp.baseMaxSpores !== undefined)  p.baseMaxSpores  = sp.baseMaxSpores;
-        if (sp.parasite !== undefined)       p.parasite       = sp.parasite;
+        if (sp.parasite !== undefined) {
+            if (sp.parasite === null) {
+                p.parasite = null;
+            } else {
+                const _srcBody = gameState.planets.find(b => b.name === sp.parasite.sourceName)
+                               || gameState.moons.find(b => b.name === sp.parasite.sourceName);
+                p.parasite = { ownerSlot: sp.parasite.ownerSlot, sourceName: sp.parasite.sourceName, sourceBody: _srcBody || null, _accumulator: p.parasite?._accumulator || 0 };
+            }
+        }
         // Mettre à jour bodies/spawnPlanet pour chaque joueur
         if (ownerChanged) {
             for (const player of gameState.players) {
