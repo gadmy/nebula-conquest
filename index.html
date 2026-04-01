@@ -1423,7 +1423,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.24) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.25) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -6049,6 +6049,7 @@ function _closeSporMenu() {
     const _bip = document.getElementById('bodyInfoPanel');
     if (_bip) _bip.style.display = 'none';
     _stmLiveBody = null;
+    gameState._parasiteArrowBody = null;
 }
 let _stmLiveBody = null;
 var _stmCanvas = null;
@@ -6424,9 +6425,21 @@ function _updateBodyInfoPanel(body, menuLeft, menuTop) {
     if (nidPct > 0) rows.push({ label:'Nids (×'+body.nids+')', val: `+${nidPct}%`, cls:'bi-pos' });
     if ((body.biomes||0) > 0) rows.push({ label:'Biomes (×'+body.biomes+')', val: `+${body.biomes*5}% déf`, cls:'bi-pos' });
     if ((body.alveoles||0) > 0) rows.push({ label:'Alvéoles (×'+body.alveoles+')', val: `+${body.alveoles*5}% cap`, cls:'bi-pos' });
-    if (body.buildMode && body.buildMode !== 'off') rows.push({ label:'Mode actif', val: body.buildMode, cls:'bi-neu' });
-    if (body.parasite) rows.push({ label:'Parasite reçu', val: '-20% prod', cls:'bi-neg' });
-    if (_parasitedByMe.length > 0) rows.push({ label:'Parasite envoyé', val: `→ ${_parasitedByMe.map(b=>b.name).join(', ')}`, cls:'bi-pos' });
+    if (body.buildMode && body.buildMode !== 'off') rows.push({ label:'Construction', val: body.buildMode, cls:'bi-neu' });
+    if (body.parasite) {
+        const _parasiteOwnerName = gameState.players.find(p => p.id === body.parasite.ownerSlot)?.name || '?';
+        const _parasiteSrcBody = gameState.planets.find(b => b.name === body.parasite.sourceName) || gameState.moons.find(b => b.name === body.parasite.sourceName);
+        const _parasiteDrainRate = rate >= 10 ? Math.max(1, Math.round(rate * 0.20)) : Math.round(rate * 0.20 * 10) / 10;
+        rows.push({ label: `Parasite de ${_parasiteOwnerName}`, val: `-20% prod (-${_parasiteDrainRate}/s)`, cls:'bi-neg' });
+    }
+    if (_parasitedByMe.length > 0) {
+        for (const _pb of _parasitedByMe) {
+            const _pbPlayer = gameState.players.find(p => p.id === _pb.owner);
+            const _pbRate = _pb.flore > 0 ? (0.4+(_pb.flore/100)*0.6)*(1+(player?.stats?.growth||0)*0.3)*2.5 : 0;
+            const _pbDrain = _pbRate >= 10 ? Math.max(1, Math.round(_pbRate * 0.20)) : Math.round(_pbRate * 0.20 * 10) / 10;
+            rows.push({ label: `${_pb.name} parasité`, val: `+${_pbDrain}/s`, cls:'bi-pos' });
+        }
+    }
 
     panel.innerHTML = `<div class="bi-title">${body.name}</div>` +
         rows.map(r => r === 'sep'
@@ -6442,6 +6455,7 @@ function _updateBodyInfoPanel(body, menuLeft, menuTop) {
     let py = Math.max(8, Math.min(window.innerHeight - ph - 8, menuTop));
     panel.style.left = px + 'px';
     panel.style.top  = py + 'px';
+    gameState._parasiteArrowBody = body;
 }
 let spawnCountdownInterval = null;
 
@@ -9460,6 +9474,41 @@ function drawPlanets(ctx) {
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText('🤝', p.x + p.radius * 0.7, p.y - p.radius * 0.7);
                 ctx.restore();
+            }
+
+            // Flèches parasite (quand le menu radial est ouvert sur cette planète)
+            if (gameState._parasiteArrowBody === p) {
+                const _drawParasiteArrow = (targetBody, color) => {
+                    if (!targetBody) return;
+                    const dx = targetBody.x - p.x, dy = targetBody.y - p.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 1) return;
+                    const nx = dx/dist, ny = dy/dist;
+                    const arrowR = p.radius + 18;
+                    const ax = p.x + nx * arrowR, ay = p.y + ny * arrowR;
+                    ctx.save();
+                    ctx.translate(ax, ay);
+                    ctx.rotate(Math.atan2(dy, dx));
+                    ctx.beginPath();
+                    ctx.moveTo(8, 0);
+                    ctx.lineTo(-4, 5);
+                    ctx.lineTo(-4, -5);
+                    ctx.closePath();
+                    ctx.fillStyle = color;
+                    ctx.globalAlpha = 0.85;
+                    ctx.fill();
+                    ctx.restore();
+                };
+                // Flèche vers parasiteur (rouge sur la planète parasitée)
+                if (p.parasite) {
+                    const _src = gameState.planets.find(b => b.name === p.parasite.sourceName) || gameState.moons.find(b => b.name === p.parasite.sourceName);
+                    _drawParasiteArrow(_src, '#F87171');
+                }
+                // Flèches vers planètes parasitées (vert sur la planète source)
+                const _myParasited = [...gameState.planets, ...gameState.moons].filter(b => b.parasite && b.parasite.sourceName === p.name && b.parasite.ownerSlot === localSlot());
+                for (const _pb of _myParasited) {
+                    _drawParasiteArrow(_pb, '#4ADE80');
+                }
             }
 
             // Halo parasite
