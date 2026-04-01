@@ -1423,7 +1423,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.17) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.18) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -7019,6 +7019,11 @@ function updateHUD() {
             if (totalRate > 0) mods.push({ cls:'pos', label:`+${Math.round(totalRate)}/s`, tip:'Production totale (sp/s)' });
             if (sacPct > 0) mods.push({ cls:'neg', label:`-${sacPct}% sacr.`, tip:'Spores sacrifiées pour la multiplicité' });
             if (sysBonusCount > 0) mods.push({ cls:'pos', label:`+${sysBonusCount*3}% sys.`, tip:`${sysBonusCount} système(s) complet(s)` });
+            // Parasites reçus/envoyés
+            const _parasitedByMe = [...gameState.planets, ...gameState.moons].filter(b => b.parasite && b.parasite.ownerSlot === localSlot());
+            const _parasitedOnMe = human.bodies.filter(b => b.parasite);
+            if (_parasitedOnMe.length > 0) mods.push({ cls:'neg', label:`-20% ×${_parasitedOnMe.length} parasite`, tip:`Planètes parasitées: ${_parasitedOnMe.map(b=>b.name).join(', ')}` });
+            if (_parasitedByMe.length > 0) mods.push({ cls:'pos', label:`+drain ×${_parasitedByMe.length}`, tip:`Parasites actifs sur: ${_parasitedByMe.map(b=>b.name).join(', ')}` });
             modsEl.innerHTML = mods.map(m =>
                 `<span class="spore-mod ${m.cls}" title="${m.tip}">${m.label}</span>`
             ).join('');
@@ -8424,12 +8429,16 @@ function setupInput() {
         const wp = _worldPos(e.clientX, e.clientY);
 
         // Fermer tous les menus en jeu si clic hors du menu
-        const _openMenus = ['sporeTypeMenu', 'codexPanel'].map(id => document.getElementById(id)).filter(el => el && el.style.display !== 'none' && el.offsetParent !== null);
-        for (const menuEl of _openMenus) {
-            const mr = menuEl.getBoundingClientRect();
+        const _openMenus = [
+            { id: 'sporeTypeMenu', close: () => { _closeSporMenu(); gameState._firePhase = null; gameState._fireSource = null; } },
+            { id: 'codex',    close: () => closeCodex() },
+            { id: 'evoPanel', close: () => { document.getElementById('evoPanel').style.display = 'none'; } },
+        ].map(m => ({ ...m, el: document.getElementById(m.id) }))
+         .filter(m => m.el && m.el.style.display !== 'none' && m.el.offsetParent !== null);
+        for (const menu of _openMenus) {
+            const mr = menu.el.getBoundingClientRect();
             if (e.clientX < mr.left || e.clientX > mr.right || e.clientY < mr.top || e.clientY > mr.bottom) {
-                if (menuEl.id === 'sporeTypeMenu') { _closeSporMenu(); gameState._firePhase = null; gameState._fireSource = null; }
-                else if (menuEl.id === 'codexPanel') { closeCodex(); }
+                menu.close();
                 return;
             }
         }
@@ -10299,6 +10308,29 @@ function drawSporeCountOnBodies(ctx) {
                 ctx.font = (7 * scale) + 'px Exo 2';
                 ctx.fillStyle = 'rgba(74,222,128,0.7)';
                 ctx.fillText('+' + Math.round(_rate) + '/s', body.x, body.y + body.radius + 20 * scale);
+                // Malus parasite reçu (-20% prod)
+                if (body.parasite) {
+                    ctx.font = (7 * scale) + 'px Exo 2';
+                    ctx.fillStyle = 'rgba(239,68,68,0.9)';
+                    ctx.fillText('-20% parasite', body.x, body.y + body.radius + 30 * scale);
+                }
+            }
+            // Bonus parasite envoyé (planète source du parasite)
+            if (body.owner === localSlot() && body.flore > 0) {
+                const _parasitedBodies = [...gameState.planets, ...gameState.moons].filter(b => b.parasite && b.parasite.ownerSlot === localSlot());
+                if (_parasitedBodies.length > 0) {
+                    // Chercher si ce body est la source d'un parasite
+                    const _isSource = _parasitedBodies.some(b => {
+                        const srcName = b.parasite?.sourceName || (b.parasite?.sourceBody?.name);
+                        return srcName === body.name;
+                    });
+                    if (_isSource) {
+                        ctx.font = (7 * scale) + 'px Exo 2';
+                        ctx.fillStyle = 'rgba(34,197,94,0.9)';
+                        const _drainRate = Math.round(0.2 * (0.4+(body.flore/100)*0.6)*2.5);
+                        ctx.fillText('+~' + _drainRate + '/s drain', body.x, body.y + body.radius + 30 * scale);
+                    }
+                }
             }
         }
 
