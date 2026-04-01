@@ -1426,7 +1426,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.32) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.33) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -9607,37 +9607,36 @@ function drawPlanets(ctx) {
 
             // Icônes bâtiments sous la planète (si possédée par le joueur local)
             if (p.owner === localSlot() && gameState.lod >= 1) {
-                const _activeBuild = p.buildMode && p.buildMode !== 'off'
-                    && p.buildMode !== 'ruche' && p.buildMode !== 'mare';
-                const _hasRuche = p.buildMode === 'ruche';
-                const _hasMare  = p.buildMode === 'mare';
                 const _t = gameState.time || 0;
-                ctx.save();
-                ctx.textAlign = 'center';
-                let _iconY = p.y + p.radius + 18;
-                if (_hasRuche) {
-                    const _fs = Math.max(8, p.radius * 0.5);
-                    ctx.font = _fs + 'px sans-serif';
-                    ctx.globalAlpha = 0.85;
-                    ctx.fillText('🔴', p.x - (_hasMare ? _fs*0.7 : 0), _iconY);
-                }
-                if (_hasMare) {
-                    const _fs = Math.max(8, p.radius * 0.5);
-                    ctx.font = _fs + 'px sans-serif';
-                    ctx.globalAlpha = 0.85;
-                    ctx.fillText('🔵', p.x + (_hasRuche ? _fs*0.7 : 0), _iconY);
-                }
-                if (_activeBuild) {
-                    // 🧬 pulsant
+                // 🧬 : construction bâtiment (nid, biome, alvéole, foyer putride)
+                const _isBuild = p.buildMode && ['nid','biome','alveole','parasite'].includes(p.buildMode);
+                // 🫧 : production spores spéciaux (ruche, mare)
+                const _isSpore = p.buildMode && ['ruche','mare'].includes(p.buildMode);
+                const _showSpore = _isSpore;
+
+                if (_isBuild || _showSpore) {
+                    ctx.save();
+                    ctx.textAlign = 'center';
                     const _pulse = 1 + 0.18 * Math.sin(_t * 3.5);
                     const _alpha = 0.6 + 0.4 * Math.abs(Math.sin(_t * 2.2));
-                    const _fs = Math.max(10, p.radius * 0.6) * _pulse;
-                    ctx.font = _fs + 'px sans-serif';
-                    ctx.globalAlpha = _alpha;
-                    ctx.fillText('🧬', p.x, _iconY);
+                    const _fs = Math.max(10, p.radius * 0.6);
+                    const _iconY = p.y + p.radius + 18;
+                    // Décalage si les deux sont visibles
+                    const _both = _isBuild && _showSpore;
+                    const _offX = _both ? _fs * 0.7 : 0;
+                    if (_isBuild) {
+                        ctx.font = (_fs * _pulse) + 'px sans-serif';
+                        ctx.globalAlpha = _alpha;
+                        ctx.fillText('🧬', p.x - _offX, _iconY);
+                    }
+                    if (_showSpore) {
+                        ctx.font = (_fs * _pulse) + 'px sans-serif';
+                        ctx.globalAlpha = _alpha;
+                        ctx.fillText('🫧', p.x + _offX, _iconY);
+                    }
+                    ctx.globalAlpha = 1;
+                    ctx.restore();
                 }
-                ctx.globalAlpha = 1;
-                ctx.restore();
             }
         }
 
