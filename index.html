@@ -1423,7 +1423,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.23) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.24) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2072,11 +2072,26 @@ input[type="radio"]:checked + .build-icon-btn {
 #sporeTypeMenu {
     display:none; position:fixed; z-index:200; pointer-events:none;
 }
+#bodyInfoPanel {
+    display:none; position:fixed; z-index:199; pointer-events:none;
+    background:rgba(10,8,35,0.92); border:1px solid rgba(100,70,180,0.4);
+    border-radius:8px; padding:8px 10px; min-width:160px; max-width:200px;
+    font-family:'Exo 2',sans-serif; font-size:11px; color:#E2D9F3;
+}
+#bodyInfoPanel .bi-title { font-family:'Orbitron',sans-serif; font-size:10px; color:#C084FC; margin-bottom:6px; letter-spacing:1px; }
+#bodyInfoPanel .bi-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:3px; gap:8px; }
+#bodyInfoPanel .bi-label { color:rgba(200,180,255,0.6); font-size:10px; }
+#bodyInfoPanel .bi-val { font-size:11px; font-weight:600; }
+#bodyInfoPanel .bi-pos { color:#4ADE80; }
+#bodyInfoPanel .bi-neg { color:#F87171; }
+#bodyInfoPanel .bi-neu { color:#C084FC; }
+#bodyInfoPanel .bi-sep { border:none; border-top:1px solid rgba(100,70,180,0.2); margin:5px 0; }
 #stmCanvas { pointer-events:all; cursor:pointer; }
 </style>
 <div id="sporeTypeMenu">
     <canvas id="stmCanvas" width="300" height="300"></canvas>
 </div>
+<div id="bodyInfoPanel"></div>
 
 <!-- ═══ PAUSE ═══ -->
 <div id="pauseOverlay">
@@ -6029,7 +6044,12 @@ if (gameState.isMulti && gameState._serverUniverse) {
 function _isAllied() { return false; }
 
 // ── STM — Menu radial (global) ────────────────────────────────
-function _closeSporMenu() { document.getElementById('sporeTypeMenu').style.display = 'none'; _stmLiveBody = null; }
+function _closeSporMenu() {
+    document.getElementById('sporeTypeMenu').style.display = 'none';
+    const _bip = document.getElementById('bodyInfoPanel');
+    if (_bip) _bip.style.display = 'none';
+    _stmLiveBody = null;
+}
 let _stmLiveBody = null;
 var _stmCanvas = null;
 var _stmCtx = null;
@@ -6370,6 +6390,58 @@ function _stmOpen(body, clientX, clientY) {
     const _my = Math.max(8, Math.min(window.innerHeight - STM_SIZE - 8, clientY - STM_SIZE/2));
     menu.style.left = _mx + 'px';
     menu.style.top  = _my + 'px';
+    _updateBodyInfoPanel(body, _mx, _my);
+}
+
+function _updateBodyInfoPanel(body, menuLeft, menuTop) {
+    const panel = document.getElementById('bodyInfoPanel');
+    if (!panel) return;
+    if (!body) { panel.style.display = 'none'; return; }
+
+    const player = gameState.players[localSlot()];
+    const sacPct = player?.multiSacrifice || 0;
+    const symPct = Math.round(((body.symbiosis||0)/100)*(body.type==='planet'?20:10));
+    const nidPct = Math.round((body.nids||0)*2.5);
+    const symM = 1+((body.symbiosis||0)/100)*(body.type==='planet'?0.20:0.10);
+    const nidM = 1+(body.nids||0)*0.025;
+    const sacM = 1-Math.min(sacPct/100,0.5);
+    const rate = body.flore > 0
+        ? (0.4+(body.flore/100)*0.6)*(1+(player?.stats?.growth||0)*0.3)*2.5*symM*nidM*sacM
+        : 0;
+
+    // Parasite envoyé par ce joueur
+    const _parasitedByMe = [...gameState.planets, ...gameState.moons]
+        .filter(b => b.parasite && b.parasite.ownerSlot === localSlot() && b.parasite.sourceName === body.name);
+
+    const rows = [];
+    rows.push({ label:'Production', val: rate > 0 ? `+${Math.round(rate)}/s` : '—', cls:'bi-pos' });
+    rows.push({ label:'Spores', val: `${Math.floor(body.spores||0)} / ${body.maxSpores||0}`, cls:'bi-neu' });
+    if ((body.sporesAttaque||0) > 0) rows.push({ label:'Att.', val: Math.floor(body.sporesAttaque), cls:'bi-neg' });
+    if ((body.sporesDefense||0) > 0) rows.push({ label:'Déf.', val: Math.floor(body.sporesDefense), cls:'bi-pos' });
+    rows.push('sep');
+    if (sacPct > 0) rows.push({ label:'Sacrifice', val: `-${sacPct}%`, cls:'bi-neg' });
+    if (symPct > 0) rows.push({ label:'Symbiose', val: `+${symPct}%`, cls:'bi-pos' });
+    if (nidPct > 0) rows.push({ label:'Nids (×'+body.nids+')', val: `+${nidPct}%`, cls:'bi-pos' });
+    if ((body.biomes||0) > 0) rows.push({ label:'Biomes (×'+body.biomes+')', val: `+${body.biomes*5}% déf`, cls:'bi-pos' });
+    if ((body.alveoles||0) > 0) rows.push({ label:'Alvéoles (×'+body.alveoles+')', val: `+${body.alveoles*5}% cap`, cls:'bi-pos' });
+    if (body.buildMode && body.buildMode !== 'off') rows.push({ label:'Mode actif', val: body.buildMode, cls:'bi-neu' });
+    if (body.parasite) rows.push({ label:'Parasite reçu', val: '-20% prod', cls:'bi-neg' });
+    if (_parasitedByMe.length > 0) rows.push({ label:'Parasite envoyé', val: `→ ${_parasitedByMe.map(b=>b.name).join(', ')}`, cls:'bi-pos' });
+
+    panel.innerHTML = `<div class="bi-title">${body.name}</div>` +
+        rows.map(r => r === 'sep'
+            ? '<hr class="bi-sep">'
+            : `<div class="bi-row"><span class="bi-label">${r.label}</span><span class="bi-val ${r.cls}">${r.val}</span></div>`
+        ).join('');
+
+    panel.style.display = 'block';
+    // Positionner à droite du menu radial
+    const pw = 200, ph = panel.offsetHeight || 200;
+    let px = menuLeft + STM_SIZE + 8;
+    if (px + pw > window.innerWidth - 8) px = menuLeft - pw - 8;
+    let py = Math.max(8, Math.min(window.innerHeight - ph - 8, menuTop));
+    panel.style.left = px + 'px';
+    panel.style.top  = py + 'px';
 }
 let spawnCountdownInterval = null;
 
@@ -10317,106 +10389,9 @@ function drawSporeCountOnBodies(ctx) {
             ctx.textAlign = 'center';
             ctx.fillStyle = col + 'BB';
             ctx.fillText(Math.floor(body.spores), body.x, body.y + body.radius + 10 * scale);
-            // Taux de production en permanence (planètes du joueur local seulement)
-            if (body.owner === localSlot() && body.flore > 0) {
-                const _pl = gameState.players[localSlot()];
-                const _sacM = 1 - Math.min((_pl?.multiSacrifice||0)/100, 0.5);
-                const _symM = 1+((body.symbiosis||0)/100)*(body.type==='planet'?0.20:0.10);
-                const _nidM = 1+(body.nids||0)*0.025;
-                const _rate = (0.4+(body.flore/100)*0.6)*(1+((_pl?.stats?.growth)||0)*0.3)*2.5*_symM*_nidM*_sacM;
-                ctx.font = (7 * scale) + 'px Exo 2';
-                ctx.fillStyle = 'rgba(74,222,128,0.7)';
-                ctx.fillText('+' + Math.round(_rate) + '/s', body.x, body.y + body.radius + 20 * scale);
-                // Malus parasite reçu (-20% prod)
-                if (body.parasite) {
-                    ctx.font = (7 * scale) + 'px Exo 2';
-                    ctx.fillStyle = 'rgba(239,68,68,0.9)';
-                    ctx.fillText('-20% parasite', body.x, body.y + body.radius + 30 * scale);
-                }
-            }
-            // Bonus parasite envoyé (planète source du parasite)
-            if (body.owner === localSlot() && body.flore > 0) {
-                const _parasitedBodies = [...gameState.planets, ...gameState.moons].filter(b => b.parasite && b.parasite.ownerSlot === localSlot());
-                if (_parasitedBodies.length > 0) {
-                    // Chercher si ce body est la source d'un parasite
-                    const _isSource = _parasitedBodies.some(b => {
-                        const srcName = b.parasite?.sourceName || (b.parasite?.sourceBody?.name);
-                        return srcName === body.name;
-                    });
-                    if (_isSource) {
-                        ctx.font = (7 * scale) + 'px Exo 2';
-                        ctx.fillStyle = 'rgba(34,197,94,0.9)';
-                        const _drainRate = Math.round(0.2 * (0.4+(body.flore/100)*0.6)*2.5);
-                        ctx.fillText('+~' + _drainRate + '/s drain', body.x, body.y + body.radius + 30 * scale);
-                    }
-                }
-            }
         }
 
-        // Tooltip au survol (toutes planètes et lunes, même neutres)
-        if (body.type === 'sun') continue;
-        const ddx = body.x - mx, ddy = body.y - my;
-        const _hr = body.radius + 16;
-        const hovered = ddx*ddx + ddy*ddy < _hr*_hr;
-        if (!hovered) continue;
-
-        ctx.save();
-        ctx.font = 'bold ' + (fixedSize * 1.1) + 'px Orbitron';
-        ctx.textAlign = 'center';
-        const lineH = fixedSize * 1.6;
-        let yOff = body.y + body.radius + fixedSize * 2;
-
-        // Fond semi-transparent
-        const lines = [body.name];
-        if (body.owner === null) {
-            lines.push('Flore: ' + (body.flore ?? '—') + '  Faune: ' + (body.faune ?? '—'));
-        } else {
-            const col = gameState.players[body.owner]?.color || '#FFF';
-            lines.push('⚪ ' + Math.floor(body.spores) + '/' + body.maxSpores);
-            const att = Math.floor(body.sporesAttaque || 0);
-            const def = Math.floor(body.sporesDefense || 0);
-            if (att > 0) lines.push('🔴 ' + att + ' att');
-            if (def > 0) lines.push('🔵 ' + def + ' déf');
-            // Modificateurs production
-            if (body.owner === localSlot() && body.flore > 0) {
-                const _player = gameState.players[localSlot()];
-                const _sac = _player?.multiSacrifice || 0;
-                const _sym = Math.round(((body.symbiosis||0)/100)*(body.type==='planet'?20:10));
-                const _nid = Math.round((body.nids||0)*2.5);
-                const _symM = 1+((body.symbiosis||0)/100)*(body.type==='planet'?0.20:0.10);
-                const _nidM = 1+(body.nids||0)*0.025;
-                const _prodPct = 1-Math.min(_sac/100,0.5);
-                const _rate = (0.4+(body.flore/100)*0.6)*(1+(_player?.stats?.growth||0)*0.3)*2.5*_symM*_nidM*_prodPct;
-                lines.push('⚡ +' + Math.round(_rate) + ' sp/s');
-                if (_sac > 0) lines.push('🔻 -' + _sac + '% sacrifice');
-                if (_sym > 0) lines.push('🟢 +' + _sym + '% symbiose');
-                if (_nid > 0) lines.push('🏗️ +' + _nid + '% nids');
-                if (body.buildMode && body.buildMode !== 'off') lines.push('🔧 mode: ' + body.buildMode);
-            }
         }
-        const bgW = fixedSize * 8;
-        const bgH = lineH * lines.length + fixedSize * 0.8;
-        ctx.fillStyle = 'rgba(10,8,35,0.82)';
-        ctx.beginPath();
-        ctx.roundRect(body.x - bgW/2, yOff - fixedSize * 1.2, bgW, bgH, fixedSize * 0.4);
-        ctx.fill();
-
-        // Texte
-        const col = body.owner !== null ? (gameState.players[body.owner]?.color || '#FFF') : '#C8A0FF';
-        ctx.fillStyle = col;
-        ctx.font = 'bold ' + (fixedSize * 1.1) + 'px Orbitron';
-        ctx.fillText(lines[0], body.x, yOff);
-        ctx.font = (fixedSize * 0.95) + 'px Orbitron';
-        ctx.fillStyle = '#FFFFFFCC';
-        for (let i = 1; i < lines.length; i++) {
-            yOff += lineH;
-            if (lines[i].startsWith('🔴')) ctx.fillStyle = '#EF4444CC';
-            else if (lines[i].startsWith('🔵')) ctx.fillStyle = '#38BDF8CC';
-            else ctx.fillStyle = '#FFFFFFCC';
-            ctx.fillText(lines[i], body.x, yOff);
-        }
-        ctx.restore();
-    }
 }
 
 
