@@ -1423,7 +1423,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.25) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.26) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -6427,10 +6427,9 @@ function _updateBodyInfoPanel(body, menuLeft, menuTop) {
     if ((body.alveoles||0) > 0) rows.push({ label:'Alvéoles (×'+body.alveoles+')', val: `+${body.alveoles*5}% cap`, cls:'bi-pos' });
     if (body.buildMode && body.buildMode !== 'off') rows.push({ label:'Construction', val: body.buildMode, cls:'bi-neu' });
     if (body.parasite) {
-        const _parasiteOwnerName = gameState.players.find(p => p.id === body.parasite.ownerSlot)?.name || '?';
-        const _parasiteSrcBody = gameState.planets.find(b => b.name === body.parasite.sourceName) || gameState.moons.find(b => b.name === body.parasite.sourceName);
+        const _parasiteSrcName = body.parasite.sourceName || '?';
         const _parasiteDrainRate = rate >= 10 ? Math.max(1, Math.round(rate * 0.20)) : Math.round(rate * 0.20 * 10) / 10;
-        rows.push({ label: `Parasite de ${_parasiteOwnerName}`, val: `-20% prod (-${_parasiteDrainRate}/s)`, cls:'bi-neg' });
+        rows.push({ label: `Parasite de ${_parasiteSrcName}`, val: `-20% prod (-${_parasiteDrainRate}/s)`, cls:'bi-neg' });
     }
     if (_parasitedByMe.length > 0) {
         for (const _pb of _parasitedByMe) {
@@ -9476,38 +9475,39 @@ function drawPlanets(ctx) {
                 ctx.restore();
             }
 
-            // Flèches parasite (quand le menu radial est ouvert sur cette planète)
-            if (gameState._parasiteArrowBody === p) {
-                const _drawParasiteArrow = (targetBody, color) => {
-                    if (!targetBody) return;
-                    const dx = targetBody.x - p.x, dy = targetBody.y - p.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist < 1) return;
-                    const nx = dx/dist, ny = dy/dist;
-                    const arrowR = p.radius + 18;
-                    const ax = p.x + nx * arrowR, ay = p.y + ny * arrowR;
-                    ctx.save();
-                    ctx.translate(ax, ay);
-                    ctx.rotate(Math.atan2(dy, dx));
-                    ctx.beginPath();
-                    ctx.moveTo(8, 0);
-                    ctx.lineTo(-4, 5);
-                    ctx.lineTo(-4, -5);
-                    ctx.closePath();
-                    ctx.fillStyle = color;
-                    ctx.globalAlpha = 0.85;
-                    ctx.fill();
-                    ctx.restore();
-                };
-                // Flèche vers parasiteur (rouge sur la planète parasitée)
-                if (p.parasite) {
-                    const _src = gameState.planets.find(b => b.name === p.parasite.sourceName) || gameState.moons.find(b => b.name === p.parasite.sourceName);
-                    _drawParasiteArrow(_src, '#F87171');
+            // Flèches parasite permanentes
+            if (p.parasite) {
+                // Flèche rouge → direction de la planète source (parasiteur)
+                const _psrc = gameState.planets.find(b => b.name === p.parasite.sourceName)
+                           || gameState.moons.find(b => b.name === p.parasite.sourceName);
+                if (_psrc) {
+                    const _dx = _psrc.x - p.x, _dy = _psrc.y - p.y;
+                    const _dist = Math.sqrt(_dx*_dx + _dy*_dy);
+                    if (_dist > 1) {
+                        const _ar = p.radius + 16;
+                        ctx.save();
+                        ctx.translate(p.x + (_dx/_dist)*_ar, p.y + (_dy/_dist)*_ar);
+                        ctx.rotate(Math.atan2(_dy, _dx));
+                        ctx.beginPath(); ctx.moveTo(7,0); ctx.lineTo(-4,4); ctx.lineTo(-4,-4); ctx.closePath();
+                        ctx.fillStyle = '#F87171'; ctx.globalAlpha = 0.9; ctx.fill();
+                        ctx.restore();
+                    }
                 }
-                // Flèches vers planètes parasitées (vert sur la planète source)
-                const _myParasited = [...gameState.planets, ...gameState.moons].filter(b => b.parasite && b.parasite.sourceName === p.name && b.parasite.ownerSlot === localSlot());
-                for (const _pb of _myParasited) {
-                    _drawParasiteArrow(_pb, '#4ADE80');
+            }
+            // Flèches vertes → planètes que cette planète parasite
+            const _myParasited = [...gameState.planets, ...gameState.moons]
+                .filter(b => b.parasite && b.parasite.sourceName === p.name && b.parasite.ownerSlot === localSlot());
+            for (const _pb of _myParasited) {
+                const _dx = _pb.x - p.x, _dy = _pb.y - p.y;
+                const _dist = Math.sqrt(_dx*_dx + _dy*_dy);
+                if (_dist > 1) {
+                    const _ar = p.radius + 16;
+                    ctx.save();
+                    ctx.translate(p.x + (_dx/_dist)*_ar, p.y + (_dy/_dist)*_ar);
+                    ctx.rotate(Math.atan2(_dy, _dx));
+                    ctx.beginPath(); ctx.moveTo(7,0); ctx.lineTo(-4,4); ctx.lineTo(-4,-4); ctx.closePath();
+                    ctx.fillStyle = '#4ADE80'; ctx.globalAlpha = 0.9; ctx.fill();
+                    ctx.restore();
                 }
             }
 
