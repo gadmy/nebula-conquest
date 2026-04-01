@@ -1426,7 +1426,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.31) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.32) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -6381,7 +6381,7 @@ function _stmOpen(body, clientX, clientY) {
         { mode:'biome',   icon:'🛡️', name:'BIOME',   color:'rgba(59,130,246,0.3)',  tip:`+5% défense · Coût: ${Math.floor(_base*0.20)} sp`,  disabled: body.spores < Math.floor(_base*0.20) },
         { mode:'ruche',   icon:'🔴', name:'RUSH',    color:'rgba(220,38,38,0.3)',   tip:'Produit des spores d\'attaque (50% du rate).',      disabled:false },
         { mode:'mare',    icon:'🔵', name:'MARE',    color:'rgba(14,165,233,0.3)',  tip:'Produit des spores de défense (50% du rate).',      disabled:false },
-        { mode:'parasite',icon:'🦠', name:'PARASITE',color:'rgba(10,80,30,0.3)',    tip:'2 min → 1 spore parasitaire.',                      disabled:(body.parasiteSpore||0)>=1 },
+        { mode:'parasite',icon:'🦠', name:'FOYER PUTRIDE',color:'rgba(10,80,30,0.3)',    tip:'2 min → 1 spore parasitaire.',                      disabled:(body.parasiteSpore||0)>=1 },
     ];
     _stmBldSectors = _BLD_ALL.map(b => ({ ...b, active: body.buildMode===b.mode }));
     _stmLiveBody = body;
@@ -6935,7 +6935,7 @@ function updateCodexBuild(body) {
         { mode:'biome',   icon:'🛡️', name:'BIOME',    desc:`+5% défense · Coût: ${Math.floor(_base*0.20)} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Sacrifice '+Math.floor(_base*0.20)+' spores pour renforcer la défense naturelle de la planète. Annulé si la planète est vidée.' },
         { mode:'ruche',   icon:'🔴', name:'RUSH',     desc:'Produit des spores attaque', color:'rgba(220,38,38,0.3)' },
         { mode:'mare',    icon:'🔵', name:'MARE',     desc:'Produit des spores défense', color:'rgba(14,165,233,0.3)' },
-        { mode:'parasite',  icon:'🦠', name:'PARASITE',    desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
+        { mode:'parasite',  icon:'🦠', name:'FOYER PUTRIDE',    desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
 
     ];
 
@@ -9519,6 +9519,44 @@ function drawPlanets(ctx) {
                 }
             }
 
+            // Flèches parasite permanentes
+            {
+                const _drawArrow = (tx, ty, fromX, fromY, color, offset) => {
+                    const _dx = tx - fromX, _dy = ty - fromY;
+                    const _dist = Math.sqrt(_dx*_dx + _dy*_dy);
+                    if (_dist < 1) return;
+                    const _ang = Math.atan2(_dy, _dx);
+                    const _ar = fromX === p.x ? p.radius + 16 : p.radius + 16;
+                    const _ax = fromX + Math.cos(_ang + offset) * (_ar);
+                    const _ay = fromY + Math.sin(_ang + offset) * (_ar);
+                    ctx.save();
+                    ctx.translate(_ax, _ay);
+                    ctx.rotate(_ang + offset);
+                    ctx.beginPath(); ctx.moveTo(8,0); ctx.lineTo(-5,4); ctx.lineTo(-5,-4); ctx.closePath();
+                    ctx.fillStyle = color; ctx.globalAlpha = 0.9; ctx.fill();
+                    ctx.restore();
+                };
+                // Flèche rouge : cette planète est parasitée → indique la source
+                if (p.parasite) {
+                    const _psrc = gameState.planets.find(b => b.name === p.parasite.sourceName)
+                               || gameState.moons.find(b => b.name === p.parasite.sourceName);
+                    if (_psrc) _drawArrow(_psrc.x, _psrc.y, p.x, p.y, '#F87171', 0);
+                }
+                // Flèches vertes : cette planète parasite d'autres → une flèche par cible, décalées
+                const _targets = [...gameState.planets, ...gameState.moons]
+                    .filter(b => b.parasite && b.parasite.sourceName === p.name && b.parasite.ownerSlot === localSlot());
+                _targets.forEach((tb, idx) => {
+                    const offset = (_targets.length > 1) ? (idx - (_targets.length-1)/2) * 0.25 : 0;
+                    _drawArrow(tb.x, tb.y, p.x, p.y, '#4ADE80', offset);
+                });
+                // Si cette planète est à la fois parasitée ET parasite, décaler la flèche rouge
+                if (p.parasite && _targets.length > 0) {
+                    const _psrc = gameState.planets.find(b => b.name === p.parasite.sourceName)
+                               || gameState.moons.find(b => b.name === p.parasite.sourceName);
+                    if (_psrc) _drawArrow(_psrc.x, _psrc.y, p.x, p.y, '#F87171', -0.25);
+                }
+            }
+
             // Halo parasite
             if (p.parasite) {
                 const _t = gameState.time || 0;
@@ -9569,23 +9607,37 @@ function drawPlanets(ctx) {
 
             // Icônes bâtiments sous la planète (si possédée par le joueur local)
             if (p.owner === localSlot() && gameState.lod >= 1) {
-                const icons = [];
-                if (p.buildMode === 'ruche') icons.push('🔴');
-                if (p.buildMode === 'mare') icons.push('🔵');
-                if (p.buildMode === 'parasite') icons.push('🦠');
-                if (icons.length > 0) {
-                    ctx.save();
-                    const _fs = Math.max(8, p.radius * 0.55);
+                const _activeBuild = p.buildMode && p.buildMode !== 'off'
+                    && p.buildMode !== 'ruche' && p.buildMode !== 'mare';
+                const _hasRuche = p.buildMode === 'ruche';
+                const _hasMare  = p.buildMode === 'mare';
+                const _t = gameState.time || 0;
+                ctx.save();
+                ctx.textAlign = 'center';
+                let _iconY = p.y + p.radius + 18;
+                if (_hasRuche) {
+                    const _fs = Math.max(8, p.radius * 0.5);
                     ctx.font = _fs + 'px sans-serif';
-                    ctx.textAlign = 'center';
-                    const _bY = p.y + p.radius + _fs * 1.3;
-                    const _bW = icons.length * _fs * 1.3;
-                    icons.forEach((ic, idx) => {
-                        const _bX = p.x - _bW / 2 + idx * _fs * 1.3 + _fs * 0.65;
-                        ctx.fillText(ic, _bX, _bY);
-                    });
-                    ctx.restore();
+                    ctx.globalAlpha = 0.85;
+                    ctx.fillText('🔴', p.x - (_hasMare ? _fs*0.7 : 0), _iconY);
                 }
+                if (_hasMare) {
+                    const _fs = Math.max(8, p.radius * 0.5);
+                    ctx.font = _fs + 'px sans-serif';
+                    ctx.globalAlpha = 0.85;
+                    ctx.fillText('🔵', p.x + (_hasRuche ? _fs*0.7 : 0), _iconY);
+                }
+                if (_activeBuild) {
+                    // 🧬 pulsant
+                    const _pulse = 1 + 0.18 * Math.sin(_t * 3.5);
+                    const _alpha = 0.6 + 0.4 * Math.abs(Math.sin(_t * 2.2));
+                    const _fs = Math.max(10, p.radius * 0.6) * _pulse;
+                    ctx.font = _fs + 'px sans-serif';
+                    ctx.globalAlpha = _alpha;
+                    ctx.fillText('🧬', p.x, _iconY);
+                }
+                ctx.globalAlpha = 1;
+                ctx.restore();
             }
         }
 
