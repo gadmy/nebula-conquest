@@ -1423,7 +1423,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.29) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.30) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -7026,15 +7026,18 @@ const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.10) : b.mode==='nid' ? 
 
 function _clampCodex() {
     const codexEl = document.getElementById('codex');
-    if (!codexEl || codexEl.style.display === 'none') return;
+    if (!codexEl || !gameState.codexOpen || !gameState.selectedBody) return;
     const W = window.innerWidth, H = window.innerHeight;
     const cw = codexEl.offsetWidth || 250;
     const ch = codexEl.offsetHeight || 400;
-    const cx = openCodex._cx || W / 2;
-    const cy = openCodex._cy || H / 2;
-    let x = cx + 12;
-    let y = cy + 12;
-    if (x + cw > W - 8) x = cx - cw - 8;
+    // Convertir position monde → écran
+    const cam = gameState.camera;
+    const scale = Math.min(W, H) / (2 / cam.zoom);
+    const sx = W/2 + (gameState.selectedBody.x - cam.x) * cam.zoom * (W / (2 / cam.zoom));
+    const sy = H/2 + (gameState.selectedBody.y - cam.y) * cam.zoom * (H / (2 / cam.zoom));
+    let x = sx + 20;
+    let y = sy - ch / 2;
+    if (x + cw > W - 8) x = sx - cw - 20;
     if (x < 8) x = 8;
     if (y + ch > H - 8) y = H - ch - 8;
     if (y < 8) y = 8;
@@ -8913,6 +8916,7 @@ if (gameState.isMulti) {
         gameState._hudCounter = (gameState._hudCounter || 0) + 1;
         gameState.gameStats.timeElapsed += dt;
         updateCameraFollow();
+        _clampCodex();
         return;
     }
     updateOrbits(dt);
@@ -8935,6 +8939,7 @@ if (gameState.isMulti) {
     updateImpacts(dt);
     updateConquestEffects(dt);
     updateCameraFollow();
+    _clampCodex();
     // Mise à jour HUD throttlé (perf)
     gameState.dt = dt;
     gameState._hudCounter = (gameState._hudCounter || 0) + 1;
