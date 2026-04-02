@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.13) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.14) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -1941,10 +1941,15 @@ input[type="radio"]:checked + .build-icon-btn {
             <div class="stat-row" title="Augmente les spores délivrées à l'impact (+5% par point)"><span class="stat-icon">💎</span><span class="stat-name">Density</span><span class="stat-val" id="evoStatDensity">3</span><span class="stat-bonus" id="evoStatDensityBonus"></span><span class="stat-effect" id="evoStatDensityFx"></span></div>
         </div>
         <div class="evo-sep"></div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(200,160,255,0.5);letter-spacing:2px;text-align:center;margin:4px 0 6px;">⚔ CONQUÊTE</div>
         <div class="evo-sacrifice" style="margin-bottom:2px;">
             <label title="Pourcentage de spores envoyées lors d'un jet">🚀 Envoi</label>
             <input type="range" id="jetRatioSlider" min="0" max="100" value="50" step="5">
             <span class="sac-val" id="jetRatioVal">50%</span>
+        </div>
+        <div class="evo-sacrifice" style="margin-bottom:4px;">
+            <label title="Que faire des bâtiments ennemis à la conquête ?">🏗️ Bâtiments</label>
+            <button id="conquestBuildingToggle" style="font-family:'Exo 2',sans-serif;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#F87171;transition:all 0.2s;">🔥 Détruire</button>
         </div>
         <div class="evo-sep"></div>
         <div class="evo-multi-title" title="Sacrifiez une partie de votre production pour gagner des paliers d'évolution. Chaque palier donne +1 point de stat au choix.">✦ MULTIPLICITÉ ✦</div>
@@ -2376,6 +2381,8 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Spawn : lunes disponibles comme planètes de départ (handleSpawnClick, autoSpawnAIs, finishMultiSpawn)
      - Bonus colonisation : +500 sp planète / +250 sp lune neutre (solo et multi), effet visuel +500🎁
      - Fix ligne de visée : recalcul à chaque frame dans la boucle de rendu (orbite suivie même souris fixe)
+     - Toggle conquête bâtiments : 🔥 Détruire / 🏗️ Conserver dans panneau Évolution (section ⚔ Conquête)
+     - Toggle conquête bâtiments : autoritaire serveur en multi (set_conquest_buildings via player_action)
      - Fix waitUniverse : appelle finishStartGame() après chargement carte
      - Fix keydown/keyup : guard e.key undefined
      - Fix snapshot lunes : nids/biomes/alveoles ajoutés côté serveur et appliqués client
@@ -8105,10 +8112,12 @@ function applyConquest(body, jet) {
         body.symOwnerTime = 0;
         body.buildMode = 'off';
         body.buildProgress = 0;
-        body.nids = 0;
-        body.biomes = 0;
-        body.alveoles = 0;
-        body.maxSpores = body.baseMaxSpores || body.maxSpores;
+        if (!gameState.conquestKeepBuildings) {
+            body.nids = 0;
+            body.biomes = 0;
+            body.alveoles = 0;
+            body.maxSpores = body.baseMaxSpores || body.maxSpores;
+        }
 
         // Vérifier nidification : annuler si < 50% du système
         if (oldOwner !== null && gameState.players[oldOwner]) {
@@ -12051,6 +12060,24 @@ document.getElementById('uiZoomSlider').addEventListener('input', (e) => {
 });
 
 // ═══ Listener Jet Ratio ═══
+gameState.conquestKeepBuildings = false;
+const _cbt = document.getElementById('conquestBuildingToggle');
+_cbt.addEventListener('click', () => {
+    gameState.conquestKeepBuildings = !gameState.conquestKeepBuildings;
+    if (gameState.conquestKeepBuildings) {
+        _cbt.textContent = '🏗️ Conserver';
+        _cbt.style.borderColor = 'rgba(34,197,94,0.5)';
+        _cbt.style.background = 'rgba(34,197,94,0.15)';
+        _cbt.style.color = '#4ADE80';
+    } else {
+        _cbt.textContent = '🔥 Détruire';
+        _cbt.style.borderColor = 'rgba(239,68,68,0.5)';
+        _cbt.style.background = 'rgba(239,68,68,0.15)';
+        _cbt.style.color = '#F87171';
+    }
+    if (gameState.isMulti) sendAction('set_conquest_buildings', { value: gameState.conquestKeepBuildings });
+});
+
 document.getElementById('jetRatioSlider').addEventListener('input', (e) => {
     const v = parseInt(e.target.value);
     gameState.jetRatio = v / 100;
