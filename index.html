@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.11) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.12) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2363,7 +2363,18 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Fix buildMode lunes en multi : ajout dans snapshot serveur et applySnapshot client
      - Fix build_mode multi : comparaison Number() pour body.owner === player.id
      - Fix multi spawn : gameState.players.find(p => p.id === slot) dans handleSpawnClick, confirmSpawn, finishMultiSpawn, updateMyPlanets
-     - Fix invité multi : appelle startGame() au lieu de setPhase('spawn') à la réception de game_start
+     - Fix multi matchmaking : aligné sur le flow local qui fonctionne
+       - Hôte : fadeTransition → _onGameReady directement
+       - Invité : listener game_start → startGame() (identique au local)
+       - _serverPlayers assigné avant _onGameReady dans matched
+     - Fix finishMultiSpawn : guard !human avant accès spawnPlanet
+     - Fix all_spawned : guard phase=spawn et players.length > 0
+     - Nettoyage : suppression fonctions mortes (_launchGame, _sendSnapshot)
+     - Nettoyage : console.log conquest supprimé (spam en partie)
+     - Tutoriel : refonte complète (12 étapes, menu radial, Mes Astres, Multiplicité, Symbiose, dangers, cleaners, ceintures, objectif)
+     - Tutoriel : buildStarted détecte maintenant planètes ET lunes
+     - Spawn : lunes disponibles comme planètes de départ (handleSpawnClick, autoSpawnAIs, finishMultiSpawn)
+     - Fix waitUniverse : appelle finishStartGame() après chargement carte
      - Fix keydown/keyup : guard e.key undefined
      - Fix snapshot lunes : nids/biomes/alveoles ajoutés côté serveur et appliqués client
      - Fix icône 🫧 → 💧 (emoji non supporté)
@@ -5886,16 +5897,17 @@ if (gameState.isMulti && gameState._serverUniverse) {
                     waited += 200;
                     if (gameState._serverUniverse) {
                         clearInterval(waitUniverse);
-                         loadMapFromJSON(gameState._serverUniverse);
+                        loadMapFromJSON(gameState._serverUniverse);
                         _syncServerIds(gameState._serverUniverse);
                         _buildBodyIndex();
                         gameState._serverUniverse = null;
-                        console.log('[multi] univers serveur reçu et chargé');
+                        finishStartGame();
                     } else if (waited >= 10000) {
                         clearInterval(waitUniverse);
                         console.warn('[multi] timeout univers serveur, carte aléatoire utilisée');
                         const mapIdx = Math.floor(Math.random() * MAP_LIBRARY.length);
                         loadMapFromJSON(MAP_LIBRARY[mapIdx]);
+                        finishStartGame();
                     }
                 }, 200);
                 return; // sortir de startGame, il sera relancé via le callback
@@ -6404,7 +6416,7 @@ function finishMultiSpawn() {
         }
     }
     if (!human || !human.spawnPlanet) {
-        const free = gameState.planets.filter(p => p.owner === null);
+        const free = [...gameState.planets, ...gameState.moons].filter(b => b.owner === null);
         if (free.length > 0) {
             const pick = free[Math.floor(spawnRng() * free.length)];
             pick.owner = slot;
@@ -6417,7 +6429,7 @@ function finishMultiSpawn() {
     // Placer les joueurs distants non spawn (déterministe)
     for (const player of gameState.players) {
         if (!player.spawnPlanet) {
-            const free = gameState.planets.filter(p => p.owner === null);
+            const free = [...gameState.planets, ...gameState.moons].filter(b => b.owner === null);
             if (free.length > 0) {
                 const pick = free[Math.floor(spawnRng() * free.length)];
                 pick.owner = player.id;
@@ -7086,13 +7098,13 @@ let _spawnTarget = null;
 function handleSpawnClick(worldX, worldY) {
     let closest = null;
     let closestDist = Infinity;
-    for (const p of gameState.planets) {
-        if (p.owner !== null) continue;
-        const dx = p.x - worldX;
-        const dy = p.y - worldY;
+    for (const b of [...gameState.planets, ...gameState.moons]) {
+        if (b.owner !== null) continue;
+        const dx = b.x - worldX;
+        const dy = b.y - worldY;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < Math.max(p.radius + 14, 20) && dist < closestDist) {
-            closest = p;
+        if (dist < Math.max(b.radius + 14, 20) && dist < closestDist) {
+            closest = b;
             closestDist = dist;
         }
     }
@@ -7161,11 +7173,11 @@ if (gameState.isMulti) {
 }
 
 function autoSpawnAIs() {
-    const available = gameState.planets.filter(p => p.owner === null);
+    const available = [...gameState.planets, ...gameState.moons].filter(b => b.owner === null);
     for (let i = 1; i < gameState.players.length; i++) {
         if (available.length === 0) break;
         if (gameState.isMulti && gameState.players[i].isHuman) continue;
-        // Choisir une planète éloignée des autres joueurs
+        // Choisir un astre éloigné des autres joueurs
         let bestPlanet = null;
         let bestScore = -1;
         for (const p of available) {
@@ -12598,27 +12610,6 @@ function _onGameReady(roomId, players) {
     }
 }
 
-function _sendSnapshot() {
-    if (!_socket || !currentRoom) return;
-    const snap = {
-        planets: gameState.planets.map(p => ({ name: p.name, owner: p.owner, spores: Math.round(p.spores), sporesAttaque: Math.round(p.sporesAttaque||0), sporesDefense: Math.round(p.sporesDefense||0) })),
-        moons: gameState.moons.map(m => ({ name: m.name, owner: m.owner, spores: Math.round(m.spores) })),
-        jets: gameState.jets.map(j => ({ id: j.id, x: Math.round(j.x), y: Math.round(j.y), alive: j.alive, owner: j.owner, spores: Math.round(j.spores||0), dirX: j.dirX, dirY: j.dirY, speed: j.speed, type: j.type, color: j.color })),
-        players: gameState.players.map(p => ({ id: p.id, alive: p.alive, totalSpores: Math.round(p.totalSpores||0) }))
-    };
-    _socket.emit('game_snapshot', snap);
-}
-
-function _launchGame(universe) {
-    const roomId = gameState._pendingRoomId;
-    console.log('[_launchGame] roomId=', roomId, 'socket=', !!_socket);
-    if (!roomId) return;
-    _socket.emit('game_start', { roomId, universe });
-    _socket.off('game_start');
-    // L'hôte lance aussi de son côté
-    setPhase('spawn');
-}
-
 // ── Réception snapshot ────────────────────────────────────────
 
 function applySnapshot(snap) {
@@ -12628,7 +12619,6 @@ function applySnapshot(snap) {
         const p = gameState.planets.find(p => p.name === sp.name);
         if (!p) return;
         const ownerChanged = p.owner !== sp.owner;
-        if (ownerChanged) console.log(`[conquest] ${sp.name} owner ${p.owner} → ${sp.owner}`);
         p.owner         = sp.owner;
         p.spores        = sp.spores;
         p.sporesAttaque = sp.sporesAttaque ?? p.sporesAttaque;
@@ -13200,15 +13190,54 @@ document.getElementById('btnStartTutorial').addEventListener('click', () => {
 
 // ═══ TUTORIEL ═══
 const TUTORIAL_STEPS = [
-    { text: "Bienvenue dans Nebula Conquest ! 🌌\nVotre planète de départ est mise en surbrillance. Elle produit des spores automatiquement grâce à sa Flore.", target: 'playerPlanet', popup: 'bottom-right' },
-    { text: "Faites un <b>clic droit</b> sur votre planète pour ouvrir le menu radial.", target: 'playerPlanet', popup: 'bottom-right', waitFor: 'radialOpen' },
-    { text: "Le menu radial est ouvert ! Cliquez sur <b>⚪ Normal</b> au centre pour activer le mode visée.", target: 'canvas', popup: 'top-right', waitFor: 'aimMode' },
-    { text: "Le mode visée est actif — un trait de trajectoire apparaît. Faites un <b>clic gauche</b> pour tirer vers une planète neutre.", target: 'canvas', popup: 'top-right', waitFor: 'jetFired' },
-    { text: "🎉 Bien joué ! Vos spores voyagent vers la cible. Quand elles arrivent, vous conquérez l'astre !", target: 'canvas', popup: 'top-right' },
-    { text: "Faites un <b>clic droit</b> sur une planète possédée, puis cliquez sur <b>🏗️ Nid</b> dans la couronne extérieure du menu pour augmenter la production.", target: 'playerPlanet', popup: 'bottom-right', waitFor: 'buildStarted' },
-    { text: "Faites un <b>clic droit sur le fond vide</b> de l'espace pour ouvrir le panneau Évolution.", target: 'canvas', popup: 'top-left', waitFor: 'evoOpen' },
-    { text: "Ici vous pouvez améliorer vos stats (Croissance, Vélocité, Densité) et débloquer des Mutations !", target: 'evoPanel', popup: 'left' },
-    { text: "🏆 Objectif : conquérir <b>80%</b> de tous les astres de la galaxie.\nBonne chance, Commandant !", target: null, popup: 'center', isLast: true },
+    {
+        text: "Bienvenue dans Nebula Conquest ! 🌌\nVotre planète de départ est mise en surbrillance. Elle produit des <b>spores</b> automatiquement grâce à sa <b>Flore</b>. Plus la Flore est élevée, plus la production est rapide.",
+        target: 'playerPlanet', popup: 'bottom-right'
+    },
+    {
+        text: "Faites un <b>clic droit</b> sur votre planète pour ouvrir le <b>menu radial</b>.",
+        target: 'playerPlanet', popup: 'bottom-right', waitFor: 'radialOpen'
+    },
+    {
+        text: "Le menu radial est ouvert ! Il contient plusieurs modes de tir :\n• <b>Centre</b> : tir Normal\n• <b>Couronne</b> : Attaque 🔴, Défense 🔵, Parasite 🦠, Nid 🏗️, Biome 🛡️, Alvéole 🍯, Mare 🔵, Ruche 🔴, Nidification 👑\nCliquez sur le <b>centre ⚪</b> pour activer le mode visée Normal.",
+        target: 'canvas', popup: 'top-right', waitFor: 'aimMode'
+    },
+    {
+        text: "Le mode visée est actif — un <b>trait de trajectoire</b> apparaît, courbé par la gravité du trou noir. Faites un <b>clic gauche</b> pour tirer vers une planète neutre.",
+        target: 'canvas', popup: 'top-right', waitFor: 'jetFired'
+    },
+    {
+        text: "🎉 Vos spores voyagent ! Quand elles arrivent sur un astre neutre, vous le <b>conquérez</b>. Sur un astre ennemi, vos spores combattent les siennes — le plus nombreux gagne.",
+        target: 'canvas', popup: 'top-right'
+    },
+    {
+        text: "Le panneau <b>Mes Astres</b> (gauche) liste vos planètes et lunes par système solaire. Cliquez sur un soleil pour ouvrir/fermer le groupe.\nLa barre de boutons permet d'activer un mode de construction sur tout le système d'un coup.",
+        target: 'playerPlanet', popup: 'bottom-right'
+    },
+    {
+        text: "Lancez une <b>construction</b> : faites un clic droit sur une planète possédée, puis choisissez <b>🏗️ Nid</b> dans la couronne du menu radial, ou utilisez la barre de boutons dans Mes Astres.\n• 🏗️ <b>Nid</b> : +2.5% production\n• 🛡️ <b>Biome</b> : +5% défense\n• 🍯 <b>Alvéole</b> : +5% stock max",
+        target: 'playerPlanet', popup: 'bottom-right', waitFor: 'buildStarted'
+    },
+    {
+        text: "Construction lancée ! Les spores sont progressivement sacrifiés. L'icône 🧬 apparaît sur la planète pendant la construction.\nVous pouvez aussi produire des spores spéciaux :\n• 🔴 <b>Ruche</b> : spores d'attaque (×5 en combat)\n• 🔵 <b>Mare</b> : spores de défense",
+        target: 'canvas', popup: 'top-right'
+    },
+    {
+        text: "Ouvrez le panneau <b>Évolution</b> en cliquant sur le bouton ⚗️ dans le HUD.\nSacrifiez une partie de votre production pour monter en <b>Multiplicité</b> — chaque palier vous donne +1 point de stat :\n• 🌱 <b>Croissance</b> : production\n• ⚡ <b>Vélocité</b> : vitesse des jets\n• 💎 <b>Densité</b> : puissance en combat",
+        target: 'evoPanel', popup: 'left', waitFor: 'evoOpen'
+    },
+    {
+        text: "La <b>Symbiose</b> augmente automatiquement avec le temps sur chaque astre possédé (0→100% en 10min pour les planètes, 5min pour les lunes).\nÀ 100% : <b>+20% de production</b> sur les planètes, <b>+10%</b> sur les lunes. Elle se remet à zéro si l'astre est conquis.",
+        target: 'canvas', popup: 'top-right'
+    },
+    {
+        text: "Méfiez-vous des <b>dangers</b> de la galaxie :\n• 🌑 <b>Trou noir</b> : courbe les jets, les détruit s'ils s'en approchent trop\n• ☄️ <b>Comètes</b> : détruisent toutes les spores d'un astre au contact\n• 🚀 <b>Vaisseaux nettoyeurs</b> : rouge (attaque jets), vert (double spores), noir (renvoie à la source)\n• ☄️ <b>Ceintures d'astéroïdes</b> : noir (÷2), rouge (déviation), vert (×5 spores)",
+        target: 'canvas', popup: 'top-right'
+    },
+    {
+        text: "🏆 <b>Objectif</b> : conquérir <b>80%</b> de tous les astres de la galaxie, ou être le dernier joueur en vie.\nSi vous conquérez un système solaire entier, un bonus <b>+3% de production</b> s'active sur tous vos astres du système.\nBonne chance, Commandant ! 🚀",
+        target: null, popup: 'center', isLast: true
+    },
 ];
 
 let _tutorialStep = 0;
@@ -13295,7 +13324,7 @@ function _watchTutorialEvent(event, idx) {
         if (event === 'radialOpen' && gameState._firePhase === 'menu') triggered = true;
         if (event === 'aimMode' && gameState._firePhase === 'aiming') triggered = true;
         if (event === 'jetFired' && gameState.jets.length > 0) triggered = true;
-        if (event === 'buildStarted' && gameState.planets.some(p => p.owner === localSlot() && p.buildMode !== 'off')) triggered = true;
+        if (event === 'buildStarted' && gameState.allBodies.some(b => b.owner === localSlot() && b.buildMode !== 'off')) triggered = true;
         if (event === 'evoOpen' && document.getElementById('evoPanel')?.style.display !== 'none') triggered = true;
         if (triggered && !_tutorialWaitHandled) {
             _tutorialWaitHandled = true;
