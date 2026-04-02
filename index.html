@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.1) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.2) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2359,6 +2359,7 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Icône build actif inline sur chaque ligne
      - Build bar par système (1 clic = tout le groupe)
      - Nidification : planètes candidates clignotent, clic direct pour désigner planète mère
+     - Fix icône build mode : mise à jour en temps réel sur planètes et lunes
 
    À FAIRE
   🎯 Sons (à faire à la maison)
@@ -10880,6 +10881,22 @@ function updateMyPlanets() {
             if (spEl) spEl.textContent = Math.floor(body.spores || 0);
             if (followingBody === body) row.classList.add('active');
             else if (!row.classList.contains('nid-candidate')) row.classList.remove('active');
+            // Mettre à jour l'icône build
+            const buildIcons = { nid:'🏗️', biome:'🛡️', alveole:'🍯', mare:'🔵', ruche:'🔴', parasite:'🦠' };
+            let biEl = row.querySelector('.mp-build-icon');
+            const newIcon = buildIcons[body.buildMode] || '';
+            if (newIcon) {
+                if (!biEl) {
+                    biEl = document.createElement('span');
+                    biEl.className = 'mp-build-icon';
+                    const spEl2 = row.querySelector('.mp-spores');
+                    if (spEl2) row.insertBefore(biEl, spEl2);
+                    else row.appendChild(biEl);
+                }
+                biEl.textContent = newIcon;
+            } else if (biEl) {
+                biEl.remove();
+            }
         });
     }
 }
