@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.5) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.6) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2365,6 +2365,10 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Fix snapshot lunes : nids/biomes/alveoles ajoutés côté serveur et appliqués client
      - Fix icône 🫧 → 💧 (emoji non supporté)
      - Fix icônes bâtiments sur lunes : ajout dans le rendu canvas
+     - Fix cleaners solo : updateCleaners(dt) manquait dans la game loop solo
+     - Fix cleaners solo : fireTimer manquant à l'initialisation (2 endroits)
+     - Fix CLN_CFG et COMET_CFG : déplacés avant gameState (const non hoistée)
+     - Fix CLN_CFG solo : harmonisé avec multi (detectRange:120, fireRate:0.3)
 
    À FAIRE
   🎯 Sons (à faire à la maison)
@@ -2378,6 +2382,15 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
 // ─────────────────────────────────────────────
 // GAME STATE — Objet central
 // ─────────────────────────────────────────────
+const CLN_CFG = {
+    speedMin: 67, speedMax: 120, turnInterval: 15,
+    detectRange: 120, fireRate: 0.3, dmgMin: 34, dmgMax: 106
+};
+
+const COMET_CFG = {
+    freq: 8, speed: 150, size: 8, tail: 80, fgDebris: 10
+};
+
 const gameState = {
     // ── Machine à états ──
     phase: 'title',  // 'title' | 'config' | 'spawn' | 'game' | 'paused' | 'end'
@@ -4714,7 +4727,7 @@ function loadMapFromJSON(mapData) {
             type: cType, x: Math.cos(cAngle) * cDist, y: Math.sin(cAngle) * cDist,
             vx: (worldRandom()-0.5)*2, vy: (worldRandom()-0.5)*2,
             angle: worldRandom()*Math.PI*2, speed: CLN_CFG.speedMin + worldRandom()*(CLN_CFG.speedMax-CLN_CFG.speedMin),
-            size: 8, targetX: 0, targetY: 0, turnTimer: 0, _target: null
+            size: 8, targetX: 0, targetY: 0, turnTimer: 0, fireTimer: CLN_CFG.fireRate, _target: null
         });
     }
 
@@ -8815,12 +8828,7 @@ if (gameState.isMulti) {
     updateSporeGeneration(dt);
     updateComets(dt);
     if ((gameState._hudCounter & 1) === 0) updateAI(dt);
-    for (const cl of gameState.cleaners) {
-            if (cl.vx !== undefined) {
-                cl.x += cl.vx * dt;
-                cl.y += cl.vy * dt;
-            }
-        }
+    updateCleaners(dt);
     updateJets(dt);
     updateImpacts(dt);
     updateConquestEffects(dt);
@@ -11993,20 +12001,11 @@ function refreshEventLog() {
 
 
 c<script>
-const CLN_CFG = {
-    speedMin: 67, speedMax: 120, turnInterval: 15,
-    detectRange: 200, fireRate: 1.5, dmgMin: 34, dmgMax: 106
-};
-
 const SKY_CFG = { r: 22, g: 38, b: 78, brightness: 100, _hex: '#16264E' };
 
 // ─────────────────────────────────────────────
 // FOND SPATIAL — Couches PNG en parallaxe
 // ─────────────────────────────────────────────
-
-const COMET_CFG = {
-    freq: 8, speed: 150, size: 8, tail: 80, fgDebris: 10
-};
 
 // ═══ Listener ZOOM UI ═══
 document.getElementById('uiZoomSlider').addEventListener('input', (e) => {
