@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.4) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.5) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2361,6 +2361,10 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Nidification : planètes candidates clignotent, clic direct pour désigner planète mère
      - Fix icône build mode : mise à jour en temps réel sur planètes et lunes
      - Fix buildMode lunes en multi : ajout dans snapshot serveur et applySnapshot client
+     - Fix build_mode multi : comparaison Number() pour body.owner === player.id
+     - Fix snapshot lunes : nids/biomes/alveoles ajoutés côté serveur et appliqués client
+     - Fix icône 🫧 → 💧 (emoji non supporté)
+     - Fix icônes bâtiments sur lunes : ajout dans le rendu canvas
 
    À FAIRE
   🎯 Sons (à faire à la maison)
@@ -9493,7 +9497,7 @@ function drawPlanets(ctx) {
                 const _t = gameState.time || 0;
                 // 🧬 : construction bâtiment (nid, biome, alvéole, foyer putride)
                 const _isBuild = p.buildMode && ['nid','biome','alveole','parasite'].includes(p.buildMode);
-                // 🫧 : mode ruche ou mare actif (production spores spéciaux)
+                // 💧 : mode ruche ou mare actif (production spores spéciaux)
                 const _showSpore = p.buildMode && ['ruche','mare'].includes(p.buildMode);
 
                 if (_isBuild || _showSpore) {
@@ -9503,7 +9507,6 @@ function drawPlanets(ctx) {
                     const _alpha = 0.6 + 0.4 * Math.abs(Math.sin(_t * 2.2));
                     const _fs = Math.max(10, p.radius * 0.6);
                     const _iconY = p.y + p.radius + 18;
-                    // Décalage si les deux sont visibles
                     const _both = _isBuild && _showSpore;
                     const _offX = _both ? _fs * 0.7 : 0;
                     if (_isBuild) {
@@ -9514,7 +9517,7 @@ function drawPlanets(ctx) {
                     if (_showSpore) {
                         ctx.font = (_fs * _pulse) + 'px sans-serif';
                         ctx.globalAlpha = _alpha;
-                        ctx.fillText('🫧', p.x + _offX, _iconY);
+                        ctx.fillText('💧', p.x + _offX, _iconY);
                     }
                     ctx.globalAlpha = 1;
                     ctx.restore();
@@ -9559,6 +9562,25 @@ function drawPlanets(ctx) {
                 ctx.arc(m.x, m.y, m.radius + 2, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.globalAlpha = 1;
+            }
+
+            // Icônes bâtiments sur lune (joueur local, LOD >= 1)
+            if (m.owner === localSlot() && gameState.lod >= 1 && m.buildMode && m.buildMode !== 'off') {
+                const _t = gameState.time || 0;
+                const _isBuild = ['nid','biome','alveole','parasite'].includes(m.buildMode);
+                const _showSpore = ['ruche','mare'].includes(m.buildMode);
+                if (_isBuild || _showSpore) {
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    const _pulse = 1 + 0.15 * Math.sin(_t * 3.5);
+                    const _alpha = 0.6 + 0.4 * Math.abs(Math.sin(_t * 2.2));
+                    const _fs = Math.max(8, m.radius * 0.8);
+                    ctx.font = (_fs * _pulse) + 'px sans-serif';
+                    ctx.globalAlpha = _alpha;
+                    ctx.fillText(_isBuild ? '🧬' : '💧', m.x, m.y + m.radius + 12);
+                    ctx.globalAlpha = 1;
+                    ctx.restore();
+                }
             }
         }
     }
@@ -12644,6 +12666,9 @@ function applySnapshot(snap) {
         m.owner     = sm.owner;
         m.spores    = sm.spores;
         m.buildMode = sm.buildMode ?? m.buildMode;
+        m.nids      = sm.nids      ?? m.nids;
+        m.biomes    = sm.biomes    ?? m.biomes;
+        m.alveoles  = sm.alveoles  ?? m.alveoles;
         if (ownerChanged) {
             for (const player of gameState.players) {
                 player.bodies = gameState.planets.filter(b => b.owner === player.id)
