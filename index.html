@@ -2374,6 +2374,7 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Tutoriel : refonte complète (12 étapes, menu radial, Mes Astres, Multiplicité, Symbiose, dangers, cleaners, ceintures, objectif)
      - Tutoriel : buildStarted détecte maintenant planètes ET lunes
      - Spawn : lunes disponibles comme planètes de départ (handleSpawnClick, autoSpawnAIs, finishMultiSpawn)
+     - Bonus colonisation : +500 sp planète / +250 sp lune neutre (solo et multi), effet visuel +500🎁
      - Fix waitUniverse : appelle finishStartGame() après chargement carte
      - Fix keydown/keyup : guard e.key undefined
      - Fix snapshot lunes : nids/biomes/alveoles ajoutés côté serveur et appliqués client
@@ -8141,8 +8142,14 @@ function applyConquest(body, jet) {
         const aColor = gameState.players[jet.owner]?.color || '#AAA';
         const oColor = oldOwner !== null ? (gameState.players[oldOwner]?.color || '#AAA') : '#AAA';
         if (oldOwner === null) {
-            const _virginBonus = body.type === 'planet' ? 1000 : 500;
+            const _virginBonus = body.type === 'planet' ? 500 : 250;
             body.spores = Math.min(body.maxSpores, (body.spores || 0) + _virginBonus);
+            gameState.conquestEffects.push({
+                x: body.x, y: body.y - body.radius - 30,
+                baseX: body.x,
+                text: '+' + _virginBonus + ' 🎁',
+                color: '#FFD700', age: 0, maxAge: 3
+            });
             if (jet.owner === localSlot()) {
                 addEvent('neutral', '🏳️', `${bType} ${body.name} colonisée ! +${_virginBonus} sp 🎁`, body, aColor);
             } else {
