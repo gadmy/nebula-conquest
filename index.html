@@ -963,14 +963,13 @@ input[type="radio"]:checked + .build-icon-btn {
     position: fixed;
     left: 0;
     bottom: 12px;
-    width: auto;
-    min-width: 78px;
+    width: 210px;
     max-height: calc(100vh - 24px);
     background: rgba(10, 8, 35, 0.88);
     border: 1px solid rgba(100, 70, 180, 0.2);
     border-left: none;
     border-radius: 0 8px 8px 0;
-    padding: 10px 8px;
+    padding: 8px 6px;
     z-index: 25;
     pointer-events: auto;
     overflow-y: auto;
@@ -985,122 +984,160 @@ input[type="radio"]:checked + .build-icon-btn {
 
 #myPlanets .mp-title {
     font-family: 'Orbitron', sans-serif;
-    font-size: 11px;
-    color: rgba(200,160,255,0.6);
+    font-size: 10px;
+    color: rgba(200,160,255,0.5);
     text-align: center;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
     margin-bottom: 8px;
+    text-transform: uppercase;
 }
 
 #myPlanets .mp-sun-group {
-    margin-bottom: 8px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(100, 70, 180, 0.15);
+    margin-bottom: 4px;
+    border-bottom: 0.5px solid rgba(100,70,180,0.12);
+    padding-bottom: 4px;
 }
 
 #myPlanets .mp-sun-label {
     font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
-    color: rgba(255, 220, 100, 0.5);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-    padding-left: 2px;
-}
-#myPlanets .mp-sun-label .sys-complete {
-    color: #FFD700;
     font-size: 11px;
-    margin-left: 3px;
-    text-shadow: 0 0 6px rgba(255,215,0,0.5);
-}
-
-#myPlanets .mp-row {
+    color: rgba(255,210,80,0.85);
     display: flex;
-    gap: 2px;
-    padding-left: 2px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    max-width: 62px;
-    transition: max-width 0.3s ease;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(100,70,180,0.3) transparent;
-    padding-bottom: 3px;
-}
-
-#myPlanets .mp-row::-webkit-scrollbar { height: 3px; }
-#myPlanets .mp-row::-webkit-scrollbar-thumb { background: rgba(100,70,180,0.4); border-radius: 3px; }
-
-#myPlanets .mp-sun-group:hover .mp-row {
-    max-width: 300px;
-}
-
-#myPlanets .mp-item {
-    width: 58px;
-    min-width: 58px;
-    display: flex;
-    flex-direction: column;
     align-items: center;
+    justify-content: space-between;
+    padding: 4px 6px;
+    cursor: pointer;
+    border-radius: 5px;
+    user-select: none;
+    transition: background 0.15s;
+}
+#myPlanets .mp-sun-label:hover { background: rgba(100,70,180,0.15); }
+#myPlanets .mp-sun-label .mp-chevron {
+    font-size: 9px;
+    color: rgba(200,160,255,0.4);
+    transition: transform 0.2s;
+}
+#myPlanets .mp-sun-label.open .mp-chevron { transform: rotate(90deg); }
+#myPlanets .mp-sun-label .sys-complete {
+    font-size: 9px;
+    color: #FFD700;
+    background: rgba(255,215,0,0.1);
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+}
+
+#myPlanets .mp-sun-body {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.25s ease;
+}
+#myPlanets .mp-sun-body.open { max-height: 600px; }
+
+#myPlanets .mp-build-bar {
+    display: flex;
+    gap: 3px;
+    padding: 3px 4px 4px;
+    border-bottom: 0.5px solid rgba(100,70,180,0.1);
+    margin-bottom: 3px;
+}
+#myPlanets .mp-build-bar .mp-bbtn {
+    font-size: 11px;
+    width: 24px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 0.5px solid rgba(100,70,180,0.2);
+    background: rgba(100,70,180,0.05);
+    opacity: 0.5;
+    transition: all 0.15s;
+}
+#myPlanets .mp-build-bar .mp-bbtn:hover { opacity: 0.85; background: rgba(100,70,180,0.15); }
+#myPlanets .mp-build-bar .mp-bbtn.active {
+    opacity: 1;
+    background: rgba(100,70,180,0.25);
+    border-color: rgba(100,70,180,0.6);
+}
+
+#myPlanets .mp-body-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 4px 2px 6px;
+    border-radius: 4px;
     cursor: pointer;
     position: relative;
-    padding: 3px;
-    border-radius: 6px;
-    border: 2px solid transparent;
-    transition: all 0.2s;
+    transition: background 0.15s;
+}
+#myPlanets .mp-body-row:hover { background: rgba(100,70,180,0.12); }
+#myPlanets .mp-body-row.active {
+    background: rgba(255,215,0,0.07);
+    border: 0.5px solid rgba(255,215,0,0.3);
+}
+#myPlanets .mp-body-row.nid-candidate {
+    background: rgba(239,68,68,0.07);
+    border: 0.5px solid rgba(239,68,68,0.5);
+    animation: nidFade 1.2s infinite;
 }
 
-#myPlanets .mp-item:hover {
-    border-color: rgba(200, 160, 255, 0.5);
-    background: rgba(100, 70, 180, 0.1);
+#myPlanets .mp-planet-block { margin-bottom: 2px; }
+
+#myPlanets .mp-moon-indent {
+    display: flex;
+    align-items: stretch;
+    margin-left: 10px;
+}
+#myPlanets .mp-tree-line {
+    width: 10px;
+    flex-shrink: 0;
+    position: relative;
+    margin-right: 2px;
+}
+#myPlanets .mp-tree-line::before {
+    content: '';
+    position: absolute;
+    left: 4px; top: 0; bottom: 0;
+    width: 1px;
+    background: rgba(100,70,180,0.25);
+}
+#myPlanets .mp-tree-line.last::before { bottom: 50%; }
+#myPlanets .mp-tree-line::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 50%;
+    width: 5px; height: 1px;
+    background: rgba(100,70,180,0.25);
 }
 
-#myPlanets .mp-item.active {
-    border-color: #FFD700;
-    box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
-    background: rgba(255, 215, 0, 0.05);
-}
-
-#myPlanets .mp-item canvas {
+#myPlanets .mp-dot {
     border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
 }
-
-#myPlanets .mp-item .mp-name {
+#myPlanets .mp-name {
     font-family: 'Exo 2', sans-serif;
-    font-size: 10px;
-    color: rgba(200, 210, 230, 0.8);
+    font-size: 11px;
+    color: rgba(200,210,230,0.85);
+    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 54px;
-    text-align: center;
-    margin-bottom: 2px;
 }
-
-#myPlanets .mp-type-badge {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 9px;
-    letter-spacing: 0.5px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    margin-bottom: 2px;
-}
-
-.planet-badge {
-    color: rgba(100, 180, 255, 0.8);
-    background: rgba(100, 180, 255, 0.1);
-}
-
-.moon-badge {
-    color: rgba(200, 200, 220, 0.7);
-    background: rgba(200, 200, 220, 0.1);
-}
-
 #myPlanets .mp-spores {
     font-family: 'Orbitron', sans-serif;
     font-size: 10px;
     color: #FFD700;
-    margin-top: 1px;
+    white-space: nowrap;
 }
-
+#myPlanets .mp-build-icon { font-size: 10px; opacity: 0.8; }
+#myPlanets .mp-nid-label {
+    font-size: 9px;
+    color: rgba(239,68,68,0.9);
+    white-space: nowrap;
+}
 /* ── Pause overlay ── */
 .panel-drag-handle {
     cursor: grab;
@@ -1426,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.3.33) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2126,367 +2163,211 @@ input[type="radio"]:checked + .build-icon-btn {
 	- Dès que Claude sens que sa mémoire sature, il fait un résumé de ce qui a été fait, de ce qu'on veut faire pour une nouvelle conversation. 
    
    
-   
-   DEV LOG
-   ──────────────────────────────────────────────────────────────────────
-   v2.4.8 | 2026-02-28 | Corrections, aide & nidification améliorée
-     - Fix auth : système de connexion simplifié et robuste
-     - Fix multijoueur : création de lobby, couleurs uniques par joueur
-     - Fix hitbox : lunes et planètes plus faciles à cliquer
-     - Fix noms joueurs : pseudo affiché partout
-     - Cinématique titre jouée une seule fois
-     - Menu titre réorganisé : rejoindre partie rapide, créer multi, aide
-     - Écran aide complet
-     - Salle d'attente multi avec paramètres et compteur joueurs
-     - Bouton déconnexion
-     - Panneaux de jeu cachés au retour menu
-     - Nidification : planète mère invincible tant que >= 50% du système possédé
-     - Appel de nidification ne rassemble que les spores des astres possédés
-   v2.4.7 | 2026-02-27 | Nidification de système solaire
-     - Système complet conquis → panneau Nidification avec jauge sacrifice (5000 spores)
-     - Choix de la planète mère → couronne visuelle (emoji 👑)
-     - Planète mère + ses lunes invincibles aux attaques
-     - Bouton NIDIFIER dans panneau Mes Astres : aspire tous les spores du système
-     - Planète mère positionnée en premier dans la ligne du système
-     - Perte d'une planète du système → nidification annulée
-     - Événements journal : planète mère choisie, nidification effectuée, nidification perdue
-     - Feedback visuel des boutons Off/Nid/Biome (vert/bleu/violet)
-     - Sacrifices multiplicité + nidification partagent la production (plafond 80%)
-     - Pseudo du joueur affiché dans le classement en jeu
-   v2.4.6 | 2026-02-27 | Multijoueur complet
-     - Bouton MULTIJOUEUR sur l'écran titre
-     - Écran lobby : liste des parties ouvertes en temps réel
-     - Écran salle d'attente : slots joueurs, statut prêt, code room
-     - Création / rejoindre / quitter une room via Supabase
-     - Supabase Realtime : sync automatique des joueurs dans la room
-     - Bouton PRÊT et LANCER (hôte uniquement, quand tous prêts)
-     - Tables game_rooms et game_room_players avec RLS
-     - Univers déterministe : seed partagé, PRNG mulberry32 sur toute la génération
-     - Sync actions en jeu via Supabase Broadcast (jets, spawn, multiplicité)
-     - Countdown 10s pour le spawn en multi, placement auto si pas choisi
-     - Joueurs identifiés par slot, contrôle local via localSlot()
-     - Pause désactivée en multijoueur
-     - Cleanup channels au retour menu
+ DEV LOG — Nebula Conquest
+══════════════════════════════════════════════════════════════════════
 
-   v2.4.5 | 2026-02-27 | Panneaux UI — Scale, Snap & Reset
-     - Zoom UI (slider taille) affecte désormais TOUS les panneaux (eventLog, codex, sporeCounter, scoreBoard)
-     - Drag des panneaux préserve le scale UI en cours
-     - 8 panneaux draggables : Spores, Évolution, Scores, Minimap, Taille UI, Mes Astres, Événements, Codex
-     - Tableau des scores (scoreBoard) et compteur Spores rendus interactifs (pointer-events)
-     - Handle du scoreBoard préservé lors des mises à jour dynamiques du contenu
-     - Accrochage magnétique (snap) entre panneaux au relâchement du drag (14px)
-     - Snap aux bords de l'écran
-     - Bouton ⟲ RESET POSITIONS pour réinitialiser toute la disposition UI
-     - Reset remet aussi le slider de taille à 100%
+── PHASE 1 : Prototype solo (24–25 fév. 2026) ────────────────────────
 
-   v2.4.3 | 2026-02-27 | Gameplay avancé & UI
-     - Paramètres de partie : soleils (1-8), joueurs (2-10), IA on/off, vaisseaux (1-25), météorites on/off
-     - 3 types de ceintures d'astéroïdes : noir (÷2 spores), rouge (déviation), vert (split ×5)
-     - 3 types de vaisseaux ennemis : rouge (attaque), vert (×2 boost), noir (renvoi à la base)
-     - Graphismes améliorés : météorites polygonales, vaisseaux détaillés avec cockpit et traînée
-     - Vaisseaux patrouillent entre planètes (navigation intelligente)
-     - Jets renvoyés par vaisseaux noirs suivent la cible en temps réel (homing)
-     - Journal d'événements avec filtres (Tous/Neutres/Guerres/Mes astres/Constructions)
-     - Événements cliquables pour naviguer vers le lieu de l'action
-     - Icônes colorées selon le joueur dans le journal
-     - Contrôle Nid/Biome/Off par système solaire dans le panneau gauche
-     - Panneaux draggables et rétractables (6 panneaux)
-     - Sauvegarde positions des panneaux dans Supabase (profil joueur)
-     - Synchronisation curseurs config au démarrage
-     - Espacement orbites solaires augmenté (pas de chevauchement avec météorites)
-     - Collision météorites par proximité réelle d'amas (plus de faux positifs)
+v0.1.0 | 2026-02-24 | Squelette & Canvas
+  - Structure HTML/CSS single file, canvas plein écran, fond étoilé
+  - Boucle de jeu (requestAnimationFrame + delta time)
+  - Caméra : zoom molette, panoramique clic droit + drag
+  - Objet gameState centralisé, compteur FPS
 
-   v2.4.2 | 2026-02-27 | Mise en ligne & Auth
-     - Déploiement GitHub Pages (gadmy.github.io/nebula-conquest)
-     - Intégration Supabase Auth (inscription email + mot de passe)
-     - Écran de login avec choix de pseudo à la première connexion
-     - Tables Supabase : profiles, games, leaderboard (vue)
-     - Row Level Security (RLS) sur toutes les tables
-     - Sauvegarde automatique des parties en fin de game
-     - Écran Classement (leaderboard) accessible depuis le menu titre
+v0.2.0 | 2026-02-24 | Génération de l'univers
+  - Trou noir central, soleils en orbite, planètes, lunes (0-3 par planète)
+  - Générateur de noms procéduraux
+  - Propriétés : Radius, Flore, Faune — animation continue des orbites
 
-   v2.4.1 | 2026-02-26 | Nettoyage debug & config
-     - Suppression complète du code debug (CSS, HTML, JS)
-     - Suppression panneaux debug F2-F7
-     - Config par défaut : 4 soleils, 4 joueurs, stats 0/0/0
-     - Hitbox améliorées : lunes +12, petites planètes +10
-     - Couleurs ciel éclaircies (RGB 22,38,78)
-     - Vitesse jets : 0.25 → 0.70
-     - Suppression fonction orpheline generateBackgroundFromConfig
-     - Correction référence BG_CFG
+v0.3.0 | 2026-02-24 | Rendu visuel des astres
+  - Textures procédurales planètes (continents, mers, déserts, gazeuses)
+  - Textures cachées sur canvas offscreen
+  - Soleils pulsants, trou noir avec disque d'accrétion rotatif
+  - Lunes cratérisées, 6 types de planètes
 
-   v2.4.0 | 2026-02-25 | Optimisation performances
-     - Étoiles de base pré-rendues sur canvas offscreen (−2500 draw calls)
-     - Amas stellaires pré-rendus sur canvas offscreen (−660 draw calls)
-     - LOD dynamique selon le zoom (3 niveaux de détail)
-     - Cache gradients étoiles brillantes, soleils, atmosphères planétaires
-     - Jets optimisés : traîne simplifiée, sparkles LOD
-     - Array allBodies pré-calculé (−11 allocations/frame)
-     - Minimap throttle (toutes les 15 frames)
-     - FPS adaptatif (auto-LOD si FPS < 25)
+v0.4.0 | 2026-02-24 | Interface & menus
+  - Écran titre, config partie (soleils, joueurs, difficulté, stats, couleur)
+  - Phase spawn, HUD spores + scores, codex au clic, pause solo
+  - Machine à états : menu → config → spawn → game → end
 
-   v2.3.0 | 2026-02-25 | Comètes, débris & effets d'impact
-     - Comètes destructrices (détruisent les spores au contact d'une planète)
-     - Débris au premier plan (effet parallaxe profondeur)
-     - Debug F5 (vaisseaux/jets) et F6 (comètes)
-     - Effets d'impact sur soleils et trou noir
+v0.5.0 | 2026-02-24 | Mécanique de spores
+  - Lancement jets : clic maintenu → glisser → relâcher
+  - Prévisualisation trajectoire (70%, pointillés bioluminescents)
+  - Trajectoire courbée par gravité du trou noir
+  - Collision jet-astre, neutralisation jets croisés (proportionnelle)
 
-   v2.2.0 | 2026-02-25 | UX — Interface adaptable
-     - Jauge de taille d'interface au-dessus de la minimap
-     - Scroll horizontal dans "Mes Astres" pour les systèmes avec beaucoup de planètes
-     - Clic sur un astre dans "Mes Astres" ouvre aussi le codex
+v0.6.0 | 2026-02-24 | Conquête & économie
+  - Indicateur visuel conquête, animation éclosion à 100%
+  - Régénération Faune si attaque interrompue
+  - Victoire : 80% masse totale — élimination → mode spectateur
+  - Écran de fin avec stats
 
-   v2.1.0 | 2026-02-25 | Multiplicité
-     - Sacrifice : slider 0-50% de production globale dédié à l'évolution
-     - 10 paliers, coût croissant (500 * 1.8^N)
-     - Chaque palier = +1 point de stat (growth, velocity ou density)
-     - Choix du stat à chaque palier atteint
-     - IA utilise aussi le système de multiplicité
+v0.7.0 | 2026-02-24 | Intelligence artificielle
+  - IA Facile : cibles aléatoires, réaction 3s
+  - IA Normale : évalue Flore + proximité, interception basique, 1.5s
+  - IA Brutale : interception orbitale, coordination multi-astres, 0.5s
 
-   v2.0.0 | 2026-02-25 | Nids & Biomes
-     - Mode production par planète : OFF / NID / BIOME (radio dans codex)
-     - Activation = maxSpores ÷ 3, production allouée au compteur
-     - Coût nid/biome = maxSpores, infini par planète
-     - Nid : +0.2% production locale par nid
-     - Biome : +0.2% défense locale par biome (coût conquête augmenté)
-     - Reset à la conquête, IA utilise aussi
+v0.8.0 | 2026-02-24 | Obstacles & dangers
+  - Trou noir : gravité courbe les jets, zone de destruction visible
+  - Vaisseaux nettoyeurs : patrouille, tirent sur jets, invincibles
+  - Scaling nettoyeurs selon nombre de planètes
 
-   v1.9.0 | 2026-02-25 | Fond spatial 5 couches
-     - Couche 1 : voiles galactiques immenses (gradient + blobs irréguliers)
-     - Couche 2 : 10 nébuleuses denses avec rim lighting et cœur lumineux
-     - Couche 3 : filaments de gaz (traînées longues)
-     - Couche 4 : 12 amas stellaires (distribution gaussienne)
-     - Couche 5 : 25 étoiles brillantes avec diffraction 8 branches + scintillement
-     - 2500 étoiles de base + 40 particules cosmiques + étoiles filantes
-     - Parallaxe individuelle par objet, drift et rotation
+v0.9.0 | 2026-02-24 | Audio génératif (Web Audio API, sans fichiers externes)
+  - Ambiance spatiale drone basse fréquence modulé
+  - Sons : lancement jet, fusion ami, conquête, neutralisation,
+    vaisseau nettoyeur, victoire/défaite
+  - Contrôle volume général
 
-   v1.8.0 | 2026-02-24 | Polish final
-     - Animation titre : lettres qui apparaissent une par une
-     - Étoiles filantes en fond sur l'écran titre
-     - Écran de chargement avec progression réelle
-     - Transitions fade entre les écrans
-     - Panneau debug caché (F2 toggle conservé)
-     - Nettoyage commentaires
+v1.0.0 | 2026-02-24 | Polish & optimisation
+  - Culling, batch rendering étoiles, grille spatiale collisions
+  - Équilibrage Flore/Faune/vitesses orbites
+  - Écran de fin complet, boutons Rejouer/Menu
+  - Compatible Chrome/Firefox/Safari/Edge — GitHub Pages ready
 
-   v1.7.0 | 2026-02-24 | Performance
-     - Pool d'objets pour jets, impacts et effets
-     - Cache des éléments DOM fréquemment accédés
-     - Throttle scoreboard (innerHTML moins fréquent)
-     - Optimisation drawJets (moins de createRadialGradient)
-     - Réduction allocations dans les boucles de rendu
+── PHASE 1 suite : améliorations solo (24–25 fév. 2026) ─────────────
 
-   v1.6.0 | 2026-02-24 | Audio avancé
-     - Ambiance adaptative (tension quand attaqué, calme sinon)
-     - Son de clic sur les boutons du menu
-     - Son d'orbite subtil quand zoomé sur une planète
-     - Variation de pitch sur les sons existants
+v1.1.0 | 2026-02-24 | Polish interface
+  - Panneau planètes groupé par système solaire, déploiement au survol
+  - Badge PLANÈTE/LUNE, codex avec aperçu texture 80px, zoom max x10
 
-   v1.5.0 | 2026-02-24 | Interface avancée
-     - Minimap (coin bas-droit, vue globale, rectangle de vue)
-     - Indicateurs hors-écran (flèches colorées pour jets ennemis)
-     - Compteur de temps de partie dans le HUD
-     - Transitions fluides entre écrans (fade 0.5s)
-     - Écran de chargement avec barre de progression
+v1.2.0 | 2026-02-24 | Symbiose
+  - Propriété symbiose 0-100% par astre possédé
+  - Bonus production : +20% planètes / +10% lunes à 100%
+  - Reset si changement de propriétaire — IAs concernées aussi
 
-   v1.4.0 | 2026-02-24 | Fond spatial amélioré
-     - Parallaxe 3 couches (nébuleuses lentes, étoiles moyennes, poussière rapide)
-     - Particules ambiantes flottantes (poussière cosmique)
-     - Étoiles filantes occasionnelles (1 toutes les 5-10s)
+v1.3.0 | 2026-02-24 | Textures & rendu améliorés
+  - Anneaux planètes gazeuses, atmosphère lumineuse (halo coloré)
+  - Lunes variées (glace, roche, volcanique)
+  - Éclairage directionnel soleils, animation d'impact (onde + particules)
 
-   v1.3.0 | 2026-02-24 | Textures & rendu améliorés
-     - Anneaux pour les planètes gazeuses
-     - Atmosphère lumineuse (halo coloré, ocean/ice/gas)
-     - Lunes variées (glace, roche sombre, volcanique)
-     - Éclairage directionnel des soleils sur planètes proches
-     - Animation d'impact (onde de choc + particules éclats)
+v1.4.0 | 2026-02-24 | Fond spatial amélioré
+  - Parallaxe 3 couches, particules ambiantes, étoiles filantes (1/5-10s)
 
-   v1.2.0 | 2026-02-24 | Symbiose
-     - Propriété symbiose (0-100%) sur chaque astre possédé
-     - Croissance : 100% en 10 min (planètes), 100% en 5 min (lunes)
-     - Reset à 0 si l'astre change de propriétaire
-     - Bonus production : +20% à 100% (planètes), +10% (lunes)
-     - Barre de symbiose dans le codex
-     - Indicateur symbiose dans le panneau Mes Planètes
-     - Les IAs bénéficient aussi de la symbiose
+v1.5.0 | 2026-02-24 | Interface avancée
+  - Minimap, indicateurs hors-écran (flèches jets ennemis)
+  - Compteur temps de partie, transitions fade 0.5s, écran de chargement
 
-   v1.1.0 | 2026-02-24 | Polish interface
-     - Panneau planètes : groupé par système solaire, déploiement au survol
-     - Icône du soleil dans le label de chaque groupe
-     - Badge PLANÈTE / LUNE sur chaque astre
-     - Codex : aperçu texture 80px de l'astre sélectionné
-     - Zoom max augmenté à x10
-     - Valeurs jets ajustées (core:2, speed:0.70)
+v1.6.0 | 2026-02-24 | Audio avancé
+  - Ambiance adaptative (tension si attaqué), son clic boutons
+  - Son d'orbite au zoom planète, variation de pitch
 
-   v1.0.0 | 2026-02-24 | Étape 10 — Polish & optimisation
-     - Culling : ne dessine que les astres visibles à l'écran
-     - Batch rendering des étoiles de fond
-     - Optimisation des collisions (grille spatiale)
-     - Équilibrage Flore/Faune/vitesses orbites
-     - Écran de fin complet avec stats détaillées
-     - Boutons Rejouer/Menu fonctionnels
-     - Nettoyage du code et commentaires
-     - Compatible Chrome/Firefox/Safari/Edge
-     - GitHub Pages ready (fichier unique)
+v1.7.0 | 2026-02-24 | Performance
+  - Pool objets jets/impacts/effets, cache DOM, throttle scoreboard
+  - Optimisation drawJets, réduction allocations boucles rendu
 
-   v0.9.0 | 2026-02-24 | Étape 9 — Audio génératif
-     - Web Audio API : aucun fichier externe
-     - Ambiance spatiale : drone basse fréquence modulé
-     - Son de lancement de jet (texture granulaire)
-     - Son de fusion sur astre ami (accord harmonique)
-     - Son de conquête/éclosion (accord ascendant)
-     - Son de neutralisation (collision sourde)
-     - Son de vaisseau nettoyeur (ping directionnel)
-     - Son de victoire/défaite (séquence mélodique)
-     - Contrôle du volume général
+v1.8.0 | 2026-02-24 | Polish final
+  - Animation titre lettre par lettre, étoiles filantes écran titre
+  - Écran chargement avec progression réelle, transitions fade
+  - Nettoyage commentaires, panneau debug caché (F2)
 
-   v0.8.0 | 2026-02-24 | Étape 8 — Obstacles & dangers
-     - Trou noir : gravité active courbant les jets
-     - Zone de destruction visible (jets trop proches détruits)
-     - Vaisseaux nettoyeurs : patrouille entre systèmes solaires
-     - Nettoyeurs tirent sur les jets à portée (réduction de spores)
-     - Nettoyeurs invincibles (contournement uniquement)
-     - Trajectoires semi-aléatoires lisibles à court terme
-     - Scaling : 1 vaisseau ≤5 planètes, 2 pour 5-8, 3 pour 8-10
+v1.9.0 | 2026-02-25 | Fond spatial 5 couches
+  - Voiles galactiques, 10 nébuleuses denses, filaments de gaz
+  - 12 amas stellaires, 25 étoiles brillantes (diffraction 8 branches)
+  - 2500 étoiles + 40 particules cosmiques, parallaxe/drift/rotation
 
-   v0.7.0 | 2026-02-24 | Étape 7 — Intelligence artificielle
-     - IA Facile : cibles aléatoires, réaction lente (3s)
-     - IA Normale : évalue Flore+proximité, interception basique, réaction 1.5s
-     - IA Brutale : interception orbitale, coordination multi-astres, réaction 0.5s
-     - Gestion attaque/défense : garde des réserves sur astres exposés
-     - Les IAs jouent selon les mêmes règles que le joueur humain
+── PHASE 2 : Mécaniques avancées (25 fév. 2026) ─────────────────────
 
-   v0.6.0 | 2026-02-24 | Étape 6 — Conquête & économie
-     - Indicateur visuel de conquête (chiffre flottant au-dessus des astres)
-     - Animation d'éclosion à 100% de conquête
-     - Régénération de la Faune si attaque interrompue
-     - Condition de victoire : 80% de la masse totale
-     - Élimination : plus d'astres + plus de jets → mode spectateur
-     - Écran de fin avec stats et boutons Rejouer/Quitter
-     - Affichage spores sur chaque astre possédé
+v2.0.0 | 2026-02-25 | Nids & Biomes
+  - Mode production par planète : OFF / NID / BIOME
+  - Nid : +0.2% production locale — Biome : +0.2% défense locale
+  - Coût = maxSpores, reset à la conquête, IA concernée
 
-   v0.5.0 | 2026-02-24 | Étape 5 — Mécanique de spores
-     - Lancement de jets : clic maintenu sur astre → glisser → relâcher
-     - Prévisualisation trajectoire (70% en pointillés bioluminescents)
-     - Trajectoire courbée par gravité du trou noir
-     - Jets rendus comme gerbes bioluminescentes avec traîne
-     - Taille/intensité proportionnelles au nombre de spores
-     - Collision jet-astre (dépôt de spores)
-     - Neutralisation de jets croisés (proportionnelle)
-     - Jets comme entités uniques (jamais de spore individuelle)
+v2.1.0 | 2026-02-25 | Multiplicité
+  - Slider sacrifice 0-50% production → évolution
+  - 10 paliers, coût croissant (500 × 1.8^N)
+  - Chaque palier = +1 stat (growth, velocity ou density) au choix
+  - IA utilise aussi le système
 
-   v0.4.0 | 2026-02-24 | Étape 4 — Interface & menus
-     - Écran titre avec bouton Nouvelle Partie
-     - Config : soleils (4-20), joueurs (2-8), difficulté IA
-     - Répartition des 10 points (Croissance, Vélocité, Densité)
-     - Sélecteur de couleur d'équipe
-     - Phase de sélection de planète de départ
-     - HUD : compteur spores, tableau des scores
-     - Panneau codex au clic sur un astre
-     - Pause (mode solo)
-     - Machine à états : menu → config → spawn → game → end
+v2.2.0 | 2026-02-25 | UX — Interface adaptable
+  - Jauge taille UI, scroll horizontal "Mes Astres", clic astre → codex
 
-   v0.3.0 | 2026-02-24 | Étape 3 — Rendu visuel des astres
-     - Textures procédurales pour planètes (continents, mers, déserts, gazeuses)
-     - Textures cachées sur canvas hors-écran (perf)
-     - Soleils avec pulsation animée
-     - Trou noir avec disque d'accrétion rotatif
-     - Lunes avec surface cratérisée
-     - Types de planètes : rocheuse, gazeuse, glaciale, désertique, océanique
+v2.3.0 | 2026-02-25 | Comètes, débris & effets d'impact
+  - Comètes destructrices, débris parallaxe, effets impact soleils/trou noir
 
-   v0.2.0 | 2026-02-24 | Étape 2 — Génération de l'univers
-     - Trou noir central avec zone de danger
-     - Soleils en orbite autour du trou noir (4-20)
-     - Planètes en orbite autour des soleils (2-10 par soleil)
-     - Lunes en orbite autour des planètes (0-3 par planète)
-     - Générateur de noms procéduraux
-     - Propriétés : Radius, Flore, Faune
-     - Animation continue de toutes les orbites
+v2.4.0 | 2026-02-25 | Optimisation performances
+  - Étoiles + amas pré-rendus offscreen (−3160 draw calls)
+  - LOD dynamique 3 niveaux, cache gradients, allBodies pré-calculé
+  - Minimap throttle 15 frames, FPS adaptatif (auto-LOD si < 25)
 
-   v0.1.0 | 2026-02-24 | Étape 1 — Squelette & Canvas
-     - Structure HTML/CSS de base (single file)
-     - Canvas plein écran avec fond étoilé
-     - Boucle de jeu (requestAnimationFrame + delta time)
-     - Système de caméra : zoom (molette), panoramique (clic droit + drag)
-     - Objet gameState centralisé
-     - Compteur FPS (debug)
-     - Génération d'étoiles de fond (décor statique)
+── PHASE 3 : Mise en ligne & multijoueur (26–28 fév. 2026) ──────────
 
-   ══════════════════════════════════════════════════════════════════════
-   EtapE DE TRAVAIL
-   ──────────────────────────────────────────────────────────────────────
-   Étapes du projet :
-     1. ✅ Squelette & Canvas
-     2. ✅ Génération de l'univers
-     3. ✅ Rendu visuel des astres
-     4. ✅ Interface & menus
-     5. ✅ Mécanique de spores
-     6. ✅ Conquête & économie
-     7. ✅ Intelligence artificielle
-     8. ✅ Obstacles & dangers
-     9. ✅ Audio génératif
-    10. ✅ Polish & optimisation
-    
-   Post-v1.0 — Améliorations :
-    v1.1  ✅ Polish interface (panneau planètes, codex image, zoom x10)
-    v1.2  ✅ Symbiose (bonus production +20% planètes / +10% lunes)
-    v1.3  ✅ Textures & rendu (anneaux gazeuses, atmosphère, éclairage, impacts)
-    v1.4  ✅ Fond spatial (parallaxe 3 couches, particules, étoiles filantes)
-    v1.5  ✅ Interface avancée (minimap, indicateurs hors-écran, compteur temps, transitions)
-    v1.6  ✅ Audio avancé (ambiance adaptative, sons clic, son orbite, variation pitch)
-    v1.7  ✅ Performance (pool objets, cache gradients, batch particules, throttle DOM)
-    v1.8  ✅ Polish final (animation titre, écran chargement, nettoyage, suppression debug)
+v2.4.1 | 2026-02-26 | Nettoyage debug & config
+  - Suppression code debug (CSS, HTML, JS), panneaux F2-F7
+  - Config par défaut : 4 soleils, 4 joueurs, stats 0/0/0
+  - Hitbox améliorées, couleurs ciel éclaircies, vitesse jets 0.25→0.70
 
-   ── PHASE 2 : Mécaniques avancées ──
-    v1.9  ✅ Fond spatial 5 couches (voiles, nébuleuses, filaments, amas, étoiles)
-    v2.0  ✅ Nids & Biomes (production alternative par planète, +0.2% prod/défense local)
-    v2.1  ✅ Multiplicité (jauge évolution, consomme spores, 10 paliers, +1 stat/palier)
-    v2.2  ✅ UX — Interface adaptable (zoom UI, scroll astres, clic→codex)
-    v2.3  ✅ Comètes, débris & effets d'impact
-    v2.4  ✅ Optimisation performances (LOD, cache offscreen, FPS adaptatif)
+v2.4.2 | 2026-02-27 | Mise en ligne & Auth
+  - Déploiement GitHub Pages (gadmy.github.io/nebula-conquest)
+  - Supabase Auth (email + mot de passe), pseudo à la 1ère connexion
+  - Tables : profiles, games, leaderboard (RLS sur tout)
+  - Sauvegarde auto parties, écran Classement depuis menu titre
 
-   ── PHASE 3 : Mise en ligne & multijoueur ──
-    v2.4.1 ✅ Nettoyage debug & config (suppression debug F2-F7, réglages par défaut)
-    v2.4.2 ✅ Mise en ligne & Auth (GitHub Pages, Supabase, login, pseudo, leaderboard)
-    v2.4.3 ✅ Gameplay avancé & UI (astéroïdes, vaisseaux 3 types, journal, panneaux draggables)
-    v2.4.5 ✅ Panneaux UI (scale tous panneaux, snap magnétique, reset positions, 8 panneaux draggables)
-    v2.4.6 🔧 Multijoueur & minification
+v2.4.3 | 2026-02-27 | Gameplay avancé & UI
+  - Paramètres partie : soleils (1-8), joueurs (2-10), IA, vaisseaux, météorites
+  - 3 types ceintures astéroïdes : noir (÷2), rouge (déviation), vert (×5)
+  - 3 types vaisseaux : rouge (attaque), vert (×2 boost), noir (renvoi base)
+  - Journal événements filtrable, cliquable, icônes colorées par joueur
+  - Panneaux draggables/rétractables (6), positions sauvegardées Supabase
 
-   ── PHASE 4 : v2.4.6 à v6.9
-   (Divers essai, echec multi joueur à 100. Nouveau concept 1vs1.)
-   v6.9   ✅ Fix multi : isRailway 'multi-'/'local-', slot vs slot_number, _onGameReady direct, player_disconnected écouté
-   v6.9   ✅ Fix LOCAL : 2 slots (1v1), système invitation par pseudo (invite_received/invite_error), fond opaque écran local
-   v7.x   ✅ LOCAL 1v1 fonctionnel : invitation par pseudo, popup LANCER/DÉCLINER, player_ready synchronisé
-   v7.x   ✅ Fix isMulti branche hôte/invité, _serverPlayers peuplé depuis room.slots serveur
-   v7.x   ✅ Simulation locale réactivée en multi (spores, jets, conquêtes, IA)
-   v7.x   ✅ handleGameEvent gère spawn + jets avec sporeType
-   v7.x   🔧 Désynchronisation multi : chaque client simule indépendamment → à corriger par snapshots hôte autoritaire
-   v8.x   ✅ Snapshots hôte→invité : planètes, lunes, jets, joueurs toutes les 100ms
-   v8.x   ✅ Invité n'envoie que ses inputs, n'applique que les snapshots
-   v8.x   ✅ autoSpawnAIs ne spawne pas les humains distants en multi
-   v8.x   🔧 Problème fondamental : hôte simule via rAF → pause si onglet caché → désync
-   v8.x   🎯 PROCHAINE ÉTAPE : porter toute la simulation dans server.js (gameLoop.js)
-   v8.x   ✅ gameLoop.js créé : simulation autoritaire serveur (updateOrbits, updateSporeGeneration, updateJets, applyConquest, updateComets, updateAI)
-   v8.x   ✅ Snapshots serveur→clients 100ms : owner/spores/players (sans jets)
-   v8.x   ✅ Inputs joueurs (jet, spawn, set_sacrifice, build_mode) routés vers handleInput
-   v8.x   ✅ Client allégé : plus de simulation hôte, applySnapshot universel
-   v8.x   🎯 PROCHAINE ÉTAPE : jets côté client (animation locale 60fps, serveur autoritaire sur conquête uniquement)
-   v9.x   ✅ Jets animés côté client (trajectory serveur, 60fps local, conquête autoritaire serveur)
-   v9.x    ✅ Orbites synchronisées via snapshot (angles suns/planets/moons/belts)
-   v9.x    ✅ Cleaners synchronisés via snapshot (positions serveur + interpolation locale)
-   v9.x   ✅ Cleaners interactifs : rouge (-spores), vert (×2), noir (renvoi jet) avec events visuels
-   v9.x   ✅ Spawn multi : 30s countdown, lancement immédiat quand tous ont choisi
-   v9.x   ✅ Spawn multi : planètes prises visibles + nom joueur pendant countdown
-   v9.x   ✅ Fin de partie autoritaire serveur : victoire/élimination détectées dans gameLoop.js
-   v9.x   ✅ Déconnexion / Quitter → victoire immédiate pour l'adversaire (server.js)
-   v9.x   ✅ Écran de fin : "Victoire par forfait", timer correct, bouton MENU uniquement en multi
-   v9.x   ✅ Scores visibles en multi (reconstruction player.bodies depuis snapshot)
-   v9.x   ✅ Timer de partie fonctionnel (state.time incrémenté dans gameLoop._step)
-   v9.x   ✅ Build mode envoyé au serveur via sendAction('build_mode')
-   v9.x   ✅ Nidification implémentée : aspire 50% spores système → planète mère (cooldown 3min)
-   v9.x   ✅ Multiplicité : multiProgress/multiTier dans snapshot, event 'multi' géré serveur
-   v9.x   🎯 PROCHAINE ÉTAPE : tests build mode / multiplicité en partie réelle, sons, itch.io
-   ══════════════════════════════════════════════════════════════════════ */
+v2.4.5 | 2026-02-27 | Panneaux UI — Scale, Snap & Reset
+  - Zoom UI sur tous les panneaux, drag préserve le scale
+  - 8 panneaux draggables, snap magnétique 14px (panneaux + bords écran)
+  - Bouton ⟲ RESET POSITIONS, reset remet slider à 100%
 
+v2.4.6 | 2026-02-27 | Multijoueur via Supabase (1ère tentative)
+  - Lobby temps réel, salle d'attente, bouton PRÊT/LANCER
+  - Univers déterministe (seed partagé, PRNG mulberry32)
+  - Sync actions via Supabase Broadcast (jets, spawn, multiplicité)
+  - Countdown spawn 10s, joueurs identifiés par slot
+
+v2.4.7 | 2026-02-27 | Nidification de système solaire
+  - Système complet conquis → planète mère (👑), lunes invincibles
+  - NIDIFIER aspire tous les spores du système
+  - Nidification annulée si planète perdue, événements journal
+
+v2.4.8 | 2026-02-28 | Corrections & aide
+  - Fix auth, fix multi (lobby, couleurs), fix hitbox, fix noms
+  - Cinématique titre une seule fois, menu titre réorganisé
+  - Écran aide complet, salle d'attente avec paramètres
+  - Nidification : planète mère invincible si ≥ 50% système possédé
+
+v6.x-v9.x | 2026-03 | Refonte multijoueur → simulation autoritaire serveur
+  - Constat désync : chaque client simulait indépendamment, hôte via rAF pausait si onglet caché
+  - Architecture Railway : server.js + roomManager.js + tournamentManager.js + gameLoop.js
+  - Modes : MULTI matchmaking automatique, LOCAL invitation par pseudo (popup LANCER/DÉCLINER)
+  - gameLoop.js : setInterval 50ms, simulation complète serveur (orbites, spores, jets, conquêtes, IA, comètes, cleaners)
+  - Snapshot serveur→clients 100ms : owner/spores/att/déf/players/orbites/ceintures/cleaners
+  - Jets : trajectoire calculée serveur, animation 60fps client, conquête autoritaire serveur
+  - Fix jets : collision source ignorée pendant 0.5s (résout alive:false à l'arrivée client)
+  - Cleaners : positions serveur + interpolation locale, rouge (-spores), vert (×2), noir (renvoi jet)
+  - Spawn multi : countdown 30s, lancement immédiat si tous ont choisi
+  - Build mode, nidification, multiplicité, parasite : envoyés via player_action, autoritaires serveur
+  - Parasite : drain -20% prod, jet vers source, halo vert, flèches permanentes (rouge=parasité, vert=parasiteur)
+  - Fin de partie autoritaire : victoire/élimination/déconnexion/forfait dans gameLoop.js
+  - Tournoi : bracket 32 joueurs, élimination directe, forfait sur déconnexion
+  - UI : panneau infos détaillé, badges +X/s / -X% sacr. / sys., codex fixe centré
+  - Fermeture menus au clic hors, caméra suit l'astre au clic, "Foyer putride" dans menu radial
+  - nebulaconquest.com en ligne → gadmy.github.io/nebula-conquest
+  
+  
+══════════════════════════════════════════════════════════════════════
+v9.4 | 2026-04-02 | Refonte panneau Mes Astres
+     - Accordéon : un seul système solaire ouvert à la fois
+     - Arborescence planète → lunes avec ligne de connexion visuelle
+     - Planètes (18px) et lunes (14px) au même niveau hiérarchique
+     - Miniature texture réelle de l'astre (canvas drawImage)
+     - Icône build actif inline sur chaque ligne
+     - Build bar par système (1 clic = tout le groupe)
+     - Nidification : planètes candidates clignotent, clic direct pour désigner planète mère
+
+   À FAIRE
+  🎯 Sons (à faire à la maison)
+  🎯 Page itch.io avec screenshots
+  🎯 Obfuscation Terser/uglify-js
+  🎯 Contacter des YouTubers
+  ⚠️  Panneau latéral droit peut sortir de l'écran
+  ⚠️  Correspondance modifications multi → solo et mode local
+══════════════════════════════════════════════════════════════════════
 
 // ─────────────────────────────────────────────
 // GAME STATE — Objet central
@@ -8605,7 +8486,7 @@ if (body && body.owner === localSlot() && (e.button === 2)) {
             inp.isDragging = true;
             inp.dragStartX = e.clientX; inp.dragStartY = e.clientY;
             inp.cameraStartX = cam.x; inp.cameraStartY = cam.y;
-            if (typeof followingBody !== 'undefined') { followingBody = null; document.querySelectorAll('.mp-item.active').forEach(el => el.classList.remove('active')); }
+            if (typeof followingBody !== 'undefined') { followingBody = null; document.querySelectorAll('.mp-body-row.active').forEach(el => el.classList.remove('active')); }
             canvas.classList.add('grabbing');
         }
     });
@@ -8854,7 +8735,7 @@ function gameLoop(timestamp) {
     const camSpeed = 500 / gameState.camera.zoom;
     if (_keysDown['ArrowLeft'] || _keysDown['ArrowRight'] || _keysDown['ArrowUp'] || _keysDown['ArrowDown']) {
         followingBody = null;
-        document.querySelectorAll('.mp-item.active').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.mp-body-row.active').forEach(el => el.classList.remove('active'));
     }
     if (_keysDown['ArrowLeft']) gameState.camera.x -= camSpeed * gameState.deltaTime;
     if (_keysDown['ArrowRight']) gameState.camera.x += camSpeed * gameState.deltaTime;
@@ -9610,9 +9491,8 @@ function drawPlanets(ctx) {
                 const _t = gameState.time || 0;
                 // 🧬 : construction bâtiment (nid, biome, alvéole, foyer putride)
                 const _isBuild = p.buildMode && ['nid','biome','alveole','parasite'].includes(p.buildMode);
-                // 🫧 : production spores spéciaux (ruche, mare)
-                const _isSpore = p.buildMode && ['ruche','mare'].includes(p.buildMode);
-                const _showSpore = _isSpore;
+                // 🫧 : mode ruche ou mare actif (production spores spéciaux)
+                const _showSpore = p.buildMode && ['ruche','mare'].includes(p.buildMode);
 
                 if (_isBuild || _showSpore) {
                     ctx.save();
@@ -10730,11 +10610,9 @@ function updateMyPlanets() {
     const panel = document.getElementById('myPlanets');
     panel.style.display = 'block';
 
-    // Récupérer les astres possédés
     const slot = localSlot();
     const myBodies = gameState.allBodies.filter(b => b.owner === slot);
 
-    // Grouper par système solaire
     const groups = {};
     const groupSuns = {};
     for (const body of myBodies) {
@@ -10750,39 +10628,165 @@ function updateMyPlanets() {
         groups[sunName].push(body);
     }
 
-    // Ne reconstruire que si la liste a changé
+    function _makeTextureDot(body, size) {
+        const c = document.createElement('canvas');
+        c.width = c.height = size;
+        c.className = 'mp-dot';
+        c.style.width = size + 'px';
+        c.style.height = size + 'px';
+        if (body._texture) {
+            c.getContext('2d').drawImage(body._texture, 0, 0, size, size);
+        } else {
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = human.color || '#8866cc';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+            ctx.fill();
+        }
+        return c;
+    }
+
+    function _makeBodyRow(body, isNidCandidate, sunRef2, sunName2) {
+        const row = document.createElement('div');
+        row.className = 'mp-body-row' + (isNidCandidate ? ' nid-candidate' : '');
+        row.dataset.bodyName = body.name;
+
+        const size = body.type === 'planet' ? 18 : 14;
+        row.appendChild(_makeTextureDot(body, size));
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'mp-name';
+        nameEl.textContent = (body.isMotherPlanet ? '👑 ' : '') + body.name;
+        row.appendChild(nameEl);
+
+        const buildIcons = { nid:'🏗️', biome:'🛡️', alveole:'🍯', mare:'🔵', ruche:'🔴', parasite:'🦠' };
+        if (body.buildMode && buildIcons[body.buildMode]) {
+            const bi = document.createElement('span');
+            bi.className = 'mp-build-icon';
+            bi.textContent = buildIcons[body.buildMode];
+            row.appendChild(bi);
+        }
+        if ((body.parasiteSpore || 0) >= 1) {
+            const pi = document.createElement('span');
+            pi.className = 'mp-build-icon';
+            pi.textContent = '🦠';
+            pi.title = 'Spore parasitaire prête';
+            row.appendChild(pi);
+        }
+
+        const sporesEl = document.createElement('span');
+        sporesEl.className = 'mp-spores';
+        sporesEl.textContent = Math.floor(body.spores || 0);
+        row.appendChild(sporesEl);
+
+        if (isNidCandidate) {
+            const nidLbl = document.createElement('span');
+            nidLbl.className = 'mp-nid-label';
+            nidLbl.textContent = '👑?';
+            row.appendChild(nidLbl);
+            row.title = 'Choisir comme planète mère';
+            row.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!human.nidification[sunName2]) human.nidification[sunName2] = { progress:0, sacrifice:0, sunName:sunRef2.name };
+                selectMotherPlanet(sunRef2, body);
+                container.dataset.hash = '';
+            });
+        } else {
+            if (body.isMotherPlanet) {
+                const nidBtn = document.createElement('span');
+                nidBtn.className = 'mp-build-icon';
+                nidBtn.textContent = '👑';
+                nidBtn.title = 'NIDIFIER (aspire 50% spores du système)';
+                nidBtn.style.cursor = 'pointer';
+                nidBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (body._nidCooldown > 0) return;
+                    if (gameState.isMulti) sendAction('nidification', { bodyName: body.name });
+                    else _applyNidification(body, human);
+                });
+                row.insertBefore(nidBtn, sporesEl);
+            }
+            row.addEventListener('click', () => {
+                container.querySelectorAll('.mp-body-row.active').forEach(el => el.classList.remove('active'));
+                row.classList.add('active');
+                followingBody = body;
+                gameState.camera.x = body.x;
+                gameState.camera.y = body.y;
+                gameState.camera.zoom = Math.max(gameState.camera.zoom, 0.8);
+            });
+            if (followingBody === body) row.classList.add('active');
+        }
+        return row;
+    }
+
     const _hash = myBodies.map(b => b.name).join(',');
+    const _openGroup = container.dataset.openGroup || null;
+
     if (container.dataset.hash !== _hash) {
         container.dataset.hash = _hash;
         container.innerHTML = '';
 
-        for (const sunName of Object.keys(groups)) {
-            const bodies = groups[sunName];
+        const sunNames = Object.keys(groups);
+        let defaultOpen = _openGroup || (sunNames.length > 0 ? sunNames[0] : null);
+
+        for (const sunName of sunNames) {
+            const sunRef = groupSuns[sunName];
+            const complete = sunRef && isSystemComplete(sunRef, slot);
+            const _nidReady = sunRef && complete && !(human.nidification[sunName]?.motherPlanet);
+            const isOpen = (sunName === defaultOpen);
 
             const groupEl = document.createElement('div');
             groupEl.className = 'mp-sun-group';
+            groupEl.dataset.sunName = sunName;
 
             const sunLabel = document.createElement('div');
-            sunLabel.className = 'mp-sun-label';
-            const sunRef = groupSuns[sunName];
-            const complete = sunRef && isSystemComplete(sunRef, slot);
-            sunLabel.title = complete ? 'Système complet ! Bonus +3% de production actif' : 'Colonisez toutes les planètes et lunes de ce système pour un bonus +3% de production';
-            sunLabel.innerHTML = '\u2600 ' + sunName + (complete ? '<span class="sys-complete" title="Système complet : +3% de vitesse de production de spores sur toutes les planètes et lunes"> ★ +3%</span>' : '');
+            sunLabel.className = 'mp-sun-label' + (isOpen ? ' open' : '');
+            const leftSpan = document.createElement('span');
+            leftSpan.style.cssText = 'display:flex;align-items:center;gap:4px;';
+            leftSpan.textContent = '☀ ' + sunName;
+            if (complete) {
+                const badge = document.createElement('span');
+                badge.className = 'sys-complete';
+                badge.title = 'Système complet : +3% production';
+                badge.textContent = '★ +3%';
+                leftSpan.appendChild(badge);
+            }
+            const chevron = document.createElement('span');
+            chevron.className = 'mp-chevron';
+            chevron.textContent = '▶';
+            sunLabel.appendChild(leftSpan);
+            sunLabel.appendChild(chevron);
+            sunLabel.addEventListener('click', () => {
+                const bodyEl = groupEl.querySelector('.mp-sun-body');
+                const wasOpen = container.dataset.openGroup === sunName;
+                container.querySelectorAll('.mp-sun-label').forEach(l => l.classList.remove('open'));
+                container.querySelectorAll('.mp-sun-body').forEach(b => b.classList.remove('open'));
+                if (!wasOpen) {
+                    sunLabel.classList.add('open');
+                    bodyEl.classList.add('open');
+                    container.dataset.openGroup = sunName;
+                } else {
+                    container.dataset.openGroup = '';
+                }
+            });
             groupEl.appendChild(sunLabel);
 
-            // Sélecteur Nid/Biome/Off pour tout le système
-            const buildRow = document.createElement('div');
-            buildRow.style.cssText = 'display:flex; gap:4px; padding:2px 4px 4px; align-items:center;';
+            const bodyEl = document.createElement('div');
+            bodyEl.className = 'mp-sun-body' + (isOpen ? ' open' : '');
+            if (isOpen) container.dataset.openGroup = sunName;
+
+            const buildBar = document.createElement('div');
+            buildBar.className = 'mp-build-bar';
             const modeDefs = [
                 { mode: 'off',     icon: '⬛', title: 'Désactivé — production normale' },
-                { mode: 'alveole', icon: '🍯', title: 'Alvéole — +5% stock max (coût: 35% du stock)' },
-                { mode: 'nid',     icon: '🏗️', title: 'Nid — +2.5% production (coût: 40% du stock)' },
-                { mode: 'biome',   icon: '🛡️', title: 'Biome — +5% défense (coût: 50% du stock)' },
-                { mode: 'mare',    icon: '🔵', title: 'Mare — produit des spores de défense' },
-                { mode: 'rush',    icon: '🔴', title: 'Rush — produit des spores d\'attaque' },
+                { mode: 'alveole', icon: '🍯', title: 'Alvéole — +5% stock max' },
+                { mode: 'nid',     icon: '🏗️', title: 'Nid — +2.5% production' },
+                { mode: 'biome',   icon: '🛡️', title: 'Biome — +5% défense' },
+                { mode: 'mare',    icon: '🔵', title: 'Mare — spores de défense' },
+                { mode: 'ruche',   icon: '🔴', title: 'Ruche — spores d\'attaque' },
             ];
+            const bodies = groups[sunName];
 
-            // Tooltip partagé
             let _ttEl = document.getElementById('_buildTooltip');
             if (!_ttEl) {
                 _ttEl = document.createElement('div');
@@ -10794,11 +10798,9 @@ function updateMyPlanets() {
 
             modeDefs.forEach(({ mode, icon, title }) => {
                 const btn = document.createElement('span');
+                btn.className = 'mp-bbtn' + (mode === 'off' ? ' active' : '');
                 btn.textContent = icon;
-                btn.style.cssText = 'font-size:13px; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; border-radius:4px; cursor:pointer; border:1px solid rgba(100,70,180,0.2); background:rgba(100,70,180,0.05); transition:all 0.15s; opacity:0.5;';
                 btn.dataset.mode = mode;
-
-                // Tooltip délai 0.2s
                 btn.addEventListener('mouseenter', (e) => {
                     clearTimeout(_ttTimer);
                     _ttTimer = setTimeout(() => {
@@ -10808,224 +10810,77 @@ function updateMyPlanets() {
                         _ttEl.classList.add('visible');
                     }, 200);
                 });
-                btn.addEventListener('mouseleave', () => {
-                    clearTimeout(_ttTimer);
-                    _ttEl.classList.remove('visible');
-                });
-
-                btn.addEventListener('click', () => {
+                btn.addEventListener('mouseleave', () => { clearTimeout(_ttTimer); _ttEl.classList.remove('visible'); });
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     for (const b of bodies) {
                         b.buildMode = mode;
                         if (mode === 'off') b.buildProgress = 0;
+                        if (gameState.isMulti) sendAction('build_mode', { bodyName: b.name, mode });
                     }
-                    buildRow.querySelectorAll('span[data-mode]').forEach(s => {
-                        s.style.opacity = '0.5';
-                        s.style.background = 'rgba(100,70,180,0.05)';
-                        s.style.borderColor = 'rgba(100,70,180,0.2)';
-                    });
-                    btn.style.opacity = '1';
-                    btn.style.background = 'rgba(100,70,180,0.25)';
-                    btn.style.borderColor = 'rgba(100,70,180,0.6)';
+                    buildBar.querySelectorAll('.mp-bbtn').forEach(s => s.classList.remove('active'));
+                    btn.classList.add('active');
                 });
-                buildRow.appendChild(btn);
+                buildBar.appendChild(btn);
             });
+            bodyEl.appendChild(buildBar);
 
-            // Système complet → nidification disponible
-            const sunRef2 = groupSuns[sunName];
-            const _nidReady = sunRef2 && isSystemComplete(sunRef2, slot) && !(human.nidification[sunName]?.motherPlanet);
-            if (_nidReady) {
-                groupEl.style.cssText = 'border:2px solid rgba(239,68,68,0.8);border-radius:8px;padding:4px;animation:nidGlow 1.2s infinite;';
-            }
-            groupEl.appendChild(buildRow);
+            const planetsInGroup = sunRef ? sunRef.planets.filter(p => p.owner === slot) : bodies.filter(b => b.type === 'planet');
+            const orphans = bodies.filter(b => b.type !== 'planet' && (!b.parent || b.parent.owner !== slot));
 
-            const rowEl = document.createElement('div');
-            rowEl.className = 'mp-row';
+            for (const planet of planetsInGroup) {
+                const planetBlock = document.createElement('div');
+                planetBlock.className = 'mp-planet-block';
+                const isNidCandidate = _nidReady && planet.type === 'planet';
+                planetBlock.appendChild(_makeBodyRow(planet, isNidCandidate, sunRef, sunName));
 
-            // En mode nidification : seules les planètes clignotent et sont cliquables
-            if (_nidReady) {
-                const _nidPlanets = sunRef2.planets.filter(p => p.owner === slot);
-                for (const p of _nidPlanets) {
-                    const item = document.createElement('div');
-                    item.className = 'mp-item';
-                    item.dataset.bodyName = p.name;
-                    item.style.cssText = 'border:2px solid rgba(239,68,68,0.8);box-shadow:0 0 8px rgba(239,68,68,0.5);cursor:pointer;animation:nidFade 1.2s infinite;';
-                    item.title = '👑 Choisir comme planète mère';
-                    if (p._texture) {
-                        const _c = document.createElement('canvas');
-                        _c.width = _c.height = 32;
-                        _c.getContext('2d').drawImage(p._texture, 0, 0, 32, 32);
-                        item.appendChild(_c);
-                    }
-                    const _n = document.createElement('div');
-                    _n.className = 'mp-name';
-                    _n.textContent = p.name;
-                    item.appendChild(_n);
-                    const _h = document.createElement('div');
-                    _h.style.cssText = 'font-size:9px;color:rgba(239,68,68,0.9);margin-top:2px;';
-                    _h.textContent = '👑 Planète mère ?';
-                    item.appendChild(_h);
-                    item.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        if (!human.nidification[sunName]) human.nidification[sunName] = { progress:0, sacrifice:0, sunName:sunRef2.name };
-                        selectMotherPlanet(sunRef2, p);
-                        container.dataset.hash = '';
-                    });
-                    rowEl.appendChild(item);
+                const moons = (planet.moons || []).filter(m => m.owner === slot);
+                for (let mi = 0; mi < moons.length; mi++) {
+                    const isLast = mi === moons.length - 1;
+                    const indent = document.createElement('div');
+                    indent.className = 'mp-moon-indent';
+                    const treeLine = document.createElement('div');
+                    treeLine.className = 'mp-tree-line' + (isLast ? ' last' : '');
+                    indent.appendChild(treeLine);
+                    const moonWrap = document.createElement('div');
+                    moonWrap.style.flex = '1';
+                    moonWrap.appendChild(_makeBodyRow(moons[mi], false, sunRef, sunName));
+                    indent.appendChild(moonWrap);
+                    planetBlock.appendChild(indent);
                 }
-                groupEl.appendChild(rowEl);
-                container.appendChild(groupEl);
-                continue;
+                bodyEl.appendChild(planetBlock);
             }
 
-            // Trier : planète mère en premier
-            const nidData = human.nidification[sunName];
-            bodies.sort((a, b) => {
-                if (a.isMotherPlanet) return -1;
-                if (b.isMotherPlanet) return 1;
-                return 0;
-            });
-
-            for (const body of bodies) {
-                const item = document.createElement('div');
-                item.className = 'mp-item';
-                item.dataset.bodyName = body.name;
-
-                // Bouton Nidification si planète mère
-                if (body.isMotherPlanet && nidData && nidData.motherPlanet === body.name) {
-                    const nidBtn = document.createElement('div');
-                    nidBtn.className = 'mp-mother-badge';
-                    nidBtn.textContent = '👑 NIDIFIER';
-                    nidBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const slot = localSlot();
-                        const human = gameState.players[slot];
-                        if (!human || body._nidCooldown > 0) return;
-                        if (gameState.isMulti) {
-                            sendAction('nidification', { bodyName: body.name });
-                        } else {
-                            _applyNidification(body, human);
-                        }
-                    });
-                    item.appendChild(nidBtn);
-                }
-
-                // Nom au-dessus
-                const nameEl = document.createElement('div');
-                nameEl.className = 'mp-name';
-                nameEl.textContent = (body.isMotherPlanet ? '👑 ' : '') + body.name;
-                item.appendChild(nameEl);
-
-                // Badge type
-                const badge = document.createElement('div');
-                badge.className = 'mp-type-badge ' + (body.type === 'planet' ? 'planet-badge' : 'moon-badge');
-                badge.textContent = body.type === 'planet' ? 'PLAN\u00c8TE' : 'LUNE';
-                item.appendChild(badge);
-
-                // Mini-aperçu
-                if (body._texture) {
-                    const preview = document.createElement('canvas');
-                    const size = 38;
-                    preview.width = size;
-                    preview.height = size;
-                    const pctx = preview.getContext('2d');
-                    pctx.drawImage(body._texture, 0, 0, size, size);
-                    item.appendChild(preview);
-                } else {
-                    const dot = document.createElement('div');
-                    dot.style.cssText = 'width:30px;height:30px;border-radius:50%;background:' + human.color;
-                    item.appendChild(dot);
-                }
-
-                // Compteur spores
-                const sporesEl = document.createElement('div');
-                sporesEl.className = 'mp-spores';
-                sporesEl.textContent = Math.floor(body.spores);
-                item.appendChild(sporesEl);
-
-                // Bouton Codex
-                const codexBtn = document.createElement('div');
-                codexBtn.textContent = '📖';
-                codexBtn.title = 'Ouvrir le codex';
-                codexBtn.style.cssText = 'font-size:11px; cursor:pointer; margin-top:3px; opacity:0.4; transition:opacity 0.2s; padding:2px; border-radius:3px; border:1px solid rgba(100,70,180,0.2); background:rgba(100,70,180,0.05);';
-                codexBtn.addEventListener('mouseenter', () => codexBtn.style.opacity = '1');
-                codexBtn.addEventListener('mouseleave', () => codexBtn.style.opacity = '0.5');
-                codexBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    openCodex(body);
-                });
-                item.appendChild(codexBtn);
-
-                // Bouton parasite individuel si spore prête
-                if ((body.parasiteSpore || 0) >= 1) {
-                    const pBtn = document.createElement('span');
-                    pBtn.textContent = '🦠';
-                    pBtn.title = 'Spore parasitaire prête — activer via menu radial';
-                    pBtn.style.cssText = 'position:absolute; top:2px; left:2px; font-size:11px; cursor:default; filter:drop-shadow(0 0 4px #22C55E);';
-                    item.appendChild(pBtn);
-                }
-                // Bouton mode parasite (construction)
-                if ((body.buildMode !== 'parasite') && (body.parasiteSpore || 0) < 1) {
-                    const pbuildBtn = document.createElement('span');
-                    pbuildBtn.textContent = '🦠';
-                    pbuildBtn.title = 'Lancer construction spore parasitaire (2min)';
-                    pbuildBtn.style.cssText = 'position:absolute; bottom:2px; left:2px; font-size:10px; cursor:pointer; opacity:0.5; transition:opacity 0.15s;';
-                    pbuildBtn.addEventListener('mouseenter', () => pbuildBtn.style.opacity = '1');
-                    pbuildBtn.addEventListener('mouseleave', () => pbuildBtn.style.opacity = '0.5');
-                    pbuildBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        body.buildMode = 'parasite';
-                        body.parasiteProgress = 0;
-                    });
-                    item.appendChild(pbuildBtn);
-                }
-
-                // Clic → centrer la caméra
-                item.addEventListener('click', () => {
-                    document.querySelectorAll('.mp-item.active').forEach(el => el.classList.remove('active'));
-                    item.classList.add('active');
-                    followingBody = body;
-                    gameState.camera.x = body.x;
-                    gameState.camera.y = body.y;
-                    gameState.camera.zoom = Math.max(gameState.camera.zoom, 0.8);
-                });
-
-                rowEl.appendChild(item);
+            for (const b of orphans) {
+                bodyEl.appendChild(_makeBodyRow(b, false, sunRef, sunName));
             }
 
-            groupEl.appendChild(rowEl);
+            groupEl.appendChild(bodyEl);
             container.appendChild(groupEl);
         }
+
     } else {
-        // Mettre à jour badges système complet
-        const sunLabels = container.querySelectorAll('.mp-sun-label');
-        let gIdx = 0;
-        for (const sunName of Object.keys(groups)) {
-            if (gIdx < sunLabels.length) {
-                const sunRef = groupSuns[sunName];
-                const complete = sunRef && isSystemComplete(sunRef, 0);
-                const hasSpan = sunLabels[gIdx].querySelector('.sys-complete');
-                if (complete && !hasSpan) {
-                    sunLabels[gIdx].innerHTML = '\u2600 ' + sunName + '<span class="sys-complete" title="Système complet : +3% de vitesse de production de spores sur toutes les planètes et lunes"> \u2605 +3%</span>';
-                } else if (!complete && hasSpan) {
-                    sunLabels[gIdx].innerHTML = '\u2600 ' + sunName;
-                }
-            }
-            gIdx++;
-        }
-        // Mettre à jour juste les spores et l'état actif
-        const items = container.querySelectorAll('.mp-item');
-        let idx = 0;
-        for (const sunName of Object.keys(groups)) {
-            for (const body of groups[sunName]) {
-                if (idx < items.length) {
-                    const spEl = items[idx].querySelector('.mp-spores');
-                    if (spEl) spEl.textContent = Math.floor(body.spores);
-                    if (followingBody === body) items[idx].classList.add('active');
-                    else items[idx].classList.remove('active');
-                }
-                idx++;
-            }
-        }
+        container.querySelectorAll('.mp-sun-group').forEach(grpEl => {
+            const sn = grpEl.dataset.sunName;
+            if (!sn || !groups[sn]) return;
+            const sunRef = groupSuns[sn];
+            const complete = sunRef && isSystemComplete(sunRef, slot);
+            const badge = grpEl.querySelector('.sys-complete');
+            if (complete && !badge) {
+                const lb = grpEl.querySelector('.mp-sun-label span');
+                if (lb) { const b = document.createElement('span'); b.className='sys-complete'; b.textContent='★ +3%'; lb.appendChild(b); }
+            } else if (!complete && badge) { badge.remove(); }
+        });
+        container.querySelectorAll('.mp-body-row').forEach(row => {
+            const bn = row.dataset.bodyName;
+            if (!bn) return;
+            const body = gameState.allBodies.find(b => b.name === bn);
+            if (!body) return;
+            const spEl = row.querySelector('.mp-spores');
+            if (spEl) spEl.textContent = Math.floor(body.spores || 0);
+            if (followingBody === body) row.classList.add('active');
+            else if (!row.classList.contains('nid-candidate')) row.classList.remove('active');
+        });
     }
 }
 
