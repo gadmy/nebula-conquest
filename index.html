@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.10) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.11) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -12453,9 +12453,21 @@ function startMultiMatchmaking() {
         currentRoom = { id: roomId, mode: 'multi' };
         mySlot = slot;
         isHost = (slot === 0);
+        gameState._serverPlayers = players;
         statusEl.textContent = 'Partie trouvée ! Lancement...';
         timerEl.textContent = '';
-        _onGameReady(roomId, players);
+        if (isHost) {
+            // Même flow que l'hôte local
+            fadeTransition(() => _onGameReady(roomId, players));
+        } else {
+            // Même flow que l'invité local
+            _socket.off('game_start');
+            _socket.on('game_start', ({ universe, players: serverPlayers }) => {
+                gameState._serverUniverse = universe;
+                gameState._serverPlayers = serverPlayers;
+                fadeTransition(() => startGame());
+            });
+        }
     });
 
     document.getElementById('btnMultiCancel').onclick = () => {
