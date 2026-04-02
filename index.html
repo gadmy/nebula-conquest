@@ -10646,7 +10646,6 @@ function updateMyPlanets() {
     const panel = document.getElementById('myPlanets');
     panel.style.display = 'block';
 
-    const slot = localSlot();
     const myBodies = gameState.allBodies.filter(b => b.owner === slot);
 
     const groups = {};
