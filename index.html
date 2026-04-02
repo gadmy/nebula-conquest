@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.14) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.15) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -1941,17 +1941,6 @@ input[type="radio"]:checked + .build-icon-btn {
             <div class="stat-row" title="Augmente les spores délivrées à l'impact (+5% par point)"><span class="stat-icon">💎</span><span class="stat-name">Density</span><span class="stat-val" id="evoStatDensity">3</span><span class="stat-bonus" id="evoStatDensityBonus"></span><span class="stat-effect" id="evoStatDensityFx"></span></div>
         </div>
         <div class="evo-sep"></div>
-        <div style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(200,160,255,0.5);letter-spacing:2px;text-align:center;margin:4px 0 6px;">⚔ CONQUÊTE</div>
-        <div class="evo-sacrifice" style="margin-bottom:2px;">
-            <label title="Pourcentage de spores envoyées lors d'un jet">🚀 Envoi</label>
-            <input type="range" id="jetRatioSlider" min="0" max="100" value="50" step="5">
-            <span class="sac-val" id="jetRatioVal">50%</span>
-        </div>
-        <div class="evo-sacrifice" style="margin-bottom:4px;">
-            <label title="Que faire des bâtiments ennemis à la conquête ?">🏗️ Bâtiments</label>
-            <button id="conquestBuildingToggle" style="font-family:'Exo 2',sans-serif;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#F87171;transition:all 0.2s;">🔥 Détruire</button>
-        </div>
-        <div class="evo-sep"></div>
         <div class="evo-multi-title" title="Sacrifiez une partie de votre production pour gagner des paliers d'évolution. Chaque palier donne +1 point de stat au choix.">✦ MULTIPLICITÉ ✦</div>
         <div class="evo-tier" id="evoTierPips"></div>
         <div class="evo-bar-bg"><div class="evo-bar" id="evoBar"></div></div>
@@ -1966,6 +1955,17 @@ input[type="radio"]:checked + .build-icon-btn {
             <button id="evoGrowth">🌱 Growth <div class="stat-current" id="evoGrowthCur"></div></button>
             <button id="evoVelocity">⚡ Velocity <div class="stat-current" id="evoVelocityCur"></div></button>
             <button id="evoDensity">💎 Density <div class="stat-current" id="evoDensityCur"></div></button>
+        </div>
+        <div class="evo-sep"></div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(200,160,255,0.5);letter-spacing:2px;text-align:center;margin:4px 0 6px;">⚔ CONQUÊTE</div>
+        <div class="evo-sacrifice" style="margin-bottom:2px;">
+            <label title="Pourcentage de spores envoyées lors d'un jet">🚀 Envoi</label>
+            <input type="range" id="jetRatioSlider" min="0" max="100" value="50" step="5">
+            <span class="sac-val" id="jetRatioVal">50%</span>
+        </div>
+        <div class="evo-sacrifice" style="margin-bottom:4px;">
+            <label title="Que faire des bâtiments ennemis à la conquête ?">🏗️ Bâtiments</label>
+            <button id="conquestBuildingToggle" style="font-family:'Exo 2',sans-serif;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;border:1px solid rgba(239,68,68,0.5);background:rgba(239,68,68,0.15);color:#F87171;transition:all 0.2s;">🔥 Détruire</button>
         </div>
         </div><!-- /tabEvo -->
         <div class="evo-tab-content" id="tabTech">
