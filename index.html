@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.21) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.22) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -10806,7 +10806,9 @@ function updateMyPlanets() {
             row.title = 'Choisir comme planète mère';
             row.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const _h = gameState.players.find(p => p.id === localSlot()) || gameState.players[localSlot()];
+                const _slot = localSlot();
+                const _h = gameState.players.find(p => p.id === _slot) || gameState.players[_slot];
+                console.log('[nid click] slot=', _slot, 'human=', !!_h, 'sun=', sunRef2?.name, 'planet=', body?.name, 'moons=', body?.moons?.filter(m => m.owner === _slot).length);
                 if (!_h) return;
                 if (!_h.nidification[sunName2]) _h.nidification[sunName2] = { progress:0, sacrifice:0, sunName:sunRef2.name };
                 selectMotherPlanet(sunRef2, body);
