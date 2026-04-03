@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.5.3) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.5.4) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2161,7 +2161,8 @@ input[type="radio"]:checked + .build-icon-btn {
     - L'utilisateur dit ok à Claude. 
     - Claude renvoie le deuxième cherche et remplace qui concerne ce même travail. 
     - Ainsi de suite jusqu'à ce que le travail paticulier soit fini.
-	- Qd le travail est fini, Claude met à jour le log. 
+	- Qd le travail est fini, Claude écrit une nouvelle ligne dans le log en regardant toujours le numéro
+	de version contenue dans le fichier ici :  <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (vx.x.x) </div>
     - Puis l'utilisateur donne un nouveau travail à Claude. 
 	
 	- Jamais claude n'écrit ou ne modifie un fichier entier de lui même, sauf si l'utilisateur le demande. 
@@ -2399,7 +2400,8 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Fix nidification : sécurisation du clic avec find(p => p.id === localSlot())
      - Fix nidification multi : select_mother_planet envoyé au serveur, isMotherPlanet autoritaire serveur
      - Spawn synchronisé : spawn_ready côté client → spawn_start serveur quand tous prêts → countdown 3,2,1 simultané
-     - Spawn bloqué pendant attente : _spawnLocked empêche les clics avant le go (clic gauche, clic droit, codex, menu radial)
+     - Spawn bloqué pendant attente : _spawnLocked initialisé à true dès setPhase('spawn')
+     - Countdown 3,2,1 centré grand format (120px) au démarrage simultané du spawn
        mais garde capacité nidifier tant qu'il reste ≥1 lune, perd statut mère si toutes lunes perdues
        nidification aspire 100% stock au moment T (production continue), pas de limite maxSpores
        planète candidate doit avoir ≥1 lune, côté serveur et client
@@ -12402,15 +12404,25 @@ function connectSocket() {
     _socket.on('spawn_start', () => {
         if (gameState.phase !== 'spawn') return;
         const banner = document.getElementById('spawnBanner');
-        gameState._spawnLocked = true;
+        // Créer un overlay 3,2,1 centré
+        let _cdEl = document.getElementById('_spawnCdOverlay');
+        if (!_cdEl) {
+            _cdEl = document.createElement('div');
+            _cdEl.id = '_spawnCdOverlay';
+            _cdEl.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-family:Orbitron,sans-serif;font-size:120px;font-weight:bold;color:#FFD700;text-shadow:0 0 40px rgba(255,215,0,0.8);z-index:200;pointer-events:none;transition:opacity 0.3s;';
+            document.body.appendChild(_cdEl);
+        }
         let count = 3;
-        if (banner) banner.textContent = count;
+        _cdEl.textContent = count;
+        _cdEl.style.opacity = '1';
         const _cd = setInterval(() => {
             count--;
             if (count > 0) {
-                if (banner) banner.textContent = count;
+                _cdEl.textContent = count;
             } else {
                 clearInterval(_cd);
+                _cdEl.style.opacity = '0';
+                setTimeout(() => _cdEl.remove(), 300);
                 if (banner) banner.textContent = 'CHOISISSEZ VOTRE PLANÈTE !';
                 gameState._spawnLocked = false;
                 startSpawnCountdown();
