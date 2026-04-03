@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.15) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.16) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2383,6 +2383,10 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Fix ligne de visée : recalcul à chaque frame dans la boucle de rendu (orbite suivie même souris fixe)
      - Toggle conquête bâtiments : 🔥 Détruire / 🏗️ Conserver dans panneau Évolution (section ⚔ Conquête)
      - Toggle conquête bâtiments : autoritaire serveur en multi (set_conquest_buildings via player_action)
+     - Refonte nidification : planète mère invincible tant qu'elle a ≥1 lune, perd invincibilité si lune conquise
+       mais garde capacité nidifier tant qu'il reste ≥1 lune, perd statut mère si toutes lunes perdues
+       nidification aspire 100% stock au moment T (production continue), pas de limite maxSpores
+       planète candidate doit avoir ≥1 lune, côté serveur et client
      - Fix waitUniverse : appelle finishStartGame() après chargement carte
      - Fix keydown/keyup : guard e.key undefined
      - Fix snapshot lunes : nids/biomes/alveoles ajoutés côté serveur et appliqués client
@@ -8129,12 +8133,24 @@ function applyConquest(body, jet) {
                     const mother = gameState.allBodies.find(b => b.name === nid.motherPlanet);
                     const lunesPerdue = mother && mother.moons.some(m => m.owner !== oldOwner);
                     if (lunesPerdue) {
-                        if (mother) { mother.isMotherPlanet = false; mother.invincible = false; }
-                        for (const p of sunRef.planets) {
-                            for (const m of p.moons) { m.invincible = false; }
+                        if (mother) {
+                            // Perd l'invincibilité dès qu'une lune est perdue
+                            mother.invincible = false;
+                            // Perd le statut de mère seulement si TOUTES les lunes sont perdues
+                            const remainingMoons = mother.moons.filter(m => m.owner === oldOwner);
+                            if (remainingMoons.length === 0) {
+                                mother.isMotherPlanet = false;
+                                if (mother._nidMaxSpores) {
+                                    mother.maxSpores = mother._nidMaxSpores;
+                                    mother.spores = Math.min(mother.spores, mother.maxSpores);
+                                    mother._nidMaxSpores = null;
+                                }
+                                delete gameState.players[oldOwner].nidification[sunRef.name];
+                                if (oldOwner === localSlot()) addEvent('mine', '💔', 'Planète mère perdue (toutes les lunes conquises) : ' + mother.name, body, gameState.players[oldOwner]?.color);
+                            } else {
+                                if (oldOwner === localSlot()) addEvent('mine', '⚠️', 'Planète mère vulnérable ! (lune perdue) : ' + mother.name, body, gameState.players[oldOwner]?.color);
+                            }
                         }
-                        delete gameState.players[oldOwner].nidification[sunRef.name];
-                        if (oldOwner === localSlot()) addEvent('mine', '💔', 'Nidification perdue (lune conquise) : système ' + sunRef.name, body, gameState.players[oldOwner]?.color);
                     }
                 }
             }
@@ -10612,11 +10628,12 @@ function _applyNidification(motherBody, player) {
         .filter(b => b.owner === player.id && b !== motherBody);
     let gathered = 0;
     for (const b of total) {
-        const take = Math.floor(b.spores * 0.5);
-        b.spores -= take;
-        gathered += take;
+        gathered += Math.floor(b.spores);
+        b.spores = 0;
     }
-    motherBody.spores = Math.min(motherBody.maxSpores, motherBody.spores + gathered);
+    motherBody._nidMaxSpores = motherBody._nidMaxSpores || motherBody.maxSpores;
+    motherBody.maxSpores = Math.max(motherBody.maxSpores, motherBody.spores + gathered + 1000);
+    motherBody.spores = motherBody.spores + gathered;
     motherBody._nidCooldown = 180;
     playNidificationSound();
     addEvent('build', '👑', `Nidification : +${gathered} spores sur ${motherBody.name}`, motherBody, player.color);
@@ -10627,6 +10644,10 @@ function selectMotherPlanet(sun, planet) {
     const human = gameState.players[slot];
     if (!human) return;
 
+    // Doit avoir au moins une lune
+    const ownedMoons = planet.moons.filter(m => m.owner === slot);
+    if (ownedMoons.length === 0) return;
+
     if (!human.nidification[sun.name]) human.nidification[sun.name] = { progress: 0, sacrifice: 0, sunName: sun.name };
     const nid = human.nidification[sun.name];
 
@@ -10634,15 +10655,11 @@ function selectMotherPlanet(sun, planet) {
     nid.motherPlanet = planet.name;
     planet.isMotherPlanet = true;
 
-    // Rendre invincible : planète mère + ses lunes
+    // Planète mère invincible tant qu'elle a au moins une lune
     planet.invincible = true;
-    for (const moon of planet.moons) {
-        if (moon.owner === slot) moon.invincible = true;
-    }
 
     // Événement journal
     addEvent('build', '👑', 'Planète mère : ' + planet.name + ' (système ' + sun.name + ')', planet, human.color);
-
 }
 
 function isSystemComplete(sun, ownerID) {
@@ -10891,7 +10908,7 @@ function updateMyPlanets() {
             for (const planet of planetsInGroup) {
                 const planetBlock = document.createElement('div');
                 planetBlock.className = 'mp-planet-block';
-                const isNidCandidate = _nidReady && planet.type === 'planet';
+                const isNidCandidate = _nidReady && planet.type === 'planet' && planet.moons.filter(m => m.owner === slot).length > 0;
                 planetBlock.appendChild(_makeBodyRow(planet, isNidCandidate, sunRef, sunName));
 
                 const moons = (planet.moons || []).filter(m => m.owner === slot);
