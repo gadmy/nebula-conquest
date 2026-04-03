@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.24) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.25) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2397,6 +2397,7 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Fix codex ennemi : updateCodexBuild ne bloque plus sur owner !== localSlot
      - Fix codex ennemi : radios build mode désactivés en lecture seule pour astres ennemis
      - Fix nidification : sécurisation du clic avec find(p => p.id === localSlot())
+     - Fix nidification multi : select_mother_planet envoyé au serveur, isMotherPlanet autoritaire serveur
        mais garde capacité nidifier tant qu'il reste ≥1 lune, perd statut mère si toutes lunes perdues
        nidification aspire 100% stock au moment T (production continue), pas de limite maxSpores
        planète candidate doit avoir ≥1 lune, côté serveur et client
@@ -10684,7 +10685,6 @@ function _applyNidification(motherBody, player) {
 function selectMotherPlanet(sun, planet) {
     const slot = localSlot();
     const human = gameState.players.find(p => p.id === slot) || gameState.players[slot];
-    console.log('[selectMother] slot=', slot, 'human=', !!human, 'planet=', planet?.name, 'moons owned=', planet?.moons?.filter(m => m.owner === slot).length);
     if (!human) return;
 
     // Doit avoir au moins une lune
@@ -10701,7 +10701,9 @@ function selectMotherPlanet(sun, planet) {
     // Planète mère invincible tant qu'elle a au moins une lune
     planet.invincible = true;
 
-    console.log('[selectMother] DONE isMotherPlanet=', planet.isMotherPlanet, 'nid=', human.nidification[sun.name]);
+    // Envoyer au serveur en multi
+    if (gameState.isMulti) sendAction('select_mother_planet', { bodyName: planet.name });
+
     // Événement journal
     addEvent('build', '👑', 'Planète mère : ' + planet.name + ' (système ' + sun.name + ')', planet, human.color);
 }
@@ -10810,7 +10812,6 @@ function updateMyPlanets() {
                 e.stopPropagation();
                 const _slot = localSlot();
                 const _h = gameState.players.find(p => p.id === _slot) || gameState.players[_slot];
-                console.log('[nid click] slot=', _slot, 'human=', !!_h, 'sun=', sunRef2?.name, 'planet=', body?.name, 'moons=', body?.moons?.filter(m => m.owner === _slot).length);
                 if (!_h) return;
                 if (!_h.nidification[sunName2]) _h.nidification[sunName2] = { progress:0, sacrifice:0, sunName:sunRef2.name };
                 selectMotherPlanet(sunRef2, body);
