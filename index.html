@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.5.1) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.5.2) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2398,7 +2398,8 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Fix codex ennemi : radios build mode désactivés en lecture seule pour astres ennemis
      - Fix nidification : sécurisation du clic avec find(p => p.id === localSlot())
      - Fix nidification multi : select_mother_planet envoyé au serveur, isMotherPlanet autoritaire serveur
-     - Spawn synchronisé : spawn_ready côté client → spawn_start serveur quand tous prêts → countdown simultané
+     - Spawn synchronisé : spawn_ready côté client → spawn_start serveur quand tous prêts → countdown 3,2,1 simultané
+     - Spawn bloqué pendant attente : _spawnLocked empêche les clics avant le go (clic gauche, clic droit, codex, menu radial)
        mais garde capacité nidifier tant qu'il reste ≥1 lune, perd statut mère si toutes lunes perdues
        nidification aspire 100% stock au moment T (production continue), pas de limite maxSpores
        planète candidate doit avoir ≥1 lune, côté serveur et client
@@ -8570,6 +8571,7 @@ function setupInput() {
                 const wp = _worldPos(e.clientX, e.clientY);
                 const body = _bodyAt(wp.x, wp.y);
 if (body && body.owner === localSlot() && (e.button === 2)) {
+                    if (gameState.phase === 'spawn') return;
                     followingBody = body;
                     gameState._firePhase = 'menu';
                     gameState._fireSource = body;
@@ -8577,7 +8579,7 @@ if (body && body.owner === localSlot() && (e.button === 2)) {
                     return;
                 }
                 if (body && body.owner !== null && body.owner !== localSlot() && body.owner >= 0 && (e.button === 2)) {
-                    openCodex(body);
+                    if (!gameState._spawnLocked) openCodex(body);
                     return;
                 }
                 // Clic droit sur fond vide → toggle evoPanel
@@ -8640,7 +8642,7 @@ if (body && body.owner === localSlot() && (e.button === 2)) {
         const worldX = (mx - gameState.width / 2) / cam.zoom + cam.x;
         const worldY = (my - gameState.height / 2) / cam.zoom + cam.y;
 
-        if (gameState.phase === 'spawn') {
+        if (gameState.phase === 'spawn' && !gameState._spawnLocked) {
             handleSpawnClick(worldX, worldY);
         } else if (gameState.phase === 'game') {
             // Chercher un jet sous le clic
@@ -12397,7 +12399,22 @@ function connectSocket() {
     _socket.on('player_action', (data) => { handleGameEvent(data); });
     _socket.on('game_snapshot', (snap) => { applySnapshot(snap); });
     _socket.on('spawn_start', () => {
-        if (gameState.phase === 'spawn') startSpawnCountdown();
+        if (gameState.phase !== 'spawn') return;
+        const banner = document.getElementById('spawnBanner');
+        gameState._spawnLocked = true;
+        let count = 3;
+        if (banner) banner.textContent = count;
+        const _cd = setInterval(() => {
+            count--;
+            if (count > 0) {
+                if (banner) banner.textContent = count;
+            } else {
+                clearInterval(_cd);
+                if (banner) banner.textContent = 'CHOISISSEZ VOTRE PLANÈTE !';
+                gameState._spawnLocked = false;
+                startSpawnCountdown();
+            }
+        }, 1000);
     });
     _socket.on('all_spawned', () => {
         if (spawnCountdownInterval) { clearInterval(spawnCountdownInterval); spawnCountdownInterval = null; }
