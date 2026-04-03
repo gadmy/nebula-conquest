@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.19) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.20) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2394,6 +2394,9 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Fix snapshot multi : isMotherPlanet ajouté dans snapshot serveur et applySnapshot client
      - Clic droit planète ennemie : ouvre le codex (infos + bâtiments visibles)
      - Codex bâtiments : visible pour tous les astres possédés (pas seulement le joueur local)
+     - Fix codex ennemi : updateCodexBuild ne bloque plus sur owner !== localSlot
+     - Fix codex ennemi : radios build mode désactivés en lecture seule pour astres ennemis
+     - Fix nidification : sécurisation du clic avec find(p => p.id === localSlot())
        mais garde capacité nidifier tant qu'il reste ≥1 lune, perd statut mère si toutes lunes perdues
        nidification aspire 100% stock au moment T (production continue), pas de limite maxSpores
        planète candidate doit avoir ≥1 lune, côté serveur et client
@@ -6786,17 +6789,10 @@ function openCodex(body) {
     const buildEl = document.getElementById('codexBuild');
     if (body.owner !== null && body.type !== 'sun') {
         buildEl.style.display = 'block';
-        // Sélectionner le bon radio
+        const isLocal = body.owner === localSlot();
         document.querySelectorAll('input[name="buildMode"]').forEach(r => {
             r.checked = (r.value === (body.buildMode || 'off'));
-        });
-        updateCodexBuild(body);
-    } else if (body.owner !== null && body.type !== 'sun') {
-        // Afficher en lecture seule pour les autres joueurs
-        buildEl.style.display = 'block';
-        document.querySelectorAll('input[name="buildMode"]').forEach(r => {
-            r.checked = (r.value === (body.buildMode || 'off'));
-            r.disabled = true;
+            r.disabled = !isLocal;
         });
         updateCodexBuild(body);
     } else {
@@ -6833,7 +6829,7 @@ function updateCodexBuild(body) {
     const buildEl = document.getElementById('codexBuild');
     if (!grid) return;
 
-    if (!body || body.owner !== localSlot()) {
+    if (!body || body.owner === null) {
         buildEl.style.display = 'none';
         if (locked) locked.style.display = 'block';
         return;
@@ -10810,7 +10806,9 @@ function updateMyPlanets() {
             row.title = 'Choisir comme planète mère';
             row.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (!human.nidification[sunName2]) human.nidification[sunName2] = { progress:0, sacrifice:0, sunName:sunRef2.name };
+                const _h = gameState.players.find(p => p.id === localSlot()) || gameState.players[localSlot()];
+                if (!_h) return;
+                if (!_h.nidification[sunName2]) _h.nidification[sunName2] = { progress:0, sacrifice:0, sunName:sunRef2.name };
                 selectMotherPlanet(sunRef2, body);
                 container.dataset.hash = '';
             });
