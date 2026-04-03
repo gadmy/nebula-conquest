@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.17) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.18) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2388,6 +2388,9 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
        nidification aspire 100% stock au moment T (production continue), pas de limite maxSpores
        planète candidate doit avoir ≥1 lune, côté serveur et client
      - Planète mère ennemie : halo rouge clignotant visible par tous les joueurs
+     - Fix bouton Nidif. menu radial : déclenche directement l'aspiration (plus de ligne de visée)
+     - Attaque planète mère invincible : effet visuel 🛡️ INVINCIBLE ! + impact doré + event journal
+     - Serveur : event invincible_hit émis aux clients + listener côté client
        mais garde capacité nidifier tant qu'il reste ≥1 lune, perd statut mère si toutes lunes perdues
        nidification aspire 100% stock au moment T (production continue), pas de limite maxSpores
        planète candidate doit avoir ≥1 lune, côté serveur et client
@@ -6162,6 +6165,20 @@ function finishStartGame() {
 
 function _selectSporeType(type) {
     _closeSporMenu();
+    if (type === 'nidification') {
+        // Déclencher directement la nidification sans mode visée
+        const body = gameState._fireSource || gameState.selectedBody;
+        if (!body || !body.isMotherPlanet || (body._nidCooldown || 0) > 0) return;
+        const slot = localSlot();
+        const human = gameState.players.find(p => p.id === slot) || gameState.players[slot];
+        if (!human) return;
+        if (gameState.isMulti) {
+            sendAction('nidification', { bodyName: body.name });
+        } else {
+            _applyNidification(body, human);
+        }
+        return;
+    }
     gameState._fireType = type;
     gameState._firePhase = 'aiming';
 }
@@ -7983,6 +8000,18 @@ function checkJetCollision(jet) {
                 body.spores = Math.min(body.maxSpores, body.spores + jet.spores * densityBonus);
                 playFusionSound();
             } else {
+                // Signal visuel si planète mère invincible
+                if (body.isMotherPlanet) {
+                    const _lunesOwned = !body.moons?.length || body.moons.every(m => m.owner === body.owner);
+                    if (_lunesOwned) {
+                        gameState.conquestEffects.push({
+                            x: body.x, y: body.y - body.radius - 10, baseX: body.x,
+                            text: '🛡️ INVINCIBLE !', color: '#FFD700', age: 0, maxAge: 2.5
+                        });
+                        spawnImpact(jet.x, jet.y, '#FFD700');
+                        if (jet.owner === localSlot()) addEvent('mine', '🛡️', `${body.name} est invincible !`, body, '#FFD700');
+                    }
+                }
                 const _ml = gameState.players[jet.owner]?.tech?.mimicry || 0;
                 const oldOwner = body.owner;
                 if (_ml > 0 && body.type === 'planet' && body.moons && body.moons.length > 0) {
@@ -12358,6 +12387,15 @@ function connectSocket() {
     _socket.on('all_spawned', () => {
         if (spawnCountdownInterval) { clearInterval(spawnCountdownInterval); spawnCountdownInterval = null; }
         if (gameState.phase === 'spawn' && gameState.players.length > 0) finishMultiSpawn();
+    });
+    _socket.on('invincible_hit', (ev) => {
+        const body = gameState.allBodies.find(b => b.name === ev.bodyName);
+        spawnImpact(ev.x, ev.y, '#FFD700');
+        gameState.conquestEffects.push({
+            x: ev.x, y: ev.y - (ev.radius || 30) - 10, baseX: ev.x,
+            text: '🛡️ INVINCIBLE !', color: '#FFD700', age: 0, maxAge: 2.5
+        });
+        if (body) addEvent('war', '🛡️', `${ev.bodyName} est invincible !`, body, '#FFD700');
     });
     _socket.on('cleaner_hit', (ev) => {
         if (ev.type === 'red') {
