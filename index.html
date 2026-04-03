@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.18) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.4.19) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2391,6 +2391,9 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Fix bouton Nidif. menu radial : déclenche directement l'aspiration (plus de ligne de visée)
      - Attaque planète mère invincible : effet visuel 🛡️ INVINCIBLE ! + impact doré + event journal
      - Serveur : event invincible_hit émis aux clients + listener côté client
+     - Fix snapshot multi : isMotherPlanet ajouté dans snapshot serveur et applySnapshot client
+     - Clic droit planète ennemie : ouvre le codex (infos + bâtiments visibles)
+     - Codex bâtiments : visible pour tous les astres possédés (pas seulement le joueur local)
        mais garde capacité nidifier tant qu'il reste ≥1 lune, perd statut mère si toutes lunes perdues
        nidification aspire 100% stock au moment T (production continue), pas de limite maxSpores
        planète candidate doit avoir ≥1 lune, côté serveur et client
@@ -6781,7 +6784,7 @@ function openCodex(body) {
 
     // Nids & Biomes
     const buildEl = document.getElementById('codexBuild');
-    if (body.owner === localSlot() && body.type !== 'sun') {
+    if (body.owner !== null && body.type !== 'sun') {
         buildEl.style.display = 'block';
         // Sélectionner le bon radio
         document.querySelectorAll('input[name="buildMode"]').forEach(r => {
@@ -8572,6 +8575,7 @@ if (body && body.owner === localSlot() && (e.button === 2)) {
                     return;
                 }
                 if (body && body.owner !== null && body.owner !== localSlot() && body.owner >= 0 && (e.button === 2)) {
+                    openCodex(body);
                     return;
                 }
                 // Clic droit sur fond vide → toggle evoPanel
@@ -12727,6 +12731,7 @@ function applySnapshot(snap) {
         p.biomes        = sp.biomes        ?? p.biomes;
         p.alveoles      = sp.alveoles      ?? p.alveoles;
         p.buildMode        = sp.buildMode        ?? p.buildMode;
+        p.isMotherPlanet   = sp.isMotherPlanet   ?? p.isMotherPlanet;
         p.parasiteSpore    = sp.parasiteSpore     ?? p.parasiteSpore;
         p.parasiteProgress = sp.parasiteProgress  ?? p.parasiteProgress;
         if (sp.maxSpores !== undefined)      p.maxSpores      = sp.maxSpores;
