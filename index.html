@@ -10683,7 +10683,7 @@ function _applyNidification(motherBody, player) {
 
 function selectMotherPlanet(sun, planet) {
     const slot = localSlot();
-    const human = gameState.players[slot];
+    const human = gameState.players.find(p => p.id === slot) || gameState.players[slot];
     if (!human) return;
 
     // Doit avoir au moins une lune
