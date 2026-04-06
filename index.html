@@ -2415,6 +2415,24 @@ v9.4 | 2026-04-02 | Refonte panneau Mes Astres
      - Fix CLN_CFG et COMET_CFG : déplacés avant gameState (const non hoistée)
      - Fix CLN_CFG solo : harmonisé avec multi (detectRange:120, fireRate:0.3)
 
+v9.5.4 | 2026-04-05 | Alignement solo/multi
+     - 🛡️ INVINCIBLE : effet visuel + event journal ajoutés en solo (était silencieux)
+     - multiProgress : reset à 0 à chaque palier (au lieu de soustraire le coût)
+     - Spores au-dessus du max : Math.min sec au lieu du lerp doux
+     - checkJetNeutralization : ajouté dans gameLoop.js (serveur) + fix récursion infinie
+     - Collision source : solo ignore la source 0.5s (comme le serveur, au lieu de toujours)
+     - Drain parasite : arrondi aligné sur le serveur (Math.round si rate >= 10)
+     - Logique perte planète mère : unifiée solo/serveur (direct via isMotherPlanet, sans dictionnaire)
+     - Suppression ⚠️ panneau latéral droit (résolu)
+
+v9.5.5 | 2026-04-06 | Nettoyage code mort
+     - Suppression _snapPanel + PANEL_IDS (bug latent ReferenceError)
+     - Suppression debounceSavePanels / loadPanelConfig / savePanelConfig (panneaux draggables supprimés)
+     - Suppression stubs inutilisés : _tradeOpen, _diplomacyOpen, _triggerNidification, updateTradeOrbs, drawTradeOrbs, drawFloatingBubbles
+     - Suppression labo de spores désactivé : SPORE_LAB_DEFAULT, _sporeLabRender, _slToggleActive, _slAdj, _sporeLabSave, _applyActiveSpore_UNUSED, _checkSporeReady_UNUSED
+     - Guildes et leaderboard conservés (code désactivé, réactivation possible)
+     - 142 lignes supprimées au total
+
    À FAIRE
   🎯 Sons (à faire à la maison)
   🎯 Page itch.io avec screenshots
@@ -6215,14 +6233,8 @@ function _stmRefreshLive() {
     });
     _stmDraw();
 }
-function _tradeOpen() {}
-function _diplomacyOpen() {}
 function _syncServerIds() {}
 function _buildBodyIndex() {}
-function _triggerNidification(planet) { console.warn('[stub] _triggerNidification non implémenté', planet?.name); }
-function updateTradeOrbs() {}
-function drawTradeOrbs() {}
-function drawFloatingBubbles() {}
 
 function _stmDraw() {
     const ctx = _stmCtx;
@@ -7613,7 +7625,7 @@ function updateSporeGeneration(dt) {
                 player.multiProgress += rate * multiSac * dt;
                 const tierCost = getMultiTierCost(player.multiTier);
                 if (player.multiProgress >= tierCost) {
-                    player.multiProgress -= tierCost;
+                    player.multiProgress = 0;
                     if (player.isHuman) {
                         player._multiPending = true;
                     } else {
@@ -7622,10 +7634,7 @@ function updateSporeGeneration(dt) {
                 }
             }
 
-            // Décroissance si au-dessus du max
-            if (body.spores > body.maxSpores) {
-                body.spores -= (body.spores - body.maxSpores) * 0.5 * dt;
-            }
+            body.spores = Math.min(body.maxSpores, body.spores);
         }
 
         // ── Drain parasite ──
@@ -7636,7 +7645,8 @@ function updateSporeGeneration(dt) {
             if (!srcBody || srcBody.owner !== parasite.ownerSlot) {
                 body.parasite = null;
             } else {
-                const drain = rate * 0.20 * dt;
+                const rawDrain = rate * 0.20;
+                const drain = (rate >= 10 ? Math.max(1, Math.round(rawDrain)) : rawDrain) * dt;
                 body.spores = Math.max(0, (body.spores || 0) - drain);
                 // Envoyer vers planète source via jet auto silencieux
                 parasite._accumulator = (parasite._accumulator || 0) + drain;
@@ -7968,7 +7978,7 @@ function checkJetCollision(jet) {
 
     const bodies = gameState.allBodies;
     for (const body of bodies) {
-        if (body === jet.source) continue;
+        if (jet.age < 0.5 && jet.sourceName && body.name === jet.sourceName) continue;
         const dx = body.x - jet.x;
         const dy = body.y - jet.y;
         const _br = body.radius + 8;
@@ -8085,7 +8095,15 @@ function applyConquest(body, jet) {
     if (body.isMotherPlanet) {
         const _hasLunes = body.moons && body.moons.length > 0;
         const _lunesOwned = !_hasLunes || body.moons.every(m => m.owner === body.owner);
-        if (_lunesOwned) return; // invincible
+        if (_lunesOwned) {
+            spawnImpact(jet.x, jet.y, '#FFD700');
+            gameState.conquestEffects.push({
+                x: body.x, y: body.y - body.radius - 10, baseX: body.x,
+                text: '🛡️ INVINCIBLE !', color: '#FFD700', age: 0, maxAge: 2.5
+            });
+            if (jet.owner === localSlot()) addEvent('mine', '🛡️', `${body.name} est invincible !`, body, '#FFD700');
+            return;
+        }
     }
 
     // Jets sur planète alliée (mélange ADN) → renforcement
@@ -8165,33 +8183,24 @@ function applyConquest(body, jet) {
             body.maxSpores = body.baseMaxSpores || body.maxSpores;
         }
 
-        // Vérifier nidification : annuler si < 50% du système
-        if (oldOwner !== null && gameState.players[oldOwner]) {
-            const sunRef = body.type === 'planet' ? body.parent : (body.parent?.parent || null);
-            if (sunRef) {
-                const nid = gameState.players[oldOwner].nidification[sunRef.name];
-                if (nid && nid.motherPlanet) {
-                    // Annuler si une lune de la planète mère est perdue
-                    const mother = gameState.allBodies.find(b => b.name === nid.motherPlanet);
-                    const lunesPerdue = mother && mother.moons.some(m => m.owner !== oldOwner);
-                    if (lunesPerdue) {
-                        if (mother) {
-                            // Perd l'invincibilité dès qu'une lune est perdue
-                            mother.invincible = false;
-                            // Perd le statut de mère seulement si TOUTES les lunes sont perdues
-                            const remainingMoons = mother.moons.filter(m => m.owner === oldOwner);
-                            if (remainingMoons.length === 0) {
-                                mother.isMotherPlanet = false;
-                                if (mother._nidMaxSpores) {
-                                    mother.maxSpores = mother._nidMaxSpores;
-                                    mother.spores = Math.min(mother.spores, mother.maxSpores);
-                                    mother._nidMaxSpores = null;
-                                }
-                                delete gameState.players[oldOwner].nidification[sunRef.name];
-                                if (oldOwner === localSlot()) addEvent('mine', '💔', 'Planète mère perdue (toutes les lunes conquises) : ' + mother.name, body, gameState.players[oldOwner]?.color);
-                            } else {
-                                if (oldOwner === localSlot()) addEvent('mine', '⚠️', 'Planète mère vulnérable ! (lune perdue) : ' + mother.name, body, gameState.players[oldOwner]?.color);
+        // Vérifier nidification — même logique que le serveur
+        if (oldOwner !== null && body.type === 'moon') {
+            const conquSun = body.parent?.parent || null;
+            if (conquSun) {
+                for (const planet of conquSun.planets) {
+                    if (planet.isMotherPlanet && planet.owner === oldOwner) {
+                        planet.invincible = false;
+                        const remainingMoons = planet.moons.filter(m => m.owner === oldOwner && m !== body);
+                        if (remainingMoons.length === 0) {
+                            planet.isMotherPlanet = false;
+                            if (planet._nidMaxSpores) {
+                                planet.maxSpores = planet._nidMaxSpores;
+                                planet.spores = Math.min(planet.spores, planet.maxSpores);
+                                planet._nidMaxSpores = null;
                             }
+                            if (oldOwner === localSlot()) addEvent('mine', '💔', `Planète mère perdue : ${planet.name}`, body, gameState.players[oldOwner]?.color);
+                        } else {
+                            if (oldOwner === localSlot()) addEvent('mine', '⚠️', `Planète mère vulnérable : ${planet.name}`, body, gameState.players[oldOwner]?.color);
                         }
                     }
                 }
@@ -11900,59 +11909,7 @@ function animateTitleScreen() {
 
 
 // ── Panneaux draggables & rétractables ──
-let panelConfig = {};
 let _panelsInitialized = false;
-
-const SNAP_DISTANCE = 14;
-
-function _snapPanel(el, id) {
-    const r = el.getBoundingClientRect();
-    const curLeft = parseInt(el.style.left);
-    const curTop = parseInt(el.style.top);
-    if (isNaN(curLeft) || isNaN(curTop)) return;
-    let dxBest = SNAP_DISTANCE + 1, dyBest = SNAP_DISTANCE + 1;
-    let adjX = 0, adjY = 0;
-    for (const otherId of PANEL_IDS) {
-        if (otherId === id) continue;
-        const other = document.getElementById(otherId);
-        if (!other || other.style.display === 'none' || other.classList.contains('panel-collapsed')) continue;
-        if (!other.offsetWidth) continue;
-        const o = other.getBoundingClientRect();
-        // Proximité verticale suffisante pour snap horizontal ?
-        const nearY = (r.bottom > o.top - SNAP_DISTANCE) && (r.top < o.bottom + SNAP_DISTANCE);
-        // Proximité horizontale suffisante pour snap vertical ?
-        const nearX = (r.right > o.left - SNAP_DISTANCE) && (r.left < o.right + SNAP_DISTANCE);
-        if (nearY) {
-            const tests = [
-                r.right - o.left,   // bord droit → bord gauche
-                r.left - o.right,   // bord gauche → bord droit
-                r.left - o.left,    // aligner gauches
-                r.right - o.right   // aligner droits
-            ];
-            for (let i = 0; i < tests.length; i++) {
-                if (Math.abs(tests[i]) < Math.abs(dxBest)) { dxBest = tests[i]; adjX = -tests[i]; }
-            }
-        }
-        if (nearX) {
-            const tests = [
-                r.bottom - o.top,   // bord bas → bord haut
-                r.top - o.bottom,   // bord haut → bord bas
-                r.top - o.top,      // aligner hauts
-                r.bottom - o.bottom // aligner bas
-            ];
-            for (let i = 0; i < tests.length; i++) {
-                if (Math.abs(tests[i]) < Math.abs(dyBest)) { dyBest = tests[i]; adjY = -tests[i]; }
-            }
-        }
-    }
-    // Snap aux bords de l'écran
-    if (Math.abs(r.left) < Math.abs(dxBest)) { dxBest = r.left; adjX = -r.left; }
-    if (Math.abs(r.top) < Math.abs(dyBest)) { dyBest = r.top; adjY = -r.top; }
-    if (Math.abs(r.right - window.innerWidth) < Math.abs(dxBest)) { adjX = window.innerWidth - r.right; dxBest = -(window.innerWidth - r.right); }
-    if (Math.abs(r.bottom - window.innerHeight) < Math.abs(dyBest)) { adjY = window.innerHeight - r.bottom; dyBest = -(window.innerHeight - r.bottom); }
-    if (Math.abs(dxBest) <= SNAP_DISTANCE) el.style.left = Math.round(curLeft + adjX) + 'px';
-    if (Math.abs(dyBest) <= SNAP_DISTANCE) el.style.top = Math.round(curTop + adjY) + 'px';
-}
 
 function initSidePanel() {
     if (_panelsInitialized) return;
@@ -12029,27 +11986,6 @@ function initTopRight() {
         document.getElementById('sidePanel').style.transform = '';
         document.getElementById('topRight').style.transform = '';
     });
-}
-
-let _savePanelTimer = null;
-function debounceSavePanels() {
-    clearTimeout(_savePanelTimer);
-    _savePanelTimer = setTimeout(savePanelConfig, 1000);
-}
-
-async function loadPanelConfig() {
-    if (typeof currentUser === 'undefined' || !currentUser) return;
-    try {
-        const { data } = await _supa.from('profiles').select('panel_config').eq('id', currentUser.id).single();
-        if (data && data.panel_config) panelConfig = data.panel_config;
-    } catch (e) { console.warn('Panel config load:', e); }
-}
-
-async function savePanelConfig() {
-    if (typeof currentUser === 'undefined' || !currentUser) return;
-    try {
-        await _supa.from('profiles').update({ panel_config: panelConfig }).eq('id', currentUser.id);
-    } catch (e) { console.warn('Panel config save:', e); }
 }
 
 // ── Log d'événements ──
@@ -12166,103 +12102,6 @@ document.getElementById('jetRatioSlider').addEventListener('input', (e) => {
 // ═══════════════════════════════════════════
 
 const SPORE_COLORS = ['#C8A0FF','#4ADE80','#60A5FA','#F472B6','#FB923C','#FACC15','#E879F9','#34D399'];
-const SPORE_LAB_DEFAULT = () => Array.from({length:5}, (_,i) => ({
-    name: `Type ${i+1}`, color: SPORE_COLORS[i % SPORE_COLORS.length],
-    growth:0, velocity:0, density:0, active: false
-}));
-
-let _sporeTypes = SPORE_LAB_DEFAULT();
-
-function _sporeLabRender() {
-    return; const container = document.getElementById('sporeLabSlots');
-    if (!container) return;
-    container.innerHTML = '';
-    _sporeTypes.forEach((sp, idx) => {
-        const total = sp.growth + sp.velocity + sp.density;
-        const card = document.createElement('div');
-        card.style.cssText = `background:rgba(15,10,40,0.85); border:1px solid ${sp.color}44; border-radius:10px; padding:12px 14px;`;
-        card.innerHTML = `
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                <div style="position:relative;">
-                    <input type="color" id="slColor${idx}" value="${sp.color}" title="Couleur" style="width:28px;height:28px;border:none;border-radius:50%;background:none;cursor:pointer;padding:0;">
-                </div>
-                <input type="text" id="slName${idx}" maxlength="18" data-idx="${idx}"
-                    style="flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:5px; padding:4px 8px; font-family:'Exo 2',sans-serif; font-size:12px; color:#E0E7FF; outline:none;">
-                <span style="font-family:'Orbitron',sans-serif; font-size:9px; color:${total===10?'#4ADE80':'#EF4444'};" id="slTotal${idx}">${total}/10 pts</span>
-                <button id="slActive${idx}" title="Utiliser ce type en partie" onclick="_slToggleActive(${idx})" style="
-                    background:${sp.active?'rgba(34,197,94,0.25)':'rgba(255,255,255,0.05)'};
-                    border:1px solid ${sp.active?'#4ADE80':'rgba(255,255,255,0.15)'};
-                    border-radius:5px; padding:3px 7px; cursor:pointer;
-                    font-family:'Exo 2',sans-serif; font-size:10px;
-                    color:${sp.active?'#4ADE80':'rgba(180,190,220,0.4)'}; white-space:nowrap;">
-                    ${sp.active ? '✓ ACTIF' : '✗ OFF'}
-                </button>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-                ${[['growth','🌱 Croissance','#4ADE80','Production de spores : +30% par point'],['velocity','🚀 Vélocité','#60A5FA','Vitesse des jets : +6 u/s par point'],['density','💥 Densité','#F472B6','Impact à la conquête : +5% par point']].map(([key,lbl,col,tip]) => `
-                <div style="text-align:center; position:relative;">
-                    <div class="sl-tip-wrap" style="font-family:'Exo 2',sans-serif; font-size:8px; color:${col}; margin-bottom:3px; cursor:help; position:relative; display:inline-block;">
-                        ${lbl}
-                        <div class="sl-tip" style="display:none; position:absolute; bottom:calc(100% + 4px); left:50%; transform:translateX(-50%); background:rgba(10,8,35,0.97); border:1px solid ${col}44; border-radius:5px; padding:5px 8px; font-size:9px; color:rgba(220,225,240,0.9); white-space:nowrap; z-index:99; pointer-events:none; line-height:1.4;">${tip}</div>
-                    </div>
-                    <div style="display:flex; align-items:center; justify-content:center; gap:4px;">
-                        <button onclick="_slAdj(${idx},'${key}',-1)" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:3px;color:#fff;width:18px;height:18px;cursor:pointer;font-size:10px;line-height:1;padding:0;">−</button>
-                        <span id="sl_${key}_${idx}" style="font-family:'Orbitron',sans-serif; font-size:12px; color:${col}; min-width:16px; text-align:center;">${sp[key]}</span>
-                        <button onclick="_slAdj(${idx},'${key}',+1)" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:3px;color:#fff;width:18px;height:18px;cursor:pointer;font-size:10px;line-height:1;padding:0;">+</button>
-                    </div>
-                </div>`).join('')}
-            </div>
-        `;
-        container.appendChild(card);
-        // Listeners couleur et nom
-        const nameInput = card.querySelector(`#slName${idx}`);
-        if (nameInput) nameInput.value = sp.name;
-        card.querySelector(`#slColor${idx}`).addEventListener('input', e => {
-            _sporeTypes[idx].color = e.target.value;
-            _sporeLabRender();
-        });
-        card.querySelector(`#slName${idx}`).addEventListener('input', e => {
-            _sporeTypes[idx].name = e.target.value;
-        });
-    });
-}
-
-function _slToggleActive(idx) {
-    const sp = _sporeTypes[idx];
-    const total = sp.growth + sp.velocity + sp.density;
-    if (total === 0) return; // Spore sans stats = non sélectionnable
-    _sporeTypes.forEach((s, i) => s.active = (i === idx));
-    _sporeLabRender();
-}
-
-function _slAdj(idx, key, delta) {
-    const sp = _sporeTypes[idx];
-    const total = sp.growth + sp.velocity + sp.density;
-    if (delta > 0 && total >= 10) return;
-    if (delta < 0 && sp[key] <= 0) return;
-    sp[key] += delta;
-    // Mettre à jour sans re-render complet
-    document.getElementById(`sl_${key}_${idx}`).textContent = sp[key];
-    const t = sp.growth + sp.velocity + sp.density;
-    const tot = document.getElementById(`slTotal${idx}`);
-    if (tot) { tot.textContent = t+'/10 pts'; tot.style.color = t===10?'#4ADE80':'#EF4444'; }
-}
-
-async function _sporeLabSave() {
-    return; const msg = document.getElementById('sporeLabMsg');
-    // Lire les noms depuis les inputs
-    _sporeTypes.forEach((sp,i) => {
-        const el = document.getElementById(`slName${i}`);
-        if (el) sp.name = el.value.trim() || `Type ${i+1}`;
-    });
-    if (!currentUser) { msg.textContent = '⚠ Connectez-vous pour sauvegarder.'; msg.style.color='#EF4444'; return; }
-    msg.textContent = 'Sauvegarde...'; msg.style.color='rgba(180,190,220,0.5)';
-    try {
-        await _supa.from('profiles').update({ spore_types: _sporeTypes }).eq('id', currentUser.id);
-        msg.textContent = '✓ Sauvegardé !'; msg.style.color='#4ADE80';
-    } catch(e) { msg.textContent = '⚠ Erreur de sauvegarde.'; msg.style.color='#EF4444'; }
-    setTimeout(() => { if(msg) msg.textContent=''; }, 3000);
-}
 
 function _sporeLabLoad(profile) {
     if (profile && profile.spore_types && Array.isArray(profile.spore_types)) {
@@ -12271,53 +12110,8 @@ function _sporeLabLoad(profile) {
 }
 
 function _applyActiveSpore() { /* spores uniformes — labo supprimé */ }
-function _applyActiveSpore_UNUSED() {
-    const active = _sporeTypes.find(sp => sp.active && (sp.growth + sp.velocity + sp.density) > 0);
-    if (!active) return;
-    // Sanitisation stricte : entiers, min 0, max par stat 10, total max 10
-    const g = Math.max(0, Math.min(10, Math.floor(Number(active.growth) || 0)));
-    const v = Math.max(0, Math.min(10, Math.floor(Number(active.velocity) || 0)));
-    const d = Math.max(0, Math.min(10, Math.floor(Number(active.density) || 0)));
-    const total = g + v + d;
-    if (total > 10 || total === 0) {
-        console.warn('Spore invalide refusé:', active);
-        return;
-    }
-    gameState.playerStats = { growth: g, velocity: v, density: d };
-}
 
 function _checkSporeReady() { return true; }
-function _checkSporeReady_UNUSED() {
-    const hasActive = _sporeTypes.some(sp => sp.active && (sp.growth + sp.velocity + sp.density) > 0);
-    if (!hasActive) {
-        // Afficher le panneau d'alerte
-        const overlay = document.createElement('div');
-        overlay.id = '_sporeAlert';
-        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(5,5,20,0.75);';
-        overlay.innerHTML = `
-            <div style="background:rgba(10,8,35,0.97);border:1px solid rgba(160,120,255,0.4);border-radius:12px;padding:28px 32px;max-width:340px;text-align:center;">
-                <div style="font-size:32px;margin-bottom:12px;">🧬</div>
-                <div style="font-family:'Orbitron',sans-serif;font-size:13px;color:#C8A0FF;margin-bottom:10px;letter-spacing:1px;">AUCUNE SPORE ACTIVE</div>
-                <div style="font-family:'Exo 2',sans-serif;font-size:12px;color:rgba(180,190,220,0.7);margin-bottom:20px;line-height:1.5;">
-                    Créez et activez au moins un type de spore dans le <strong style="color:#C8A0FF;">Labo de Spores</strong> avant de lancer une partie.
-                </div>
-                <div style="display:flex;gap:10px;justify-content:center;">
-                    <button onclick="document.getElementById('_sporeAlert').remove(); setPhase('sporeLab');"
-                        style="background:rgba(160,120,255,0.25);border:1px solid rgba(160,120,255,0.6);border-radius:6px;padding:8px 16px;color:#C8A0FF;font-family:'Exo 2',sans-serif;font-size:12px;cursor:pointer;">
-                        → LABO DE SPORES
-                    </button>
-                    <button onclick="document.getElementById('_sporeAlert').remove();"
-                        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:8px 16px;color:rgba(180,190,220,0.6);font-family:'Exo 2',sans-serif;font-size:12px;cursor:pointer;">
-                        ANNULER
-                    </button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-        return false;
-    }
-    return true;
-}
 
 // Onglets codex
 document.querySelectorAll('#codex .codex-tab').forEach(tab => {
@@ -12946,7 +12740,6 @@ async function initAuth() {
             catch(e) { console.warn('loadProfile échoué:', e); }
             if (profile) {
                 currentProfile = profile;
-                await loadPanelConfig();
                 enterGame();
                 return;
             }
@@ -12986,7 +12779,6 @@ function onSignedIn(user) {
     loadProfile(user.id).then(async (profile) => {
         if (profile) {
             currentProfile = profile;
-            await loadPanelConfig();
             enterGame();
         } else {
             showPseudoStep();
@@ -13639,26 +13431,11 @@ function closeGuildProfile() {
 }
 
 document.getElementById('uiResetBtn').addEventListener('click', () => {
-    panelConfig = {};
-    _panelsInitialized = false;
-    for (const id of PANEL_IDS) {
-        const el = document.getElementById(id);
-        if (!el) continue;
-        const handle = el.querySelector('.panel-drag-handle');
-        if (handle) el.removeChild(handle);
-        el.classList.remove('panel-collapsed');
-        el.style.position = '';
-        el.style.left = '';
-        el.style.top = '';
-        el.style.right = '';
-        el.style.bottom = '';
-        el.style.transform = '';
-        el.style.transformOrigin = '';
-    }
     const slider = document.getElementById('uiZoomSlider');
     if (slider) { slider.value = 100; document.getElementById('uiZoomVal').textContent = '100%'; }
-    initPanels();
-    savePanelConfig();
+    document.getElementById('myPlanets').style.transform = '';
+    document.getElementById('sidePanel').style.transform = '';
+    document.getElementById('topRight').style.transform = '';
 });
 
 document.querySelectorAll('#eventLog .log-filter').forEach(btn => {
