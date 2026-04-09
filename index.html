@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.5.4) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.5.5) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2165,7 +2165,7 @@ input[type="radio"]:checked + .build-icon-btn {
 	de version contenue dans le fichier ici :  <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (vx.x.x) </div>
     - Puis l'utilisateur donne un nouveau travail à Claude. 
 	
-	- Jamais claude n'écrit ou ne modifie un fichier entier de lui même, sauf si l'utilisateur le demande. 
+	- Jamais claude n'écrit ou ne modifie un fichier entier de lui même avec pithon ou autre, sauf si l'utilisateur le demande. 
 	- Dès que Claude sens que sa mémoire sature, il fait un résumé de ce qui a été fait, de ce qu'on veut faire pour une nouvelle conversation. 
    
    
@@ -12818,7 +12818,6 @@ async function loadProfile(userId) {
         .eq('id', userId)
         .single();
     if (error || !data) return null;
-    _sporeLabLoad(data);
     // Charger le tag de guilde
     try {
         const { data: membership } = await _supa
