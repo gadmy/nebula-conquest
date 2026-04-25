@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.5.5) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.5.6) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2432,6 +2432,17 @@ v9.5.5 | 2026-04-06 | Nettoyage code mort
      - Suppression labo de spores désactivé : SPORE_LAB_DEFAULT, _sporeLabRender, _slToggleActive, _slAdj, _sporeLabSave, _applyActiveSpore_UNUSED, _checkSporeReady_UNUSED
      - Guildes et leaderboard conservés (code désactivé, réactivation possible)
      - 142 lignes supprimées au total
+
+v9.5.6 | 2026-04-09 | Tournoi 32 joueurs — câblage complet
+     - tournamentManager.js : _buildBracket() retourne les matchs pour création des rooms
+     - roomManager.js : createTournamentRoom() ajouté
+     - server.js : lancement auto des 16 rooms + countdown 10s après 32 inscrits
+     - Client : countdown affiché, lancement automatique du match (fadeTransition)
+     - Client : generateTournamentUniverse() + TOURNAMENT_POOLS (5 configs par round)
+     - Client : _renderBracket() refondu — affiche bracket réel multi-tours, gagnants en vert
+     - Client : _refreshTournamentUI() — affiche le round courant, pas juste la liste d'attente
+     - Client : bouton "Voir le bracket" en fin de match tournoi → retour à l'écran
+     - Client : setPhase('tournament') émet tournament_state pour rafraîchir depuis le serveur
 
    À FAIRE
   🎯 Sons (à faire à la maison)
@@ -5830,10 +5841,7 @@ case 'title':
             document.getElementById('tournamentScreen').classList.remove('hidden');
             playTitleMusic();
             _refreshTournamentUI();
-            break;
-        case 'sporeLab':
-            document.getElementById('sporeLabScreen').classList.remove('hidden');
-            playTitleMusic();
+            if (_socket) _socket.emit('tournament_state');
             break;
 case 'createMulti':
             document.getElementById('multiScreen').classList.remove('hidden');
@@ -10626,9 +10634,31 @@ function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverr
     document.getElementById('endScreen').classList.add('active');
     const btnSpectate = document.getElementById('btnSpectate');
     const btnReplay = document.getElementById('btnReplay');
-    if (gameState.isMulti) {
+    if (gameState.isTournament) {
         if (btnReplay) btnReplay.style.display = 'none';
         if (btnSpectate) btnSpectate.style.display = 'none';
+        // Bouton retour bracket
+        let btnBracket = document.getElementById('btnBackToBracket');
+        if (!btnBracket) {
+            btnBracket = document.createElement('button');
+            btnBracket.id = 'btnBackToBracket';
+            btnBracket.className = 'btn-end';
+            btnBracket.textContent = isVictory ? '🏆 Voir le bracket' : '📊 Voir le bracket';
+            btnBracket.addEventListener('click', () => {
+                document.getElementById('endScreen').classList.remove('active');
+                gameState.isTournament = false;
+                gameState.isMulti = false;
+                setPhase('tournament');
+                _socket.emit('tournament_state');
+            });
+            document.getElementById('endScreen').querySelector('.end-buttons')?.appendChild(btnBracket);
+        }
+        btnBracket.style.display = '';
+    } else if (gameState.isMulti) {
+        if (btnReplay) btnReplay.style.display = 'none';
+        if (btnSpectate) btnSpectate.style.display = 'none';
+        const btnBracket = document.getElementById('btnBackToBracket');
+        if (btnBracket) btnBracket.style.display = 'none';
     } else {
         if (btnReplay) btnReplay.style.display = '';
         if (btnSpectate) btnSpectate.style.display = (!isVictory) ? 'inline-block' : 'none';
@@ -12332,6 +12362,18 @@ function connectSocket() {
         const localPlayer = gameState.players[localSlot()];
         console.log('[game_over] winnerSlot=', winnerSlot, 'typeof=', typeof winnerSlot, 'localPlayer.id=', localPlayer?.id, 'mySlot=', mySlot, 'reason=', reason);
         const isVictory = winnerSlot !== -1 && (localPlayer && localPlayer.id === +winnerSlot);
+
+        // Tournoi — envoyer le résultat au serveur
+        if (gameState.isTournament && gameState._tournamentMatchId) {
+            const winnerPlayer = gameState.players.find(p => p.id === +winnerSlot);
+            if (winnerPlayer) {
+                _socket.emit('tournament_result', {
+                    matchId: gameState._tournamentMatchId,
+                    winnerPseudo: winnerPlayer.name
+                });
+            }
+        }
+
         const totalBodies = gameState.planets.length + gameState.moons.length;
         showEndScreen(isVictory,
             { ...gameState.gameStats, timeElapsed: stats?.timeElapsed || gameState.time },
@@ -13485,43 +13527,74 @@ document.getElementById('btnLocal').addEventListener('click', () => {
 // ── Tournoi ──────────────────────────────────────────────────
 
 let _tournamentData = null;
-let _tournamentPollTimer = null;
 
-function _renderBracket(players) {
+// Configurations des maps par round de tournoi
+const TOURNAMENT_POOLS = [
+    { suns: 2, planetsPerSun: 2, moonsPerPlanet: 2 }, // Round 1-2  : petit
+    { suns: 4, planetsPerSun: 2, moonsPerPlanet: 2 }, // Round 3-4  : moyen
+    { suns: 4, planetsPerSun: 2, moonsPerPlanet: 2 }, // Round 5    : moyen
+    { suns: 6, planetsPerSun: 2, moonsPerPlanet: 2 }, // Round 6    : grand
+    { suns: 8, planetsPerSun: 2, moonsPerPlanet: 2 }, // Finale     : max
+];
+
+function generateTournamentUniverse(poolCfg, mySlot, opponent) {
+    // Utiliser generateUniverse() existant avec les bons paramètres
+    const cfg = {
+        sunCount: poolCfg.suns,
+        planetsPerSun: poolCfg.planetsPerSun,
+        moonsPerPlanet: poolCfg.moonsPerPlanet,
+        playerCount: 2,
+        aiCount: 0,
+        difficulty: 'normal'
+    };
+    const universe = generateUniverse(cfg);
+    // Configurer les 2 joueurs
+    universe.players = [
+        { id: 0, name: mySlot === 0 ? currentProfile.pseudo : opponent.pseudo, color: mySlot === 0 ? currentProfile.avatar_color : opponent.color, isHuman: true, alive: true, stats: { growth:0, velocity:0, density:0 }, bodies: [], multiSacrifice: 0, multiTier: 0, multiProgress: 0, totalSpores: 0, tech: { homing:0, tenacity:0, mimicry:0, _branchOrder:[] } },
+        { id: 1, name: mySlot === 1 ? currentProfile.pseudo : opponent.pseudo, color: mySlot === 1 ? currentProfile.avatar_color : opponent.color, isHuman: true, alive: true, stats: { growth:0, velocity:0, density:0 }, bodies: [], multiSacrifice: 0, multiTier: 0, multiProgress: 0, totalSpores: 0, tech: { homing:0, tenacity:0, mimicry:0, _branchOrder:[] } },
+    ];
+    return universe;
+}
+
+function _renderBracket(matches) {
     const grid = document.getElementById('bracketGrid');
     if (!grid) return;
     grid.innerHTML = '';
     const me = currentProfile?.pseudo || null;
 
-    for (let i = 0; i < 16; i++) {
-        const p1 = players[i * 2]     || null;
-        const p2 = players[i * 2 + 1] || null;
+    for (const match of matches) {
+        const p1 = match.p1 || null;
+        const p2 = match.p2 || null;
         const iAm1 = me && p1 && p1.pseudo === me;
         const iAm2 = me && p2 && p2.pseudo === me;
         const isMyMatch = iAm1 || iAm2;
+        const isDone = match.status === 'done';
 
         const div = document.createElement('div');
         div.style.cssText = `
             background:${isMyMatch ? 'rgba(255,215,0,0.07)' : 'rgba(5,8,25,0.8)'};
             border:${isMyMatch ? '2px solid rgba(255,215,0,0.7)' : '1px solid rgba(255,215,0,0.15)'};
-            border-radius:8px; padding:10px 12px; position:relative;`;
+            border-radius:8px; padding:10px 12px; position:relative;
+            opacity:${isDone ? '0.6' : '1'};`;
 
-        // Badge "VOTRE MATCH" si c'est le mien
         const badge = isMyMatch
             ? `<div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#FFD700;color:#0F172A;font-family:'Orbitron',sans-serif;font-size:8px;font-weight:bold;padding:2px 8px;border-radius:10px;letter-spacing:1px;">VOTRE MATCH</div>`
             : '';
 
-        const styleP = (p, isMe) => p
-            ? `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
+        const styleP = (p, isMe) => {
+            if (!p) return `<div style="padding:4px 0;font-family:'Exo 2',sans-serif;font-size:11px;color:#334155;">○ En attente...</div>`;
+            const isWinner = isDone && match.winner === p.pseudo;
+            return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
                 <span style="width:8px;height:8px;border-radius:50%;background:${p.color || '#94A3B8'};display:inline-block;flex-shrink:0;"></span>
-                <span style="font-family:'Exo 2',sans-serif;font-size:${isMe ? '13px' : '12px'};color:${isMe ? '#FFD700' : '#E0E7FF'};font-weight:${isMe ? 'bold' : 'normal'};">${p.pseudo}</span>
-                ${isMe ? '<span style="font-size:9px;color:rgba(255,215,0,0.6);margin-left:2px;">(vous)</span>' : ''}
-               </div>`
-            : `<div style="padding:4px 0;font-family:'Exo 2',sans-serif;font-size:11px;color:#334155;">○ En attente...</div>`;
+                <span style="font-family:'Exo 2',sans-serif;font-size:${isMe ? '13px' : '12px'};color:${isWinner ? '#4ADE80' : isMe ? '#FFD700' : '#E0E7FF'};font-weight:${isMe || isWinner ? 'bold' : 'normal'};">${p.pseudo}</span>
+                ${isWinner ? '<span style="font-size:9px;color:#4ADE80;">✓</span>' : ''}
+                ${isMe && !isDone ? '<span style="font-size:9px;color:rgba(255,215,0,0.6);margin-left:2px;">(vous)</span>' : ''}
+               </div>`;
+        };
 
         div.innerHTML = `
             ${badge}
-            <div style="font-family:'Orbitron',sans-serif;font-size:8px;color:rgba(255,215,0,0.35);letter-spacing:1px;margin-bottom:6px;">MATCH ${i+1}</div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:8px;color:rgba(255,215,0,0.35);letter-spacing:1px;margin-bottom:6px;">${match.matchId.toUpperCase()}</div>
             ${styleP(p1, iAm1)}
             <div style="font-family:'Exo 2',sans-serif;font-size:9px;color:rgba(200,210,230,0.25);text-align:center;margin:1px 0;">— vs —</div>
             ${styleP(p2, iAm2)}`;
@@ -13532,40 +13605,108 @@ function _renderBracket(players) {
 
 function _tournamentRegister() {
     if (!currentProfile) return;
-    // Connexion socket + émission vers le serveur
     connectSocket();
     _socket.emit('tournament_register');
-    // Recevoir les mises à jour du bracket en temps réel
+
     _socket.off('tournament_update');
     _socket.on('tournament_update', (state) => {
         _tournamentData = state;
         _refreshTournamentUI();
     });
-    // Tournoi terminé → afficher le champion
+
     _socket.off('tournament_finished');
     _socket.on('tournament_finished', ({ champion }) => {
         const statusEl = document.getElementById('tournamentStatus');
         if (statusEl) statusEl.textContent = '🏆 Champion : ' + champion + ' !';
     });
-    // Demander l'état actuel immédiatement
+
+    // Countdown avant lancement des matchs
+    _socket.off('tournament_starting');
+    _socket.on('tournament_starting', ({ countdown }) => {
+        const statusEl = document.getElementById('tournamentStatus');
+        let t = countdown;
+        if (statusEl) statusEl.textContent = `🚀 Tournoi complet ! Lancement dans ${t}s...`;
+        const iv = setInterval(() => {
+            t--;
+            if (statusEl) statusEl.textContent = `🚀 Lancement dans ${t}s...`;
+            if (t <= 0) clearInterval(iv);
+        }, 1000);
+    });
+
+    // Mon match démarre — lancer la partie automatiquement
+    _socket.off('tournament_match_start');
+    _socket.on('tournament_match_start', ({ roomId, matchId, round, opponent, slot }) => {
+        const statusEl = document.getElementById('tournamentStatus');
+        if (statusEl) statusEl.textContent = `⚔️ Tour ${round} — vs ${opponent.pseudo} !`;
+        // Stocker le contexte tournoi
+        gameState._tournamentMatchId = matchId;
+        gameState._tournamentRoomId = roomId;
+        // Lancer comme un match multi normal
+        setTimeout(() => {
+            fadeTransition(() => {
+                gameState.isMulti = true;
+                gameState.isTournament = true;
+                gameState.localSlot = slot;
+                _startTournamentMatch(roomId, slot, opponent);
+            });
+        }, 1500);
+    });
+
     _socket.emit('tournament_state');
+}
+
+function _startTournamentMatch(roomId, slot, opponent) {
+    // Générer la map selon le round
+    const round = gameState._tournamentRound || 1;
+    const poolIdx = Math.min(round - 1, TOURNAMENT_POOLS.length - 1);
+    const poolCfg = TOURNAMENT_POOLS[poolIdx];
+    const universe = generateTournamentUniverse(poolCfg, slot, opponent);
+    // Rejoindre la room socket
+    _socket.emit('player_action', { type: 'spawn_done', slot });
+    if (slot === 0) {
+        _socket.emit('game_start', { roomId, universe });
+    }
+    setPhase('game');
 }
 
 function _refreshTournamentUI() {
     if (!_tournamentData) return;
-    const players = _tournamentData.players || [];
-    const count = players.length;
+    const { players, bracket, round, status } = _tournamentData;
+    const count = (players || []).length;
     const countEl = document.getElementById('tournamentPlayerCount');
     const statusEl = document.getElementById('tournamentStatus');
+
     if (countEl) countEl.textContent = count + ' / 32';
-    if (statusEl) {
-        if (count < 32) statusEl.textContent = count + ' joueur(s) inscrit(s) — en attente de ' + (32 - count) + ' de plus';
-        else statusEl.textContent = '🚀 Tournoi complet ! Lancement imminent...';
+
+    if (statusEl && status === 'open') {
+        statusEl.textContent = count + ' joueur(s) inscrit(s) — en attente de ' + (32 - count) + ' de plus';
+    } else if (statusEl && status === 'playing') {
+        statusEl.textContent = `⚔️ Tour ${round} en cours`;
+    } else if (statusEl && status === 'finished') {
+        statusEl.textContent = `🏆 Tournoi terminé !`;
     }
-    // Remplir le bracket avec les joueurs inscrits (par paires)
-    const slots = [];
-    for (let i = 0; i < 32; i++) slots.push(players[i] || null);
-    _renderBracket(slots);
+
+    // Bracket réel si tournoi lancé, sinon liste d'attente
+    if (status === 'open' || !bracket || bracket.length === 0) {
+        // Phase d'inscription : afficher les slots d'attente
+        const waitingMatches = [];
+        for (let i = 0; i < 16; i++) {
+            waitingMatches.push({
+                matchId: `match-${i+1}`,
+                round: 1,
+                p1: players[i * 2] || null,
+                p2: players[i * 2 + 1] || null,
+                winner: null,
+                status: 'pending'
+            });
+        }
+        _renderBracket(waitingMatches);
+    } else {
+        // Tournoi lancé : afficher le round courant
+        gameState._tournamentRound = round;
+        const currentMatches = bracket.filter(m => m.round === round);
+        _renderBracket(currentMatches);
+    }
 }
 
 initAuth();
