@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.5.7) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.6.1) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2450,6 +2450,11 @@ v9.5.8 | 2026-04-09 | Tournoi — Cycle 1 complet (5 cartes)
      - Round 3 : Celanlux-Velarbus (3 systèmes, ~700 flore chacun)
      - Round 4 : Draarlux-Xorirnis (5 systèmes, 4×500 + pivot 65)
      - Round 5 : Pyxaxmir-Omielpha (6 systèmes, carte épique finale)
+
+v9.5.9 | 2026-04-09 | Fix jets — sourceName manquant
+     - launchJet solo : ajout sourceName sur le jet principal (bug jet retournait sur source)
+     - Jet mimicry (astéroïde vert → lunes) : ajout sourceName
+     - Jet éclatement (astéroïde vert × 5) : propagation sourceName du jet parent
 
    À FAIRE
   🎯 Sons (à faire à la maison)
@@ -8008,6 +8013,7 @@ function updateJets(dt) {
                         age: 0,
                         selected: false,
                         source: jet.source,
+                        sourceName: jet.sourceName,
                         _hitBelt: Object.assign({}, jet._hitBelt)
                     });
                 }
@@ -8114,7 +8120,7 @@ function checkJetCollision(jet) {
                         const mdx=mn.x-body.x, mdy=mn.y-body.y, mdd=Math.sqrt(mdx*mdx+mdy*mdy);
                         if (mdd<1) continue;
                         const mSpd=jet.speed*0.8, mTr=computeTrajectory(body.x,body.y,mdx/mdd,mdy/mdd,mSpd,200);
-                        gameState.jets.push({ owner:jet.owner, color:jet.color, spores:_ms, trajectory:mTr, posIndex:0, x:body.x, y:body.y, speed:mSpd, alive:true, trail:[], sparkles:[], age:0, selected:false, source:body, _hitBelt:{} });
+                        gameState.jets.push({ owner:jet.owner, color:jet.color, spores:_ms, trajectory:mTr, posIndex:0, x:body.x, y:body.y, speed:mSpd, alive:true, trail:[], sparkles:[], age:0, selected:false, source:body, sourceName:body.name, _hitBelt:{} });
                     }
                 } else {
                     applyConquest(body, jet);
@@ -10880,6 +10886,9 @@ function updateMyPlanets() {
         return c;
     }
 
+    if (!container._selectedBodies) container._selectedBodies = new Set();
+    const _selectedBodies = container._selectedBodies;
+
     function _makeBodyRow(body, isNidCandidate, sunRef2, sunName2) {
         const row = document.createElement('div');
         row.className = 'mp-body-row' + (isNidCandidate ? ' nid-candidate' : '');
@@ -10943,15 +10952,55 @@ function updateMyPlanets() {
                 });
                 row.insertBefore(nidBtn, sporesEl);
             }
-            row.addEventListener('click', () => {
+
+            // Clic gauche : sélection unique + caméra
+            row.addEventListener('click', (e) => {
+                if (e.button !== 0) return;
                 container.querySelectorAll('.mp-body-row.active').forEach(el => el.classList.remove('active'));
+                _selectedBodies.clear();
+                _selectedBodies.add(body);
                 row.classList.add('active');
                 followingBody = body;
                 gameState.camera.x = body.x;
                 gameState.camera.y = body.y;
                 gameState.camera.zoom = Math.max(gameState.camera.zoom, 0.8);
             });
-            if (followingBody === body) row.classList.add('active');
+
+            // Clic droit : sélection multiple
+            let _lastRightClick = 0;
+            row.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const now = Date.now();
+                const isDouble = (now - _lastRightClick) < 350;
+                _lastRightClick = now;
+
+                if (isDouble) {
+                    // Double clic droit sur planète → sélectionne toutes ses lunes
+                    // Double clic droit sur lune → sélectionne lune + planète mère
+                    if (body.type === 'planet') {
+                        const slot2 = localSlot();
+                        const moons = (body.moons || []).filter(m => m.owner === slot2);
+                        for (const m of moons) { _selectedBodies.add(m); }
+                    } else if (body.type === 'moon') {
+                        _selectedBodies.add(body);
+                        if (body.parent && body.parent.owner === localSlot()) _selectedBodies.add(body.parent);
+                    }
+                } else {
+                    // Simple clic droit : toggle dans la sélection
+                    if (_selectedBodies.has(body)) _selectedBodies.delete(body);
+                    else _selectedBodies.add(body);
+                }
+
+                // Mettre à jour le visuel
+                container.querySelectorAll('.mp-body-row').forEach(el => {
+                    const bn = el.dataset.bodyName;
+                    const b = gameState.allBodies.find(x => x.name === bn);
+                    if (b && _selectedBodies.has(b)) el.classList.add('active');
+                    else if (followingBody !== b) el.classList.remove('active');
+                });
+            });
+
+            if (followingBody === body || _selectedBodies.has(body)) row.classList.add('active');
         }
         return row;
     }
@@ -10962,6 +11011,7 @@ function updateMyPlanets() {
     if (container.dataset.hash !== _hash) {
         container.dataset.hash = _hash;
         container.innerHTML = '';
+        _selectedBodies.clear();
 
         const sunNames = Object.keys(groups);
         let defaultOpen = _openGroup || (sunNames.length > 0 ? sunNames[0] : null);
@@ -11050,7 +11100,15 @@ function updateMyPlanets() {
                 btn.addEventListener('mouseleave', () => { clearTimeout(_ttTimer); _ttEl.classList.remove('visible'); });
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    for (const b of bodies) {
+                    const targets = _selectedBodies.size > 0 ? [..._selectedBodies] : [];
+                    if (targets.length === 0) {
+                        gameState.conquestEffects.push({
+                            x: gameState.camera.x, y: gameState.camera.y - 40, baseX: gameState.camera.x,
+                            text: '⚠ Aucun astre sélectionné', color: '#FFD700', age: 0, maxAge: 2
+                        });
+                        return;
+                    }
+                    for (const b of targets) {
                         b.buildMode = mode;
                         if (mode === 'off') b.buildProgress = 0;
                         if (gameState.isMulti) sendAction('build_mode', { bodyName: b.name, mode });
