@@ -1609,7 +1609,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.6.7) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.6.8) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -13577,12 +13577,15 @@ function _initRankedListeners() {
 
     _socket.on('ranked_matched', ({ roomId, slot, opponent, maps }) => {
         document.getElementById('rankedStatus').textContent = `⚔️ Adversaire trouvé : ${opponent.pseudo} !`;
-        // Initialiser la session ranked
         gameState._rankedSession = {
             roomId, slot, opponent, maps,
-            scores: [0, 0], // [mon score, score adversaire]
-            manche: 0       // index de la carte actuelle (0, 1, 2)
+            scores: [0, 0],
+            manche: 0
         };
+        // Rejoindre la room socket.io
+        mySlot = slot;
+        currentRoom = { id: roomId };
+        isHost = (slot === 0);
         setTimeout(() => _startRankedManche(), 2000);
     });
 
@@ -13637,8 +13640,14 @@ function _startRankedManche() {
     gameState.isRanked = true;
     gameState.isTournament = false;
     gameState.localSlot = session.slot;
-    if (session.slot === 0) _socket.emit('game_start', { roomId: session.roomId, universe });
-    setPhase('game');
+    if (session.slot === 0) {
+        _socket.emit('game_start', { roomId: session.roomId, universe });
+        setPhase('game');
+    } else {
+        // Slot 1 attend le game_start du serveur
+        document.getElementById('rankedStatus').textContent = '⏳ Lancement de la partie...';
+        _socket.once('game_start', () => setPhase('game'));
+    }
 }
 
 document.getElementById('btnTournamentBack').addEventListener('click', () => {
