@@ -13640,21 +13640,22 @@ function _startRankedManche() {
     gameState.isRanked = true;
     gameState.isTournament = false;
     gameState.localSlot = session.slot;
+    mySlot = session.slot;
+
+    _socket.off('game_start');
+    _socket.on('game_start', ({ universe: u, players: serverPlayers }) => {
+        gameState._serverUniverse = u;
+        gameState._serverPlayers = serverPlayers;
+        fadeTransition(() => startGame());
+    });
+
     if (session.slot === 0) {
-        // Nettoyer les références circulaires avant envoi
         const cleanUniverse = JSON.parse(JSON.stringify(universe, (key, val) => {
             if (key === 'parent') return undefined;
             if (key === 'allBodies') return undefined;
-            if (key === 'planets' && val && val[0]?.moons !== undefined) return undefined;
-            if (key === 'moons' && Array.isArray(val) && val.length > 0 && val[0]?.parent !== undefined) return undefined;
             return val;
         }));
         _socket.emit('game_start', { roomId: session.roomId, universe: cleanUniverse });
-        setPhase('game');
-    } else {
-        // Slot 1 attend le game_start du serveur
-        document.getElementById('rankedStatus').textContent = '⏳ Lancement de la partie...';
-        _socket.once('game_start', () => setPhase('game'));
     }
 }
 
