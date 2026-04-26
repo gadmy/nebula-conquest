@@ -1,9 +1,155 @@
+
+
 <!-- © 2025 Guillaume de Mauroy — Tous droits réservés
      Nebula Conquest — https://nebulaconquest.com
      Toute reproduction ou distribution sans autorisation expresse est interdite.
      Contact : ga.dmy@ikmail.com
 
 	 -->
+
+/* ══════════════════════════════════════════════════════════════════════
+   NEBULA CONQUEST — JAVASCRIPT
+   Version: 1.1.0
+
+   ══════════════════════════════════════════════════════════════════════
+
+    METHODE DE TRAVAIL
+    - pour chaque travail demandé par l'utilisateur :
+    - Claude établie un plan en plusieurs (si besoins) "cherche + ligne" et "remplace"
+    - Claude donne le premier "cherche + la ligne" et "remplace par"
+    - l'utilisateur fait le cherche et remplace sur le fichier.
+    - L'utilisateur dit ok à Claude.
+    - Claude renvoie le deuxième cherche et remplace qui concerne ce même travail.
+    - Ainsi de suite jusqu'à ce que le travail paticulier soit fini.
+	- Qd le travail est fini, Claude écrit une nouvelle ligne dans le log en regardant toujours le numéro
+	de version contenue dans le fichier ici :  <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (vx.x.x) </div>
+    - Puis l'utilisateur donne un nouveau travail à Claude.
+
+	- Jamais claude n'écrit ou ne modifie un fichier entier de lui même avec pithon ou autre, sauf si l'utilisateur le demande.
+	- Dès que Claude sens que sa mémoire sature, il fait un résumé de ce qui a été fait, de ce qu'on veut faire pour une nouvelle conversation.
+
+
+ DEV LOG — Nebula Conquest
+══════════════════════════════════════════════════════════════════════
+
+── PHASE 1 : Prototype solo (24–25 fév. 2026) ────────────────────────
+
+v0.1.0 | 2026-02-24 | Squelette & Canvas
+  - Structure HTML/CSS single file, canvas plein écran, fond étoilé
+  - Boucle de jeu (requestAnimationFrame + delta time)
+  - Caméra : zoom molette, panoramique clic droit + drag
+  - Objet gameState centralisé, compteur FPS
+
+v0.2.0 | 2026-02-24 | Univers & Corps célestes
+  - Génération procédurale : trou noir, soleils, planètes, lunes
+  - Orbites elliptiques animées, textures canvas (cratères, halos)
+  - Paramètres : flore, faune, symbiose
+
+v0.3.0 | 2026-02-24 | Jets de spores
+  - Lancer de jet via clic droit drag, trajectoire courbée (gravité)
+  - Calcul de trajectoire avec attraction trou noir + soleils
+  - Conquête : combat de spores, changement de propriétaire
+
+v0.4.0 | 2026-02-25 | IA & Gameplay
+  - IA avec 3 niveaux (easy/normal/brutal), aiTimer, prédiction orbite
+  - Génération de spores selon flore, bonus symbiose
+  - Sélection planète active, panneau info, journal d'événements
+
+v0.5.0 | 2026-02-25 | Polish solo
+  - Effets visuels : impacts, conquête, textes flottants
+  - Minimap, score, timer, écran fin de partie
+  - Astéroïdes (dark/red/green) avec effets sur jets
+
+── PHASE 2 : Multijoueur (mars 2026) ────────────────────────────────
+
+v6.x-v9.x | 2026-03 | Refonte multijoueur → simulation autoritaire serveur
+  - Migration vers architecture serveur-autoritaire (gameLoop.js sur Railway)
+  - Clients pure display/input, snapshots 100ms
+  - Modes : SOLO vs IA, MULTI matchmaking, LOCAL invitation
+  - Système de tournoi 32 joueurs (tournamentManager.js)
+  - Auth Supabase, profils, ELO
+  - Fix cascadants : CORS, room prolifération, sync spawn, parasite, multiplicité
+
+v9.4 | 2026-04-02 | Refonte panneau Mes Astres
+  - Nouveau panneau latéral gauche avec groupes par système solaire
+  - Barre de construction par système, indicateur symbiose
+  - Suivi de corps (caméra suit la planète sélectionnée)
+  - Indicateur système complet (+3%)
+
+v9.5.4 | 2026-04-06 | Alignement solo/multi
+     - 🛡️ INVINCIBLE : effet visuel + event journal ajoutés en solo (était silencieux)
+     - multiProgress : reset à 0 à chaque palier (au lieu de soustraire le coût)
+     - Spores au-dessus du max : Math.min sec au lieu du lerp doux
+     - checkJetNeutralization : ajouté dans gameLoop.js (serveur) + fix récursion infinie
+     - Collision source : solo ignore la source 0.5s (comme le serveur, au lieu de toujours)
+     - Drain parasite : arrondi aligné sur le serveur (Math.round si rate >= 10)
+     - Logique perte planète mère : unifiée solo/serveur (direct via isMotherPlanet, sans dictionnaire)
+     - Suppression ⚠️ panneau latéral droit (résolu)
+
+v9.5.5 | 2026-04-06 | Nettoyage code mort
+     - Suppression _snapPanel + PANEL_IDS (bug latent ReferenceError)
+     - Suppression debounceSavePanels / loadPanelConfig / savePanelConfig (panneaux draggables supprimés)
+     - Suppression stubs inutilisés : _tradeOpen, _diplomacyOpen, _triggerNidification, updateTradeOrbs, drawTradeOrbs, drawFloatingBubbles
+     - Suppression labo de spores désactivé : SPORE_LAB_DEFAULT, _sporeLabRender, _slToggleActive, _slAdj, _sporeLabSave, _applyActiveSpore_UNUSED, _checkSporeReady_UNUSED
+     - Guildes et leaderboard conservés (code désactivé, réactivation possible)
+     - 142 lignes supprimées au total
+
+v9.5.6 | 2026-04-09 | Tournoi 32 joueurs — câblage complet
+     - tournamentManager.js : _buildBracket() retourne les matchs pour création des rooms
+     - roomManager.js : createTournamentRoom() ajouté
+     - server.js : lancement auto des 16 rooms + countdown 10s après 32 inscrits
+     - Client : countdown affiché, lancement automatique du match (fadeTransition)
+     - Client : generateTournamentUniverse() + TOURNAMENT_POOLS (5 configs par round)
+     - Client : _renderBracket() refondu — affiche bracket réel multi-tours, gagnants en vert
+     - Client : _refreshTournamentUI() — affiche le round courant, pas juste la liste d'attente
+     - Client : bouton "Voir le bracket" en fin de match tournoi → retour à l'écran
+     - Client : setPhase('tournament') émet tournament_state pour rafraîchir depuis le serveur
+
+v9.5.7 | 2026-04-09 | Tournoi — cartes fixes par round
+     - TOURNAMENT_MAPS : structure cycle1/cycle2 pour sets de cartes
+     - Round 1 cycle1 : carte "Sigisnis-Lyrirnis" intégrée (3 systèmes, 2×~400 flore + pivot 94)
+     - Rounds 2-5 cycle1 : à définir (null)
+     - getTournamentMap(round) : retourne la carte du round courant
+     - generateTournamentUniverse() : clone la map, reconstruit allBodies, injecte les 2 joueurs
+     - _startTournamentMatch() : utilise getTournamentMap au lieu de generateUniverse aléatoire
+
+v9.5.8 | 2026-04-09 | Tournoi — Cycle 1 complet (5 cartes)
+     - Round 1 : Sigisnis-Lyrirnis (3 systèmes, ~400 flore chacun + pivot 94)
+     - Round 2 : Lyrith-Nebipha (5 systèmes, 2×285 + 2×500 + pivot 450)
+     - Round 3 : Celanlux-Velarbus (3 systèmes, ~700 flore chacun)
+     - Round 4 : Draarlux-Xorirnis (5 systèmes, 4×500 + pivot 65)
+     - Round 5 : Pyxaxmir-Omielpha (6 systèmes, carte épique finale)
+
+v9.5.9 | 2026-04-09 | Fix jets — sourceName manquant
+     - launchJet solo : ajout sourceName sur le jet principal (bug jet retournait sur source)
+     - Jet mimicry (astéroïde vert → lunes) : ajout sourceName
+     - Jet éclatement (astéroïde vert × 5) : propagation sourceName du jet parent
+
+v9.6.0 | 2026-04-09 | Panneau Mes Astres — sélection multiple
+     - Clic gauche : sélection unique + caméra centrée (comportement inchangé)
+     - Clic droit : toggle sélection multiple (sans désélectionner les autres)
+     - Double clic droit sur planète : sélectionne toutes ses lunes
+     - Double clic droit sur lune : sélectionne lune + planète mère
+     - Boutons construction : agissent uniquement sur la sélection active
+     - Si aucune sélection : message d'avertissement ⚠
+     - Sélection persistante entre les refreshs du panneau
+
+v9.6.3 | 2026-04-09 | Mode Compétition — menu + 1vs1 ranked
+     - Nouveau menu Compétition (remplace bouton Tournoi direct)
+     - Écran ranked 1vs1 : adversaire aléatoire ou invitation par pseudo
+     - 2 manches gagnantes (3 matchs max) sur cartes aléatoires des cycles
+     - Écran score entre les manches avec bouton "Manche suivante"
+     - server.js : ranked_queue, ranked_invite, ranked_result câblés
+     - roomManager.js : joinRankedQueue, leaveRankedQueue, pickRankedMaps
+     - Tournoi 32j déplacé dans le menu Compétition (inchangé)
+
+   À FAIRE
+  🎯 Sons (à faire à la maison)
+  🎯 Page itch.io avec screenshots
+  🎯 Obfuscation Terser/uglify-js
+  🎯 Contacter des YouTubers
+══════════════════════════════════════════════════════════════════════ */
+
 	 
 <!DOCTYPE html>
 <html lang="fr">
@@ -1467,7 +1613,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
-    <button class="btn" id="btnTournament" style="margin-top:8px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); color:#FFD700;">🏆 TOURNOI (32 joueurs)</button>
+    <button class="btn" id="btnCompetition" style="margin-top:8px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); color:#FFD700;">🏆 COMPÉTITION</button>
     <button class="btn" id="btnHelp" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">AIDE</button>
     <div id="titlePseudo" style="margin-top:20px; font-family:'Orbitron',sans-serif; font-size:11px; color:rgba(200,170,255,0.5); letter-spacing:2px;"></div>
     <button id="btnLogout" style="margin-top:8px; background:none; border:none; color:rgba(200,170,255,0.3); font-family:'Exo 2',sans-serif; font-size:11px; cursor:pointer; letter-spacing:1px;">DÉCONNEXION</button>
@@ -1500,6 +1646,37 @@ input[type="radio"]:checked + .build-icon-btn {
 </div>
 
 <!-- ═══ ÉCRAN TOURNOI ═══ -->
+<!-- ═══ ÉCRAN COMPÉTITION ═══ -->
+<div id="competitionScreen" class="screen hidden" style="background:rgba(5,8,25,0.98); flex-direction:column; align-items:center; justify-content:center; gap:20px;">
+    <h2 style="font-family:'Orbitron',monospace; color:#FFD700; text-shadow:0 0 20px rgba(255,215,0,0.4); letter-spacing:3px;">🏆 COMPÉTITION</h2>
+    <div style="display:flex; flex-direction:column; gap:14px; width:100%; max-width:340px;">
+        <button class="btn" id="btnGoRanked" style="padding:18px; font-size:15px; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.5); color:#A5B4FC; letter-spacing:2px;">⚔️ 1 vs 1</button>
+        <button class="btn" id="btnGoTournament" style="padding:18px; font-size:15px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); color:#FFD700; letter-spacing:2px;">🏆 TOURNOI 32 JOUEURS</button>
+    </div>
+    <button class="btn" id="btnCompetitionBack" style="margin-top:8px; font-size:12px; padding:8px 24px;">RETOUR</button>
+</div>
+
+<!-- ═══ ÉCRAN RANKED 1v1 ═══ -->
+<div id="rankedScreen" class="screen hidden" style="background:rgba(5,8,25,0.98); flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+    <h2 style="font-family:'Orbitron',monospace; color:#A5B4FC; text-shadow:0 0 20px rgba(99,102,241,0.4); letter-spacing:3px;">⚔️ 1 vs 1</h2>
+    <div id="rankedStatus" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#94A3B8; letter-spacing:1px;">Choisissez un mode</div>
+    <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:320px;">
+        <button class="btn" id="btnRankedRandom" style="padding:14px; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.5); color:#A5B4FC;">🎲 Adversaire aléatoire</button>
+        <div style="display:flex; gap:8px;">
+            <input id="rankedInviteInput" type="text" placeholder="Pseudo de l'adversaire..." style="flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:10px 12px; font-family:'Exo 2',sans-serif; font-size:13px; color:#E0E7FF; outline:none;">
+            <button class="btn" id="btnRankedInvite" style="padding:10px 14px; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.5); color:#A5B4FC; white-space:nowrap;">Inviter</button>
+        </div>
+    </div>
+    <!-- Panel score entre les manches -->
+    <div id="rankedScorePanel" style="display:none; flex-direction:column; align-items:center; gap:10px; background:rgba(15,23,42,0.95); border:1px solid rgba(99,102,241,0.3); border-radius:12px; padding:20px 32px;">
+        <div id="rankedScoreTitle" style="font-family:'Orbitron',sans-serif; font-size:13px; color:#A5B4FC; letter-spacing:2px;">MANCHE TERMINÉE</div>
+        <div id="rankedScore" style="font-family:'Orbitron',sans-serif; font-size:32px; color:#FFD700;">0 — 0</div>
+        <div id="rankedScoreMsg" style="font-family:'Exo 2',sans-serif; font-size:12px; color:#94A3B8;"></div>
+        <button class="btn" id="btnRankedNextManche" style="padding:10px 24px; background:rgba(99,102,241,0.2); border:1px solid rgba(99,102,241,0.5); color:#A5B4FC;">▶ MANCHE SUIVANTE</button>
+    </div>
+    <button class="btn" id="btnRankedBack" style="margin-top:8px; font-size:12px; padding:8px 24px;">RETOUR</button>
+</div>
+
 <div id="tournamentScreen" class="screen hidden" style="background:rgba(5,8,25,0.98); overflow-y:auto; justify-content:flex-start; padding:20px 16px;">
     <h2 style="font-family:'Orbitron',monospace; color:#FFD700; text-shadow:0 0 20px rgba(255,215,0,0.4); margin-bottom:6px; letter-spacing:3px; flex-shrink:0;">🏆 TOURNOI</h2>
     <div id="tournamentStatus" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#94A3B8; margin-bottom:10px; letter-spacing:1px; flex-shrink:0;">Chargement...</div>
@@ -2147,323 +2324,7 @@ input[type="radio"]:checked + .build-icon-btn {
 
 <script>
 "use strict";
-/* ══════════════════════════════════════════════════════════════════════
-   NEBULA CONQUEST — JAVASCRIPT
-   Version: 1.1.0
 
-   ══════════════════════════════════════════════════════════════════════
-   
-    METHODE DE TRAVAIL
-    - pour chaque travail demandé par l'utilisateur :
-    - Claude établie un plan en plusieurs (si besoins) "cherche + ligne" et "remplace"
-    - Claude donne le premier "cherche + la ligne" et "remplace par"
-    - l'utilisateur fait le cherche et remplace sur le fichier. 
-    - L'utilisateur dit ok à Claude. 
-    - Claude renvoie le deuxième cherche et remplace qui concerne ce même travail. 
-    - Ainsi de suite jusqu'à ce que le travail paticulier soit fini.
-	- Qd le travail est fini, Claude écrit une nouvelle ligne dans le log en regardant toujours le numéro
-	de version contenue dans le fichier ici :  <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (vx.x.x) </div>
-    - Puis l'utilisateur donne un nouveau travail à Claude. 
-	
-	- Jamais claude n'écrit ou ne modifie un fichier entier de lui même avec pithon ou autre, sauf si l'utilisateur le demande. 
-	- Dès que Claude sens que sa mémoire sature, il fait un résumé de ce qui a été fait, de ce qu'on veut faire pour une nouvelle conversation. 
-   
-   
- DEV LOG — Nebula Conquest
-══════════════════════════════════════════════════════════════════════
-
-── PHASE 1 : Prototype solo (24–25 fév. 2026) ────────────────────────
-
-v0.1.0 | 2026-02-24 | Squelette & Canvas
-  - Structure HTML/CSS single file, canvas plein écran, fond étoilé
-  - Boucle de jeu (requestAnimationFrame + delta time)
-  - Caméra : zoom molette, panoramique clic droit + drag
-  - Objet gameState centralisé, compteur FPS
-
-v0.2.0 | 2026-02-24 | Génération de l'univers
-  - Trou noir central, soleils en orbite, planètes, lunes (0-3 par planète)
-  - Générateur de noms procéduraux
-  - Propriétés : Radius, Flore, Faune — animation continue des orbites
-
-v0.3.0 | 2026-02-24 | Rendu visuel des astres
-  - Textures procédurales planètes (continents, mers, déserts, gazeuses)
-  - Textures cachées sur canvas offscreen
-  - Soleils pulsants, trou noir avec disque d'accrétion rotatif
-  - Lunes cratérisées, 6 types de planètes
-
-v0.4.0 | 2026-02-24 | Interface & menus
-  - Écran titre, config partie (soleils, joueurs, difficulté, stats, couleur)
-  - Phase spawn, HUD spores + scores, codex au clic, pause solo
-  - Machine à états : menu → config → spawn → game → end
-
-v0.5.0 | 2026-02-24 | Mécanique de spores
-  - Lancement jets : clic maintenu → glisser → relâcher
-  - Prévisualisation trajectoire (70%, pointillés bioluminescents)
-  - Trajectoire courbée par gravité du trou noir
-  - Collision jet-astre, neutralisation jets croisés (proportionnelle)
-
-v0.6.0 | 2026-02-24 | Conquête & économie
-  - Indicateur visuel conquête, animation éclosion à 100%
-  - Régénération Faune si attaque interrompue
-  - Victoire : 80% masse totale — élimination → mode spectateur
-  - Écran de fin avec stats
-
-v0.7.0 | 2026-02-24 | Intelligence artificielle
-  - IA Facile : cibles aléatoires, réaction 3s
-  - IA Normale : évalue Flore + proximité, interception basique, 1.5s
-  - IA Brutale : interception orbitale, coordination multi-astres, 0.5s
-
-v0.8.0 | 2026-02-24 | Obstacles & dangers
-  - Trou noir : gravité courbe les jets, zone de destruction visible
-  - Vaisseaux nettoyeurs : patrouille, tirent sur jets, invincibles
-  - Scaling nettoyeurs selon nombre de planètes
-
-v0.9.0 | 2026-02-24 | Audio génératif (Web Audio API, sans fichiers externes)
-  - Ambiance spatiale drone basse fréquence modulé
-  - Sons : lancement jet, fusion ami, conquête, neutralisation,
-    vaisseau nettoyeur, victoire/défaite
-  - Contrôle volume général
-
-v1.0.0 | 2026-02-24 | Polish & optimisation
-  - Culling, batch rendering étoiles, grille spatiale collisions
-  - Équilibrage Flore/Faune/vitesses orbites
-  - Écran de fin complet, boutons Rejouer/Menu
-  - Compatible Chrome/Firefox/Safari/Edge — GitHub Pages ready
-
-── PHASE 1 suite : améliorations solo (24–25 fév. 2026) ─────────────
-
-v1.1.0 | 2026-02-24 | Polish interface
-  - Panneau planètes groupé par système solaire, déploiement au survol
-  - Badge PLANÈTE/LUNE, codex avec aperçu texture 80px, zoom max x10
-
-v1.2.0 | 2026-02-24 | Symbiose
-  - Propriété symbiose 0-100% par astre possédé
-  - Bonus production : +20% planètes / +10% lunes à 100%
-  - Reset si changement de propriétaire — IAs concernées aussi
-
-v1.3.0 | 2026-02-24 | Textures & rendu améliorés
-  - Anneaux planètes gazeuses, atmosphère lumineuse (halo coloré)
-  - Lunes variées (glace, roche, volcanique)
-  - Éclairage directionnel soleils, animation d'impact (onde + particules)
-
-v1.4.0 | 2026-02-24 | Fond spatial amélioré
-  - Parallaxe 3 couches, particules ambiantes, étoiles filantes (1/5-10s)
-
-v1.5.0 | 2026-02-24 | Interface avancée
-  - Minimap, indicateurs hors-écran (flèches jets ennemis)
-  - Compteur temps de partie, transitions fade 0.5s, écran de chargement
-
-v1.6.0 | 2026-02-24 | Audio avancé
-  - Ambiance adaptative (tension si attaqué), son clic boutons
-  - Son d'orbite au zoom planète, variation de pitch
-
-v1.7.0 | 2026-02-24 | Performance
-  - Pool objets jets/impacts/effets, cache DOM, throttle scoreboard
-  - Optimisation drawJets, réduction allocations boucles rendu
-
-v1.8.0 | 2026-02-24 | Polish final
-  - Animation titre lettre par lettre, étoiles filantes écran titre
-  - Écran chargement avec progression réelle, transitions fade
-  - Nettoyage commentaires, panneau debug caché (F2)
-
-v1.9.0 | 2026-02-25 | Fond spatial 5 couches
-  - Voiles galactiques, 10 nébuleuses denses, filaments de gaz
-  - 12 amas stellaires, 25 étoiles brillantes (diffraction 8 branches)
-  - 2500 étoiles + 40 particules cosmiques, parallaxe/drift/rotation
-
-── PHASE 2 : Mécaniques avancées (25 fév. 2026) ─────────────────────
-
-v2.0.0 | 2026-02-25 | Nids & Biomes
-  - Mode production par planète : OFF / NID / BIOME
-  - Nid : +0.2% production locale — Biome : +0.2% défense locale
-  - Coût = maxSpores, reset à la conquête, IA concernée
-
-v2.1.0 | 2026-02-25 | Multiplicité
-  - Slider sacrifice 0-50% production → évolution
-  - 10 paliers, coût croissant (500 × 1.8^N)
-  - Chaque palier = +1 stat (growth, velocity ou density) au choix
-  - IA utilise aussi le système
-
-v2.2.0 | 2026-02-25 | UX — Interface adaptable
-  - Jauge taille UI, scroll horizontal "Mes Astres", clic astre → codex
-
-v2.3.0 | 2026-02-25 | Comètes, débris & effets d'impact
-  - Comètes destructrices, débris parallaxe, effets impact soleils/trou noir
-
-v2.4.0 | 2026-02-25 | Optimisation performances
-  - Étoiles + amas pré-rendus offscreen (−3160 draw calls)
-  - LOD dynamique 3 niveaux, cache gradients, allBodies pré-calculé
-  - Minimap throttle 15 frames, FPS adaptatif (auto-LOD si < 25)
-
-── PHASE 3 : Mise en ligne & multijoueur (26–28 fév. 2026) ──────────
-
-v2.4.1 | 2026-02-26 | Nettoyage debug & config
-  - Suppression code debug (CSS, HTML, JS), panneaux F2-F7
-  - Config par défaut : 4 soleils, 4 joueurs, stats 0/0/0
-  - Hitbox améliorées, couleurs ciel éclaircies, vitesse jets 0.25→0.70
-
-v2.4.2 | 2026-02-27 | Mise en ligne & Auth
-  - Déploiement GitHub Pages (gadmy.github.io/nebula-conquest)
-  - Supabase Auth (email + mot de passe), pseudo à la 1ère connexion
-  - Tables : profiles, games, leaderboard (RLS sur tout)
-  - Sauvegarde auto parties, écran Classement depuis menu titre
-
-v2.4.3 | 2026-02-27 | Gameplay avancé & UI
-  - Paramètres partie : soleils (1-8), joueurs (2-10), IA, vaisseaux, météorites
-  - 3 types ceintures astéroïdes : noir (÷2), rouge (déviation), vert (×5)
-  - 3 types vaisseaux : rouge (attaque), vert (×2 boost), noir (renvoi base)
-  - Journal événements filtrable, cliquable, icônes colorées par joueur
-  - Panneaux draggables/rétractables (6), positions sauvegardées Supabase
-
-v2.4.5 | 2026-02-27 | Panneaux UI — Scale, Snap & Reset
-  - Zoom UI sur tous les panneaux, drag préserve le scale
-  - 8 panneaux draggables, snap magnétique 14px (panneaux + bords écran)
-  - Bouton ⟲ RESET POSITIONS, reset remet slider à 100%
-
-v2.4.6 | 2026-02-27 | Multijoueur via Supabase (1ère tentative)
-  - Lobby temps réel, salle d'attente, bouton PRÊT/LANCER
-  - Univers déterministe (seed partagé, PRNG mulberry32)
-  - Sync actions via Supabase Broadcast (jets, spawn, multiplicité)
-  - Countdown spawn 10s, joueurs identifiés par slot
-
-v2.4.7 | 2026-02-27 | Nidification de système solaire
-  - Système complet conquis → planète mère (👑), lunes invincibles
-  - NIDIFIER aspire tous les spores du système
-  - Nidification annulée si planète perdue, événements journal
-
-v2.4.8 | 2026-02-28 | Corrections & aide
-  - Fix auth, fix multi (lobby, couleurs), fix hitbox, fix noms
-  - Cinématique titre une seule fois, menu titre réorganisé
-  - Écran aide complet, salle d'attente avec paramètres
-  - Nidification : planète mère invincible si ≥ 50% système possédé
-
-v6.x-v9.x | 2026-03 | Refonte multijoueur → simulation autoritaire serveur
-  - Constat désync : chaque client simulait indépendamment, hôte via rAF pausait si onglet caché
-  - Architecture Railway : server.js + roomManager.js + tournamentManager.js + gameLoop.js
-  - Modes : MULTI matchmaking automatique, LOCAL invitation par pseudo (popup LANCER/DÉCLINER)
-  - gameLoop.js : setInterval 50ms, simulation complète serveur (orbites, spores, jets, conquêtes, IA, comètes, cleaners)
-  - Snapshot serveur→clients 100ms : owner/spores/att/déf/players/orbites/ceintures/cleaners
-  - Jets : trajectoire calculée serveur, animation 60fps client, conquête autoritaire serveur
-  - Fix jets : collision source ignorée pendant 0.5s (résout alive:false à l'arrivée client)
-  - Cleaners : positions serveur + interpolation locale, rouge (-spores), vert (×2), noir (renvoi jet)
-  - Spawn multi : countdown 30s, lancement immédiat si tous ont choisi
-  - Build mode, nidification, multiplicité, parasite : envoyés via player_action, autoritaires serveur
-  - Parasite : drain -20% prod, jet vers source, halo vert, flèches permanentes (rouge=parasité, vert=parasiteur)
-  - Fin de partie autoritaire : victoire/élimination/déconnexion/forfait dans gameLoop.js
-  - Tournoi : bracket 32 joueurs, élimination directe, forfait sur déconnexion
-  - UI : panneau infos détaillé, badges +X/s / -X% sacr. / sys., codex fixe centré
-  - Fermeture menus au clic hors, caméra suit l'astre au clic, "Foyer putride" dans menu radial
-  - nebulaconquest.com en ligne → gadmy.github.io/nebula-conquest
-  
-  
-══════════════════════════════════════════════════════════════════════
-v9.4 | 2026-04-02 | Refonte panneau Mes Astres
-     - Accordéon : un seul système solaire ouvert à la fois
-     - Arborescence planète → lunes avec ligne de connexion visuelle
-     - Planètes (18px) et lunes (14px) au même niveau hiérarchique
-     - Miniature texture réelle de l'astre (canvas drawImage)
-     - Icône build actif inline sur chaque ligne
-     - Build bar par système (1 clic = tout le groupe)
-     - Nidification : planètes candidates clignotent, clic direct pour désigner planète mère
-     - Fix icône build mode : mise à jour en temps réel sur planètes et lunes
-     - Fix buildMode lunes en multi : ajout dans snapshot serveur et applySnapshot client
-     - Fix build_mode multi : comparaison Number() pour body.owner === player.id
-     - Fix multi spawn : gameState.players.find(p => p.id === slot) dans handleSpawnClick, confirmSpawn, finishMultiSpawn, updateMyPlanets
-     - Fix multi matchmaking : aligné sur le flow local qui fonctionne
-       - Hôte : fadeTransition → _onGameReady directement
-       - Invité : listener game_start → startGame() (identique au local)
-       - _serverPlayers assigné avant _onGameReady dans matched
-     - Fix finishMultiSpawn : guard !human avant accès spawnPlanet
-     - Fix all_spawned : guard phase=spawn et players.length > 0
-     - Nettoyage : suppression fonctions mortes (_launchGame, _sendSnapshot)
-     - Nettoyage : console.log conquest supprimé (spam en partie)
-     - Tutoriel : refonte complète (12 étapes, menu radial, Mes Astres, Multiplicité, Symbiose, dangers, cleaners, ceintures, objectif)
-     - Tutoriel : buildStarted détecte maintenant planètes ET lunes
-     - Spawn : lunes disponibles comme planètes de départ (handleSpawnClick, autoSpawnAIs, finishMultiSpawn)
-     - Bonus colonisation : +500 sp planète / +250 sp lune neutre (solo et multi), effet visuel +500🎁
-     - Fix ligne de visée : recalcul à chaque frame dans la boucle de rendu (orbite suivie même souris fixe)
-     - Toggle conquête bâtiments : 🔥 Détruire / 🏗️ Conserver dans panneau Évolution (section ⚔ Conquête)
-     - Toggle conquête bâtiments : autoritaire serveur en multi (set_conquest_buildings via player_action)
-     - Refonte nidification : planète mère invincible tant qu'elle a ≥1 lune, perd invincibilité si lune conquise
-       mais garde capacité nidifier tant qu'il reste ≥1 lune, perd statut mère si toutes lunes perdues
-       nidification aspire 100% stock au moment T (production continue), pas de limite maxSpores
-       planète candidate doit avoir ≥1 lune, côté serveur et client
-     - Planète mère ennemie : halo rouge clignotant visible par tous les joueurs
-     - Fix bouton Nidif. menu radial : déclenche directement l'aspiration (plus de ligne de visée)
-     - Attaque planète mère invincible : effet visuel 🛡️ INVINCIBLE ! + impact doré + event journal
-     - Serveur : event invincible_hit émis aux clients + listener côté client
-     - Fix snapshot multi : isMotherPlanet ajouté dans snapshot serveur et applySnapshot client
-     - Clic droit planète ennemie : ouvre le codex (infos + bâtiments visibles)
-     - Codex bâtiments : visible pour tous les astres possédés (pas seulement le joueur local)
-     - Fix codex ennemi : updateCodexBuild ne bloque plus sur owner !== localSlot
-     - Fix codex ennemi : radios build mode désactivés en lecture seule pour astres ennemis
-     - Fix nidification : sécurisation du clic avec find(p => p.id === localSlot())
-     - Fix nidification multi : select_mother_planet envoyé au serveur, isMotherPlanet autoritaire serveur
-     - Spawn synchronisé : spawn_ready côté client → spawn_start serveur quand tous prêts → countdown 3,2,1 simultané
-     - Spawn bloqué pendant attente : _spawnLocked initialisé à true dès setPhase('spawn')
-     - Countdown 3,2,1 centré grand format (120px) au démarrage simultané du spawn
-       mais garde capacité nidifier tant qu'il reste ≥1 lune, perd statut mère si toutes lunes perdues
-       nidification aspire 100% stock au moment T (production continue), pas de limite maxSpores
-       planète candidate doit avoir ≥1 lune, côté serveur et client
-     - Fix waitUniverse : appelle finishStartGame() après chargement carte
-     - Fix keydown/keyup : guard e.key undefined
-     - Fix snapshot lunes : nids/biomes/alveoles ajoutés côté serveur et appliqués client
-     - Fix icône 🫧 → 💧 (emoji non supporté)
-     - Fix icônes bâtiments sur lunes : ajout dans le rendu canvas
-     - Fix cleaners solo : updateCleaners(dt) manquait dans la game loop solo
-     - Fix cleaners solo : fireTimer manquant à l'initialisation (2 endroits)
-     - Fix CLN_CFG et COMET_CFG : déplacés avant gameState (const non hoistée)
-     - Fix CLN_CFG solo : harmonisé avec multi (detectRange:120, fireRate:0.3)
-
-v9.5.4 | 2026-04-05 | Alignement solo/multi
-     - 🛡️ INVINCIBLE : effet visuel + event journal ajoutés en solo (était silencieux)
-     - multiProgress : reset à 0 à chaque palier (au lieu de soustraire le coût)
-     - Spores au-dessus du max : Math.min sec au lieu du lerp doux
-     - checkJetNeutralization : ajouté dans gameLoop.js (serveur) + fix récursion infinie
-     - Collision source : solo ignore la source 0.5s (comme le serveur, au lieu de toujours)
-     - Drain parasite : arrondi aligné sur le serveur (Math.round si rate >= 10)
-     - Logique perte planète mère : unifiée solo/serveur (direct via isMotherPlanet, sans dictionnaire)
-     - Suppression ⚠️ panneau latéral droit (résolu)
-
-v9.5.5 | 2026-04-06 | Nettoyage code mort
-     - Suppression _snapPanel + PANEL_IDS (bug latent ReferenceError)
-     - Suppression debounceSavePanels / loadPanelConfig / savePanelConfig (panneaux draggables supprimés)
-     - Suppression stubs inutilisés : _tradeOpen, _diplomacyOpen, _triggerNidification, updateTradeOrbs, drawTradeOrbs, drawFloatingBubbles
-     - Suppression labo de spores désactivé : SPORE_LAB_DEFAULT, _sporeLabRender, _slToggleActive, _slAdj, _sporeLabSave, _applyActiveSpore_UNUSED, _checkSporeReady_UNUSED
-     - Guildes et leaderboard conservés (code désactivé, réactivation possible)
-     - 142 lignes supprimées au total
-
-v9.5.6 | 2026-04-09 | Tournoi 32 joueurs — câblage complet
-     - tournamentManager.js : _buildBracket() retourne les matchs pour création des rooms
-     - roomManager.js : createTournamentRoom() ajouté
-     - server.js : lancement auto des 16 rooms + countdown 10s après 32 inscrits
-     - Client : countdown affiché, lancement automatique du match (fadeTransition)
-     - Client : generateTournamentUniverse() + TOURNAMENT_POOLS (5 configs par round)
-     - Client : _renderBracket() refondu — affiche bracket réel multi-tours, gagnants en vert
-     - Client : _refreshTournamentUI() — affiche le round courant, pas juste la liste d'attente
-     - Client : bouton "Voir le bracket" en fin de match tournoi → retour à l'écran
-     - Client : setPhase('tournament') émet tournament_state pour rafraîchir depuis le serveur
-
-v9.5.8 | 2026-04-09 | Tournoi — Cycle 1 complet (5 cartes)
-     - Round 1 : Sigisnis-Lyrirnis (3 systèmes, ~400 flore chacun + pivot 94)
-     - Round 2 : Lyrith-Nebipha (5 systèmes, 2×285 + 2×500 + pivot 450)
-     - Round 3 : Celanlux-Velarbus (3 systèmes, ~700 flore chacun)
-     - Round 4 : Draarlux-Xorirnis (5 systèmes, 4×500 + pivot 65)
-     - Round 5 : Pyxaxmir-Omielpha (6 systèmes, carte épique finale)
-
-v9.5.9 | 2026-04-09 | Fix jets — sourceName manquant
-     - launchJet solo : ajout sourceName sur le jet principal (bug jet retournait sur source)
-     - Jet mimicry (astéroïde vert → lunes) : ajout sourceName
-     - Jet éclatement (astéroïde vert × 5) : propagation sourceName du jet parent
-
-   À FAIRE
-  🎯 Sons (à faire à la maison)
-  🎯 Page itch.io avec screenshots
-  🎯 Obfuscation Terser/uglify-js
-  🎯 Contacter des YouTubers
-  ⚠️  Panneau latéral droit peut sortir de l'écran
-  ⚠️  Correspondance modifications multi → solo et mode local
-══════════════════════════════════════════════════════════════════════ */
 
 // ─────────────────────────────────────────────
 // GAME STATE — Objet central
@@ -5902,6 +5763,14 @@ case 'title':
             currentRoom = null; isHost = false;
             stopAmbiance();
             animateTitleScreen();
+            break;
+        case 'competition':
+            document.getElementById('competitionScreen').classList.remove('hidden');
+            playTitleMusic();
+            break;
+        case 'ranked':
+            document.getElementById('rankedScreen').classList.remove('hidden');
+            playTitleMusic();
             break;
         case 'tournament':
             document.getElementById('tournamentScreen').classList.remove('hidden');
@@ -12340,7 +12209,7 @@ function connectSocket() {
     };
     _socket = io(SERVER_URL, { auth });
 
-    _socket.on('connect', () => console.log('[socket] connecté'));
+    _socket.on('connect', () => { console.log('[socket] connecté'); _initRankedListeners(); });
     _socket.on('disconnect', () => console.log('[socket] déconnecté'));
     _socket.on('error', e => console.warn('[socket] erreur:', e.msg));
     _socket.on('player_action', (data) => { handleGameEvent(data); });
@@ -12492,6 +12361,16 @@ function connectSocket() {
                     winnerPseudo: winnerPlayer.name
                 });
             }
+        }
+
+        // Ranked 1v1 — envoyer le résultat de manche
+        if (gameState.isRanked && gameState._rankedSession) {
+            _socket.emit('ranked_result', {
+                roomId: gameState._rankedSession.roomId,
+                winnerSlot: +winnerSlot,
+                manche: gameState._rankedSession.manche
+            });
+            gameState.isRanked = false;
         }
 
         const totalBodies = gameState.planets.length + gameState.moons.length;
@@ -13607,10 +13486,145 @@ document.querySelectorAll('#eventLog .log-filter').forEach(btn => {
     });
 });
 
-document.getElementById('btnTournament').addEventListener('click', () => {
+document.getElementById('btnCompetition').addEventListener('click', () => {
+    fadeTransition(() => { connectSocket(); setPhase('competition'); });
+});
+
+document.getElementById('btnCompetitionBack').addEventListener('click', () => {
+    fadeTransition(() => setPhase('title'));
+});
+
+document.getElementById('btnGoTournament').addEventListener('click', () => {
+    fadeTransition(() => setPhase('tournament'));
+});
+
+document.getElementById('btnGoRanked').addEventListener('click', () => {
+    fadeTransition(() => setPhase('ranked'));
+});
+
+document.getElementById('btnRankedBack').addEventListener('click', () => {
+    if (_socket) _socket.emit('ranked_queue_leave');
+    fadeTransition(() => setPhase('competition'));
+});
+
+document.getElementById('btnTournament') && document.getElementById('btnTournament').addEventListener('click', () => {
     ensureAudio(); playClickSound();
     fadeTransition(() => setPhase('tournament'));
 });
+
+// ── RANKED 1v1 ──────────────────────────────────────────────
+
+document.getElementById('btnRankedRandom').addEventListener('click', () => {
+    if (!_socket) return;
+    document.getElementById('rankedStatus').textContent = '🔍 Recherche d\'un adversaire...';
+    document.getElementById('btnRankedRandom').disabled = true;
+    _socket.emit('ranked_queue');
+});
+
+document.getElementById('btnRankedInvite').addEventListener('click', () => {
+    const pseudo = document.getElementById('rankedInviteInput').value.trim();
+    if (!pseudo) return;
+    if (!_socket) return;
+    _socket.emit('ranked_invite', { targetPseudo: pseudo });
+    document.getElementById('rankedStatus').textContent = `📨 Invitation envoyée à ${pseudo}...`;
+});
+
+// Listeners socket ranked
+function _initRankedListeners() {
+    if (!_socket || _socket._rankedListenersInit) return;
+    _socket._rankedListenersInit = true;
+
+    _socket.on('ranked_queue_status', ({ position }) => {
+        document.getElementById('rankedStatus').textContent = `🔍 En attente... (${position} joueur(s) en file)`;
+    });
+
+    _socket.on('ranked_queue_left', () => {
+        document.getElementById('rankedStatus').textContent = 'Choisissez un mode';
+        document.getElementById('btnRankedRandom').disabled = false;
+    });
+
+    _socket.on('ranked_invite_received', ({ fromPseudo, fromColor }) => {
+        const accept = confirm(`⚔️ ${fromPseudo} vous défie en 1vs1 ! Accepter ?`);
+        if (accept) {
+            _socket.emit('ranked_invite_accept', { fromPseudo });
+        } else {
+            _socket.emit('ranked_invite_declined', { targetPseudo: fromPseudo });
+        }
+    });
+
+    _socket.on('ranked_invite_declined', ({ fromPseudo }) => {
+        document.getElementById('rankedStatus').textContent = `❌ ${fromPseudo} a refusé le défi.`;
+    });
+
+    _socket.on('ranked_invite_error', ({ msg }) => {
+        document.getElementById('rankedStatus').textContent = `❌ ${msg}`;
+    });
+
+    _socket.on('ranked_matched', ({ roomId, slot, opponent, maps }) => {
+        document.getElementById('rankedStatus').textContent = `⚔️ Adversaire trouvé : ${opponent.pseudo} !`;
+        // Initialiser la session ranked
+        gameState._rankedSession = {
+            roomId, slot, opponent, maps,
+            scores: [0, 0], // [mon score, score adversaire]
+            manche: 0       // index de la carte actuelle (0, 1, 2)
+        };
+        setTimeout(() => _startRankedManche(), 2000);
+    });
+
+    _socket.on('ranked_manche_result', ({ winnerSlot, manche }) => {
+        const session = gameState._rankedSession;
+        if (!session) return;
+        if (winnerSlot === session.slot) session.scores[0]++;
+        else session.scores[1]++;
+        session.manche++;
+
+        const myScore = session.scores[0];
+        const oppScore = session.scores[1];
+
+        // 2 manches gagnantes → fin du match
+        if (myScore >= 2 || oppScore >= 2) {
+            const iWin = myScore >= 2;
+            document.getElementById('rankedScoreTitle').textContent = iWin ? '🏆 VICTOIRE !' : '💀 DÉFAITE';
+            document.getElementById('rankedScore').textContent = `${myScore} — ${oppScore}`;
+            document.getElementById('rankedScoreMsg').textContent = 'Match terminé';
+            document.getElementById('btnRankedNextManche').style.display = 'none';
+            document.getElementById('rankedScorePanel').style.display = 'flex';
+            setPhase('ranked');
+        } else {
+            // Manche suivante
+            document.getElementById('rankedScoreTitle').textContent = `MANCHE ${manche} TERMINÉE`;
+            document.getElementById('rankedScore').textContent = `${myScore} — ${oppScore}`;
+            document.getElementById('rankedScoreMsg').textContent = `Manche ${session.manche + 1} dans quelques secondes...`;
+            document.getElementById('btnRankedNextManche').style.display = '';
+            document.getElementById('rankedScorePanel').style.display = 'flex';
+            setPhase('ranked');
+        }
+    });
+}
+
+document.getElementById('btnRankedNextManche').addEventListener('click', () => {
+    document.getElementById('rankedScorePanel').style.display = 'none';
+    _startRankedManche();
+});
+
+function _startRankedManche() {
+    const session = gameState._rankedSession;
+    if (!session) return;
+    const mapRef = session.maps[session.manche];
+    const mapData = TOURNAMENT_MAPS[mapRef.cycle]?.[mapRef.round - 1];
+    if (!mapData) {
+        document.getElementById('rankedStatus').textContent = `❌ Carte introuvable (${mapRef.cycle} round ${mapRef.round})`;
+        return;
+    }
+    const universe = generateTournamentUniverse(mapData, session.slot, session.opponent);
+    gameState._rankedMatchId = `ranked-manche-${session.manche}`;
+    gameState.isMulti = true;
+    gameState.isRanked = true;
+    gameState.isTournament = false;
+    gameState.localSlot = session.slot;
+    if (session.slot === 0) _socket.emit('game_start', { roomId: session.roomId, universe });
+    setPhase('game');
+}
 
 document.getElementById('btnTournamentBack').addEventListener('click', () => {
     playClickSound();
