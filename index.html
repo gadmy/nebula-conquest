@@ -13641,7 +13641,15 @@ function _startRankedManche() {
     gameState.isTournament = false;
     gameState.localSlot = session.slot;
     if (session.slot === 0) {
-        _socket.emit('game_start', { roomId: session.roomId, universe });
+        // Nettoyer les références circulaires avant envoi
+        const cleanUniverse = JSON.parse(JSON.stringify(universe, (key, val) => {
+            if (key === 'parent') return undefined;
+            if (key === 'allBodies') return undefined;
+            if (key === 'planets' && val && val[0]?.moons !== undefined) return undefined;
+            if (key === 'moons' && Array.isArray(val) && val.length > 0 && val[0]?.parent !== undefined) return undefined;
+            return val;
+        }));
+        _socket.emit('game_start', { roomId: session.roomId, universe: cleanUniverse });
         setPhase('game');
     } else {
         // Slot 1 attend le game_start du serveur
