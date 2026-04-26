@@ -1463,7 +1463,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.6.1) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.6.2) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -11011,7 +11011,7 @@ function updateMyPlanets() {
     if (container.dataset.hash !== _hash) {
         container.dataset.hash = _hash;
         container.innerHTML = '';
-        _selectedBodies.clear();
+        // Ne pas vider _selectedBodies ici — on conserve la sélection
 
         const sunNames = Object.keys(groups);
         let defaultOpen = _openGroup || (sunNames.length > 0 ? sunNames[0] : null);
@@ -11173,7 +11173,7 @@ function updateMyPlanets() {
             if (!body) return;
             const spEl = row.querySelector('.mp-spores');
             if (spEl) spEl.textContent = Math.floor(body.spores || 0);
-            if (followingBody === body) row.classList.add('active');
+            if (followingBody === body || _selectedBodies.has(body)) row.classList.add('active');
             else if (!row.classList.contains('nid-candidate')) row.classList.remove('active');
             // Mettre à jour l'icône build
             const buildIcons = { nid:'🏗️', biome:'🛡️', alveole:'🍯', mare:'🔵', ruche:'🔴', parasite:'🦠' };
