@@ -155,6 +155,14 @@ v9.7.1 | 2026-04-26 | Mode Compétition — 1vs1 ranked fonctionnel
      - Suppression _leftRoom (déclaré mais jamais lu)
      - Suppression _rankedMatchId (assigné mais jamais utilisé)
 
+v9.7.2 | 2026-04-26 | Anti-triche
+     - Rate limiting jets : max 5/seconde par joueur (server.js)
+     - Validation propriété planète source avant jet (gameLoop.js)
+     - ranked_result supprimé côté client — serveur détermine le gagnant via game_over
+     - ranked_manche_result émis par le serveur (gameLoop.js) pour domination + last_standing
+     - Anti-déconnexion volontaire : 3 décos en ranked → cooldown 5 minutes
+     - Numéro de manche stocké côté serveur et transmis au GameLoop
+
    À FAIRE
   🎯 Sons (à faire à la maison)
   🎯 Page itch.io avec screenshots
@@ -5730,6 +5738,8 @@ function setupUI() {
 }
 
 
+let spawnCountdownInterval = null;
+
 function setPhase(phase) {
     gameState.phase = phase;
     if (spawnCountdownInterval) { clearInterval(spawnCountdownInterval); spawnCountdownInterval = null; }
@@ -5854,10 +5864,7 @@ function togglePause() {
     }
 }
 
-_leftRoom = null;
-
 function startGame() {
-    _leftRoom = null;
     // Afficher le loading
     document.getElementById('loadingScreen').classList.remove('hidden');
     updateLoadingBar(0, 'Génération de l\'espace...');
@@ -6395,7 +6402,6 @@ function _updateBodyInfoPanel(body, menuLeft, menuTop) {
     panel.style.top  = py + 'px';
     gameState._parasiteArrowBody = body;
 }
-let spawnCountdownInterval = null;
 
 function startSpawnCountdown() {
     let remaining = 30;
@@ -12379,15 +12385,7 @@ function connectSocket() {
             }
         }
 
-        // Ranked 1v1 — envoyer le résultat de manche
-        if (gameState.isRanked && gameState._rankedSession) {
-            _socket.emit('ranked_result', {
-                roomId: gameState._rankedSession.roomId,
-                winnerSlot: +winnerSlot,
-                manche: gameState._rankedSession.manche
-            });
-            gameState.isRanked = false;
-        }
+        // Ranked : le résultat est géré par le serveur via ranked_manche_result
 
         const totalBodies = gameState.planets.length + gameState.moons.length;
         showEndScreen(isVictory,
@@ -13554,6 +13552,7 @@ function _initRankedListeners() {
     _socket.off('ranked_invite_error');
     _socket.off('ranked_matched');
     _socket.off('ranked_manche_result');
+    _socket.off('ranked_match_over');
 
     _socket.on('ranked_queue_status', ({ position }) => {
         document.getElementById('rankedStatus').textContent = `🔍 En attente... (${position} joueur(s) en file)`;
@@ -13606,34 +13605,38 @@ function _initRankedListeners() {
         setTimeout(() => _startRankedManche(), 2000);
     });
 
-    _socket.on('ranked_manche_result', ({ winnerSlot, manche }) => {
+    _socket.on('ranked_manche_result', ({ winnerSlot, scores }) => {
         const session = gameState._rankedSession;
         if (!session) return;
-        if (winnerSlot === session.slot) session.scores[0]++;
-        else session.scores[1]++;
-        session.manche++;
+        const myScore = scores[session.slot];
+        const oppScore = scores[1 - session.slot];
+        session.scores = [myScore, oppScore];
+        session.manche = myScore + oppScore;
+        document.getElementById('rankedScoreTitle').textContent = `MANCHE ${session.manche} TERMINÉE`;
+        document.getElementById('rankedScore').textContent = `${myScore} — ${oppScore}`;
+        document.getElementById('rankedScoreMsg').textContent = `Manche ${session.manche + 1} dans quelques secondes...`;
+        document.getElementById('btnRankedNextManche').style.display = '';
+        document.getElementById('rankedScorePanel').style.display = 'flex';
+        setPhase('ranked');
+    });
 
-        const myScore = session.scores[0];
-        const oppScore = session.scores[1];
-
-        // 2 manches gagnantes → fin du match
-        if (myScore >= 2 || oppScore >= 2) {
-            const iWin = myScore >= 2;
-            document.getElementById('rankedScoreTitle').textContent = iWin ? '🏆 VICTOIRE !' : '💀 DÉFAITE';
-            document.getElementById('rankedScore').textContent = `${myScore} — ${oppScore}`;
-            document.getElementById('rankedScoreMsg').textContent = 'Match terminé';
-            document.getElementById('btnRankedNextManche').style.display = 'none';
-            document.getElementById('rankedScorePanel').style.display = 'flex';
-            setPhase('ranked');
-        } else {
-            // Manche suivante
-            document.getElementById('rankedScoreTitle').textContent = `MANCHE ${manche} TERMINÉE`;
-            document.getElementById('rankedScore').textContent = `${myScore} — ${oppScore}`;
-            document.getElementById('rankedScoreMsg').textContent = `Manche ${session.manche + 1} dans quelques secondes...`;
-            document.getElementById('btnRankedNextManche').style.display = '';
-            document.getElementById('rankedScorePanel').style.display = 'flex';
-            setPhase('ranked');
+    _socket.on('ranked_match_over', ({ winnerSlot, scores, elo }) => {
+        const session = gameState._rankedSession;
+        if (!session) return;
+        const myScore = scores[session.slot];
+        const oppScore = scores[1 - session.slot];
+        const iWin = winnerSlot === session.slot;
+        document.getElementById('rankedScoreTitle').textContent = iWin ? '🏆 VICTOIRE !' : '💀 DÉFAITE';
+        document.getElementById('rankedScore').textContent = `${myScore} — ${oppScore}`;
+        let msg = 'Match terminé';
+        if (elo) {
+            const mine = iWin ? elo.winner : elo.loser;
+            if (mine) { const d = mine.after - mine.before; msg = `ELO ${mine.after} (${d >= 0 ? '+' : ''}${d})`; }
         }
+        document.getElementById('rankedScoreMsg').textContent = msg;
+        document.getElementById('btnRankedNextManche').style.display = 'none';
+        document.getElementById('rankedScorePanel').style.display = 'flex';
+        setPhase('ranked');
     });
 }
 
