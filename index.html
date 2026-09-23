@@ -2705,22 +2705,40 @@ function generateBackground() {
 // PERFORMANCE — Caches offscreen (étoiles, clusters, halos)
 // ─────────────────────────────────────────────
 
+/* Le halo d'un soleil est un simple degrade radial. On le stockait a sa
+   taille reelle a l'ecran : un carre de 1468 px pour un gros soleil, redessine
+   a chaque image avec filtrage. C'etait le plus gros poste du rendu apres le
+   fond. Un sprite fixe de 256 px agrandi au trace est indiscernable, et il est
+   floute pour que le tramage du degrade ne ressorte pas en quadrillage une
+   fois dessine sans filtrage (voir drawSuns). Le degrade est defini en
+   proportions du sprite, donc le resultat ne depend plus du rayon du soleil. */
+const _HALO_SOLEIL_PX = 256;
+
 function buildSunHaloCache() {
     for (const sun of gameState.suns) {
         const haloR = sun.radius * 3;
-        const dim = Math.ceil(haloR * 2 + 4);
-        const c = document.createElement('canvas');
-        c.width = dim; c.height = dim;
-        const ctx = c.getContext('2d');
-        const cx = dim / 2, cy = dim / 2;
-        const g = ctx.createRadialGradient(cx, cy, sun.radius * 0.3, cx, cy, haloR);
+        const dim = _HALO_SOLEIL_PX;
+        const brut = document.createElement('canvas');
+        brut.width = brut.height = dim;
+        const bctx = brut.getContext('2d');
+        const cx = dim / 2, cy = dim / 2, rr = dim / 2;
+        /* meme forme qu'avant : rayon interne = 0.3 / 3 = 0.1 du rayon du halo */
+        const g = bctx.createRadialGradient(cx, cy, rr * 0.1, cx, cy, rr);
         g.addColorStop(0, sun.color + '50');
         g.addColorStop(0.5, sun.color + '15');
         g.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(cx, cy, haloR, 0, Math.PI * 2);
-        ctx.fill();
+        bctx.fillStyle = g;
+        bctx.beginPath();
+        bctx.arc(cx, cy, rr, 0, Math.PI * 2);
+        bctx.fill();
+
+        const c = document.createElement('canvas');
+        c.width = c.height = dim;
+        const ctx = c.getContext('2d');
+        ctx.filter = 'blur(2px)';
+        ctx.drawImage(brut, 0, 0);
+        ctx.filter = 'none';
+
         sun._haloCache = c;
         sun._haloDim = dim;
         sun._haloR = haloR;
@@ -9185,28 +9203,35 @@ function drawBackground(ctx) {
         const py = -bgS / 2 + cam.y * 0.02;
         ctx.drawImage(gameState._bgCanvas, px, py, bgS, bgS);
     }
-    // Étoiles (tuilées, parallaxe moyenne)
+    ctx.imageSmoothingEnabled = _lissage;
+
+    /* Etoiles : couche lointaine, dessinee en REPERE ECRAN a l'echelle 1:1.
+       Avant, la tuile de 2048 px etait etiree sur 8000 unites de monde, donc
+       agrandie de 4 fois le zoom : floue et couteuse avec filtrage, carree
+       sans filtrage. A 1:1 le probleme disparait des deux cotes, les etoiles
+       restent des points nets a tous les zooms et le tuilage descend a quatre
+       images au plus. Contrepartie assumee : les etoiles ne grossissent plus
+       quand on zoome - ce sont des etoiles lointaines, elles ne devraient pas.
+       Le defilement de parallaxe reste identique : 0,15 x camera x zoom. */
     if (gameState._starsCanvas) {
-        const tileS = 8000;
+        const st = gameState._starsCanvas;
+        const dpr = window.devicePixelRatio || 1;
+        const W = gameState.width, H = gameState.height;
         const prlx = 0.15;
-        const offX = cam.x * (1 - prlx);
-        const offY = cam.y * (1 - prlx);
-        /* Demi-ecran en unites monde. L'ancien code utilisait 5000 / zoom en
-           dur, soit un ecran suppose de 10000 px de large : on couvrait une
-           surface environ 25 fois trop grande en tuiles. */
-        const halfW = gameState.width / 2 / cam.zoom;
-        const halfH = gameState.height / 2 / cam.zoom;
-        const startX = Math.floor((cam.x - halfW - offX) / tileS) * tileS;
-        const startY = Math.floor((cam.y - halfH - offY) / tileS) * tileS;
-        const endX = cam.x + halfW - offX;
-        const endY = cam.y + halfH - offY;
-        for (let tx = startX; tx <= endX; tx += tileS) {
-            for (let ty = startY; ty <= endY; ty += tileS) {
-                ctx.drawImage(gameState._starsCanvas, tx + offX, ty + offY, tileS, tileS);
+        let ox = (-cam.x * prlx * cam.zoom) % st.width;
+        let oy = (-cam.y * prlx * cam.zoom) % st.height;
+        if (ox > 0) ox -= st.width;
+        if (oy > 0) oy -= st.height;
+        ctx.save();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = false;
+        for (let x = ox; x < W; x += st.width) {
+            for (let y = oy; y < H; y += st.height) {
+                ctx.drawImage(st, x, y);
             }
         }
+        ctx.restore();
     }
-    ctx.imageSmoothingEnabled = _lissage;
 }
 
 
@@ -9249,14 +9274,37 @@ function drawBlackHole(ctx) {
     }
 
     // Lueur pulsante (LOD mid+)
+    /* La lueur pulsante recreait son degrade radial a chaque image, parce que
+       son rayon suit le battement. Le battement ne fait que 8 % : on cuit la
+       lueur une fois dans un sprite et on la pose a la taille voulue. Le
+       rapport interne/externe varie alors de 0,23 a 0,27 au lieu d'etre exact,
+       ce qui est invisible sur une lueur a 8 % d'opacite. */
     if (bhLod >= 1) { const pulse = 1 + Math.sin(t * 2) * 0.08;
-    const gGlow = ctx.createRadialGradient(0, 0, bh.radius * 0.5, 0, 0, bh.radius * 2 * pulse);
-    gGlow.addColorStop(0, 'rgba(120, 50, 200, 0.08)');
-    gGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = gGlow;
-    ctx.beginPath();
-    ctx.arc(0, 0, bh.radius * 2 * pulse, 0, Math.PI * 2);
-    ctx.fill();
+    if (!bh._gGlowSprite) {
+        const SPR = 128;
+        const brut = document.createElement('canvas');
+        brut.width = brut.height = SPR;
+        const bx = brut.getContext('2d');
+        const gg = bx.createRadialGradient(SPR / 2, SPR / 2, SPR / 2 * 0.25, SPR / 2, SPR / 2, SPR / 2);
+        gg.addColorStop(0, 'rgba(120, 50, 200, 0.08)');
+        gg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        bx.fillStyle = gg;
+        bx.beginPath();
+        bx.arc(SPR / 2, SPR / 2, SPR / 2, 0, Math.PI * 2);
+        bx.fill();
+        const fin = document.createElement('canvas');
+        fin.width = fin.height = SPR;
+        const fx = fin.getContext('2d');
+        fx.filter = 'blur(2px)';
+        fx.drawImage(brut, 0, 0);
+        fx.filter = 'none';
+        bh._gGlowSprite = fin;
+    }
+    const rGlow = bh.radius * 2 * pulse;
+    const _lissBh = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(bh._gGlowSprite, -rGlow, -rGlow, rGlow * 2, rGlow * 2);
+    ctx.imageSmoothingEnabled = _lissBh;
 
     }
 
@@ -9405,10 +9453,14 @@ function drawSuns(ctx) {
         if (sun.x < cam.x - halfW - margin || sun.x > cam.x + halfW + margin ||
             sun.y < cam.y - halfH - margin || sun.y > cam.y + halfH + margin) continue;
 
-        // Halo (depuis cache)
+        // Halo (depuis cache) — sprite lisse agrandi, donc sans filtrage :
+        // c'est la que passait l'essentiel du cout de drawSuns.
         if (sun._haloCache) {
             const drawR = sun._haloR;
+            const _liss = ctx.imageSmoothingEnabled;
+            ctx.imageSmoothingEnabled = false;
             ctx.drawImage(sun._haloCache, sun.x - drawR, sun.y - drawR, drawR * 2, drawR * 2);
+            ctx.imageSmoothingEnabled = _liss;
         }
 
         // Texture cachée
