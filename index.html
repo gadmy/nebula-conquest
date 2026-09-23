@@ -194,7 +194,62 @@ v9.7.3 | 2026-09-23 | Performance du rendu
        lecture seule cote client, search_path fige sur increment_bot_votes,
        EXECUTE revoque a anon, 12 index de cles etrangeres.
 
+v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
+     ── GAMEPLAY ──
+     - Spores d'attaque et de defense supprimees (modes Ruche et Mare), ainsi
+       que la nidification et la planete mere. Un seul type de spore.
+     - TERRITOIRES. Une planete dont toutes les lunes sont tenues forme un
+       territoire ; un soleil entierement tenu en forme un plus grand, qui
+       remplace les precedents et inclut l'etoile. La frontiere est
+       l'enveloppe tendue des astres, tracee en courbes.
+     - TIR GROUPE. Pendant la visee, c'est l'astre du groupe le plus proche
+       de la cible qui tirera ; les autres lui envoient leurs spores par
+       paquets de 100. Changer de cible remet le chargement a zero. La camera
+       ne bouge pas : un anneau et des filets lumineux disent ou part le tir.
+     - CONSTRUCTION IMMEDIATE, et refusee sur-le-champ avec une secousse de
+       l'ecran si l'astre ne peut pas payer. Plus d'attente, donc plus d'icone
+       ADN.
+     - BATIMENTS A RENDEMENTS DECROISSANTS : 20 %, 15 %, 10 %, puis 5 % par
+       batiment d'un meme genre, et a partir du quatrieme un cout majore de
+       10 % a chaque fois.
+     - Raccourcis : 1 2 3 construisent, Espace passe en visee, Tab suit la
+       liste de gauche. Compteur de batiments sous chaque astre et dans le
+       HUD. Production et debit affiches au-dessus de l'astre selectionne.
+     - Nombres de spores agrandis et cernes : ils faisaient 6 a 8 pixels.
+
+     ── CORRECTIONS ──
+     - Un astre a qui l'on demandait un batiment hors de ses moyens restait
+       fige pour toujours : la construction court-circuitait la production,
+       donc il ne pouvait plus gagner de quoi payer.
+     - Calcul du stockage des alveoles blinde : sans le maximum de base, le
+       maximum deja augmente servait de base et se remultipliait a chaque
+       image - 1e109 en quelques secondes.
+     - Noeuds audio des sons termines debranches (300 sons = 300 noeuds).
+
+     ── SECURITE (serveur) ──
+     - spawn : le slot venait du client et l'astre vise n'etait pas verifie.
+       On pouvait s'emparer de n'importe quelle planete a tout moment.
+     - multi : aucun controle de palier, les statistiques etaient gratuites.
+     - set_sacrifice : valeur non bornee, une valeur negative multipliait la
+       production par dix.
+     - Ratio de tir enfin transmis au serveur, et par joueur.
+
+     ── PERFORMANCE ──
+     - Fond spatial sans filtrage bilineaire, etoiles en repere ecran, halos
+       de soleil et lueur du trou noir cuits en sprites : image complete
+       13-15 ms -> 4-6 ms.
+     - Culling ajoute aux six fonctions de dessin qui n'en avaient aucune.
+       Nettoyeurs : 0,83 -> 0,06 ms par image.
+     - Diagnostic integre : F3 affiche FPS, simulation, rendu, taille de la
+       fenetre et dpr ; D detaille le rendu fonction par fonction.
+
    À FAIRE
+  🎯 Fond spatial : le sortir du canvas vers deux couches CSS deplacees par
+     transform. Il reste 2,2 ms par image, soit 36 % du total, pour un
+     remplissage plein ecran qui ne depend que de la camera.
+  🎯 Code mort : 13 fonctions jamais appelees, et les restes inertes des
+     fonctionnalites supprimees (isMotherPlanet, sporesAttaque, ruche, mare,
+     buildProgress). Environ 50 sites, a faire en une passe dediee.
   🎯 drawSuns est devenu le poste le plus cher (1 a 5,8 ms selon le nombre de
      soleils a l'ecran) — probablement le meme motif de halo redimensionne
   🎯 Sons (à faire à la maison)
@@ -1682,7 +1737,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.3) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.4) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
