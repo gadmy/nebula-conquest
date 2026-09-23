@@ -163,7 +163,40 @@ v9.7.2 | 2026-04-26 | Anti-triche
      - Anti-déconnexion volontaire : 3 décos en ranked → cooldown 5 minutes
      - Numéro de manche stocké côté serveur et transmis au GameLoop
 
+v9.7.3 | 2026-09-23 | Performance du rendu
+     - Fond spatial : le degrade (60000 unites) et les tuiles d'etoiles (8000)
+       sont des canvas de 2048 px agrandis de 10 a 30 fois. Le filtrage
+       bilineaire coutait quatre lectures par pixel d'ecran, sur tout l'ecran,
+       a chaque image : drawBackground pesait a lui seul ~50 % du rendu.
+       Dessin sans lissage, etat d'origine rendu a l'appelant.
+     - Source du degrade floutee une fois a la generation : sans cela le
+       tramage, invisible a l'echelle 1, devenait un quadrillage une fois
+       agrandi. Grain local mesure : 0,306 avant, 0,009 apres.
+     - Tuiles d'etoiles : les bornes utilisaient 5000 / zoom en dur (un ecran
+       suppose de 10000 px) et couvraient 25 fois trop de surface. Elles
+       suivent maintenant la taille reelle de la fenetre.
+     - Halos des jets et lumiere directionnelle des planetes : degrades
+       radiaux mis en cache dans des sprites, poses au drawImage avec
+       modulation du globalAlpha (equivalent exact, 0 pixel d'ecart).
+     - Audio : _playBuffer et playBuildSound ne debranchaient jamais leur
+       GainNode. Chaque son joue laissait un noeud permanent sur le master.
+       300 sons = 300 noeuds ; il n'en reste aucun.
+     - Mesures : image complete 13,4 / 15,0 / 14,4 ms -> 4,8 / 5,6 / 4,1 ms
+       aux zooms 0,3 / 0,6 / 1. Constate en jeu : 50 FPS stables apres
+       10 minutes, des centaines de planetes, 25 IA et 25 vaisseaux ennemis.
+     - Recherche de fuite : aucune trouvee hors l'audio. Sur 2 min 30 en
+       reglages maximum, jets / particules / effets / impacts reviennent tous
+       a zero, eventLog plafonne a 100, le nombre de canvas ne bouge pas et le
+       tas JS reste a 9,5 Mo. La degradation ressentie venait du plafond trop
+       bas, pas d'une accumulation.
+     - Securite (hors rendu) : RLS activee sur les 8 tables long_*, trois
+       fonctions SECURITY DEFINER pour eviter la recursion, long_mmr en
+       lecture seule cote client, search_path fige sur increment_bot_votes,
+       EXECUTE revoque a anon, 12 index de cles etrangeres.
+
    À FAIRE
+  🎯 drawSuns est devenu le poste le plus cher (1 a 5,8 ms selon le nombre de
+     soleils a l'ecran) — probablement le meme motif de halo redimensionne
   🎯 Sons (à faire à la maison)
   🎯 Page itch.io avec screenshots
   🎯 Obfuscation Terser/uglify-js
@@ -1629,7 +1662,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.1) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.3) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
