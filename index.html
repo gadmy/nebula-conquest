@@ -6179,6 +6179,8 @@ function finishStartGame() {
     if (typeof _floatingBubbles !== 'undefined') _floatingBubbles.length = 0;
 
     _ownerClustersCache = [];
+    _territoires = [];
+    marquerTerritoiresSales();
     const _logBody = document.querySelector('#eventLog .log-body');
     if (_logBody) _logBody.innerHTML = '';
     _gameRng = mulberry32((gameState.multiSeed || 42) + 5555);
@@ -7219,6 +7221,7 @@ if (gameState.isMulti) {
 
     _spawnTarget.owner = slot;
     _spawnTarget.spores = _spawnTarget.maxSpores * 0.5;
+    marquerTerritoiresSales();
     human.bodies = [_spawnTarget];
     human.spawnPlanet = _spawnTarget;
     addEvent('mine', '🌍', `Vous colonisez ${_spawnTarget.name} !`, _spawnTarget, human.color);
@@ -7978,6 +7981,7 @@ function checkJetCollision(jet) {
                     if (body.spores < 0) {
                         body.spores = Math.abs(body.spores);
                         body.owner = null;
+                        marquerTerritoiresSales();
                         body.symOwnerTime = 0;
                         body.symbiosis = 0;
                         if (oldOwner !== null) {
@@ -8150,6 +8154,7 @@ function applyConquest(body, jet) {
         // Invalider cache isSystemComplete du soleil concerné
         const _conquSun = body.type === 'planet' ? body.parent : (body.parent?.parent || null);
         if (_conquSun) _conquSun._sysCache = null;
+        marquerTerritoiresSales();
         body.symbiosis = 0; // Reset symbiose
         body.symOwnerTime = 0;
         body.buildMode = 'off';
@@ -9163,6 +9168,9 @@ function render() {
     // ── Amas de météorites ──
     drawAsteroidBelts(ctx);
 
+    // ── Frontieres de territoire (sous les astres) ──
+    drawTerritoryBorders(ctx);
+
     // ── Planètes & Lunes ──
     drawPlanets(ctx);
     if (gameState._hudCounter % 3 === 0) _updateOwnerClusters();
@@ -9882,6 +9890,249 @@ function drawPlanets(ctx) {
 // ─────────────────────────────────────────────
 // LABELS PROPRIÉTAIRES (clustering)
 // ─────────────────────────────────────────────
+/* ─────────────────────────────────────────────
+   TERRITOIRES
+   Une planete dont toutes les lunes appartiennent au meme joueur forme un
+   TERRITOIRE PLANETAIRE. Un soleil dont toutes les planetes et toutes les
+   lunes appartiennent au meme joueur forme un TERRITOIRE SOLAIRE, qui
+   remplace alors les territoires planetaires qu'il contient.
+
+   Une planete sans lune ne forme pas de territoire : il n'y aurait qu'un
+   seul astre a entourer, la frontiere ferait double emploi avec l'anneau
+   de propriete deja dessine autour de chaque astre.
+
+   La liste n'est recalculee qu'a la conquete. Les astres bougent en
+   permanence, mais leur proprietaire ne change presque jamais : recalculer
+   a chaque image serait du travail perdu.
+   ───────────────────────────────────────────── */
+let _territoires = [];
+let _territoiresSales = true;
+
+function marquerTerritoiresSales() { _territoiresSales = true; }
+
+function recalculerTerritoires() {
+    _territoiresSales = false;
+    const liste = [];
+    for (const soleil of gameState.suns) {
+        const planetes = soleil.planets || [];
+        if (!planetes.length) continue;
+
+        const proprioSolaire = planetes[0].owner;
+        let solaireEntier = (proprioSolaire !== null && proprioSolaire !== undefined);
+        const planetaires = [];
+
+        for (const pl of planetes) {
+            const lunes = pl.moons || [];
+            const proprio = pl.owner;
+            const tenu = (proprio !== null && proprio !== undefined) &&
+                         lunes.every(function (m) { return m.owner === proprio; });
+            if (tenu && lunes.length > 0) {
+                planetaires.push({ type: 'planetaire', owner: proprio, ancre: pl,
+                                   corps: [pl].concat(lunes) });
+            }
+            if (!tenu || proprio !== proprioSolaire) solaireEntier = false;
+        }
+
+        if (solaireEntier) {
+            const corps = [];
+            for (const pl of planetes) {
+                corps.push(pl);
+                const lunes = pl.moons || [];
+                for (let i = 0; i < lunes.length; i++) corps.push(lunes[i]);
+            }
+            liste.push({ type: 'solaire', owner: proprioSolaire, ancre: soleil,
+                         soleil: soleil, corps: corps });
+        } else {
+            for (let i = 0; i < planetaires.length; i++) liste.push(planetaires[i]);
+        }
+    }
+    _territoires = liste;
+}
+
+function territoires() {
+    if (_territoiresSales) recalculerTerritoires();
+    return _territoires;
+}
+
+/* Le territoire auquel appartient un astre, ou null. */
+function territoireDe(corps) {
+    const ts = territoires();
+    for (let i = 0; i < ts.length; i++) {
+        if (ts[i].corps.indexOf(corps) >= 0) return ts[i];
+    }
+    return null;
+}
+
+/* ─────────────────────────────────────────────
+   FRONTIERES
+   Le contour est l'union de cercles, un par astre, gonfles d'une marge.
+   Comme les lunes tournent autour de leur planete, la forme se deforme
+   toute seule au fil des orbites.
+
+   Pour n'obtenir que le contour EXTERIEUR sans passer par un canvas
+   intermediaire : chaque cercle est trace en decoupant d'abord tout ce qui
+   tombe a l'interieur des autres cercles du meme territoire. Le decoupage
+   se fait avec un rectangle englobant perce des autres cercles, regle
+   evenodd - le trace ne sort donc que la ou il est vraiment au bord.
+   ───────────────────────────────────────────── */
+const MARGE_FRONTIERE = 26;
+
+function marge(t) {
+    return t.type === 'solaire' ? MARGE_FRONTIERE * 2.2 : MARGE_FRONTIERE;
+}
+
+/* Un trait epais entre deux astres, pour que les bulles se rejoignent.
+   Les bouts arrondis sont donnes par les cercles des astres eux-memes. */
+function _lien(ctx, ax, ay, bx, by, demiLargeur) {
+    const dx = bx - ax, dy = by - ay;
+    const L = Math.sqrt(dx * dx + dy * dy);
+    if (L < 0.001) return;
+    const nx = -dy / L * demiLargeur, ny = dx / L * demiLargeur;
+    ctx.moveTo(ax + nx, ay + ny);
+    ctx.lineTo(bx + nx, by + ny);
+    ctx.lineTo(bx - nx, by - ny);
+    ctx.lineTo(ax - nx, ay - ny);
+    ctx.closePath();
+}
+
+/* Les formes qui composent la frontiere d'un territoire : un disque par
+   astre, plus un lien planete-lune, plus un lien planete-soleil quand tout
+   le systeme solaire est tenu. */
+function _formesTerritoire(t) {
+    const m = marge(t);
+    const formes = [];
+    const corps = t.corps;
+    for (let i = 0; i < corps.length; i++) {
+        const b = corps[i];
+        formes.push({ k: 'disque', x: b.x, y: b.y, r: b.radius + m });
+    }
+    for (let i = 0; i < corps.length; i++) {
+        const b = corps[i];
+        if (b.type !== 'planet') continue;
+        const lunes = b.moons || [];
+        for (let j = 0; j < lunes.length; j++) {
+            const lu = lunes[j];
+            if (corps.indexOf(lu) < 0) continue;
+            formes.push({ k: 'lien', ax: b.x, ay: b.y, bx: lu.x, by: lu.y,
+                          w: Math.min(b.radius + m, lu.radius + m) * 0.92 });
+        }
+    }
+    /* Au niveau solaire, les planetes sont reliees entre elles dans l'ordre
+       de leur angle autour de l'etoile : la frontiere suit alors le systeme
+       comme un anneau, au lieu de partir en rayons depuis le soleil. */
+    if (t.type === 'solaire' && t.soleil) {
+        const pls = corps.filter(function (b) { return b.type === 'planet'; });
+        if (pls.length > 1) {
+            const sx = t.soleil.x, sy = t.soleil.y;
+            pls.sort(function (a, b2) {
+                return Math.atan2(a.y - sy, a.x - sx) - Math.atan2(b2.y - sy, b2.x - sx);
+            });
+            for (let i = 0; i < pls.length; i++) {
+                const a = pls[i], b2 = pls[(i + 1) % pls.length];
+                formes.push({ k: 'lien', ax: a.x, ay: a.y, bx: b2.x, by: b2.y,
+                              w: Math.min(a.radius + m, b2.radius + m) * 0.85 });
+            }
+        }
+    }
+    return formes;
+}
+
+function _tracerForme(ctx, f) {
+    if (f.k === 'disque') {
+        ctx.moveTo(f.x + f.r, f.y);
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+    } else {
+        _lien(ctx, f.ax, f.ay, f.bx, f.by, f.w);
+    }
+}
+
+function drawTerritoryBorders(ctx) {
+    const ts = territoires();
+    if (!ts.length) return;
+    const cam = gameState.camera;
+    const halfW = gameState.width / 2 / cam.zoom;
+    const halfH = gameState.height / 2 / cam.zoom;
+
+    for (let ti = 0; ti < ts.length; ti++) {
+        const t = ts[ti];
+        const joueur = gameState.players[t.owner];
+        if (!joueur) continue;
+        const corps = t.corps;
+        const m = marge(t);
+
+        /* boite englobante en unites monde : culling, puis decoupage */
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (let i = 0; i < corps.length; i++) {
+            const b = corps[i], r = b.radius + m;
+            if (b.x - r < x0) x0 = b.x - r;
+            if (b.y - r < y0) y0 = b.y - r;
+            if (b.x + r > x1) x1 = b.x + r;
+            if (b.y + r > y1) y1 = b.y + r;
+        }
+        if (t.type === 'solaire' && t.soleil) {
+            if (t.soleil.x - 10 < x0) x0 = t.soleil.x - 10;
+            if (t.soleil.y - 10 < y0) y0 = t.soleil.y - 10;
+            if (t.soleil.x + 10 > x1) x1 = t.soleil.x + 10;
+            if (t.soleil.y + 10 > y1) y1 = t.soleil.y + 10;
+        }
+        if (x1 < cam.x - halfW || x0 > cam.x + halfW ||
+            y1 < cam.y - halfH || y0 > cam.y + halfH) continue;
+
+        const couleur = (gameState.config && gameState.config.teamCount >= 2 && joueur.teamColor)
+                      ? joueur.teamColor : (joueur.color || '#FFFFFF');
+        const rgb = _rgbDe(couleur);
+        const formes = _formesTerritoire(t);
+
+        /* remplissage : un seul trace, regle nonzero, donc les recouvrements
+           ne s'assombrissent pas */
+        ctx.beginPath();
+        for (let i = 0; i < formes.length; i++) _tracerForme(ctx, formes[i]);
+        ctx.fillStyle = 'rgba(' + rgb + ',' + (t.type === 'solaire' ? 0.10 : 0.07) + ')';
+        ctx.fill();
+
+        /* Contour exterieur seul, en une passe. On decoupe a "l'exterieur de
+           l'union" : un rectangle englobant perce de toutes les formes, regle
+           evenodd. Les arcs interieurs, qui tombent au coeur de l'union, sont
+           alors entierement retires ; il ne reste de chaque trace que sa
+           moitie exterieure, d'ou une epaisseur doublee pour compenser.
+           Une seule decoupe par territoire au lieu d'une par forme : le cout
+           suit le nombre d'astres au lieu de son carre. */
+        const ep = Math.max(1.5, (t.type === 'solaire' ? 3 : 2) / cam.zoom);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x0 - 1, y0 - 1, (x1 - x0) + 2, (y1 - y0) + 2);
+        for (let i = 0; i < formes.length; i++) _tracerForme(ctx, formes[i]);
+        ctx.clip('evenodd');
+        ctx.strokeStyle = 'rgba(' + rgb + ',' + (t.type === 'solaire' ? 0.85 : 0.6) + ')';
+        ctx.lineWidth = ep * 2;
+        ctx.beginPath();
+        for (let i = 0; i < formes.length; i++) _tracerForme(ctx, formes[i]);
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+/* '#a1b2c3' ou 'rgb(...)' vers '161,178,195' */
+const _rgbCache = {};
+function _rgbDe(c) {
+    if (_rgbCache[c]) return _rgbCache[c];
+    let out = '255,255,255';
+    if (c.charAt(0) === '#') {
+        let h = c.slice(1);
+        if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+        if (h.length >= 6) {
+            out = parseInt(h.slice(0, 2), 16) + ',' +
+                  parseInt(h.slice(2, 4), 16) + ',' +
+                  parseInt(h.slice(4, 6), 16);
+        }
+    } else {
+        const m = c.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+        if (m) out = m[1] + ',' + m[2] + ',' + m[3];
+    }
+    _rgbCache[c] = out;
+    return out;
+}
+
 let _ownerClustersCache = [];
 function _updateOwnerClusters() {
     if (gameState.phase !== 'game' && gameState.phase !== 'spawn') return;
@@ -10949,7 +11200,7 @@ function updateMyPlanets() {
     if (!container._selectedBodies) container._selectedBodies = new Set();
     const _selectedBodies = container._selectedBodies;
 
-    function _makeBodyRow(body) {
+    function _makeBodyRow(body, lunesResumees) {
         const row = document.createElement('div');
         row.className = 'mp-body-row';
         row.dataset.bodyName = body.name;
@@ -10975,6 +11226,20 @@ function updateMyPlanets() {
             pi.textContent = '🦠';
             pi.title = 'Spore parasitaire prête';
             row.appendChild(pi);
+        }
+
+        /* Quand la planete et toutes ses lunes sont tenues, elles forment un
+           bloc : on n'ecrit plus une ligne par lune, seulement leur nombre.
+           Sans cela la liste faisait trois kilometres de long. */
+        if (lunesResumees > 0) {
+            const lu = document.createElement('span');
+            /* classe propre : mp-build-icon est reecrite par le rafraichissement
+               periodique, qui effacerait ce compteur */
+            lu.className = 'mp-lunes';
+            lu.style.cssText = 'font-size:9px;opacity:0.75;letter-spacing:0.5px;margin-left:2px;';
+            lu.textContent = '\u25CF' + lunesResumees;
+            lu.title = lunesResumees + (lunesResumees > 1 ? ' lunes tenues' : ' lune tenue');
+            row.appendChild(lu);
         }
 
         const sporesEl = document.createElement('span');
@@ -11154,10 +11419,13 @@ function updateMyPlanets() {
             for (const planet of planetsInGroup) {
                 const planetBlock = document.createElement('div');
                 planetBlock.className = 'mp-planet-block';
-                planetBlock.appendChild(_makeBodyRow(planet));
+                const toutesLunes = planet.moons || [];
+                const moons = toutesLunes.filter(m => m.owner === slot);
+                const bloc = toutesLunes.length > 0 && moons.length === toutesLunes.length;
 
-                const moons = (planet.moons || []).filter(m => m.owner === slot);
-                for (let mi = 0; mi < moons.length; mi++) {
+                planetBlock.appendChild(_makeBodyRow(planet, bloc ? moons.length : 0));
+
+                for (let mi = 0; bloc ? false : mi < moons.length; mi++) {
                     const isLast = mi === moons.length - 1;
                     const indent = document.createElement('div');
                     indent.className = 'mp-moon-indent';
@@ -12759,6 +13027,7 @@ function applySnapshot(snap) {
         const p = gameState.planets.find(p => p.name === sp.name);
         if (!p) return;
         const ownerChanged = p.owner !== sp.owner;
+        if (ownerChanged) marquerTerritoiresSales();
         p.owner         = sp.owner;
         p.spores        = sp.spores;
         p.sporesAttaque = sp.sporesAttaque ?? p.sporesAttaque;
@@ -12807,6 +13076,7 @@ function applySnapshot(snap) {
         const m = gameState.moons.find(m => m.name === sm.name);
         if (!m) return;
         const ownerChanged = m.owner !== sm.owner;
+        if (ownerChanged) marquerTerritoiresSales();
         m.owner     = sm.owner;
         m.spores    = sm.spores;
         m.buildMode = sm.buildMode ?? m.buildMode;
