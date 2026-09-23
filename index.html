@@ -243,13 +243,31 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
      - Diagnostic integre : F3 affiche FPS, simulation, rendu, taille de la
        fenetre et dpr ; D detaille le rendu fonction par fonction.
 
+     ── INTERFACE ──
+     - ALERTES DIRECTIONNELLES. La carte est bien plus grande que l'ecran :
+       dire qu'il se passe quelque chose ne suffisait pas, il fallait dire
+       ou. Trois evenements posent maintenant une balise sur l'astre
+       concerne - on se fait tirer dessus, on perd un astre, un groupement
+       se referme quelque part. L'astre a l'ecran recoit un anneau qui bat ;
+       hors-champ, c'est une fleche collee au bord, exactement dans sa
+       direction. La perte y ajoute un eclat lumineux du bon cote de l'ecran
+       et une secousse.
+     - Le panneau d'evolution ne s'ouvre plus au clic droit : il est
+       toujours la, empile au-dessus de Mes Astres dans une colonne, a
+       largeur fixe pour ne plus changer de taille entre ses deux onglets.
+     - Les trois panneaux de droite se replient, mais ne se retirent plus :
+       la case a cocher les faisait disparaitre avec elle-meme, sans aucun
+       moyen de les rappeler.
+     - Barres de chantier retirees ou reaffectees : elles suivaient une
+       construction qui est devenue immediate.
+
    À FAIRE
   🎯 Fond spatial : le sortir du canvas vers deux couches CSS deplacees par
      transform. Il reste 2,2 ms par image, soit 36 % du total, pour un
      remplissage plein ecran qui ne depend que de la camera.
-  🎯 Reste de code mort : buildProgress, conserve aux initialisations et dans
-     trois barres de progression qui ne peuvent plus se remplir, la
-     construction etant immediate. Sans danger, mais trompeur.
+  🎯 Reste de code mort : buildProgress, conserve aux initialisations alors
+     que plus rien ne le remplit, la construction etant immediate. Sans
+     danger, mais trompeur.
   🎯 drawSuns est devenu le poste le plus cher (1 a 5,8 ms selon le nombre de
      soleils a l'ecran) — probablement le meme motif de halo redimensionne
   🎯 Sons (à faire à la maison)
@@ -6346,6 +6364,9 @@ function finishStartGame() {
 
     _ownerClustersCache = [];
     _territoires = [];
+    _ancresGroupe = null;
+    gameState._alertes = [];
+    gameState._eclatBord = null;
     marquerTerritoiresSales();
     gameState._filetsCharge = [];
     gameState._fireLanceur = null;
@@ -8297,7 +8318,12 @@ function checkJetCollision(jet) {
                         });
                         const bT = body.type === 'planet' ? 'Planète' : 'Lune';
                         const chColor = oldOwner !== null ? (gameState.players[oldOwner]?.color || '#888') : '#888';
-                        if (oldOwner === localSlot()) addEvent('mine', '↩', `${bT} ${body.name} chassé par vaisseau !`, body, chColor);
+                        if (oldOwner === localSlot()) {
+                            addEvent('mine', '↩', `${bT} ${body.name} chassé par vaisseau !`, body, chColor);
+                            ajouterAlerte('perte', body, chColor);
+                            eclatBord(body, '#FF3B55');
+                            secouerEcran(9);
+                        }
                         else addEvent('war', '↩', `${bT} ${body.name} chassé (${gameState.players[oldOwner]?.name || 'IA-'+oldOwner})`, body, chColor);
                     }
                     jet.alive = false;
@@ -8353,7 +8379,10 @@ function applyConquest(body, jet) {
                 body.parasite = { ownerSlot: jet.owner, sourceBody: jet.source, _accumulator: 0 };
                 body.droneCount = 0;
                 const attackerName = gameState.players[jet.owner]?.name || '?';
-                if (body.owner === localSlot()) addEvent('war', '🦠', `${body.name} infectée par ${attackerName} !`, body, gameState.players[jet.owner]?.color);
+                if (body.owner === localSlot()) {
+                    addEvent('war', '🦠', `${body.name} infectée par ${attackerName} !`, body, gameState.players[jet.owner]?.color);
+                    ajouterAlerte('attaque', body, gameState.players[jet.owner]?.color);
+                }
                 if (jet.owner === localSlot()) addEvent('war', '🦠', `Parasite installé sur ${body.name}`, body, gameState.players[jet.owner]?.color);
             }
         }
@@ -8390,6 +8419,13 @@ function applyConquest(body, jet) {
         return;
     }
     const attackerColor = gameState.players[jet.owner]?.color || '#FFF';
+
+    /* On nous tire dessus : balise sur l'astre vise, aux couleurs de
+       l'assaillant. Les tirs allies et les renforts sont deja repartis
+       plus haut, ce qui arrive ici est forcement hostile. */
+    if (body.owner === localSlot() && jet.owner !== localSlot()) {
+        ajouterAlerte('attaque', body, attackerColor);
+    }
 
     // Épuiser la faune
     if (body.faune > 0) {
@@ -8472,6 +8508,11 @@ function applyConquest(body, jet) {
             addEvent('mine', '⚔️', `${bType} ${body.name} conquise !`, body, aColor);
         } else if (oldOwner === localSlot()) {
             addEvent('mine', '💀', `${bType} ${body.name} perdue ! (${attackerName})`, body, aColor);
+            /* La perte est la seule alerte qu'on ne peut pas se permettre de
+               rater : balise, eclat lumineux du bon cote, et secousse. */
+            ajouterAlerte('perte', body, aColor);
+            eclatBord(body, '#FF3B55');
+            secouerEcran(9);
         } else {
             addEvent('war', '⚔️', `${bType} ${body.name} : ${attackerName} prend à ${gameState.players[oldOwner]?.name || 'IA-'+oldOwner}`, body, aColor);
         }
@@ -9307,6 +9348,7 @@ if (gameState.isMulti) {
         majFiletsCharge(dt);
         majPopProduction(dt);
         majSecousse(dt);
+        majAlertes(dt);
         if (gameState._hudCounter % 10 === 0) {
             updateHUD();
             updateMultiPanel();
@@ -9333,6 +9375,7 @@ if (gameState.isMulti) {
     majFiletsCharge(dt);
     majPopProduction(dt);
     majSecousse(dt);
+    majAlertes(dt);
     updateCameraFollow();
     // Mise à jour HUD throttlé (perf)
     gameState.dt = dt;
@@ -9507,6 +9550,10 @@ function render() {
 
     // ── Indicateurs hors-écran (hors transformation caméra) ──
     drawOffscreenIndicators();
+
+    // ── Alertes directionnelles ──
+    // Par-dessus tout le reste : c'est ce qu'on doit voir en premier.
+    drawAlertes();
 }
 
 
@@ -10157,6 +10204,11 @@ function drawPlanets(ctx) {
    ───────────────────────────────────────────── */
 let _territoires = [];
 let _territoiresSales = true;
+/* Les ancres qui portaient un groupement au dernier calcul, et ce qu'elles
+   portaient : c'est ce qui permet de reperer ceux qui viennent de naitre.
+   Tant que ce tableau est nul, on est au tout premier calcul de la partie et
+   on se contente de retenir - sinon la carte entiere sonnerait au demarrage. */
+let _ancresGroupe = null;
 
 function marquerTerritoiresSales() { _territoiresSales = true; }
 
@@ -10197,6 +10249,32 @@ function recalculerTerritoires() {
         }
     }
     _territoires = liste;
+
+    /* Un groupement qui se referme merite une alerte, chez n'importe quel
+       joueur : c'est un bloc qui vient de durcir sur la carte. On compare par
+       identite d'astre - les noms peuvent se repeter, les objets non. */
+    const amorce = (_ancresGroupe !== null);
+    const vues = [];
+    for (let i = 0; i < liste.length; i++) {
+        const t = liste[i];
+        const ancre = t.ancre;
+        if (!ancre) continue;
+        vues.push(ancre);
+        const marque = t.type + ':' + t.owner;
+        if (ancre._groupe === marque) continue;
+        ancre._groupe = marque;
+        if (amorce) {
+            const j = gameState.players && gameState.players[t.owner];
+            ajouterAlerte('groupe', ancre, (j && j.color) || null);
+        }
+    }
+    if (_ancresGroupe) {
+        for (let i = 0; i < _ancresGroupe.length; i++) {
+            const a = _ancresGroupe[i];
+            if (vues.indexOf(a) < 0) a._groupe = null;
+        }
+    }
+    _ancresGroupe = vues;
 }
 
 function territoires() {
@@ -11155,6 +11233,169 @@ function majSecousse(dt) {
     if (!gameState._secousse) return;
     gameState._secousse -= dt * 26;
     if (gameState._secousse < 0.15) gameState._secousse = 0;
+}
+
+/* ─────────────────────────────────────────────
+   ALERTES DIRECTIONNELLES
+   Trois choses meritent qu'on leve les yeux : un de nos astres qui prend un
+   tir, un astre qu'on perd, un groupement qui se referme quelque part. La
+   carte etant bien plus grande que l'ecran, dire "il se passe quelque chose"
+   ne suffit pas : il faut dire OU. Chaque alerte est donc une balise posee
+   sur un astre. Quand cet astre est a l'ecran, la balise est un anneau qui
+   bat autour de lui ; quand il est hors-champ, c'est une fleche collee au
+   bord de l'ecran, exactement dans sa direction. La perte ajoute en plus un
+   eclat lumineux sur le bord concerne et une secousse - c'est la seule des
+   trois qu'on ne peut pas se permettre de rater.
+   ───────────────────────────────────────────── */
+const ALERTE_GENRES = {
+    attaque: { duree: 3.0, couleur: '#FF9F43', signe: '⚔', poids: 1 },
+    perte:   { duree: 7.0, couleur: '#FF3B55', signe: '💀', poids: 3 },
+    groupe:  { duree: 5.0, couleur: '#C084FC', signe: '◈', poids: 2 },
+};
+const ALERTES_MAX = 14;
+
+function ajouterAlerte(genre, body, couleur) {
+    if (!body || (gameState.phase !== 'game' && gameState.phase !== 'spawn')) return;
+    const g = ALERTE_GENRES[genre];
+    if (!g) return;
+    if (!gameState._alertes) gameState._alertes = [];
+    const liste = gameState._alertes;
+    /* Un astre pilonne prend un tir par seconde : on rallume la balise
+       existante plutot que d'en empiler dix au meme endroit. */
+    for (let i = 0; i < liste.length; i++) {
+        const a = liste[i];
+        if (a.genre === genre && a.body === body) {
+            a.age = 0;
+            if (couleur) a.couleur = couleur;
+            return;
+        }
+    }
+    liste.push({ genre: genre, body: body, age: 0, duree: g.duree,
+                 couleur: couleur || g.couleur, poids: g.poids });
+    /* Debordement : on sacrifie la moins grave, et a gravite egale la plus
+       vieille - jamais la perte qu'on vient d'ajouter. */
+    while (liste.length > ALERTES_MAX) {
+        let pire = 0;
+        for (let i = 1; i < liste.length; i++) {
+            if (liste[i].poids < liste[pire].poids) pire = i;
+            else if (liste[i].poids === liste[pire].poids && liste[i].age > liste[pire].age) pire = i;
+        }
+        liste.splice(pire, 1);
+    }
+}
+
+/* Le signal lumineux : le bord de l'ecran s'embrase du cote de l'evenement. */
+function eclatBord(body, couleur) {
+    gameState._eclatBord = { body: body, couleur: couleur || '#FF3B55', age: 0, duree: 1.2 };
+}
+
+function majAlertes(dt) {
+    const liste = gameState._alertes;
+    if (liste && liste.length) {
+        for (let i = liste.length - 1; i >= 0; i--) {
+            liste[i].age += dt;
+            if (liste[i].age >= liste[i].duree) liste.splice(i, 1);
+        }
+    }
+    const e = gameState._eclatBord;
+    if (e) { e.age += dt; if (e.age >= e.duree) gameState._eclatBord = null; }
+}
+
+/* Le point du bord de l'ecran que traverse un rayon partant du centre.
+   Une simple ellipse collerait la fleche au mauvais endroit dans les coins :
+   on cherche vraiment l'intersection avec le rectangle. */
+function _bordEcran(angle, w, h, marge) {
+    const cx = w / 2, cy = h / 2;
+    const c = Math.cos(angle), s = Math.sin(angle);
+    const tx = Math.abs(c) > 1e-6 ? (cx - marge) / Math.abs(c) : Infinity;
+    const ty = Math.abs(s) > 1e-6 ? (cy - marge) / Math.abs(s) : Infinity;
+    const t = Math.min(tx, ty);
+    return { x: cx + c * t, y: cy + s * t };
+}
+
+function drawAlertes() {
+    if (gameState.phase !== 'game' && gameState.phase !== 'spawn') return;
+    const ctx = gameState.ctx, cam = gameState.camera;
+    const w = gameState.width, h = gameState.height;
+
+    /* L'eclat de bord d'abord : il passe sous les fleches. */
+    const e = gameState._eclatBord;
+    if (e && e.body) {
+        const k = 1 - e.age / e.duree;
+        const sx = (e.body.x - cam.x) * cam.zoom + w / 2;
+        const sy = (e.body.y - cam.y) * cam.zoom + h / 2;
+        const ang = Math.atan2(sy - h / 2, sx - w / 2);
+        const foyer = _bordEcran(ang, w, h, 0);
+        const portee = Math.max(w, h) * 0.45;
+        const deg = ctx.createRadialGradient(foyer.x, foyer.y, 0, foyer.x, foyer.y, portee);
+        deg.addColorStop(0, e.couleur);
+        deg.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.save();
+        ctx.globalAlpha = k * k * 0.55;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = deg;
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+    }
+
+    const liste = gameState._alertes;
+    if (!liste || !liste.length) return;
+    const marge = 34;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < liste.length; i++) {
+        const a = liste[i];
+        const b = a.body;
+        if (!b) continue;
+        const fondu = 1 - a.age / a.duree;
+        const bat = 0.5 + 0.5 * Math.sin(a.age * 9);
+        const sx = (b.x - cam.x) * cam.zoom + w / 2;
+        const sy = (b.y - cam.y) * cam.zoom + h / 2;
+        const dedans = sx > marge && sx < w - marge && sy > marge && sy < h - marge;
+        ctx.globalAlpha = fondu * (0.4 + 0.6 * bat);
+        if (dedans) {
+            /* L'astre est sous les yeux : un anneau qui se resserre suffit.
+               Double trait, le sombre dessous : sans lui l'anneau se perd sur
+               une planete claire. */
+            const r = (b.radius || 10) * cam.zoom + 12 + (1 - bat) * 12;
+            ctx.beginPath();
+            ctx.arc(sx, sy, r, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+            ctx.strokeStyle = a.couleur;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        } else {
+            const ang = Math.atan2(sy - h / 2, sx - w / 2);
+            const pt = _bordEcran(ang, w, h, marge);
+            ctx.save();
+            ctx.translate(pt.x, pt.y);
+            ctx.fillStyle = a.couleur;
+            /* Lueur, puis le fer de fleche tourne vers l'exterieur. */
+            ctx.globalAlpha = fondu * 0.16 * bat;
+            ctx.beginPath();
+            ctx.arc(0, 0, 24, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = fondu * (0.45 + 0.55 * bat);
+            ctx.rotate(ang);
+            ctx.beginPath();
+            ctx.moveTo(16, 0);
+            ctx.lineTo(-6, -10);
+            ctx.lineTo(-2, 0);
+            ctx.lineTo(-6, 10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.rotate(-ang);
+            /* Le signe se pose en retrait, vers l'interieur de l'ecran. */
+            ctx.font = 'bold 14px sans-serif';
+            ctx.fillText(ALERTE_GENRES[a.genre].signe, -Math.cos(ang) * 20, -Math.sin(ang) * 20);
+            ctx.restore();
+        }
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
 }
 
 /* Demande de construction, quelle que soit la porte d'entree : menu radial,
