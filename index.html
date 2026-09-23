@@ -7301,11 +7301,7 @@ function updateHUD() {
             const sacPct = human.multiSacrifice || 0;
             let totalRate = 0;
             for (const body of human.bodies) {
-                if (!body.flore || body.flore <= 0) continue;
-                const symM = 1+((body.symbiosis||0)/100)*(body.type==='planet'?0.20:0.10);
-                const nidM = 1+(body.nids||0)*0.025;
-                const sacM = 1-Math.min(sacPct/100,0.5);
-                totalRate += (0.4+(body.flore/100)*0.6)*(1+human.stats.growth*0.3)*2.5*symM*nidM*sacM;
+                totalRate += debitAstre(body);
             }
             let sysBonusCount = 0;
             for (const sun of gameState.suns) {
@@ -9300,6 +9296,7 @@ if (gameState.isMulti) {
         updateImpacts(dt);
         majChargementTir(dt);
         majFiletsCharge(dt);
+        majPopProduction(dt);
         if (gameState._hudCounter % 10 === 0) {
             updateHUD();
             updateMultiPanel();
@@ -9324,6 +9321,7 @@ if (gameState.isMulti) {
     updateConquestEffects(dt);
     majChargementTir(dt);
     majFiletsCharge(dt);
+    majPopProduction(dt);
     updateCameraFollow();
     // Mise à jour HUD throttlé (perf)
     gameState.dt = dt;
@@ -9482,6 +9480,7 @@ function render() {
 
     // ── Compteurs de spores sur les astres ──
     drawSporeCountOnBodies(ctx);
+    drawDebitAstre(ctx);
 
     ctx.restore();
 
@@ -11092,6 +11091,83 @@ function drawImpacts(ctx) {
 // ─────────────────────────────────────────────
 // EFFETS VISUELS — Conquête & Éclosion
 // ─────────────────────────────────────────────
+/* Toutes les cinq secondes, ce que l'astre SELECTIONNE a produit sur la
+   periode monte au-dessus de sa tete. Un seul astre a la fois : afficher cela
+   partout noierait l'ecran. Le cumul repart a chaque changement de selection,
+   pour que le premier chiffre corresponde bien a cinq secondes de production
+   et pas a un reliquat accumule avant le clic. */
+/* Le debit de production d'un astre, en spores par seconde, apres sacrifice.
+   Une seule definition : la formule etait deja recopiee dans le HUD et dans
+   la fiche, et les deux copies avaient oublie le bonus de systeme complet -
+   elles affichaient donc un chiffre legerement faux. En passant toutes par
+   ici, elles disent la meme chose que la simulation.
+
+   En multijoueur la production est calculee sur le serveur et le client ne
+   voit que des instantanes : recalculer le debit de son cote est le seul
+   moyen de l'afficher sans attendre. */
+function debitAstre(body) {
+    if (!body || body.owner === null || body.owner === undefined) return 0;
+    if (!(body.flore > 0)) return 0;
+    const joueur = gameState.players[body.owner];
+    if (!joueur || !joueur.stats) return 0;
+    const sym = 1 + ((body.symbiosis || 0) / 100) * (body.type === 'planet' ? 0.20 : 0.10);
+    const nid = 1 + (body.nids || 0) * 0.025;
+    const soleil = body.type === 'planet' ? body.parent : (body.parent ? body.parent.parent : null);
+    const sys = (soleil && isSystemComplete(soleil, body.owner)) ? 1.03 : 1;
+    const part = 1 - Math.min((joueur.multiSacrifice || 0) / 100, 0.5);
+    return (0.4 + (body.flore / 100) * 0.6) * (1 + joueur.stats.growth * 0.3)
+           * 2.5 * sym * nid * sys * part;
+}
+
+const POP_PROD_PERIODE = 5;
+
+function majPopProduction(dt) {
+    const astre = (typeof followingBody !== 'undefined' && followingBody)
+                ? followingBody : gameState.selectedBody;
+    if (!astre || astre.owner !== localSlot()) {
+        gameState._popProdAstre = null;
+        return;
+    }
+    if (gameState._popProdAstre !== astre) {
+        gameState._popProdAstre = astre;
+        gameState._popProdTimer = 0;
+        astre._prodCumul = 0;
+        return;
+    }
+    /* Rien ne rentre quand la reserve est pleine. */
+    if (astre.spores < astre.maxSpores) {
+        astre._prodCumul = (astre._prodCumul || 0) + debitAstre(astre) * dt;
+    }
+    gameState._popProdTimer = (gameState._popProdTimer || 0) + dt;
+    if (gameState._popProdTimer < POP_PROD_PERIODE) return;
+    gameState._popProdTimer = 0;
+    const gagne = Math.floor(astre._prodCumul || 0);
+    astre._prodCumul = 0;
+    if (gagne <= 0) return;
+    gameState.conquestEffects.push({
+        x: astre.x, y: astre.y - astre.radius - 30, baseX: astre.x,
+        text: '+' + gagne, color: '#7DD3FC', age: 0, maxAge: 2.6
+    });
+}
+
+/* Le debit courant, juste au-dessus de l'astre selectionne. */
+function drawDebitAstre(ctx) {
+    const astre = gameState._popProdAstre;
+    if (!astre || gameState.camera.zoom < 0.3) return;
+    const z = gameState.camera.zoom;
+    const px = _taillePx(z, 13, astre.radius * z * 0.7, 12, 26);
+    const monde = px / z;
+    ctx.textAlign = 'center';
+    ctx.font = 'bold ' + monde + 'px Orbitron';
+    const d = (astre.spores < astre.maxSpores) ? debitAstre(astre) : 0;
+    /* Au-dessus de l'etiquette du pseudo, qui occupe deja le bord haut de
+       l'astre : sans ce decalage les deux se superposent. */
+    const etiquette = Math.max(9 / z, Math.min(16 / z, astre.radius * 0.45));
+    _texteLisible(ctx, (d > 0 ? d.toFixed(1) : '0') + '/s',
+                  astre.x, astre.y - astre.radius - etiquette * 1.6 - monde * 0.4,
+                  d > 0 ? '#7DD3FC' : '#94A3B8', Math.max(2, monde * 0.22));
+}
+
 function updateConquestEffects(dt) {
     // Textes flottants (style MMO : empilement sans superposition)
     for (let i = gameState.conquestEffects.length - 1; i >= 0; i--) {
@@ -12297,11 +12373,7 @@ function _getPlanetModsText(body, player) {
     const symBonus = Math.round(((body.symbiosis||0) / 100) * (body.type==='planet' ? 20 : 10));
     const nidBonus = Math.round((body.nids||0) * 2.5);
     const prodPct = 1 - Math.min(sacPct/100, 0.5);
-    const symBonusMult = 1 + ((body.symbiosis||0)/100)*(body.type==='planet'?0.20:0.10);
-    const nidBonusMult = 1 + (body.nids||0)*0.025;
-    const rate = body.flore > 0
-        ? (0.4+(body.flore/100)*0.6)*(1+player.stats.growth*0.3)*2.5*symBonusMult*nidBonusMult*prodPct
-        : 0;
+    const rate = debitAstre(body);
     const parts = [];
     if (rate > 0) parts.push(`+${Math.round(rate)}/s`);
     if (sacPct > 0) parts.push(`-${sacPct}%sac`);
