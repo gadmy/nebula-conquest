@@ -10082,9 +10082,7 @@ function _eclaircir(env, sortie) {
     for (let k = 1; k < n; k++) {
         const a = sortie[sortie.length - 1], b = env[k];
         const d = Math.sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
-        /* un point de creux (i vaut -1) est toujours garde : c'est lui qui
-           donne sa forme au cote */
-        if (d >= pas || b.i === -1) sortie.push(b);
+        if (d >= pas) sortie.push(b);
     }
     if (sortie.length > 4) {
         const a = sortie[sortie.length - 1], b = sortie[0];
@@ -10093,64 +10091,8 @@ function _eclaircir(env, sortie) {
     }
 }
 
-/* CREUX. Sur un long cote sans aucun astre, l'enveloppe tendue laisse une
-   droite morte. On y insere un point tire vers l'interieur, proportionnel a
-   la longueur du cote : le trait rentre la ou il n'y a rien, comme un
-   elastique aspire entre deux points d'appui.
-
-   Garde-fou : le point tire est repousse tant qu'il tombe dans un astre. Sans
-   cela un creux profond viendrait mordre une planete voisine. */
-const _creuse = [];
-function _creuser(points, formes, sortie) {
-    sortie.length = 0;
-    const n = points.length;
-    if (n < 3) { for (let k = 0; k < n; k++) sortie.push(points[k]); return; }
-
-    let cx = 0, cy = 0, rMoy = 0;
-    for (let k = 0; k < n; k++) { cx += points[k].x; cy += points[k].y; }
-    cx /= n; cy /= n;
-    for (let i = 0; i < formes.length; i++) rMoy += formes[i].r;
-    rMoy /= formes.length;
-    const seuil = rMoy * 2.2;
-
-    for (let k = 0; k < n; k++) {
-        const a = points[k], b = points[(k + 1) % n];
-        sortie.push(a);
-        /* Seules les TANGENTES sont candidates : leurs deux extremites sont
-           sur des disques differents, donc il n'y a aucun astre entre les
-           deux. Un cote qui reste sur le meme disque est un arc, il epouse
-           deja un astre et n'a pas a rentrer. */
-        if (a.i === b.i) continue;
-        const dx = b.x - a.x, dy = b.y - a.y;
-        const L = Math.sqrt(dx * dx + dy * dy);
-        if (L < seuil) continue;
-
-        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-        let vx = cx - mx, vy = cy - my;
-        const d = Math.sqrt(vx * vx + vy * vy);
-        if (d < 1) continue;
-        vx /= d; vy /= d;
-
-        let creux = Math.min(L * 0.16, d * 0.5);
-        let ok = false;
-        for (let essai = 0; essai < 7 && creux > 1; essai++) {
-            const px = mx + vx * creux, py = my + vy * creux;
-            let dedans = false;
-            for (let i = 0; i < formes.length && !dedans; i++) {
-                const f = formes[i];
-                const ex = px - f.x, ey = py - f.y;
-                if (ex * ex + ey * ey < f.r * f.r) dedans = true;
-            }
-            if (!dedans) { sortie.push({ x: px, y: py, i: -1, a: 0 }); ok = true; break; }
-            creux *= 0.6;
-        }
-        if (!ok) continue;
-    }
-}
-
 function _tracerEnveloppe(ctx, formes, env) {
-    _creuser(env, formes, _creuse);
-    _eclaircir(_creuse, _lisse);
+    _eclaircir(env, _lisse);
     const n = _lisse.length;
     if (n < 3) return;
     ctx.beginPath();
