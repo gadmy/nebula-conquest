@@ -11080,35 +11080,65 @@ function drawConquestEffects(ctx) {
     }
 
     // Textes flottants
+    ctx.textAlign = 'center';
     for (const e of gameState.conquestEffects) {
-        const alpha = 1 - (e.age / e.maxAge);
-        ctx.font = (11 * scale) + 'px Orbitron';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = e.color + hexAlpha(alpha);
-        ctx.fillText(e.text, e.x, e.y);
+        const prog = e.age / e.maxAge;
+        const alpha = 1 - prog;
+        /* une bouffee au depart : le nombre saute puis se pose */
+        const bouffee = prog < 0.18 ? (1 + (1 - prog / 0.18) * 0.45) : 1;
+        const px = _taillePx(z, 19, 0, 16, 44) * bouffee;
+        const monde = px / z;
+        ctx.font = 'bold ' + monde + 'px Orbitron';
+        ctx.globalAlpha = alpha;
+        _texteLisible(ctx, e.text, e.x, e.y, e.color, Math.max(2.5, monde * 0.24));
+        ctx.globalAlpha = 1;
     }
+}
+
+/* Le canvas est mis a l'echelle du zoom : une police donnee en unites monde
+   change donc de taille a l'ecran. Ces deux fonctions raisonnent en PIXELS
+   D'ECRAN, ce qui est la seule mesure qui compte pour la lisibilite, puis
+   reconvertissent.
+
+   La taille grandit avec le zoom, et avec la taille de l'astre : un nombre
+   colle sous une geante peut etre gros, celui d'une petite lune non. Les
+   bornes empechent l'illisible en dezoom et le demesure en zoom. */
+function _taillePx(z, base, rayonEcran, mini, maxi) {
+    let px = base * Math.sqrt(z);
+    const parAstre = rayonEcran * 0.22;
+    if (parAstre > px) px = parAstre;
+    if (px < mini) px = mini;
+    if (px > maxi) px = maxi;
+    return px;
+}
+
+/* Un liere sombre derriere le texte : sans lui un nombre clair pose sur une
+   planete claire disparait. */
+function _texteLisible(ctx, txt, x, y, remplissage, epaisseur) {
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = epaisseur;
+    ctx.strokeStyle = 'rgba(6,6,20,0.85)';
+    ctx.strokeText(txt, x, y);
+    ctx.fillStyle = remplissage;
+    ctx.fillText(txt, x, y);
 }
 
 function drawSporeCountOnBodies(ctx) {
     const z = gameState.camera.zoom;
-    const scale = Math.max(1, 0.8 / z); // pour les labels permanents
-    const fixedSize = 12 / z; // taille fixe indépendante du zoom pour le tooltip
-
-    const mx = gameState.mouseWorldX;
-    const my = gameState.mouseWorldY;
     const bodies = gameState.allBodies;
+    ctx.textAlign = 'center';
     for (const body of bodies) {
-        // Label spores permanents (planètes possédées)
-        if (z < 0.4) { /* skip labels permanents en dézoom */ }
-        else if (body.owner !== null && body.spores >= 1) {
-            const col = gameState.players[body.owner]?.color || '#FFF';
-            ctx.font = (8 * scale) + 'px Orbitron';
-            ctx.textAlign = 'center';
-            ctx.fillStyle = col + 'BB';
-            ctx.fillText(_sp(body.spores), body.x, body.y + body.radius + 10 * scale);
-        }
-
-        }
+        if (z < 0.3) continue;          /* en plein dezoom, rien */
+        if (body.owner === null || body.owner === undefined) continue;
+        if (!(body.spores >= 1)) continue;
+        const col = gameState.players[body.owner]?.color || '#FFF';
+        const px = _taillePx(z, 15, body.radius * z, 13, 34);
+        const monde = px / z;
+        ctx.font = 'bold ' + monde + 'px Orbitron';
+        _texteLisible(ctx, _sp(body.spores), body.x,
+                      body.y + body.radius + monde * 1.05,
+                      col, Math.max(2, monde * 0.22));
+    }
 }
 
 
