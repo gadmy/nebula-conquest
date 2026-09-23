@@ -1934,7 +1934,6 @@ input[type="radio"]:checked + .build-icon-btn {
   <tr><td style="padding:3px 0;">🦠 Parasite</td><td style="padding:3px 0;color:#FFD700;">Gratuit (2 min)</td><td style="padding:3px 0;">Prépare 1 spore parasitaire</td></tr>
 </table>
 <p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Système solaire entier conquis</span> → bonus de production <span style="color:#4ADE80;">+3%</span> sur tous les astres du système.</p>
-<p style="margin-bottom:6px;"><span style="color:#FFD700;">🪺 Nidification</span> : conquérez 100% d'un système → dans <span style="color:#E9D5FF;">Mes Astres</span>, les planètes clignotent en rouge → cliquez sur l'une pour la désigner <span style="color:#FFD700;">planète mère</span> → elle est entourée d'un <span style="color:#FFD700;">halo doré</span> visible par tous. Si elle a des lunes, elles doivent être conquises en premier avant de pouvoir l'attaquer. Une fois désignée, le bouton <span style="color:#FFD700;">👑 Nidif.</span> apparaît dans son menu radial : il aspire instantanément 50% des spores de tous vos astres sur elle (cooldown 3 min). La nidification s'annule si une lune de la planète mère est conquise.</p>
 <p style="margin-bottom:16px;">Rush et Mare ne peuvent pas être actifs en même temps sur le même astre. Ils consomment au maximum 50% de la production locale, la production normale reprend sur le reste.</p>
 
 <!-- TERMINAUX DE COMMERCE -->
@@ -6237,20 +6236,6 @@ function finishStartGame() {
 
 function _selectSporeType(type) {
     _closeSporMenu();
-    if (type === 'nidification') {
-        // Déclencher directement la nidification sans mode visée
-        const body = gameState._fireSource || gameState.selectedBody;
-        if (!body || !body.isMotherPlanet || (body._nidCooldown || 0) > 0) return;
-        const slot = localSlot();
-        const human = gameState.players.find(p => p.id === slot) || gameState.players[slot];
-        if (!human) return;
-        if (gameState.isMulti) {
-            sendAction('nidification', { bodyName: body.name });
-        } else {
-            _applyNidification(body, human);
-        }
-        return;
-    }
     gameState._fireType = type;
     gameState._firePhase = 'aiming';
 }
@@ -6260,13 +6245,9 @@ function _stmRefreshLive() {
     const body = _stmLiveBody;
     const ratio = gameState.jetRatio;
     const norm = _sp((body.spores || 0) * ratio);
-    const att = _sp((body.sporesAttaque || 0) * ratio);
-    const def = _sp((body.sporesDefense || 0) * ratio);
     const paraCount = body.parasiteSpore || 0;
     _stmSectors.forEach((s, i) => {
         if (s.type === 'normal')   s.count = norm + ' sp';
-        if (s.type === 'attaque')  s.count = att + ' sp';
-        if (s.type === 'defense')  s.count = def + ' sp';
         if (s.type === 'parasite') s.count = paraCount + ' prête';
     });
     _stmDraw();
@@ -6374,19 +6355,10 @@ function _stmOpen(body, clientX, clientY) {
     _stmInit();
     const ratio = gameState.jetRatio;
     const norm = _sp((body.spores || 0) * ratio);
-    const att = _sp((body.sporesAttaque || 0) * ratio);
-    const def = _sp((body.sporesDefense || 0) * ratio);
     const paraCount = (body.parasiteSpore || 0);
-    const _isMotherPlanet = !!body.isMotherPlanet;
-    const _nidCooldown = body._nidCooldown || 0;
-    const _nidReady2 = _isMotherPlanet && _nidCooldown <= 0;
-    const _nidLabel = _nidCooldown > 0 ? Math.ceil(_nidCooldown/60)+'min' : (_isMotherPlanet ? 'Prêt' : 'Inactif');
     _stmSectors = [
         { type:'normal',      icon:'⚪', label:'Normal',  count: norm + ' sp',         color:'rgba(60,40,120,0.85)',  colorHover:'rgba(100,70,180,0.95)', disabled: norm < 5 },
-        { type:'attaque',     icon:'🔴', label:'Attaque', count: att + ' sp',          color:'rgba(120,15,15,0.85)', colorHover:'rgba(200,30,30,0.95)',  disabled: att < 5 },
-        { type:'defense',     icon:'🔵', label:'Défense', count: def + ' sp',          color:'rgba(10,50,110,0.85)', colorHover:'rgba(20,80,180,0.95)',  disabled: def < 5 },
         { type:'parasite',    icon:'🦠', label:'Parasite',count: paraCount + ' prête', color:'rgba(10,60,25,0.85)',  colorHover:'rgba(20,120,50,0.95)',  disabled: paraCount < 1 },
-        { type:'nidification',icon:'👑', label:'Nidif.',  count: _nidLabel,            color: _nidReady2 ? 'rgba(180,140,0,0.85)' : 'rgba(60,50,30,0.7)', colorHover:'rgba(255,200,0,0.95)', disabled: !_nidReady2 },
     ];
     const _base = body.baseMaxSpores || body.maxSpores || 0;
     const _BLD_ALL = [
@@ -6394,8 +6366,6 @@ function _stmOpen(body, clientX, clientY) {
         { mode:'alveole', icon:'🍯', name:'ALVÉOLE', color:'rgba(234,179,8,0.3)',   tip:`+5% stock max · Coût: ${Math.floor(_base*0.10)} sp`, disabled: body.spores < Math.floor(_base*0.10) },
         { mode:'nid',     icon:'🏗️', name:'NID',     color:'rgba(34,197,94,0.3)',   tip:`+2.5% prod · Coût: ${Math.floor(_base*0.15)} sp`,   disabled: body.spores < Math.floor(_base*0.15) },
         { mode:'biome',   icon:'🛡️', name:'BIOME',   color:'rgba(59,130,246,0.3)',  tip:`+5% défense · Coût: ${Math.floor(_base*0.20)} sp`,  disabled: body.spores < Math.floor(_base*0.20) },
-        { mode:'ruche',   icon:'🔴', name:'RUSH',    color:'rgba(220,38,38,0.3)',   tip:'Produit des spores d\'attaque (50% du rate).',      disabled:false },
-        { mode:'mare',    icon:'🔵', name:'MARE',    color:'rgba(14,165,233,0.3)',  tip:'Produit des spores de défense (50% du rate).',      disabled:false },
         { mode:'parasite',icon:'🦠', name:'FOYER PUTRIDE',color:'rgba(10,80,30,0.3)',    tip:'2 min → 1 spore parasitaire.',                      disabled:(body.parasiteSpore||0)>=1 },
     ];
     _stmBldSectors = _BLD_ALL.map(b => ({ ...b, active: body.buildMode===b.mode }));
@@ -6435,8 +6405,6 @@ function _updateBodyInfoPanel(body, menuLeft, menuTop) {
     const rows = [];
     rows.push({ label:'Production', val: rate > 0 ? `+${Math.round(rate)}/s` : '—', cls:'bi-pos' });
     rows.push({ label:'Spores', val: `${_sp(body.spores||0)} / ${body.maxSpores||0}`, cls:'bi-neu' });
-    if ((body.sporesAttaque||0) > 0) rows.push({ label:'Att.', val: _sp(body.sporesAttaque), cls:'bi-neg' });
-    if ((body.sporesDefense||0) > 0) rows.push({ label:'Déf.', val: _sp(body.sporesDefense), cls:'bi-pos' });
     rows.push('sep');
     if (sacPct > 0) rows.push({ label:'Sacrifice', val: `-${sacPct}%`, cls:'bi-neg' });
     if (symPct > 0) rows.push({ label:'Symbiose', val: `+${symPct}%`, cls:'bi-pos' });
@@ -6940,8 +6908,6 @@ function updateCodexBuild(body) {
         { mode:'alveole', icon:'🍯', name:'ALVÉOLE',  desc:`+5% stock max · Coût: ${Math.floor(_base*0.10)} sp`, color:'rgba(234,179,8,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.10)+' spores pour agrandir la capacité de stockage de la planète (+5% du max de base par alvéole).' },
         { mode:'nid',     icon:'🏗️', name:'NID',      desc:`+2.5% prod · Coût: ${Math.floor(_base*0.15)} sp`,    color:'rgba(34,197,94,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.15)+' spores pour accélérer la production locale. La production reprend automatiquement après construction.' },
         { mode:'biome',   icon:'🛡️', name:'BIOME',    desc:`+5% défense · Coût: ${Math.floor(_base*0.20)} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Sacrifice '+Math.floor(_base*0.20)+' spores pour renforcer la défense naturelle de la planète. Annulé si la planète est vidée.' },
-        { mode:'ruche',   icon:'🔴', name:'RUSH',     desc:'Produit des spores attaque', color:'rgba(220,38,38,0.3)' },
-        { mode:'mare',    icon:'🔵', name:'MARE',     desc:'Produit des spores défense', color:'rgba(14,165,233,0.3)' },
         { mode:'parasite',  icon:'🦠', name:'FOYER PUTRIDE',    desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
 
     ];
@@ -7634,18 +7600,6 @@ function updateSporeGeneration(dt) {
             } else {
                 body.buildMode = 'off';
             }
-        } else if (body.buildMode === 'ruche') {
-            // Production spores attaque (max 50% du rate)
-            const maxAtt = body.maxSpores;
-            if ((body.sporesAttaque || 0) < maxAtt) {
-                body.sporesAttaque = Math.min(maxAtt, (body.sporesAttaque || 0) + rate * 0.5 * dt);
-            }
-        } else if (body.buildMode === 'mare') {
-            // Production spores defense (max 50% du rate)
-            const maxDef = body.maxSpores * 2;
-            if ((body.sporesDefense || 0) < maxDef) {
-                body.sporesDefense = Math.min(maxDef, (body.sporesDefense || 0) + rate * 0.5 * dt);
-            }
         } else {
             // Répartir la production entre : jeu et multiplicité
             const multiPct = (player.multiSacrifice || 0) / 100;
@@ -7775,14 +7729,6 @@ function launchJet(source, dirX, dirY, sporeType) {
         if ((source.parasiteSpore || 0) < 1) return;
         source.parasiteSpore = 0;
         sporeCount = 1;
-    } else if (sporeType === 'attaque') {
-        sporeCount = Math.floor((source.sporesAttaque || 0) * gameState.jetRatio);
-        if (sporeCount < 5) return;
-        source.sporesAttaque -= sporeCount;
-    } else if (sporeType === 'defense') {
-        sporeCount = Math.floor((source.sporesDefense || 0) * gameState.jetRatio);
-        if (sporeCount < 5) return;
-        source.sporesDefense -= sporeCount;
     } else {
         sporeCount = Math.floor(source.spores * gameState.jetRatio);
         if (sporeCount < 5) return;
@@ -8148,9 +8094,7 @@ function applyConquest(body, jet) {
     // Jets sur planète alliée (mélange ADN) → renforcement
     if (body.owner !== null && body.owner !== jet.owner && _isAllied(jet.owner, body.owner)) {
         let _gain = 0;
-        if (jet.sporeType === 'attaque') { _gain = Math.floor(jet.spores); body.sporesAttaque = Math.min(body.maxSpores, (body.sporesAttaque||0)+_gain); }
-        else if (jet.sporeType === 'defense') { _gain = Math.floor(jet.spores*5); body.sporesDefense = Math.min(body.maxSpores*2, (body.sporesDefense||0)+_gain); }
-        else { _gain = Math.floor(jet.spores); body.spores = Math.min(body.maxSpores, (body.spores||0)+_gain); }
+        _gain = Math.floor(jet.spores); body.spores = Math.min(body.maxSpores, (body.spores||0)+_gain);
         if (_gain > 0) gameState.conquestEffects.push({ x:body.x, y:body.y-body.radius-10, baseX:body.x, text:'+'+_gain, color:'#4ADE80', age:0, maxAge:2.5 });
         return;
     }
@@ -8160,15 +8104,10 @@ function applyConquest(body, jet) {
     // Spores sur planète alliée : renforcement
     if (body.owner === jet.owner) {
         let _gain = 0;
-        if (jet.sporeType === 'attaque') { _gain = Math.floor(jet.spores); body.sporesAttaque = Math.min(body.maxSpores, (body.sporesAttaque||0)+_gain); }
-        else if (jet.sporeType === 'defense') { _gain = Math.floor(jet.spores*5); body.sporesDefense = Math.min(body.maxSpores*2, (body.sporesDefense||0)+_gain); }
-        else if (body.spores < body.maxSpores) { _gain = Math.floor(Math.min(jet.spores, body.maxSpores-body.spores)); body.spores = Math.min(body.maxSpores, body.spores+_gain); }
+        if (body.spores < body.maxSpores) { _gain = Math.floor(Math.min(jet.spores, body.maxSpores-body.spores)); body.spores = Math.min(body.maxSpores, body.spores+_gain); }
         if (_gain > 0) gameState.conquestEffects.push({ x:body.x, y:body.y-body.radius-10, baseX:body.x, text:'+'+_gain, color:'#C8A0FF', age:0, maxAge:2.5 });
         return;
     }
-    // Modificateurs type spore (ennemi)
-    if (jet.sporeType === 'attaque') { attacking *= 5; }
-    else if (jet.sporeType === 'defense') { attacking = 0; }
     const attackerColor = gameState.players[jet.owner]?.color || '#FFF';
 
     // Épuiser la faune
@@ -9134,11 +9073,6 @@ if (gameState.isMulti) {
     }
     updateOrbits(dt);
     updateCosmicEffects(dt);
-    // Décompte cooldown nidification
-    for (const p of gameState.planets) {
-        if (p._nidCooldown > 0) p._nidCooldown = Math.max(0, p._nidCooldown - dt);
-        for (const m of p.moons) { if (m._nidCooldown > 0) m._nidCooldown = Math.max(0, m._nidCooldown - dt); }
-    }
     updateSporeGeneration(dt);
     updateComets(dt);
     if ((gameState._hudCounter & 1) === 0) updateAI(dt);
@@ -10975,48 +10909,6 @@ function hideEndScreen() {
 // ─────────────────────────────────────────────
 let followingBody = null;
 
-function _applyNidification(motherBody, player) {
-    const total = [...gameState.planets, ...gameState.moons]
-        .filter(b => b.owner === player.id && b !== motherBody);
-    let gathered = 0;
-    for (const b of total) {
-        gathered += Math.floor(b.spores);
-        b.spores = 0;
-    }
-    motherBody._nidMaxSpores = motherBody._nidMaxSpores || motherBody.maxSpores;
-    motherBody.maxSpores = Math.max(motherBody.maxSpores, motherBody.spores + gathered + 1000);
-    motherBody.spores = motherBody.spores + gathered;
-    motherBody._nidCooldown = 180;
-    playNidificationSound();
-    addEvent('build', '👑', `Nidification : +${gathered} spores sur ${motherBody.name}`, motherBody, player.color);
-}
-
-function selectMotherPlanet(sun, planet) {
-    const slot = localSlot();
-    const human = gameState.players.find(p => p.id === slot) || gameState.players[slot];
-    if (!human) return;
-
-    // Doit avoir au moins une lune
-    const ownedMoons = planet.moons.filter(m => m.owner === slot);
-    if (ownedMoons.length === 0) return;
-
-    if (!human.nidification[sun.name]) human.nidification[sun.name] = { progress: 0, sacrifice: 0, sunName: sun.name };
-    const nid = human.nidification[sun.name];
-
-    // Marquer la planète mère
-    nid.motherPlanet = planet.name;
-    planet.isMotherPlanet = true;
-
-    // Planète mère invincible tant qu'elle a au moins une lune
-    planet.invincible = true;
-
-    // Envoyer au serveur en multi
-    if (gameState.isMulti) sendAction('select_mother_planet', { bodyName: planet.name });
-
-    // Événement journal
-    addEvent('build', '👑', 'Planète mère : ' + planet.name + ' (système ' + sun.name + ')', planet, human.color);
-}
-
 function isSystemComplete(sun, ownerID) {
     // Cache invalidé à la conquête via sun._sysCache = null
     if (sun._sysCacheOwner === ownerID && sun._sysCache !== null && sun._sysCache !== undefined) return sun._sysCache;
@@ -11081,9 +10973,9 @@ function updateMyPlanets() {
     if (!container._selectedBodies) container._selectedBodies = new Set();
     const _selectedBodies = container._selectedBodies;
 
-    function _makeBodyRow(body, isNidCandidate, sunRef2, sunName2) {
+    function _makeBodyRow(body) {
         const row = document.createElement('div');
-        row.className = 'mp-body-row' + (isNidCandidate ? ' nid-candidate' : '');
+        row.className = 'mp-body-row';
         row.dataset.bodyName = body.name;
 
         const size = body.type === 'planet' ? 18 : 14;
@@ -11091,10 +10983,10 @@ function updateMyPlanets() {
 
         const nameEl = document.createElement('span');
         nameEl.className = 'mp-name';
-        nameEl.textContent = (body.isMotherPlanet ? '👑 ' : '') + body.name;
+        nameEl.textContent = body.name;
         row.appendChild(nameEl);
 
-        const buildIcons = { nid:'🏗️', biome:'🛡️', alveole:'🍯', mare:'🔵', ruche:'🔴', parasite:'🦠' };
+        const buildIcons = { nid:'🏗️', biome:'🛡️', alveole:'🍯', parasite:'🦠' };
         if (body.buildMode && buildIcons[body.buildMode]) {
             const bi = document.createElement('span');
             bi.className = 'mp-build-icon';
@@ -11114,36 +11006,7 @@ function updateMyPlanets() {
         sporesEl.textContent = Math.floor(body.spores || 0);
         row.appendChild(sporesEl);
 
-        if (isNidCandidate) {
-            const nidLbl = document.createElement('span');
-            nidLbl.className = 'mp-nid-label';
-            nidLbl.textContent = '👑?';
-            row.appendChild(nidLbl);
-            row.title = 'Choisir comme planète mère';
-            row.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const _slot = localSlot();
-                const _h = gameState.players.find(p => p.id === _slot) || gameState.players[_slot];
-                if (!_h) return;
-                if (!_h.nidification[sunName2]) _h.nidification[sunName2] = { progress:0, sacrifice:0, sunName:sunRef2.name };
-                selectMotherPlanet(sunRef2, body);
-                container.dataset.hash = '';
-            });
-        } else {
-            if (body.isMotherPlanet) {
-                const nidBtn = document.createElement('span');
-                nidBtn.className = 'mp-build-icon';
-                nidBtn.textContent = '👑';
-                nidBtn.title = 'NIDIFIER (aspire 50% spores du système)';
-                nidBtn.style.cursor = 'pointer';
-                nidBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (body._nidCooldown > 0) return;
-                    if (gameState.isMulti) sendAction('nidification', { bodyName: body.name });
-                    else _applyNidification(body, human);
-                });
-                row.insertBefore(nidBtn, sporesEl);
-            }
+        {
 
             // Clic gauche : sélection unique + caméra
             row.addEventListener('click', (e) => {
@@ -11211,7 +11074,6 @@ function updateMyPlanets() {
         for (const sunName of sunNames) {
             const sunRef = groupSuns[sunName];
             const complete = sunRef && isSystemComplete(sunRef, slot);
-            const _nidReady = sunRef && complete && !(human.nidification[sunName]?.motherPlanet);
             const isOpen = (sunName === defaultOpen);
 
             const groupEl = document.createElement('div');
@@ -11261,8 +11123,6 @@ function updateMyPlanets() {
                 { mode: 'alveole', icon: '🍯', title: 'Alvéole — +5% stock max' },
                 { mode: 'nid',     icon: '🏗️', title: 'Nid — +2.5% production' },
                 { mode: 'biome',   icon: '🛡️', title: 'Biome — +5% défense' },
-                { mode: 'mare',    icon: '🔵', title: 'Mare — spores de défense' },
-                { mode: 'ruche',   icon: '🔴', title: 'Ruche — spores d\'attaque' },
             ];
             const bodies = groups[sunName];
 
@@ -11318,8 +11178,7 @@ function updateMyPlanets() {
             for (const planet of planetsInGroup) {
                 const planetBlock = document.createElement('div');
                 planetBlock.className = 'mp-planet-block';
-                const isNidCandidate = _nidReady && planet.type === 'planet' && planet.moons.filter(m => m.owner === slot).length > 0;
-                planetBlock.appendChild(_makeBodyRow(planet, isNidCandidate, sunRef, sunName));
+                planetBlock.appendChild(_makeBodyRow(planet));
 
                 const moons = (planet.moons || []).filter(m => m.owner === slot);
                 for (let mi = 0; mi < moons.length; mi++) {
@@ -11331,7 +11190,7 @@ function updateMyPlanets() {
                     indent.appendChild(treeLine);
                     const moonWrap = document.createElement('div');
                     moonWrap.style.flex = '1';
-                    moonWrap.appendChild(_makeBodyRow(moons[mi], false, sunRef, sunName));
+                    moonWrap.appendChild(_makeBodyRow(moons[mi]));
                     indent.appendChild(moonWrap);
                     planetBlock.appendChild(indent);
                 }
@@ -11339,7 +11198,7 @@ function updateMyPlanets() {
             }
 
             for (const b of orphans) {
-                bodyEl.appendChild(_makeBodyRow(b, false, sunRef, sunName));
+                bodyEl.appendChild(_makeBodyRow(b));
             }
 
             groupEl.appendChild(bodyEl);
@@ -11366,9 +11225,9 @@ function updateMyPlanets() {
             const spEl = row.querySelector('.mp-spores');
             if (spEl) spEl.textContent = Math.floor(body.spores || 0);
             if (followingBody === body || _selectedBodies.has(body)) row.classList.add('active');
-            else if (!row.classList.contains('nid-candidate')) row.classList.remove('active');
+            else row.classList.remove('active');
             // Mettre à jour l'icône build
-            const buildIcons = { nid:'🏗️', biome:'🛡️', alveole:'🍯', mare:'🔵', ruche:'🔴', parasite:'🦠' };
+            const buildIcons = { nid:'🏗️', biome:'🛡️', alveole:'🍯', parasite:'🦠' };
             let biEl = row.querySelector('.mp-build-icon');
             const newIcon = buildIcons[body.buildMode] || '';
             if (newIcon) {
@@ -12933,7 +12792,6 @@ function applySnapshot(snap) {
         p.biomes        = sp.biomes        ?? p.biomes;
         p.alveoles      = sp.alveoles      ?? p.alveoles;
         p.buildMode        = sp.buildMode        ?? p.buildMode;
-        p.isMotherPlanet   = sp.isMotherPlanet   ?? p.isMotherPlanet;
         p.parasiteSpore    = sp.parasiteSpore     ?? p.parasiteSpore;
         p.parasiteProgress = sp.parasiteProgress  ?? p.parasiteProgress;
         if (sp.maxSpores !== undefined)      p.maxSpores      = sp.maxSpores;
