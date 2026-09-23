@@ -2608,7 +2608,18 @@ function generateBackground() {
         bgCtx.arc(bx, by, br, 0, Math.PI * 2);
         bgCtx.fill();
     }
-    gameState._bgCanvas = bgC;
+    /* Le degrade et les taches sont trames par le navigateur : un bruit d'un
+       ou deux niveaux, invisible a l'echelle 1. Mais ce canvas est etire d'un
+       facteur 10 a 30 a l'ecran, et comme on l'affiche sans filtrage (voir
+       drawBackground) ce bruit deviendrait un quadrillage visible. Un flou
+       d'un coup, ici, l'efface : le fond obtenu est meme plus lisse qu'avant. */
+    const bgFlou = document.createElement('canvas');
+    bgFlou.width = bgW; bgFlou.height = bgH;
+    const bgFctx = bgFlou.getContext('2d');
+    bgFctx.filter = 'blur(2px)';
+    bgFctx.drawImage(bgC, 0, 0);
+    bgFctx.filter = 'none';
+    gameState._bgCanvas = bgFlou;
 
     // ══ Étoiles (canvas offscreen tuilable) ══
     const stW = 2048, stH = 2048;
@@ -9127,6 +9138,13 @@ function render() {
 // ─────────────────────────────────────────────
 function drawBackground(ctx) {
     const cam = gameState.camera;
+    // Le fond est enorme a l'ecran (le degrade couvre 60000 unites, les tuiles
+    // d'etoiles 8000). Le filtrage bilineaire sur un agrandissement pareil
+    // coute une lecture de quatre texels par pixel d'ecran, sur tout l'ecran,
+    // a chaque image : c'etait la moitie du temps de rendu. En nearest le
+    // degrade ne bouge pas (3/255 d'ecart au pire) et les etoiles restent nettes.
+    const _lissage = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
     // Fond bleu dégradé (parallaxe très lente, couvre tout)
     if (gameState._bgCanvas) {
         const bgS = 60000;
@@ -9140,16 +9158,22 @@ function drawBackground(ctx) {
         const prlx = 0.15;
         const offX = cam.x * (1 - prlx);
         const offY = cam.y * (1 - prlx);
-        const startX = Math.floor((cam.x - 5000 / cam.zoom - offX) / tileS) * tileS;
-        const startY = Math.floor((cam.y - 5000 / cam.zoom - offY) / tileS) * tileS;
-        const endX = cam.x + 5000 / cam.zoom - offX;
-        const endY = cam.y + 5000 / cam.zoom - offY;
+        /* Demi-ecran en unites monde. L'ancien code utilisait 5000 / zoom en
+           dur, soit un ecran suppose de 10000 px de large : on couvrait une
+           surface environ 25 fois trop grande en tuiles. */
+        const halfW = gameState.width / 2 / cam.zoom;
+        const halfH = gameState.height / 2 / cam.zoom;
+        const startX = Math.floor((cam.x - halfW - offX) / tileS) * tileS;
+        const startY = Math.floor((cam.y - halfH - offY) / tileS) * tileS;
+        const endX = cam.x + halfW - offX;
+        const endY = cam.y + halfH - offY;
         for (let tx = startX; tx <= endX; tx += tileS) {
             for (let ty = startY; ty <= endY; ty += tileS) {
                 ctx.drawImage(gameState._starsCanvas, tx + offX, ty + offY, tileS, tileS);
             }
         }
     }
+    ctx.imageSmoothingEnabled = _lissage;
 }
 
 
