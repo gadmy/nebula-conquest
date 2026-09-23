@@ -644,6 +644,26 @@ canvas#gameCanvas.grabbing {
 #sporeCounter .spore-mod.pos { background: rgba(34,197,94,0.2); color: #4ADE80; border: 1px solid rgba(34,197,94,0.4); }
 #sporeCounter .spore-mod.neg { background: rgba(239,68,68,0.2); color: #F87171; border: 1px solid rgba(239,68,68,0.4); }
 #sporeCounter .spore-mod.neu { background: rgba(100,70,180,0.2); color: #C084FC; border: 1px solid rgba(100,70,180,0.4); }
+/* Compteur global de batiments, sous les spores et la production. */
+#sporeCounter .spore-bats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 4px;
+    max-width: 200px;
+}
+#sporeCounter .spore-bat {
+    font-size: 10px;
+    font-family: 'Exo 2', sans-serif;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: rgba(100,70,180,0.16);
+    border: 1px solid rgba(139,92,246,0.3);
+    color: #D8CFF5;
+    cursor: default;
+    white-space: nowrap;
+}
+#sporeCounter .spore-bat b { color: #F3EDFF; font-weight: 600; }
 .planet-mods {
     font-family: 'Exo 2', sans-serif;
     font-size: 8px;
@@ -2156,7 +2176,7 @@ input[type="radio"]:checked + .build-icon-btn {
 
 <!-- ═══ HUD EN JEU ═══ -->
 <div id="gameHud">
-    <div id="sporeCounter" title="Total de spores sur tous vos astres">SPORES <span class="count" id="sporeCount">0</span><div class="spore-mods" id="sporeMods"></div></div>
+    <div id="sporeCounter" title="Total de spores sur tous vos astres">SPORES <span class="count" id="sporeCount">0</span><div class="spore-mods" id="sporeMods"></div><div class="spore-bats" id="sporeBats"></div></div>
     <div id="evoPanel">
         <span class="evo-close" id="evoClose">✕</span>
         <div class="evo-tabs">
@@ -7231,6 +7251,28 @@ function updateHUD() {
                 `<span class="spore-mod ${m.cls}" title="${m.tip}">${m.label}</span>`
             ).join('');
         }
+
+        /* Batiments : le total sur TOUS les astres du joueur, pour voir d'un
+           coup d'oeil ce qui a ete construit sans ouvrir chaque fiche. */
+        const batsEl = document.getElementById('sporeBats');
+        if (batsEl) {
+            let alv = 0, nid = 0, bio = 0, par = 0;
+            for (const body of human.bodies) {
+                alv += body.alveoles || 0;
+                nid += body.nids || 0;
+                bio += body.biomes || 0;
+                par += body.parasiteSpore || 0;
+            }
+            const bats = [
+                { icone: '\u{1F36F}', n: alv, tip: 'Alveoles : +5 % de stockage chacune' },
+                { icone: '\u{1F3D7}\uFE0F', n: nid, tip: 'Nids : +2,5 % de production chacun' },
+                { icone: '\u{1F6E1}\uFE0F', n: bio, tip: 'Biomes : +5 % de defense chacun' },
+                { icone: '\u{1F9A0}', n: par, tip: 'Spores parasitaires pretes' },
+            ].filter(b => b.n > 0);
+            batsEl.innerHTML = bats.map(b =>
+                `<span class="spore-bat" title="${b.tip}">${b.icone} <b>${b.n}</b></span>`
+            ).join('');
+        }
     }
 
     // Tableau des scores
@@ -7694,21 +7736,13 @@ function updateSporeGeneration(dt) {
             const _buildType = body.buildMode;
             const _costPct = body.buildMode === 'nid' ? 0.15 : body.buildMode === 'alveole' ? 0.10 : 0.20;
             const _buildCost = Math.floor((body.baseMaxSpores || body.maxSpores) * _costPct);
-            if (body.spores < _buildCost * 0.8 && (body.buildProgress || 0) === 0) {
-                // Pas assez de spores (seuil 80% du coût) — on attend sans drainer
-            } else if (body.spores < 5 && (body.buildProgress || 0) > 0) {
-                // Planète vidée pendant construction → annulation, spores sauvegardées
-                body.buildProgress = 0;
-                body.buildMode = 'off';
-                if (body.owner === localSlot()) addEvent('build', '⚠️', `Construction annulée sur ${body.name} (manque de spores)`, body, '#F87171');
-            } else {
-                const _drainRate = _buildCost / 8;
-                const _drain = Math.min(_drainRate * dt, body.spores - 5, _buildCost - (body.buildProgress || 0));
-                if (_drain > 0) {
-                    body.spores -= _drain;
-                    body.buildProgress = (body.buildProgress || 0) + _drain;
-                }
-                if ((body.buildProgress || 0) >= _buildCost) {
+            /* La construction est immediate : des que l'astre a de quoi payer,
+               le batiment sort. Il n'y a plus de drain sur huit secondes, donc
+               plus de chantier a moitie fini qu'une attaque pouvait annuler en
+               emportant les spores deja versees. */
+            {
+                if (body.spores >= _buildCost) {
+                    body.spores -= _buildCost;
                     body.buildProgress = 0;
                     body.buildMode = 'off'; // prod reprend automatiquement
                     if (body.owner === localSlot()) playBuildSound();
