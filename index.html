@@ -1946,9 +1946,9 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;">Accessibles via la <span style="color:#C8A0FF;">couronne extérieure du menu radial</span> (clic droit sur un astre possédé). Chaque astre ne peut avoir qu'un seul mode actif à la fois.</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
   <tr style="color:#C8A0FF;"><td style="padding:4px 0;font-size:11px;">Bâtiment</td><td style="padding:4px 0;font-size:11px;">Coût</td><td style="padding:4px 0;font-size:11px;">Effet</td></tr>
-  <tr><td style="padding:3px 0;">🍯 Alvéole</td><td style="padding:3px 0;color:#FFD700;">10% du stock max</td><td style="padding:3px 0;">+5% capacité de stockage (cumulable)</td></tr>
-  <tr><td style="padding:3px 0;">🏗️ Nid</td><td style="padding:3px 0;color:#FFD700;">15% du stock max</td><td style="padding:3px 0;">+2.5% production locale (cumulable)</td></tr>
-  <tr><td style="padding:3px 0;">🛡️ Biome</td><td style="padding:3px 0;color:#FFD700;">20% du stock max</td><td style="padding:3px 0;">+5% défense à l'impact (cumulable)</td></tr>
+  <tr><td style="padding:3px 0;">🍯 Alvéole</td><td style="padding:3px 0;color:#FFD700;">10% du stock max</td><td style="padding:3px 0;">+6% capacité de stockage (cumulable)</td></tr>
+  <tr><td style="padding:3px 0;">🏗️ Nid</td><td style="padding:3px 0;color:#FFD700;">15% du stock max</td><td style="padding:3px 0;">+3% production locale (cumulable)</td></tr>
+  <tr><td style="padding:3px 0;">🛡️ Biome</td><td style="padding:3px 0;color:#FFD700;">20% du stock max</td><td style="padding:3px 0;">+6% défense à l'impact (cumulable)</td></tr>
   <tr><td style="padding:3px 0;">🦠 Parasite</td><td style="padding:3px 0;color:#FFD700;">Gratuit (2 min)</td><td style="padding:3px 0;">Prépare 1 spore parasitaire</td></tr>
 </table>
 <p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Système solaire entier conquis</span> → bonus de production <span style="color:#4ADE80;">+3%</span> sur tous les astres du système.</p>
@@ -6592,9 +6592,9 @@ function _stmOpen(body, clientX, clientY) {
     const _base = body.baseMaxSpores || body.maxSpores || 0;
     const _BLD_ALL = [
         { mode:'off',     icon:'⬛', name:'OFF',     color:'rgba(100,70,180,0.3)',  tip:'Production normale.',                              disabled:false },
-        { mode:'alveole', icon:'🍯', name:'ALVÉOLE', color:'rgba(234,179,8,0.3)',   tip:`+5% stock max · Coût: ${Math.floor(_base*0.10)} sp`, disabled: body.spores < Math.floor(_base*0.10) },
-        { mode:'nid',     icon:'🏗️', name:'NID',     color:'rgba(34,197,94,0.3)',   tip:`+2.5% prod · Coût: ${Math.floor(_base*0.15)} sp`,   disabled: body.spores < Math.floor(_base*0.15) },
-        { mode:'biome',   icon:'🛡️', name:'BIOME',   color:'rgba(59,130,246,0.3)',  tip:`+5% défense · Coût: ${Math.floor(_base*0.20)} sp`,  disabled: body.spores < Math.floor(_base*0.20) },
+        { mode:'alveole', icon:'🍯', name:'ALVÉOLE', color:'rgba(234,179,8,0.3)',   tip:`+${pct(BONUS_ALVEOLE)}% stock max · Coût: ${Math.floor(_base*0.10)} sp`, disabled: body.spores < Math.floor(_base*0.10) },
+        { mode:'nid',     icon:'🏗️', name:'NID',     color:'rgba(34,197,94,0.3)',   tip:`+${pct(BONUS_NID)}% prod · Coût: ${Math.floor(_base*0.15)} sp`,   disabled: body.spores < Math.floor(_base*0.15) },
+        { mode:'biome',   icon:'🛡️', name:'BIOME',   color:'rgba(59,130,246,0.3)',  tip:`+${pct(BONUS_BIOME)}% défense · Coût: ${Math.floor(_base*0.20)} sp`,  disabled: body.spores < Math.floor(_base*0.20) },
         { mode:'parasite',icon:'🦠', name:'FOYER PUTRIDE',color:'rgba(10,80,30,0.3)',    tip:'2 min → 1 spore parasitaire.',                      disabled:(body.parasiteSpore||0)>=1 },
     ];
     _stmBldSectors = _BLD_ALL.map(b => ({ ...b, active: body.buildMode===b.mode }));
@@ -6619,13 +6619,8 @@ function _updateBodyInfoPanel(body, menuLeft, menuTop) {
     const player = gameState.players[localSlot()];
     const sacPct = player?.multiSacrifice || 0;
     const symPct = Math.round(((body.symbiosis||0)/100)*(body.type==='planet'?20:10));
-    const nidPct = Math.round((body.nids||0)*2.5);
-    const symM = 1+((body.symbiosis||0)/100)*(body.type==='planet'?0.20:0.10);
-    const nidM = 1+(body.nids||0)*0.025;
-    const sacM = 1-Math.min(sacPct/100,0.5);
-    const rate = body.flore > 0
-        ? (0.4+(body.flore/100)*0.6)*(1+(player?.stats?.growth||0)*0.3)*2.5*symM*nidM*sacM
-        : 0;
+    const nidPct = Math.round((body.nids||0) * BONUS_NID * 100);
+    const rate = debitAstre(body);
 
     // Parasite envoyé par ce joueur
     const _parasitedByMe = [...gameState.planets, ...gameState.moons]
@@ -7134,9 +7129,9 @@ function updateCodexBuild(body) {
     const _base = body.baseMaxSpores || body.maxSpores || 0;
     const BLD = [
         { mode:'off',     icon:'⬛', name:'OFF',      desc:'Production normale', color:'rgba(100,70,180,0.3)' },
-        { mode:'alveole', icon:'🍯', name:'ALVÉOLE',  desc:`+5% stock max · Coût: ${Math.floor(_base*0.10)} sp`, color:'rgba(234,179,8,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.10)+' spores pour agrandir la capacité de stockage de la planète (+5% du max de base par alvéole).' },
-        { mode:'nid',     icon:'🏗️', name:'NID',      desc:`+2.5% prod · Coût: ${Math.floor(_base*0.15)} sp`,    color:'rgba(34,197,94,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.15)+' spores pour accélérer la production locale. La production reprend automatiquement après construction.' },
-        { mode:'biome',   icon:'🛡️', name:'BIOME',    desc:`+5% défense · Coût: ${Math.floor(_base*0.20)} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Sacrifice '+Math.floor(_base*0.20)+' spores pour renforcer la défense naturelle de la planète. Annulé si la planète est vidée.' },
+        { mode:'alveole', icon:'🍯', name:'ALVÉOLE',  desc:`+${pct(BONUS_ALVEOLE)}% stock max · Coût: ${Math.floor(_base*0.10)} sp`, color:'rgba(234,179,8,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.10)+' spores pour agrandir la capacité de stockage de la planète (+'+pct(BONUS_ALVEOLE)+'% du max de base par alvéole).' },
+        { mode:'nid',     icon:'🏗️', name:'NID',      desc:`+${pct(BONUS_NID)}% prod · Coût: ${Math.floor(_base*0.15)} sp`,    color:'rgba(34,197,94,0.3)',   tip:'Sacrifice '+Math.floor(_base*0.15)+' spores pour accélérer la production locale. La production reprend automatiquement après construction.' },
+        { mode:'biome',   icon:'🛡️', name:'BIOME',    desc:`+${pct(BONUS_BIOME)}% défense · Coût: ${Math.floor(_base*0.20)} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Sacrifice '+Math.floor(_base*0.20)+' spores pour renforcer la défense naturelle de la planète. Annulé si la planète est vidée.' },
         { mode:'parasite',  icon:'🦠', name:'FOYER PUTRIDE',    desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
 
     ];
@@ -7332,9 +7327,9 @@ function updateHUD() {
                 par += body.parasiteSpore || 0;
             }
             const bats = [
-                { icone: '\u{1F36F}', n: alv, tip: 'Alveoles : +5 % de stockage chacune' },
-                { icone: '\u{1F3D7}\uFE0F', n: nid, tip: 'Nids : +2,5 % de production chacun' },
-                { icone: '\u{1F6E1}\uFE0F', n: bio, tip: 'Biomes : +5 % de defense chacun' },
+                { icone: '\u{1F36F}', n: alv, tip: 'Alveoles : +' + pct(BONUS_ALVEOLE) + ' % de stockage chacune' },
+                { icone: '\u{1F3D7}\uFE0F', n: nid, tip: 'Nids : +' + pct(BONUS_NID) + ' % de production chacun' },
+                { icone: '\u{1F6E1}\uFE0F', n: bio, tip: 'Biomes : +' + pct(BONUS_BIOME) + ' % de defense chacun' },
                 { icone: '\u{1F9A0}', n: par, tip: 'Spores parasitaires pretes' },
             ].filter(b => b.n > 0);
             batsEl.innerHTML = bats.map(b =>
@@ -7787,7 +7782,7 @@ function updateSporeGeneration(dt) {
         const symBonus = 1 + (body.symbiosis / 100) * symBonusMax;
 
         // Bonus nids : +0.2% production locale par nid
-        const nidBonus = 1 + (body.nids || 0) * 0.025;
+        const nidBonus = 1 + (body.nids || 0) * BONUS_NID;
         // Alvéoles : +5% maxSpores par alvéole
         /* Le maximum de base doit toujours exister avant d'appliquer les
            alveoles. Sans lui, la ligne suivante prenait le maximum DEJA
@@ -7797,9 +7792,9 @@ function updateSporeGeneration(dt) {
            la valeur, mais un seul champ manquant suffirait. On la reconstitue
            donc a partir du maximum courant, ce qui rend le calcul idempotent. */
         if (body.baseMaxSpores === undefined || body.baseMaxSpores === null) {
-            body.baseMaxSpores = Math.round(body.maxSpores / (1 + (body.alveoles || 0) * 0.05));
+            body.baseMaxSpores = Math.round(body.maxSpores / (1 + (body.alveoles || 0) * BONUS_ALVEOLE));
         }
-        const _alvMax = Math.floor(body.baseMaxSpores * (1 + (body.alveoles || 0) * 0.05));
+        const _alvMax = Math.floor(body.baseMaxSpores * (1 + (body.alveoles || 0) * BONUS_ALVEOLE));
         if (body.maxSpores !== _alvMax) body.maxSpores = _alvMax;
 
         // Bonus système complet : +3% si toutes planètes+lunes du soleil au même owner
@@ -8378,7 +8373,7 @@ function applyConquest(body, jet) {
     }
 
     // Bonus défense biomes : +0.2% par biome = il faut plus de spores pour conquérir
-    const biomeDefense = 1 + (body.biomes || 0) * 0.05;
+    const biomeDefense = 1 + (body.biomes || 0) * BONUS_BIOME;
     attacking = attacking / biomeDefense;
 
     // Combattre les spores défensives
@@ -11096,6 +11091,23 @@ function drawImpacts(ctx) {
    partout noierait l'ecran. Le cumul repart a chaque changement de selection,
    pour que le premier chiffre corresponde bien a cinq secondes de production
    et pas a un reliquat accumule avant le clic. */
+/* ─────────────────────────────────────────────
+   EFFET DES BATIMENTS
+   Un seul endroit ou les regler. Ces valeurs etaient recopiees dans la
+   simulation, dans trois affichages et dans une dizaine de textes : les
+   changer demandait de toutes les retrouver, et il en restait toujours une.
+   Les textes sont maintenant fabriques a partir d'elles.
+   ───────────────────────────────────────────── */
+const BONUS_ALVEOLE = 0.06;   /* stockage maximum, par alveole */
+const BONUS_NID     = 0.03;   /* production, par nid */
+const BONUS_BIOME   = 0.06;   /* defense a l'impact, par biome */
+
+/* Pour les textes : 0.06 devient "6", 0.025 devient "2,5". */
+function pct(x) {
+    const v = Math.round(x * 1000) / 10;
+    return String(v).replace('.', ',');
+}
+
 /* Le debit de production d'un astre, en spores par seconde, apres sacrifice.
    Une seule definition : la formule etait deja recopiee dans le HUD et dans
    la fiche, et les deux copies avaient oublie le bonus de systeme complet -
@@ -11111,7 +11123,7 @@ function debitAstre(body) {
     const joueur = gameState.players[body.owner];
     if (!joueur || !joueur.stats) return 0;
     const sym = 1 + ((body.symbiosis || 0) / 100) * (body.type === 'planet' ? 0.20 : 0.10);
-    const nid = 1 + (body.nids || 0) * 0.025;
+    const nid = 1 + (body.nids || 0) * BONUS_NID;
     const soleil = body.type === 'planet' ? body.parent : (body.parent ? body.parent.parent : null);
     const sys = (soleil && isSystemComplete(soleil, body.owner)) ? 1.03 : 1;
     const part = 1 - Math.min((joueur.multiSacrifice || 0) / 100, 0.5);
@@ -11792,9 +11804,9 @@ function updateMyPlanets() {
             buildBar.className = 'mp-build-bar';
             const modeDefs = [
                 { mode: 'off',     icon: '⬛', title: 'Désactivé — production normale' },
-                { mode: 'alveole', icon: '🍯', title: 'Alvéole — +5% stock max' },
-                { mode: 'nid',     icon: '🏗️', title: 'Nid — +2.5% production' },
-                { mode: 'biome',   icon: '🛡️', title: 'Biome — +5% défense' },
+                { mode: 'alveole', icon: '🍯', title: 'Alvéole — +' + pct(BONUS_ALVEOLE) + '% stock max' },
+                { mode: 'nid',     icon: '🏗️', title: 'Nid — +' + pct(BONUS_NID) + '% production' },
+                { mode: 'biome',   icon: '🛡️', title: 'Biome — +' + pct(BONUS_BIOME) + '% défense' },
             ];
             const bodies = groups[sunName];
 
@@ -12371,7 +12383,7 @@ function _getPlanetModsText(body, player) {
     const lines = [];
     const sacPct = player.multiSacrifice || 0;
     const symBonus = Math.round(((body.symbiosis||0) / 100) * (body.type==='planet' ? 20 : 10));
-    const nidBonus = Math.round((body.nids||0) * 2.5);
+    const nidBonus = Math.round((body.nids||0) * BONUS_NID * 100);
     const prodPct = 1 - Math.min(sacPct/100, 0.5);
     const rate = debitAstre(body);
     const parts = [];
