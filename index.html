@@ -725,10 +725,31 @@ canvas#gameCanvas.grabbing {
     pointer-events: none;
 }
 
-#evoPanel {
+/* COLONNE GAUCHE. Le panneau d'evolution etait une fenetre centree qu'il
+   fallait ouvrir au clic droit ; il est desormais toujours la, empile
+   au-dessus de Mes Astres. Les deux partagent une colonne en flex ancree en
+   bas a gauche : Mes Astres prend la place qui reste et defile, l'evolution
+   garde sa hauteur. Sans ce partage, deux panneaux de hauteur variable
+   ancres au meme bord finissent par se recouvrir. */
+#colonneGauche {
     position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
+    left: 0;
+    bottom: 12px;
+    width: 218px;
+    max-height: calc(100vh - 24px);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 25;
+    pointer-events: none;
+}
+#colonneGauche > * { pointer-events: auto; }
+
+#evoPanel {
+    position: static;
+    flex: 0 0 auto;
+    width: 100%;
+    max-height: 46vh;
     font-family: 'Exo 2', sans-serif;
     font-size: 11px;
     background: rgba(10,8,30,0.92);
@@ -736,8 +757,9 @@ canvas#gameCanvas.grabbing {
     border-radius: 8px;
     padding: 8px 12px;
     pointer-events: auto;
-    min-width: 260px;
-    max-height: 85vh;
+    /* Largeur figee : les deux onglets n'ont pas le meme contenu, et sans
+       cela le panneau changeait de largeur en passant de l'un a l'autre. */
+    box-sizing: border-box;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(100,70,180,0.3) transparent;
@@ -1234,11 +1256,11 @@ input[type="radio"]:checked + .build-icon-btn {
 
 /* ── Liste planètes du joueur ── */
 #myPlanets {
-    position: fixed;
-    left: 0;
-    bottom: 12px;
-    width: 210px;
-    max-height: calc(100vh - 24px);
+    position: static;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    box-sizing: border-box;
     background: rgba(10, 8, 35, 0.88);
     border: 1px solid rgba(100, 70, 180, 0.2);
     border-left: none;
@@ -2231,8 +2253,29 @@ input[type="radio"]:checked + .build-icon-btn {
 <!-- ═══ HUD EN JEU ═══ -->
 <div id="gameHud">
     <div id="sporeCounter" title="Total de spores sur tous vos astres">SPORES <span class="count" id="sporeCount">0</span><div class="spore-mods" id="sporeMods"></div><div class="spore-bats" id="sporeBats"></div></div>
-    <div id="evoPanel">
-        <span class="evo-close" id="evoClose">✕</span>
+</div>
+<div id="spawnPopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(10,8,30,0.92); border:1px solid rgba(167,139,250,0.4); border-radius:10px; padding:16px 22px; pointer-events:auto; z-index:1000; text-align:center; font-family:'Exo 2',sans-serif; min-width:200px; box-shadow:0 0 30px rgba(100,70,180,0.3);">
+        <div id="spawnPopupName" style="font-family:'Orbitron',sans-serif; font-size:14px; color:#E9D5FF; letter-spacing:1px; margin-bottom:8px;"></div>
+        <div id="spawnPopupPreview" style="margin:8px auto;"></div>
+        <div style="display:flex; gap:12px; justify-content:center; font-size:11px; color:rgba(200,200,220,0.7); margin:8px 0;">
+            <span>🌿 Flore: <strong id="spawnPopupFlore" style="color:#4ADE80;"></strong></span>
+            <span>🐾 Faune: <strong id="spawnPopupFaune" style="color:#FF6B6B;"></strong></span>
+        </div>
+        <div style="font-size:10px; color:rgba(200,200,220,0.5); margin-bottom:10px;">
+            Rayon: <span id="spawnPopupRadius"></span> · Max spores: <span id="spawnPopupMax"></span>
+        </div>
+        <button id="spawnPopupBtn" class="btn" style="font-size:13px; padding:8px 24px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.5); color:#4ADE80; letter-spacing:2px; cursor:pointer;">✦ APPARAÎTRE ✦</button>
+        <div style="margin-top:6px;">
+            <span id="spawnPopupClose" style="font-size:9px; color:rgba(200,200,220,0.4); cursor:pointer; letter-spacing:1px;">✕ FERMER</span>
+        </div>
+    </div>
+    <div id="gameTimer">00:00</div>
+</div>
+
+<!-- ═══ MES ASTRES (bas-gauche) ═══ -->
+<!-- ═══ COLONNE GAUCHE : evolution au-dessus de mes astres ═══ -->
+<div id="colonneGauche">
+<div id="evoPanel">
         <div class="evo-tabs">
             <div class="evo-tab active" data-tab="tabEvo">✦ ÉVOLUTION</div>
             <div class="evo-tab" data-tab="tabTech">🧬 MUTATIONS</div>
@@ -2296,29 +2339,10 @@ input[type="radio"]:checked + .build-icon-btn {
         <div class="evo-sep"></div>
         </div><!-- /tabTech -->
     </div>
-</div>
-<div id="spawnPopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(10,8,30,0.92); border:1px solid rgba(167,139,250,0.4); border-radius:10px; padding:16px 22px; pointer-events:auto; z-index:1000; text-align:center; font-family:'Exo 2',sans-serif; min-width:200px; box-shadow:0 0 30px rgba(100,70,180,0.3);">
-        <div id="spawnPopupName" style="font-family:'Orbitron',sans-serif; font-size:14px; color:#E9D5FF; letter-spacing:1px; margin-bottom:8px;"></div>
-        <div id="spawnPopupPreview" style="margin:8px auto;"></div>
-        <div style="display:flex; gap:12px; justify-content:center; font-size:11px; color:rgba(200,200,220,0.7); margin:8px 0;">
-            <span>🌿 Flore: <strong id="spawnPopupFlore" style="color:#4ADE80;"></strong></span>
-            <span>🐾 Faune: <strong id="spawnPopupFaune" style="color:#FF6B6B;"></strong></span>
-        </div>
-        <div style="font-size:10px; color:rgba(200,200,220,0.5); margin-bottom:10px;">
-            Rayon: <span id="spawnPopupRadius"></span> · Max spores: <span id="spawnPopupMax"></span>
-        </div>
-        <button id="spawnPopupBtn" class="btn" style="font-size:13px; padding:8px 24px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.5); color:#4ADE80; letter-spacing:2px; cursor:pointer;">✦ APPARAÎTRE ✦</button>
-        <div style="margin-top:6px;">
-            <span id="spawnPopupClose" style="font-size:9px; color:rgba(200,200,220,0.4); cursor:pointer; letter-spacing:1px;">✕ FERMER</span>
-        </div>
-    </div>
-    <div id="gameTimer">00:00</div>
-</div>
-
-<!-- ═══ MES ASTRES (bas-gauche) ═══ -->
 <div id="myPlanets">
     <div class="mp-title">MES ASTRES</div>
     <div id="myPlanetsList"></div>
+</div>
 </div>
 
 <!-- ═══ PANNEAU BAS-DROITE ═══ -->
@@ -6914,6 +6938,8 @@ function applyMultiChoice(player, stat) {
 function updateMultiPanel() {
     const panel = document.getElementById('evoPanel');
     if (!panel || gameState.phase !== 'game') return;
+    /* Toujours visible en jeu : il n'y a plus a l'ouvrir. */
+    if (panel.style.display === 'none' || panel.style.display === '') panel.style.display = 'block';
 
     const human = gameState.players[localSlot()];
     if (!human || !human.alive) return;
@@ -7095,12 +7121,10 @@ function openCodex(body) {
 }
 
 function _bldInfoText(body, mode) {
+    /* La construction etant immediate, il n'y a plus de chantier en cours a
+       decrire : on annonce le cout du prochain batiment du genre. */
     if (mode==='nid'||mode==='biome'||mode==='alveole') {
-        const _b = body.baseMaxSpores || body.maxSpores;
-        const cost = mode==='alveole' ? Math.floor(_b*0.10) : mode==='nid' ? Math.floor(_b*0.15) : Math.floor(_b*0.20);
-        const prog = Math.floor(body.buildProgress || 0);
-        const pct = Math.floor((prog / cost) * 100);
-        return `Sacrifice: ${prog}/${cost} sp · ${pct}%`;
+        return `Prochain: ${coutBatiment(body, mode)} sp`;
     }
     if (mode==='parasite') {
         if ((body.parasiteSpore||0)>=1) return '✅ Prête à lancer !';
@@ -7134,7 +7158,6 @@ function updateCodexBuild(body) {
             if (mode === 'biome' && countEl) countEl.textContent = (body.biomes||0) + ' construits';
             if (mode === 'parasite' && countEl) countEl.textContent = (body.parasiteSpore||0)+' prête';
             if (barEl) {
-                if ((mode==='nid'||mode==='biome') && body.buildMode===mode) { const _c=Math.floor(body.maxSpores*0.5); barEl.style.width = Math.min(100,((body.buildProgress||0)/_c)*100)+'%'; }
                 if (mode==='parasite') barEl.style.width = (body.parasiteSpore||0)>=1 ? '100%' : '0%';
             }
             // Info active sous la carte
@@ -7197,9 +7220,13 @@ const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.10) : b.mode==='nid' ? 
             prog.className = 'bld-progress-bg';
             const bar = document.createElement('div');
             bar.className = 'bld-progress';
-            if ((b.mode === 'nid' || b.mode === 'biome') && body.buildMode === b.mode) {
-                bar.style.width = Math.min(100, (body.buildProgress / body.maxSpores) * 100) + '%';
-                        } else if (b.mode === 'parasite') {
+            /* La barre ne sert plus a suivre un chantier - il n'y en a plus -
+               mais a montrer ou en est l'astre par rapport au cout du
+               prochain batiment de ce genre. */
+            if (b.mode === 'alveole' || b.mode === 'nid' || b.mode === 'biome') {
+                const _c = coutBatiment(body, b.mode);
+                bar.style.width = (_c > 0 ? Math.min(100, (body.spores / _c) * 100) : 0) + '%';
+            } else if (b.mode === 'parasite') {
                 bar.style.background = 'linear-gradient(90deg,#22C55E,#86EFAC)';
                 bar.style.width = (body.parasiteSpore||0) >= 1 ? '100%' : Math.min(100, ((body.parasiteProgress||0) / 120) * 100) + '%';
             } else { bar.style.width = '0%'; }
@@ -8809,7 +8836,6 @@ function setupInput() {
         const _openMenus = [
             { id: 'sporeTypeMenu', close: () => { _closeSporMenu(); gameState._firePhase = null; gameState._fireSource = null; } },
             { id: 'codex',    close: () => closeCodex() },
-            { id: 'evoPanel', close: () => { document.getElementById('evoPanel').style.display = 'none'; } },
         ].map(m => ({ ...m, el: document.getElementById(m.id) }))
          .filter(m => m.el && m.el.offsetParent !== null);
         for (const menu of _openMenus) {
@@ -8880,12 +8906,6 @@ if (body && body.owner === localSlot() && (e.button === 2)) {
                 }
                 if (body && body.owner !== null && body.owner !== localSlot() && body.owner >= 0 && (e.button === 2)) {
                     if (!gameState._spawnLocked) openCodex(body);
-                    return;
-                }
-                // Clic droit sur fond vide → toggle evoPanel
-                if (!gameState._firePhase && !body) {
-                    const evo = document.getElementById('evoPanel');
-                    evo.style.display = evo.style.display === 'none' || evo.style.display === '' ? 'block' : 'none';
                     return;
                 }
                 if (gameState._firePhase) { _cancelFire(); return; }
@@ -8978,7 +8998,6 @@ if (body && body.owner === localSlot() && (e.button === 2)) {
         const _gameMenus = [
             { id: 'sporeTypeMenu', isOpen: () => document.getElementById('sporeTypeMenu').style.display !== 'none', close: () => { _closeSporMenu(); gameState._firePhase = null; gameState._fireSource = null; } },
             { id: 'codex',         isOpen: () => gameState.codexOpen,                                               close: () => closeCodex() },
-            { id: 'evoPanel',      isOpen: () => document.getElementById('evoPanel').style.display !== 'none',      close: () => { document.getElementById('evoPanel').style.display = 'none'; } },
         ];
         for (const m of _gameMenus) {
             if (!m.isOpen()) continue;
@@ -12890,10 +12909,6 @@ function initSidePanel() {
         });
     });
 
-    // evoPanel : fermer bouton
-    document.getElementById('evoClose').addEventListener('click', () => {
-        document.getElementById('evoPanel').style.display = 'none';
-    });
 }
 
 function initTopRight() {
