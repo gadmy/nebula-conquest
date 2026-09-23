@@ -247,9 +247,9 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
   🎯 Fond spatial : le sortir du canvas vers deux couches CSS deplacees par
      transform. Il reste 2,2 ms par image, soit 36 % du total, pour un
      remplissage plein ecran qui ne depend que de la camera.
-  🎯 Code mort : 13 fonctions jamais appelees, et les restes inertes des
-     fonctionnalites supprimees (isMotherPlanet, sporesAttaque, ruche, mare,
-     buildProgress). Environ 50 sites, a faire en une passe dediee.
+  🎯 Reste de code mort : buildProgress, conserve aux initialisations et dans
+     trois barres de progression qui ne peuvent plus se remplir, la
+     construction etant immediate. Sans danger, mais trompeur.
   🎯 drawSuns est devenu le poste le plus cher (1 a 5,8 ms selon le nombre de
      soleils a l'ecran) — probablement le meme motif de halo redimensionne
   🎯 Sons (à faire à la maison)
@@ -6262,7 +6262,6 @@ function _buildMultiUniverse() {
         symbiosis: b.symbiosis || 0, symOwnerTime: b.symOwnerTime || 0,
         buildMode: b.buildMode || 'off', nids: b.nids || 0,
         biomes: b.biomes || 0, alveoles: b.alveoles || 0,
-        isMotherPlanet: b.isMotherPlanet || false,
         parasiteSpore: b.parasiteSpore || 0,
         parasiteProgress: b.parasiteProgress || 0,
     });
@@ -6519,19 +6518,6 @@ function _selectSporeType(type) {
     _closeSporMenu();
     gameState._fireType = type;
     gameState._firePhase = 'aiming';
-}
-function _stmRefreshLive() {
-    const menu = document.getElementById('sporeTypeMenu');
-    if (!_stmLiveBody || menu.style.display === 'none') return;
-    const body = _stmLiveBody;
-    const ratio = gameState.jetRatio;
-    const norm = _sp((body.spores || 0) * ratio);
-    const paraCount = body.parasiteSpore || 0;
-    _stmSectors.forEach((s, i) => {
-        if (s.type === 'normal')   s.count = norm + ' sp';
-        if (s.type === 'parasite') s.count = paraCount + ' prête';
-    });
-    _stmDraw();
 }
 function _syncServerIds() {}
 function _buildBodyIndex() {}
@@ -7109,8 +7095,6 @@ function openCodex(body) {
 }
 
 function _bldInfoText(body, mode) {
-    const att = Math.floor(body.sporesAttaque||0), def = Math.floor(body.sporesDefense||0);
-    const maxAtt = body.maxSpores, maxDef = body.maxSpores*2;
     if (mode==='nid'||mode==='biome'||mode==='alveole') {
         const _b = body.baseMaxSpores || body.maxSpores;
         const cost = mode==='alveole' ? Math.floor(_b*0.10) : mode==='nid' ? Math.floor(_b*0.15) : Math.floor(_b*0.20);
@@ -7118,8 +7102,6 @@ function _bldInfoText(body, mode) {
         const pct = Math.floor((prog / cost) * 100);
         return `Sacrifice: ${prog}/${cost} sp · ${pct}%`;
     }
-    if (mode==='ruche') return `Stock: ${att}/${maxAtt} · Envoi: ~${Math.floor(att*gameState.jetRatio)} sp`;
-    if (mode==='mare') return `Stock: ${def}/${maxDef} · Envoi: ~${Math.floor(def*gameState.jetRatio)} sp`;
     if (mode==='parasite') {
         if ((body.parasiteSpore||0)>=1) return '✅ Prête à lancer !';
         const pct = Math.floor(Math.min(100,((body.parasiteProgress||0)/Math.max(1,((body.flore||1)/100)*2*120))*100));
@@ -7150,13 +7132,9 @@ function updateCodexBuild(body) {
             const barEl = card.querySelector('.bld-progress');
             if (mode === 'nid' && countEl) countEl.textContent = (body.nids||0) + ' construits';
             if (mode === 'biome' && countEl) countEl.textContent = (body.biomes||0) + ' construits';
-            if (mode === 'ruche' && countEl) countEl.textContent = Math.floor(body.sporesAttaque||0)+'/'+body.maxSpores+' sp.att';
-            if (mode === 'mare' && countEl) countEl.textContent = Math.floor(body.sporesDefense||0)+'/'+(body.maxSpores*2)+' sp.déf';
             if (mode === 'parasite' && countEl) countEl.textContent = (body.parasiteSpore||0)+' prête';
             if (barEl) {
                 if ((mode==='nid'||mode==='biome') && body.buildMode===mode) { const _c=Math.floor(body.maxSpores*0.5); barEl.style.width = Math.min(100,((body.buildProgress||0)/_c)*100)+'%'; }
-                if (mode==='ruche') barEl.style.width = Math.min(100,((body.sporesAttaque||0)/body.maxSpores)*100)+'%';
-                if (mode==='mare') barEl.style.width = Math.min(100,((body.sporesDefense||0)/(body.maxSpores*2))*100)+'%';
                 if (mode==='parasite') barEl.style.width = (body.parasiteSpore||0)>=1 ? '100%' : '0%';
             }
             // Info active sous la carte
@@ -7199,8 +7177,6 @@ const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.10) : b.mode==='nid' ? 
         const countTxt = b.mode==='alveole' ? (body.alveoles||0)+' construites'
             : b.mode==='nid' ? (body.nids||0)+' construits'
             : b.mode==='biome' ? (body.biomes||0)+' construits'
-            : b.mode==='ruche' ? Math.floor(body.sporesAttaque||0)+'/'+body.maxSpores+' att'
-            : b.mode==='mare' ? Math.floor(body.sporesDefense||0)+'/'+(body.maxSpores*2)+' déf'
             : b.mode==='parasite' ? (body.parasiteSpore||0)+' prête' : '';
         const isActive = body.buildMode === b.mode && b.mode !== 'off';
         const infoTxt = isActive ? _bldInfoText(body, b.mode) : '';
@@ -7223,13 +7199,7 @@ const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.10) : b.mode==='nid' ? 
             bar.className = 'bld-progress';
             if ((b.mode === 'nid' || b.mode === 'biome') && body.buildMode === b.mode) {
                 bar.style.width = Math.min(100, (body.buildProgress / body.maxSpores) * 100) + '%';
-            } else if (b.mode === 'ruche') {
-                bar.style.background = 'linear-gradient(90deg,#EF4444,#FCA5A5)';
-                bar.style.width = Math.min(100, ((body.sporesAttaque||0) / body.maxSpores) * 100) + '%';
-            } else if (b.mode === 'mare') {
-                bar.style.background = 'linear-gradient(90deg,#0EA5E9,#38BDF8)';
-                bar.style.width = Math.min(100, ((body.sporesDefense||0) / (body.maxSpores*2)) * 100) + '%';
-            } else if (b.mode === 'parasite') {
+                        } else if (b.mode === 'parasite') {
                 bar.style.background = 'linear-gradient(90deg,#22C55E,#86EFAC)';
                 bar.style.width = (body.parasiteSpore||0) >= 1 ? '100%' : Math.min(100, ((body.parasiteProgress||0) / 120) * 100) + '%';
             } else { bar.style.width = '0%'; }
@@ -7651,7 +7621,7 @@ function updateComets(dt) {
             const dx = body.x - c.x;
             const dy = body.y - c.y;
             if (Math.sqrt(dx*dx + dy*dy) < body.radius + c.size) {
-                if (!body.invincible) body.spores = 0;
+                body.spores = 0;   /* plus d'astre invincible depuis le retrait de la planete mere */
                 spawnImpact(c.x, c.y, c.color);
                 gameState.comets.splice(i, 1);
                 break;
@@ -7913,6 +7883,20 @@ function updateSporeGeneration(dt) {
                     body.buildProgress = 0;
                     body.buildMode = 'off';
                     if (body.owner === localSlot()) playBuildSound();
+                    /* Le gain du batiment qui vient de sortir monte au-dessus
+                       de l'astre. Il est relu de la courbe plutot qu'ecrit en
+                       dur : sur un astre qui en a deja trois, ce sera +5 %,
+                       et le joueur voit ainsi le rendement decroitre. */
+                    if (body.owner === localSlot()) {
+                        const _n = nbBatiment(body, _buildType);
+                        const _gain = bonusProchain(_n);
+                        gameState.conquestEffects.push({
+                            x: body.x, y: body.y - body.radius - 26, baseX: body.x,
+                            text: '+' + pct(_gain) + '%',
+                            color: BATI_TEINTES[_buildType] || '#FFFFFF',
+                            age: 0, maxAge: 2.8
+                        });
+                    }
                     if (_buildType === 'nid') {
                         body.nids = (body.nids || 0) + 1;
                         if (body.owner === localSlot()) addEvent('build', '🏗️', `Nid construit sur ${body.name} (×${body.nids})`, body, gameState.players[localSlot()]?.color);
@@ -8305,18 +8289,6 @@ function checkJetCollision(jet) {
                 body.spores = Math.min(body.maxSpores, body.spores + jet.spores * densityBonus);
                 playFusionSound();
             } else {
-                // Signal visuel si planète mère invincible
-                if (body.isMotherPlanet) {
-                    const _lunesOwned = !body.moons?.length || body.moons.every(m => m.owner === body.owner);
-                    if (_lunesOwned) {
-                        gameState.conquestEffects.push({
-                            x: body.x, y: body.y - body.radius - 10, baseX: body.x,
-                            text: '🛡️ INVINCIBLE !', color: '#FFD700', age: 0, maxAge: 2.5
-                        });
-                        spawnImpact(jet.x, jet.y, '#FFD700');
-                        if (jet.owner === localSlot()) addEvent('mine', '🛡️', `${body.name} est invincible !`, body, '#FFD700');
-                    }
-                }
                 const _ml = gameState.players[jet.owner]?.tech?.mimicry || 0;
                 const oldOwner = body.owner;
                 if (_ml > 0 && body.type === 'planet' && body.moons && body.moons.length > 0) {
@@ -8377,20 +8349,6 @@ function applyConquest(body, jet) {
         return;
     }
 
-    // Invincibilité planète mère — seulement si toutes ses lunes sont encore possédées par le proprio
-    if (body.isMotherPlanet) {
-        const _hasLunes = body.moons && body.moons.length > 0;
-        const _lunesOwned = !_hasLunes || body.moons.every(m => m.owner === body.owner);
-        if (_lunesOwned) {
-            spawnImpact(jet.x, jet.y, '#FFD700');
-            gameState.conquestEffects.push({
-                x: body.x, y: body.y - body.radius - 10, baseX: body.x,
-                text: '🛡️ INVINCIBLE !', color: '#FFD700', age: 0, maxAge: 2.5
-            });
-            if (jet.owner === localSlot()) addEvent('mine', '🛡️', `${body.name} est invincible !`, body, '#FFD700');
-            return;
-        }
-    }
 
     // Jets sur planète alliée (mélange ADN) → renforcement
     if (body.owner !== null && body.owner !== jet.owner && _isAllied(jet.owner, body.owner)) {
@@ -9312,17 +9270,6 @@ function detaillerRendu() {
 // UPDATE (logique de jeu)
 // ─────────────────────────────────────────────
 // Interpolation locale des jets entre snapshots serveur
-function _updateMultiJets(dt) {
-    for (let i = gameState.jets.length - 1; i >= 0; i--) {
-        const j = gameState.jets[i];
-        if (!j.alive) { gameState.jets.splice(i, 1); continue; }
-        j.age = (j.age || 0) + dt;
-        // Traînée visuelle uniquement — position pilotée par snapshot serveur
-        if (!j.trail) j.trail = [];
-        j.trail.push({ x: j.x, y: j.y });
-        if (j.trail.length > 12) j.trail.shift();
-    }
-}
 
 function update(dt) {
     gameState.time += dt;
@@ -9987,23 +9934,6 @@ function drawPlanets(ctx) {
             ctx.arc(p.x, p.y, p.radius + 3, 0, Math.PI * 2);
             ctx.stroke();
             ctx.globalAlpha = 1;
-            // Halo doré planète mère
-            if (p.isMotherPlanet) {
-                const _mt = gameState.time || 0;
-                const _mp = 0.6 + 0.4*Math.sin(_mt*2.5);
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius*(1.4+0.1*Math.sin(_mt*1.8)), 0, Math.PI*2);
-                ctx.strokeStyle = `rgba(255,215,0,${_mp*0.9})`;
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius*(1.7+0.08*Math.sin(_mt*1.3)), 0, Math.PI*2);
-                ctx.strokeStyle = `rgba(255,180,0,${_mp*0.4})`;
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.restore();
-            }
             // Symbole alliance 🤝
             if (isAlliedPlanet) {
                 ctx.save();
@@ -10109,40 +10039,6 @@ function drawPlanets(ctx) {
                 ctx.restore();
             }
 
-            // Couronne planète mère — halo doré pulsant
-            if (p.isMotherPlanet) {
-                ctx.save();
-                const _mt = gameState.time || 0;
-                const _mp = 0.5 + 0.4 * Math.sin(_mt * 1.8);
-                const _mr1 = p.radius * (1.35 + 0.08 * Math.sin(_mt * 2.2));
-                const _mr2 = p.radius * (1.65 + 0.1 * Math.sin(_mt * 1.5));
-                // Halo intérieur doré
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, _mr1, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(255,215,0,${_mp * 0.7})`;
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
-                // Halo extérieur plus doux
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, _mr2, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(255,200,50,${_mp * 0.25})`;
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                // Halo rouge clignotant si planète mère ennemie
-                if (p.owner !== localSlot() && p.owner !== null) {
-                    const _rp = 0.5 + 0.5 * Math.abs(Math.sin(_mt * 3));
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.radius * (1.9 + 0.1 * Math.sin(_mt * 4)), 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(239,68,68,${_rp * 0.8})`;
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-                // Couronne
-                ctx.font = (p.radius * 1.1) + 'px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText('👑', p.x, p.y - p.radius - 4);
-                ctx.restore();
-            }
 
             // Icônes bâtiments sous la planète (si possédée par le joueur local)
             if (p.owner === localSlot() && gameState.lod >= 1) {
@@ -10295,13 +10191,6 @@ function territoires() {
 }
 
 /* Le territoire auquel appartient un astre, ou null. */
-function territoireDe(corps) {
-    const ts = territoires();
-    for (let i = 0; i < ts.length; i++) {
-        if (ts[i].corps.indexOf(corps) >= 0) return ts[i];
-    }
-    return null;
-}
 
 /* ─────────────────────────────────────────────
    FRONTIERES
@@ -11192,6 +11081,10 @@ function drawImpacts(ctx) {
    batiment rapporte 20 %, le deuxieme 15 %, le troisieme 10 %, et chacun des
    suivants 5 %. Un astre a donc tout interet a se diversifier plutot qu'a
    empiler vingt fois le meme batiment. */
+/* Les teintes des trois genres, deja utilisees par le compteur sous les
+   astres : une seule definition pour que le pop soit de la bonne couleur. */
+const BATI_TEINTES = { alveole: '#F5B93B', nid: '#4ADE80', biome: '#60A5FA' };
+
 const PALIERS_BATIMENT = [0.20, 0.15, 0.10];
 const PALIER_SUIVANT   = 0.05;
 
@@ -11506,9 +11399,9 @@ function _texteLisible(ctx, txt, x, y, remplissage, epaisseur) {
    triangle pour le nid, rond pour le biome. Les memes formes que la barre de
    construction, pour qu'on les reconnaisse sans legende. */
 const BATI_SIGNES = [
-    { cle: 'alveoles', signe: '⬢', couleur: '#F5B93B' },
-    { cle: 'nids',     signe: '▲', couleur: '#4ADE80' },
-    { cle: 'biomes',   signe: '●', couleur: '#60A5FA' },
+    { cle: 'alveoles', signe: '⬢', couleur: BATI_TEINTES.alveole },
+    { cle: 'nids',     signe: '▲', couleur: BATI_TEINTES.nid },
+    { cle: 'biomes',   signe: '●', couleur: BATI_TEINTES.biome },
 ];
 
 function drawSporeCountOnBodies(ctx) {
@@ -12544,22 +12437,6 @@ function drawOffscreenIndicators() {
 // ─────────────────────────────────────────────
 // TIMER DE PARTIE
 // ─────────────────────────────────────────────
-function _getPlanetModsText(body, player) {
-    if (!body || !player || body.owner !== player.id) return null;
-    const lines = [];
-    const sacPct = player.multiSacrifice || 0;
-    const symBonus = Math.round(((body.symbiosis||0) / 100) * (body.type==='planet' ? 20 : 10));
-    const nidBonus = Math.round(bonusBatiment(body.nids||0) * 100);
-    const prodPct = 1 - Math.min(sacPct/100, 0.5);
-    const rate = debitAstre(body);
-    const parts = [];
-    if (rate > 0) parts.push(`+${Math.round(rate)}/s`);
-    if (sacPct > 0) parts.push(`-${sacPct}%sac`);
-    if (symBonus > 0) parts.push(`+${symBonus}%sym`);
-    if (nidBonus > 0) parts.push(`+${nidBonus}%nid`);
-    if (body.buildMode && body.buildMode !== 'off') parts.push(`[${body.buildMode}]`);
-    return parts.join(' ');
-}
 
 function _sp(n) {
     const v = Math.round((n || 0) * 10) / 10;
@@ -12729,25 +12606,18 @@ function playClickSound() {
 }
 
 // ── Nidification ──
-function playNidificationSound() { _playBuffer('nidification', 0.8); }
 
 // ── Alliance ──
-function playAllianceSound() { _playBuffer('alliance', 0.7); }
 
 // ── Orbe de commerce ──
-function playTradeOrbSound() { _playBuffer('trade_orb', 0.6); }
 
 // ── Signal émoji ──
-function playSignalSound() { _playBuffer('signal', 0.6); }
 
 // ── Bannière / Notification globale ──
-function playBannerSound() { _playBuffer('banner', 0.7); }
 
 // ── Interception orbe ──
-function playInterceptSound() { _playBuffer('intercept', 0.7); }
 
 // ── Rupture alliance ──
-function playAllianceBreakSound() { _playBuffer('alliance_break', 0.7); }
 
 // ═══════════════════════════════════════════════════════
 // MUSIQUE MENU TITRE
@@ -13167,11 +13037,6 @@ document.getElementById('jetRatioSlider').addEventListener('input', (e) => {
 
 const SPORE_COLORS = ['#C8A0FF','#4ADE80','#60A5FA','#F472B6','#FB923C','#FACC15','#E879F9','#34D399'];
 
-function _sporeLabLoad(profile) {
-    if (profile && profile.spore_types && Array.isArray(profile.spore_types)) {
-        _sporeTypes = profile.spore_types;
-    }
-}
 
 function _applyActiveSpore() { /* spores uniformes — labo supprimé */ }
 
@@ -13291,15 +13156,6 @@ function connectSocket() {
         if (spawnCountdownInterval) { clearInterval(spawnCountdownInterval); spawnCountdownInterval = null; }
         if (gameState.phase === 'spawn' && gameState.players.length > 0) finishMultiSpawn();
     });
-    _socket.on('invincible_hit', (ev) => {
-        const body = gameState.allBodies.find(b => b.name === ev.bodyName);
-        spawnImpact(ev.x, ev.y, '#FFD700');
-        gameState.conquestEffects.push({
-            x: ev.x, y: ev.y - (ev.radius || 30) - 10, baseX: ev.x,
-            text: '🛡️ INVINCIBLE !', color: '#FFD700', age: 0, maxAge: 2.5
-        });
-        if (body) addEvent('war', '🛡️', `${ev.bodyName} est invincible !`, body, '#FFD700');
-    });
     _socket.on('cleaner_hit', (ev) => {
         if (ev.type === 'red') {
             spawnImpact(ev.x, ev.y, '#FF4444');
@@ -13317,16 +13173,10 @@ function connectSocket() {
                  || gameState.moons.find(m => m.name === ev.srcName);
         if (!src) return;
         // Sauvegarder et restaurer les spores (le serveur est autoritaire)
-        const savedSpores        = src.spores;
-        const savedSporesAttaque = src.sporesAttaque;
-        const savedSporesDefense = src.sporesDefense;
-        src.spores        = ev.spores * 2;
-        src.sporesAttaque = ev.spores * 2;
-        src.sporesDefense = ev.spores * 2;
+        const savedSpores = src.spores;
+        src.spores = ev.spores * 2;
         launchJet(src, ev.dirX, ev.dirY, ev.sporeType);
-        src.spores        = savedSpores;
-        src.sporesAttaque = savedSporesAttaque;
-        src.sporesDefense = savedSporesDefense;
+        src.spores = savedSpores;
         // Utiliser la trajectoire serveur + forcer id, spores, color
         const j = gameState.jets[gameState.jets.length - 1];
         if (j) {
@@ -13638,8 +13488,6 @@ function applySnapshot(snap) {
         if (ownerChanged) marquerTerritoiresSales();
         p.owner         = sp.owner;
         p.spores        = sp.spores;
-        p.sporesAttaque = sp.sporesAttaque ?? p.sporesAttaque;
-        p.sporesDefense = sp.sporesDefense ?? p.sporesDefense;
         p.symbiosis     = sp.symbiosis     ?? p.symbiosis;
         p.nids          = sp.nids          ?? p.nids;
         p.biomes        = sp.biomes        ?? p.biomes;
@@ -14001,12 +13849,6 @@ document.getElementById('btnAuthPseudo').addEventListener('click', async () => {
 });
 
 // ── DEBUG bouton (ga.dmy@ikmail.com uniquement) ──
-function _showDebugIfAdmin() {
-    if (currentUser?.email === 'ga.dmy@ikmail.com') {
-        const btn = document.getElementById('btnDebugFill');
-        if (btn) btn.style.display = 'inline-block';
-    }
-}
 
 document.getElementById('btnLogout').addEventListener('click', async () => {
     playClickSound();
