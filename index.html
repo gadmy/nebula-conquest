@@ -5291,7 +5291,81 @@ function setupUI() {
     document.getElementById('btnEndQuit').addEventListener('click', () => { hideEndScreen(); setPhase('title'); });
 
     // ── Touche Échap pour pause ──
+    /* ─────────────────────────────────────────────
+       RACCOURCIS SUR L'ASTRE SELECTIONNE
+       1 2 3 : construire alveole, nid, biome - meme ordre que la barre de
+               construction du panneau.
+       Espace : passer directement en mode visee.
+       Tab    : amener la camera sur l'entree suivante de la liste de gauche.
+       ───────────────────────────────────────────── */
+    function _astreActif() {
+        const b = (typeof followingBody !== 'undefined' && followingBody)
+                ? followingBody : gameState.selectedBody;
+        if (!b || b.owner !== localSlot()) return null;
+        return b;
+    }
+
+    function _construire(mode) {
+        const body = _astreActif();
+        if (!body) return;
+        body.buildMode = mode;
+        body.buildProgress = 0;
+        if (typeof updateCodexBuild === 'function' && gameState.selectedBody === body) {
+            updateCodexBuild(body);
+        }
+        if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: mode });
+    }
+
+    function _viserDepuisSelection() {
+        const body = _astreActif();
+        if (!body) return;
+        _closeSporMenu();
+        followingBody = body;
+        gameState._fireSource = body;
+        gameState._fireType = 'normal';
+        gameState._firePhase = 'aiming';
+    }
+
+    /* L'ordre suivi est celui des lignes du panneau de gauche, lues
+       directement dans la page : c'est le seul moyen d'etre toujours d'accord
+       avec ce que le joueur voit, y compris quand une planete et ses lunes
+       sont repliees en un seul bloc - le bloc ne compte alors que pour une
+       entree, ce qui fait bien passer d'une frontiere a la suivante. */
+    function _astreSuivant() {
+        const lignes = document.querySelectorAll('#myPlanetsList .mp-body-row');
+        if (!lignes.length) return;
+        const noms = [];
+        for (let i = 0; i < lignes.length; i++) {
+            const n = lignes[i].dataset.bodyName;
+            if (n) noms.push(n);
+        }
+        if (!noms.length) return;
+        const actuel = (typeof followingBody !== 'undefined' && followingBody)
+                     ? followingBody.name : null;
+        let i = noms.indexOf(actuel);
+        i = (i + 1) % noms.length;
+        const suivant = gameState.allBodies.find(function (b) { return b.name === noms[i]; });
+        if (!suivant) return;
+        followingBody = suivant;
+        gameState.camera.x = suivant.x;
+        gameState.camera.y = suivant.y;   /* le zoom ne bouge pas */
+        document.querySelectorAll('#myPlanetsList .mp-body-row.active')
+                .forEach(function (el) { el.classList.remove('active'); });
+        if (lignes[i]) lignes[i].classList.add('active');
+    }
+
     window.addEventListener('keydown', (e) => {
+        /* Les raccourcis de jeu ne doivent pas se declencher pendant une
+           saisie, ni par-dessus un menu de pause. */
+        const cible = document.activeElement;
+        const enSaisie = cible && (cible.tagName === 'INPUT' || cible.tagName === 'TEXTAREA');
+        if (gameState.phase === 'game' && !enSaisie && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            if (e.key === '1') { e.preventDefault(); _construire('alveole'); return; }
+            if (e.key === '2') { e.preventDefault(); _construire('nid');     return; }
+            if (e.key === '3') { e.preventDefault(); _construire('biome');   return; }
+            if (e.code === 'Space') { e.preventDefault(); _viserDepuisSelection(); return; }
+            if (e.key === 'Tab')    { e.preventDefault(); _astreSuivant();    return; }
+        }
         if (e.key === 'Escape') {
             if (gameState.phase === 'game') togglePause();
             else if (gameState.phase === 'paused') togglePause();
