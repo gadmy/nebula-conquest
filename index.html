@@ -10055,20 +10055,52 @@ function _enveloppe(formes, zoom) {
     return bas.concat(haut);
 }
 
-/* Trace l'enveloppe : arc quand on reste sur le meme disque, segment quand on
-   passe au suivant. */
+/* L'enveloppe convexe est exacte mais elle se lit comme un polygone : sommets
+   nets et tangentes toutes droites. On la repasse donc en courbe fermee, par
+   quadratiques passant par les MILIEUX des cotes, chaque sommet servant de
+   point de controle. C'est du rognage de coin a la Chaikin : le trait reste
+   toujours a l'interieur de l'enveloppe, il ne peut donc ni se recouper ni
+   former d'encoche - ce que faisait une interpolation de Catmull-Rom, qui
+   depasse aux virages serres. Les sommets s'arrondissent, les longues
+   tangentes restent tendues, et la forme respire.
+
+   Les points sont d'abord eclaircis : l'enveloppe en compte beaucoup, serres
+   le long des arcs, et une courbe qui passerait par tous ne ferait que
+   redessiner le polygone. */
+const _lisse = [];
+function _eclaircir(env, sortie) {
+    sortie.length = 0;
+    const n = env.length;
+    if (n < 4) { for (let k = 0; k < n; k++) sortie.push(env[k]); return; }
+    let tour = 0;
+    for (let k = 0; k < n; k++) {
+        const a = env[k], b = env[(k + 1) % n];
+        tour += Math.sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
+    }
+    const pas = tour / 56;
+    sortie.push(env[0]);
+    for (let k = 1; k < n; k++) {
+        const a = sortie[sortie.length - 1], b = env[k];
+        const d = Math.sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
+        if (d >= pas) sortie.push(b);
+    }
+    if (sortie.length > 4) {
+        const a = sortie[sortie.length - 1], b = sortie[0];
+        const d = Math.sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
+        if (d < pas * 0.5) sortie.pop();
+    }
+}
+
 function _tracerEnveloppe(ctx, formes, env) {
-    if (env.length < 2) return;
+    _eclaircir(env, _lisse);
+    const n = _lisse.length;
+    if (n < 3) return;
     ctx.beginPath();
-    ctx.moveTo(env[0].x, env[0].y);
-    for (let k = 0; k < env.length; k++) {
-        const pt = env[k], suiv = env[(k + 1) % env.length];
-        if (suiv.i === pt.i) {
-            const f = formes[pt.i];
-            ctx.arc(f.x, f.y, f.r, pt.a, suiv.a);
-        } else {
-            ctx.lineTo(suiv.x, suiv.y);
-        }
+    let a = _lisse[n - 1], b = _lisse[0];
+    ctx.moveTo((a.x + b.x) / 2, (a.y + b.y) / 2);
+    for (let k = 0; k < n; k++) {
+        const p = _lisse[k], q = _lisse[(k + 1) % n];
+        ctx.quadraticCurveTo(p.x, p.y, (p.x + q.x) / 2, (p.y + q.y) / 2);
     }
     ctx.closePath();
 }
