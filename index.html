@@ -7607,6 +7607,9 @@ function updateComets(dt) {
 
 function drawComets(ctx) {
     for (const c of gameState.comets) {
+        /* Une comete fabrique un degrade lineaire neuf a chaque image ; hors
+           champ c'etait du travail entierement perdu. */
+        if (!aLEcran(c.x, c.y, (c.tail || 0) + 40)) continue;
         const spd = Math.sqrt(c.vx*c.vx + c.vy*c.vy);
         const dx = -c.vx / spd;
         const dy = -c.vy / spd;
@@ -9546,24 +9549,54 @@ function drawBackground(ctx) {
 // ─────────────────────────────────────────────
 // DESSIN — Trou noir
 // ─────────────────────────────────────────────
+/* Vrai si un disque de centre (x,y) et de rayon r touche l'ecran. Six
+   fonctions de dessin n'avaient aucun controle de ce genre et peignaient
+   meme quand leur sujet etait loin derriere le bord. */
+function aLEcran(x, y, r) {
+    const cam = gameState.camera;
+    const hw = gameState.width / 2 / cam.zoom + r;
+    const hh = gameState.height / 2 / cam.zoom + r;
+    return x >= cam.x - hw && x <= cam.x + hw && y >= cam.y - hh && y <= cam.y + hh;
+}
+
 function drawBlackHole(ctx) {
     const bh = gameState.blackHole;
     if (!bh) return;
+    if (!aLEcran(bh.x, bh.y, bh.dangerZone)) return;
     const t = gameState.time;
     const bhLod = gameState.lod;
 
-    // Zone de danger (halo externe) — gradient caché
-    if (!bh._gDanger) {
-        bh._gDanger = ctx.createRadialGradient(0, 0, bh.radius, 0, 0, bh.dangerZone);
-        bh._gDanger.addColorStop(0, 'rgba(100, 40, 180, 0.25)');
-        bh._gDanger.addColorStop(0.5, 'rgba(60, 20, 120, 0.1)');
-        bh._gDanger.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    /* Zone de danger. Le degrade etait en cache, mais il restait etale sur un
+       disque enorme a chaque image, avec filtrage : c'est le meme cout de
+       remplissage que le fond et les halos de soleil. Meme remede : le
+       degrade est cuit une fois dans un petit sprite, floute pour que son
+       tramage ne ressorte pas, puis pose sans filtrage. */
+    if (!bh._spriteDanger) {
+        const SPR = 256, R = SPR / 2;
+        const brut = document.createElement('canvas');
+        brut.width = brut.height = SPR;
+        const bx = brut.getContext('2d');
+        const g = bx.createRadialGradient(R, R, R * (bh.radius / bh.dangerZone), R, R, R);
+        g.addColorStop(0, 'rgba(100, 40, 180, 0.25)');
+        g.addColorStop(0.5, 'rgba(60, 20, 120, 0.1)');
+        g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        bx.fillStyle = g;
+        bx.beginPath();
+        bx.arc(R, R, R, 0, Math.PI * 2);
+        bx.fill();
+        const fin = document.createElement('canvas');
+        fin.width = fin.height = SPR;
+        const fx = fin.getContext('2d');
+        fx.filter = 'blur(2px)';
+        fx.drawImage(brut, 0, 0);
+        fx.filter = 'none';
+        bh._spriteDanger = fin;
     }
-    const gDanger = bh._gDanger;
-    ctx.fillStyle = gDanger;
-    ctx.beginPath();
-    ctx.arc(0, 0, bh.dangerZone, 0, Math.PI * 2);
-    ctx.fill();
+    const _lissBh0 = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(bh._spriteDanger, -bh.dangerZone, -bh.dangerZone,
+                  bh.dangerZone * 2, bh.dangerZone * 2);
+    ctx.imageSmoothingEnabled = _lissBh0;
 
     // Disque d'accrétion rotatif (LOD mid+)
     if (bhLod >= 1) { ctx.save();
@@ -10634,6 +10667,7 @@ function drawCleaners(ctx) {
     const scale = Math.max(1, 1 / z);
 
     for (const cl of gameState.cleaners) {
+        if (!aLEcran(cl.x, cl.y, cl.size * scale * 3)) continue;
         // Direction de mouvement
         const moveAngle = Math.atan2(cl.vy, cl.vx);
 
@@ -13066,6 +13100,9 @@ document.getElementById('jetRatioSlider').addEventListener('input', (e) => {
     const v = parseInt(e.target.value);
     gameState.jetRatio = v / 100;
     document.getElementById('jetRatioVal').textContent = v + '%';
+    /* En multijoueur c'est le serveur qui tire : sans cet envoi il gardait
+       50 % quoi que le curseur affiche. */
+    if (gameState.isMulti) sendAction('set_jet_ratio', { value: gameState.jetRatio });
 });
 
 // ═══ Tabs Évolution / Technologies ═══
