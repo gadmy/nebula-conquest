@@ -6632,9 +6632,9 @@ function _stmOpen(body, clientX, clientY) {
         { mode:'off',     icon:'⬛', name:'OFF',     color:'rgba(100,70,180,0.3)',  tip:'Production normale.',                              disabled:false },
         /* Le gain et le cout affiches sont ceux du PROCHAIN batiment : ils
            changent a chaque construction, c'est tout l'interet de la courbe. */
-        { mode:'alveole', icon:'🍯', name:'ALVÉOLE', color:'rgba(234,179,8,0.3)',   tip:`+${pct(bonusProchain(body.alveoles))}% stock max · Coût: ${coutBatiment(body,'alveole')} sp`, disabled: body.spores < coutBatiment(body,'alveole') },
-        { mode:'nid',     icon:'🏗️', name:'NID',     color:'rgba(34,197,94,0.3)',   tip:`+${pct(bonusProchain(body.nids))}% prod · Coût: ${coutBatiment(body,'nid')} sp`,   disabled: body.spores < coutBatiment(body,'nid') },
-        { mode:'biome',   icon:'🛡️', name:'BIOME',   color:'rgba(59,130,246,0.3)',  tip:`+${pct(bonusProchain(body.biomes))}% défense · Coût: ${coutBatiment(body,'biome')} sp`,  disabled: body.spores < coutBatiment(body,'biome') },
+        { mode:'alveole', icon:'🍯', name:'ALVÉOLE', color:'rgba(234,179,8,0.3)',   tip:`+${pct(bonusProchain(body.alveoles, 'alveole'))}% stock max · Coût: ${coutBatiment(body,'alveole')} sp`, disabled: body.spores < coutBatiment(body,'alveole') },
+        { mode:'nid',     icon:'🏗️', name:'NID',     color:'rgba(34,197,94,0.3)',   tip:`+${pct(bonusProchain(body.nids, 'nid'))}% prod · Coût: ${coutBatiment(body,'nid')} sp`,   disabled: body.spores < coutBatiment(body,'nid') },
+        { mode:'biome',   icon:'🛡️', name:'BIOME',   color:'rgba(59,130,246,0.3)',  tip:`+${pct(bonusProchain(body.biomes, 'biome'))}% défense · Coût: ${coutBatiment(body,'biome')} sp`,  disabled: body.spores < coutBatiment(body,'biome') },
         { mode:'parasite',icon:'🦠', name:'FOYER PUTRIDE',color:'rgba(10,80,30,0.3)',    tip:'2 min → 1 spore parasitaire.',                      disabled:(body.parasiteSpore||0)>=1 },
     ];
     _stmBldSectors = _BLD_ALL.map(b => ({ ...b, active: body.buildMode===b.mode }));
@@ -6659,7 +6659,7 @@ function _updateBodyInfoPanel(body, menuLeft, menuTop) {
     const player = gameState.players[localSlot()];
     const sacPct = player?.multiSacrifice || 0;
     const symPct = Math.round(((body.symbiosis||0)/100)*(body.type==='planet'?20:10));
-    const nidPct = Math.round(bonusBatiment(body.nids||0) * 100);
+    const nidPct = Math.round(bonusBatiment(body.nids||0, 'nid') * 100);
     const rate = debitAstre(body);
 
     // Parasite envoyé par ce joueur
@@ -7161,9 +7161,9 @@ function updateCodexBuild(body) {
     const _base = body.baseMaxSpores || body.maxSpores || 0;
     const BLD = [
         { mode:'off',     icon:'⬛', name:'OFF',      desc:'Production normale', color:'rgba(100,70,180,0.3)' },
-        { mode:'alveole', icon:'🍯', name:'ALVÉOLE',  desc:`+${pct(bonusProchain(body.alveoles))}% stock max · Coût: ${coutBatiment(body,'alveole')} sp`, color:'rgba(234,179,8,0.3)',   tip:'Agrandit la capacité de stockage. Les gains diminuent : +20 %, +15 %, +10 %, puis +5 % par alvéole. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.alveoles||0))+' %.' },
-        { mode:'nid',     icon:'🏗️', name:'NID',      desc:`+${pct(bonusProchain(body.nids))}% prod · Coût: ${coutBatiment(body,'nid')} sp`,    color:'rgba(34,197,94,0.3)',   tip:'Accélère la production locale. Les gains diminuent : +20 %, +15 %, +10 %, puis +5 % par nid. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.nids||0))+' %.' },
-        { mode:'biome',   icon:'🛡️', name:'BIOME',    desc:`+${pct(bonusProchain(body.biomes))}% défense · Coût: ${coutBatiment(body,'biome')} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Renforce la défense à l\'impact. Les gains diminuent : +20 %, +15 %, +10 %, puis +5 % par biome. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.biomes||0))+' %.' },
+        { mode:'alveole', icon:'🍯', name:'ALVÉOLE',  desc:`+${pct(bonusProchain(body.alveoles, 'alveole'))}% stock max · Coût: ${coutBatiment(body,'alveole')} sp`, color:'rgba(234,179,8,0.3)',   tip:'Agrandit la capacité de stockage. Les gains diminuent : +20 %, +15 %, +10 %, puis +5 % par alvéole. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.alveoles||0, 'alveole'))+' %.' },
+        { mode:'nid',     icon:'🏗️', name:'NID',      desc:`+${pct(bonusProchain(body.nids, 'nid'))}% prod · Coût: ${coutBatiment(body,'nid')} sp`,    color:'rgba(34,197,94,0.3)',   tip:'Accélère la production locale. Les gains diminuent : +30 %, +22,5 %, +15 %, puis +7,5 % par nid - il est une fois et demie plus fort que les autres, a cout egal. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.nids||0, 'nid'))+' %.' },
+        { mode:'biome',   icon:'🛡️', name:'BIOME',    desc:`+${pct(bonusProchain(body.biomes, 'biome'))}% défense · Coût: ${coutBatiment(body,'biome')} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Renforce la défense à l\'impact. Les gains diminuent : +20 %, +15 %, +10 %, puis +5 % par biome. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.biomes||0, 'biome'))+' %.' },
         { mode:'parasite',  icon:'🦠', name:'FOYER PUTRIDE',    desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
 
     ];
@@ -7806,7 +7806,7 @@ function updateSporeGeneration(dt) {
         const symBonus = 1 + (body.symbiosis / 100) * symBonusMax;
 
         // Bonus nids : +0.2% production locale par nid
-        const nidBonus = 1 + bonusBatiment(body.nids || 0);
+        const nidBonus = 1 + bonusBatiment(body.nids || 0, 'nid');
         // Alvéoles : +5% maxSpores par alvéole
         /* Le maximum de base doit toujours exister avant d'appliquer les
            alveoles. Sans lui, la ligne suivante prenait le maximum DEJA
@@ -7816,9 +7816,9 @@ function updateSporeGeneration(dt) {
            la valeur, mais un seul champ manquant suffirait. On la reconstitue
            donc a partir du maximum courant, ce qui rend le calcul idempotent. */
         if (body.baseMaxSpores === undefined || body.baseMaxSpores === null) {
-            body.baseMaxSpores = Math.round(body.maxSpores / (1 + bonusBatiment(body.alveoles || 0)));
+            body.baseMaxSpores = Math.round(body.maxSpores / (1 + bonusBatiment(body.alveoles || 0, 'alveole')));
         }
-        const _alvMax = Math.floor(body.baseMaxSpores * (1 + bonusBatiment(body.alveoles || 0)));
+        const _alvMax = Math.floor(body.baseMaxSpores * (1 + bonusBatiment(body.alveoles || 0, 'alveole')));
         if (body.maxSpores !== _alvMax) body.maxSpores = _alvMax;
 
         // Bonus système complet : +3% si toutes planètes+lunes du soleil au même owner
@@ -7889,7 +7889,7 @@ function updateSporeGeneration(dt) {
                        et le joueur voit ainsi le rendement decroitre. */
                     if (body.owner === localSlot()) {
                         const _n = nbBatiment(body, _buildType);
-                        const _gain = bonusProchain(_n);
+                        const _gain = bonusProchain(_n, _buildType);
                         gameState.conquestEffects.push({
                             x: body.x, y: body.y - body.radius - 26, baseX: body.x,
                             text: '+' + pct(_gain) + '%',
@@ -8384,7 +8384,7 @@ function applyConquest(body, jet) {
     }
 
     // Bonus défense biomes : +0.2% par biome = il faut plus de spores pour conquérir
-    const biomeDefense = 1 + bonusBatiment(body.biomes || 0);
+    const biomeDefense = 1 + bonusBatiment(body.biomes || 0, 'biome');
     attacking = attacking / biomeDefense;
 
     // Combattre les spores défensives
@@ -11089,17 +11089,22 @@ const PALIERS_BATIMENT = [0.20, 0.15, 0.10];
 const PALIER_SUIVANT   = 0.05;
 
 /* Le bonus TOTAL apporte par n batiments d'un genre. */
-function bonusBatiment(n) {
+/* Le nid, qui accelere la production, est une fois et demie plus fort que les
+   deux autres. Son cout ne change pas : c'est le seul batiment dont le
+   rendement compose avec le temps, il merite d'etre le plus rentable. */
+const FORCE_GENRE = { alveole: 1, nid: 1.5, biome: 1 };
+
+function bonusBatiment(n, genre) {
     if (!(n > 0)) return 0;
     let t = 0;
     for (let i = 0; i < PALIERS_BATIMENT.length && i < n; i++) t += PALIERS_BATIMENT[i];
     if (n > PALIERS_BATIMENT.length) t += (n - PALIERS_BATIMENT.length) * PALIER_SUIVANT;
-    return t;
+    return t * (FORCE_GENRE[genre] || 1);
 }
 
 /* Ce que rapporterait le PROCHAIN batiment d'un genre. */
-function bonusProchain(n) {
-    return bonusBatiment((n || 0) + 1) - bonusBatiment(n || 0);
+function bonusProchain(n, genre) {
+    return bonusBatiment((n || 0) + 1, genre) - bonusBatiment(n || 0, genre);
 }
 
 /* Le cout d'un batiment, en spores. A partir du quatrieme d'un meme genre, il
@@ -11182,7 +11187,7 @@ function debitAstre(body) {
     const joueur = gameState.players[body.owner];
     if (!joueur || !joueur.stats) return 0;
     const sym = 1 + ((body.symbiosis || 0) / 100) * (body.type === 'planet' ? 0.20 : 0.10);
-    const nid = 1 + bonusBatiment(body.nids || 0);
+    const nid = 1 + bonusBatiment(body.nids || 0, 'nid');
     const soleil = body.type === 'planet' ? body.parent : (body.parent ? body.parent.parent : null);
     const sys = (soleil && isSystemComplete(soleil, body.owner)) ? 1.03 : 1;
     const part = 1 - Math.min((joueur.multiSacrifice || 0) / 100, 0.5);
@@ -11864,7 +11869,7 @@ function updateMyPlanets() {
             const modeDefs = [
                 { mode: 'off',     icon: '⬛', title: 'Désactivé — production normale' },
                 { mode: 'alveole', icon: '🍯', title: 'Alvéole — stock max (+20, 15, 10 puis 5 %)' },
-                { mode: 'nid',     icon: '🏗️', title: 'Nid — production (+20, 15, 10 puis 5 %)' },
+                { mode: 'nid',     icon: '🏗️', title: 'Nid — production (+30, 22,5, 15 puis 7,5 %)' },
                 { mode: 'biome',   icon: '🛡️', title: 'Biome — défense (+20, 15, 10 puis 5 %)' },
             ];
             const bodies = groups[sunName];
