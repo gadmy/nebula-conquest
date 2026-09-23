@@ -9707,6 +9707,96 @@ function drawSuns(ctx) {
 // ─────────────────────────────────────────────
 // DESSIN — Planètes & Lunes
 // ─────────────────────────────────────────────
+/* ─────────────────────────────────────────────
+   LES CONSTRUCTIONS VUES DEPUIS L'ESPACE
+   Les premiers batiments d'un astre apparaissent sur sa surface : on voit
+   l'astre s'amenager au lieu de lire un chiffre. Au-dela, la surface serait
+   illisible, alors le nombre de sites visibles s'arrete entre 10 et 15 -
+   tire une fois par astre, pour que deux planetes voisines ne se ressemblent
+   pas.
+
+   Les emplacements sont tires une seule fois et gardes sur l'astre : s'ils
+   etaient retires a chaque image, les batiments sauteraient partout. Le tirage
+   part du nom de l'astre, donc il est le meme pour tous les joueurs en
+   multijoueur - personne ne voit une disposition differente.
+   ───────────────────────────────────────────── */
+function _grainNom(nom) {
+    let h = 2166136261;
+    for (let i = 0; i < nom.length; i++) {
+        h ^= nom.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+}
+
+function _sitesBati(corps) {
+    if (corps._sites) return corps._sites;
+    const rng = mulberry32(_grainNom(corps.name || 'x'));
+    const n = 10 + Math.floor(rng() * 6);        /* entre 10 et 15 */
+    const sites = [];
+    for (let i = 0; i < n; i++) {
+        /* racine carree du tirage : repartition uniforme sur le disque, sinon
+           tout s'entasse au centre. On s'arrete a 78 % du rayon, le bord d'une
+           sphere etant trop rasant pour qu'on y pose quoi que ce soit. */
+        const d = Math.sqrt(rng()) * 0.78;
+        const a = rng() * Math.PI * 2;
+        sites.push({ dx: Math.cos(a) * d, dy: Math.sin(a) * d, tourne: rng() * Math.PI });
+    }
+    corps._sites = sites;
+    return sites;
+}
+
+const BATI_COULEURS = { alveole: '#F5B93B', nid: '#4ADE80', biome: '#60A5FA' };
+
+function drawConstructionsSurAstre(ctx, corps, zoom) {
+    const alv = corps.alveoles || 0, nid = corps.nids || 0, bio = corps.biomes || 0;
+    if (alv + nid + bio <= 0) return;
+    const rEcran = corps.radius * zoom;
+    if (rEcran < 26) return;                      /* trop petit pour etre lisible */
+
+    const sites = _sitesBati(corps);
+    const taille = Math.max(corps.radius * 0.042, 1.1 / zoom);
+
+    let k = 0;
+    ctx.lineWidth = Math.max(0.4, taille * 0.18);
+    ctx.strokeStyle = 'rgba(8,6,22,0.7)';
+    for (const genre of ['alveole', 'nid', 'biome']) {
+        const combien = genre === 'alveole' ? alv : (genre === 'nid' ? nid : bio);
+        for (let i = 0; i < combien && k < sites.length; i++, k++) {
+            const st = sites[k];
+            const x = corps.x + st.dx * corps.radius;
+            const y = corps.y + st.dy * corps.radius;
+            ctx.fillStyle = BATI_COULEURS[genre];
+            ctx.beginPath();
+            if (genre === 'alveole') {
+                /* hexagone : l'alveole */
+                for (let c = 0; c < 6; c++) {
+                    const a = st.tourne + c * Math.PI / 3;
+                    const px = x + Math.cos(a) * taille, py = y + Math.sin(a) * taille;
+                    if (c === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+            } else if (genre === 'nid') {
+                /* triangle : le chantier */
+                for (let c = 0; c < 3; c++) {
+                    const a = st.tourne + c * Math.PI * 2 / 3 - Math.PI / 2;
+                    const px = x + Math.cos(a) * taille * 1.2, py = y + Math.sin(a) * taille * 1.2;
+                    if (c === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+            } else {
+                /* tache ronde : le biome */
+                ctx.arc(x, y, taille * 0.95, 0, Math.PI * 2);
+            }
+            ctx.globalAlpha = 0.92;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.stroke();
+        }
+        if (k >= sites.length) break;
+    }
+}
+
 function drawPlanets(ctx) {
     const cam = gameState.camera;
     const halfW = gameState.width / 2 / cam.zoom;
@@ -9733,6 +9823,8 @@ function drawPlanets(ctx) {
         if (p._texture) {
             ctx.drawImage(p._texture, p.x - p.radius, p.y - p.radius, p.radius * 2, p.radius * 2);
         }
+        // Constructions posees sur la surface
+        if (p.owner !== null && p.owner !== undefined) drawConstructionsSurAstre(ctx, p, cam.zoom);
         // Anneau de sélection
         if (gameState.selectedBody === p) {
             ctx.strokeStyle = 'rgba(255,255,255,0.9)';
@@ -10027,7 +10119,8 @@ function drawPlanets(ctx) {
             // Lune (texture cachée)
             if (m._texture) {
                 ctx.drawImage(m._texture, m.x - m.radius, m.y - m.radius, m.radius * 2, m.radius * 2);
-            } else {
+            }
+            if (m.owner !== null && m.owner !== undefined) drawConstructionsSurAstre(ctx, m, cam.zoom); else {
                 ctx.fillStyle = 'rgba(180, 180, 200, 0.7)';
                 ctx.beginPath();
                 ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
