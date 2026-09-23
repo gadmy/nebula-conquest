@@ -971,6 +971,8 @@ canvas#gameCanvas.grabbing {
     gap: 4px;
     align-items: flex-end;
 }
+/* Les trois panneaux se replient, mais ne se retirent plus : la case a
+   cocher les faisait disparaitre sans aucun moyen de les rappeler. */
 .sp-block {
     width: 220px;
     background: rgba(6,8,26,0.88);
@@ -989,10 +991,6 @@ canvas#gameCanvas.grabbing {
     border-bottom: 1px solid rgba(100,70,180,0.15);
     cursor: pointer;
     user-select: none;
-}
-.sp-block-header input[type="checkbox"] {
-    accent-color: #A855F7;
-    cursor: pointer;
 }
 .sp-block-header .sp-title {
     font-family: 'Orbitron', sans-serif;
@@ -2353,7 +2351,6 @@ input[type="radio"]:checked + .build-icon-btn {
         <!-- Scores -->
         <div class="sp-block" id="spScores">
             <div class="sp-block-header">
-                <input type="checkbox" id="chkScores" checked>
                 <span class="sp-title">SCORES</span>
                 <span class="sp-collapse">▼</span>
             </div>
@@ -2365,7 +2362,6 @@ input[type="radio"]:checked + .build-icon-btn {
         <!-- Carte -->
         <div class="sp-block" id="spMap">
             <div class="sp-block-header">
-                <input type="checkbox" id="chkMap" checked>
                 <span class="sp-title">CARTE</span>
                 <span class="sp-collapse">▼</span>
             </div>
@@ -2377,7 +2373,6 @@ input[type="radio"]:checked + .build-icon-btn {
         <!-- Événements -->
         <div class="sp-block" id="spEvents">
             <div class="sp-block-header">
-                <input type="checkbox" id="chkEvents" checked>
                 <span class="sp-title">ÉVÉNEMENTS</span>
                 <span class="sp-collapse">▼</span>
             </div>
@@ -12880,33 +12875,19 @@ function initSidePanel() {
         toggle.textContent = (stackVisible ? '▲' : '▼') + ' PANNEAUX';
     });
 
-    // Chaque bloc : checkbox show/hide + collapse
+    // Chaque bloc : repliable, jamais retirable.
     ['Scores', 'Map', 'Events'].forEach(name => {
         const block = document.getElementById('sp' + name);
-        const chk = document.getElementById('chk' + name);
         const colBtn = block.querySelector('.sp-collapse');
-        const body = block.querySelector('.sp-body');
-
-        // Checkbox : afficher/masquer le bloc
-        chk.addEventListener('change', () => {
-            block.classList.toggle('sp-visible', chk.checked);
-        });
-        // Init visible
         block.classList.add('sp-visible');
 
-        // Collapse
-        colBtn.addEventListener('click', (e) => {
+        const basculer = (e) => {
             e.stopPropagation();
             block.classList.toggle('sp-collapsed');
             colBtn.textContent = block.classList.contains('sp-collapsed') ? '▶' : '▼';
-        });
-
-        // Clic header toggle collapse
-        block.querySelector('.sp-block-header').addEventListener('click', (e) => {
-            if (e.target === chk) return;
-            block.classList.toggle('sp-collapsed');
-            colBtn.textContent = block.classList.contains('sp-collapsed') ? '▶' : '▼';
-        });
+        };
+        colBtn.addEventListener('click', basculer);
+        block.querySelector('.sp-block-header').addEventListener('click', basculer);
     });
 
 }
