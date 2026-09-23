@@ -11173,6 +11173,15 @@ function _texteLisible(ctx, txt, x, y, remplissage, epaisseur) {
     ctx.fillText(txt, x, y);
 }
 
+/* Un signe par genre de batiment, dans sa couleur : hexagone pour l'alveole,
+   triangle pour le nid, rond pour le biome. Les memes formes que la barre de
+   construction, pour qu'on les reconnaisse sans legende. */
+const BATI_SIGNES = [
+    { cle: 'alveoles', signe: '⬢', couleur: '#F5B93B' },
+    { cle: 'nids',     signe: '▲', couleur: '#4ADE80' },
+    { cle: 'biomes',   signe: '●', couleur: '#60A5FA' },
+];
+
 function drawSporeCountOnBodies(ctx) {
     const z = gameState.camera.zoom;
     const bodies = gameState.allBodies;
@@ -11180,14 +11189,43 @@ function drawSporeCountOnBodies(ctx) {
     for (const body of bodies) {
         if (z < 0.3) continue;          /* en plein dezoom, rien */
         if (body.owner === null || body.owner === undefined) continue;
-        if (!(body.spores >= 1)) continue;
         const col = gameState.players[body.owner]?.color || '#FFF';
         const px = _taillePx(z, 15, body.radius * z, 13, 34);
         const monde = px / z;
-        ctx.font = 'bold ' + monde + 'px Orbitron';
-        _texteLisible(ctx, _sp(body.spores), body.x,
-                      body.y + body.radius + monde * 1.05,
-                      col, Math.max(2, monde * 0.22));
+        let ligne = body.y + body.radius + monde * 1.05;
+
+        if (body.spores >= 1) {
+            ctx.font = 'bold ' + monde + 'px Orbitron';
+            _texteLisible(ctx, _sp(body.spores), body.x, ligne, col, Math.max(2, monde * 0.22));
+            ligne += monde * 1.05;
+        }
+
+        /* Les batiments, juste en dessous. On mesure d'abord la largeur totale
+           pour centrer l'ensemble sous l'astre, puis on ecrit chaque genre
+           dans sa couleur - un seul textAlign ne suffirait pas, chaque morceau
+           ayant sa teinte. */
+        const mb = monde * 0.82;
+        ctx.font = 'bold ' + mb + 'px Orbitron';
+        let largeur = 0;
+        const morceaux = [];
+        for (let i = 0; i < BATI_SIGNES.length; i++) {
+            const d = BATI_SIGNES[i];
+            const n = body[d.cle] || 0;
+            if (n <= 0) continue;
+            const txt = d.signe + n;
+            const w = ctx.measureText(txt).width;
+            morceaux.push({ txt: txt, couleur: d.couleur, w: w });
+            largeur += w + mb * 0.45;
+        }
+        if (!morceaux.length) continue;
+        largeur -= mb * 0.45;
+        ctx.textAlign = 'left';
+        let x = body.x - largeur / 2;
+        for (let i = 0; i < morceaux.length; i++) {
+            _texteLisible(ctx, morceaux[i].txt, x, ligne, morceaux[i].couleur, Math.max(2, mb * 0.24));
+            x += morceaux[i].w + mb * 0.45;
+        }
+        ctx.textAlign = 'center';
     }
 }
 
