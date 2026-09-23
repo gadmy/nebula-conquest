@@ -9978,145 +9978,101 @@ function territoireDe(corps) {
    ───────────────────────────────────────────── */
 const MARGE_FRONTIERE = 26;
 
+/* Au niveau solaire les astres sont tres espaces : avec une marge fixe,
+   l'enveloppe n'est plus faite que de longues tangentes et prend une allure
+   de polygone. La marge y suit donc la taille du systeme, pour que les arcs
+   reprennent le dessus et que la forme reste ronde. */
 function marge(t) {
-    return t.type === 'solaire' ? MARGE_FRONTIERE * 2.2 : MARGE_FRONTIERE;
-}
-
-/* Le territoire n'est fait QUE de disques : les astres, plus un chapelet de
-   disques le long de chaque liaison planete-lune (et planete-planete au
-   niveau solaire). Rien que des cercles, donc le contour de l'union n'est
-   fait que d'arcs : il ondule, il n'a aucun angle, et il bouge tout seul au
-   fil des orbites. */
-function _chapelet(formes, ax, ay, bx, by, rA, rB) {
-    const dx = bx - ax, dy = by - ay;
-    const L = Math.sqrt(dx * dx + dy * dy);
-    if (L < 1) return;
-    /* le cou est plus etroit que les deux astres : la silhouette fait une
-       cacahuete au lieu d'un tube */
-    const rCou = Math.min(rA, rB) * 0.62;
-    /* assez serres pour que deux disques voisins se recouvrent toujours */
-    const pas = rCou * 0.75;
-    const n = Math.max(1, Math.ceil(L / pas));
-    for (let k = 1; k < n; k++) {
-        const t = k / n;
-        formes.push({ x: ax + dx * t, y: ay + dy * t, r: rCou });
+    if (t.type !== 'solaire' || !t.soleil) return MARGE_FRONTIERE;
+    if (t._marge === undefined || t._margeT !== gameState.time) {
+        let rMax = 0;
+        for (let i = 0; i < t.corps.length; i++) {
+            const b = t.corps[i];
+            const dx = b.x - t.soleil.x, dy = b.y - t.soleil.y;
+            const d = Math.sqrt(dx * dx + dy * dy) + b.radius;
+            if (d > rMax) rMax = d;
+        }
+        t._marge = Math.max(MARGE_FRONTIERE * 2.2, rMax * 0.09);
+        t._margeT = gameState.time;
     }
+    return t._marge;
 }
 
-/* Meme chose, mais le chapelet suit un arc de cercle autour de l'etoile au
-   lieu d'une droite. Les planetes tournent autour du soleil : en reliant deux
-   planetes par la courbe qu'elles suivent deja, la frontiere epouse le
-   systeme en anneau au lieu de le couper en triangle. */
-function _chapeletArc(formes, sx, sy, a, b, rA, rB) {
-    const angA = Math.atan2(a.y - sy, a.x - sx);
-    const dA = Math.sqrt((a.x - sx) * (a.x - sx) + (a.y - sy) * (a.y - sy));
-    const angB = Math.atan2(b.y - sy, b.x - sx);
-    const dB = Math.sqrt((b.x - sx) * (b.x - sx) + (b.y - sy) * (b.y - sy));
-    let delta = angB - angA;
-    while (delta > Math.PI) delta -= Math.PI * 2;
-    while (delta < -Math.PI) delta += Math.PI * 2;
-    const rCou = Math.min(rA, rB) * 0.62;
-    const longueur = Math.abs(delta) * (dA + dB) * 0.5;
-    const n = Math.max(2, Math.ceil(longueur / (rCou * 0.75)));
-    for (let k = 1; k < n; k++) {
-        const t2 = k / n;
-        const ang = angA + delta * t2;
-        const d = dA + (dB - dA) * t2;
-        formes.push({ x: sx + Math.cos(ang) * d, y: sy + Math.sin(ang) * d, r: rCou });
-    }
-}
-
+/* Les disques du territoire : un par astre, plus l'etoile quand tout le
+   systeme solaire est tenu - elle fait alors partie du territoire. Il n'y a
+   plus de disques de liaison : c'est l'enveloppe qui enjambe les ecarts. */
 function _formesTerritoire(t) {
     const m = marge(t);
     const formes = [];
     const corps = t.corps;
-    const rayon = {};
     for (let i = 0; i < corps.length; i++) {
         const b = corps[i];
-        const r = b.radius + m;
-        rayon[i] = r;
-        formes.push({ x: b.x, y: b.y, r: r });
+        formes.push({ x: b.x, y: b.y, r: b.radius + m });
     }
-    for (let i = 0; i < corps.length; i++) {
-        const b = corps[i];
-        if (b.type !== 'planet') continue;
-        const lunes = b.moons || [];
-        for (let j = 0; j < lunes.length; j++) {
-            const lu = lunes[j];
-            const k = corps.indexOf(lu);
-            if (k < 0) continue;
-            _chapelet(formes, b.x, b.y, lu.x, lu.y, rayon[i], rayon[k]);
-        }
-    }
-    /* Au niveau solaire, les planetes sont reliees entre elles dans l'ordre de
-       leur angle autour de l'etoile : la frontiere suit le systeme comme un
-       anneau, au lieu de partir en rayons depuis le soleil. */
     if (t.type === 'solaire' && t.soleil) {
-        const idx = [];
-        for (let i = 0; i < corps.length; i++) if (corps[i].type === 'planet') idx.push(i);
-        if (idx.length > 1) {
-            const sx = t.soleil.x, sy = t.soleil.y;
-            idx.sort(function (a, b2) {
-                return Math.atan2(corps[a].y - sy, corps[a].x - sx) -
-                       Math.atan2(corps[b2].y - sy, corps[b2].x - sx);
-            });
-            for (let i = 0; i < idx.length; i++) {
-                const a = corps[idx[i]], b2 = corps[idx[(i + 1) % idx.length]];
-                _chapeletArc(formes, sx, sy, a, b2, rayon[idx[i]], rayon[idx[(i + 1) % idx.length]]);
-            }
-        }
+        formes.push({ x: t.soleil.x, y: t.soleil.y, r: t.soleil.radius + m });
     }
     return formes;
 }
 
-/* Le contour exterieur de l'union d'un paquet de disques.
-   Pour chaque disque, on releve les plages d'angle que les autres disques lui
-   recouvrent, on les fusionne, et on ne garde que ce qui reste : ce sont
-   exactement les arcs qui sont au bord. Aucune ligne interieure ne peut donc
-   apparaitre, meme la ou trois disques se superposent - ce que le decoupage
-   par regle evenodd ratait, puisqu'une double superposition le renvoyait
-   dedans. */
-const _plages = [];
-function _arcsAuBord(formes, sortie) {
-    sortie.length = 0;
-    const n = formes.length;
-    for (let i = 0; i < n; i++) {
-        const a = formes[i];
-        _plages.length = 0;
-        let avale = false;
-        for (let j = 0; j < n && !avale; j++) {
-            if (j === i) continue;
-            const b = formes[j];
-            const dx = b.x - a.x, dy = b.y - a.y;
-            const d = Math.sqrt(dx * dx + dy * dy);
-            if (d >= a.r + b.r) continue;          /* disjoints */
-            if (d + a.r <= b.r) { avale = true; break; }  /* a est dedans */
-            if (d + b.r <= a.r) continue;          /* b est dedans, n'entame rien */
-            if (d < 1e-6) continue;
-            let c = (d * d + a.r * a.r - b.r * b.r) / (2 * d * a.r);
-            if (c < -1) c = -1; else if (c > 1) c = 1;
-            const demi = Math.acos(c);
-            let centre = Math.atan2(dy, dx);
-            if (centre < 0) centre += Math.PI * 2;
-            let d0 = centre - demi, d1 = centre + demi;
-            if (d0 < 0) { _plages.push([d0 + Math.PI * 2, Math.PI * 2]); d0 = 0; }
-            if (d1 > Math.PI * 2) { _plages.push([0, d1 - Math.PI * 2]); d1 = Math.PI * 2; }
-            _plages.push([d0, d1]);
+/* L'ENVELOPPE TENDUE autour des disques : comme un elastique pose autour du
+   groupe. Elle epouse chaque astre par un arc et enjambe les ecarts par une
+   tangente, donc aucun creux entre deux astres et aucune ligne a l'interieur.
+
+   Methode : on echantillonne chaque disque, on prend l'enveloppe convexe du
+   nuage (parcours monotone d'Andrew), puis on redessine - deux points de
+   suite sur le meme disque redeviennent un vrai arc, un changement de disque
+   devient le segment tangent. Le nombre de points suit le rayon a l'ecran :
+   une petite lune n'a pas besoin d'autant de points qu'une geante. */
+const _nuage = [];
+function _enveloppe(formes, zoom) {
+    _nuage.length = 0;
+    for (let i = 0; i < formes.length; i++) {
+        const f = formes[i];
+        let n = Math.ceil(f.r * zoom * 0.5);
+        if (n < 10) n = 10; else if (n > 48) n = 48;
+        for (let k = 0; k < n; k++) {
+            const a = k / n * Math.PI * 2;
+            _nuage.push({ x: f.x + Math.cos(a) * f.r, y: f.y + Math.sin(a) * f.r, i: i, a: a });
         }
-        if (avale) continue;
-        if (!_plages.length) { sortie.push([i, 0, Math.PI * 2]); continue; }
-        _plages.sort(function (u, v) { return u[0] - v[0]; });
-        let curseur = 0;
-        for (let k = 0; k < _plages.length; k++) {
-            const pl = _plages[k];
-            if (pl[0] > curseur + 1e-4) sortie.push([i, curseur, pl[0]]);
-            if (pl[1] > curseur) curseur = pl[1];
-        }
-        if (curseur < Math.PI * 2 - 1e-4) sortie.push([i, curseur, Math.PI * 2]);
     }
+    _nuage.sort(function (u, v) { return u.x === v.x ? u.y - v.y : u.x - v.x; });
+    const croix = function (o, a, b) {
+        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    };
+    const bas = [], haut = [];
+    for (let k = 0; k < _nuage.length; k++) {
+        const pt = _nuage[k];
+        while (bas.length >= 2 && croix(bas[bas.length - 2], bas[bas.length - 1], pt) <= 0) bas.pop();
+        bas.push(pt);
+    }
+    for (let k = _nuage.length - 1; k >= 0; k--) {
+        const pt = _nuage[k];
+        while (haut.length >= 2 && croix(haut[haut.length - 2], haut[haut.length - 1], pt) <= 0) haut.pop();
+        haut.push(pt);
+    }
+    bas.pop(); haut.pop();
+    return bas.concat(haut);
 }
 
-const _arcs = [];
+/* Trace l'enveloppe : arc quand on reste sur le meme disque, segment quand on
+   passe au suivant. */
+function _tracerEnveloppe(ctx, formes, env) {
+    if (env.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(env[0].x, env[0].y);
+    for (let k = 0; k < env.length; k++) {
+        const pt = env[k], suiv = env[(k + 1) % env.length];
+        if (suiv.i === pt.i) {
+            const f = formes[pt.i];
+            ctx.arc(f.x, f.y, f.r, pt.a, suiv.a);
+        } else {
+            ctx.lineTo(suiv.x, suiv.y);
+        }
+    }
+    ctx.closePath();
+}
+
 function drawTerritoryBorders(ctx) {
     const ts = territoires();
     if (!ts.length) return;
@@ -10128,16 +10084,15 @@ function drawTerritoryBorders(ctx) {
         const t = ts[ti];
         const joueur = gameState.players[t.owner];
         if (!joueur) continue;
-        const corps = t.corps;
-        const m = marge(t);
+        const formes = _formesTerritoire(t);
 
         let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-        for (let i = 0; i < corps.length; i++) {
-            const b = corps[i], r = b.radius + m;
-            if (b.x - r < x0) x0 = b.x - r;
-            if (b.y - r < y0) y0 = b.y - r;
-            if (b.x + r > x1) x1 = b.x + r;
-            if (b.y + r > y1) y1 = b.y + r;
+        for (let i = 0; i < formes.length; i++) {
+            const f = formes[i];
+            if (f.x - f.r < x0) x0 = f.x - f.r;
+            if (f.y - f.r < y0) y0 = f.y - f.r;
+            if (f.x + f.r > x1) x1 = f.x + f.r;
+            if (f.y + f.r > y1) y1 = f.y + f.r;
         }
         if (x1 < cam.x - halfW || x0 > cam.x + halfW ||
             y1 < cam.y - halfH || y0 > cam.y + halfH) continue;
@@ -10145,31 +10100,13 @@ function drawTerritoryBorders(ctx) {
         const couleur = (gameState.config && gameState.config.teamCount >= 2 && joueur.teamColor)
                       ? joueur.teamColor : (joueur.color || '#FFFFFF');
         const rgb = _rgbDe(couleur);
-        const formes = _formesTerritoire(t);
+        const env = _enveloppe(formes, cam.zoom);
 
-        /* Remplissage : un seul trace, regle nonzero. Tous les disques sont
-           traces dans le meme sens, donc une zone couverte deux fois a un
-           indice de 2 et reste remplie une seule fois - pas d'assombrissement
-           aux recouvrements. */
-        ctx.beginPath();
-        for (let i = 0; i < formes.length; i++) {
-            const f = formes[i];
-            ctx.moveTo(f.x + f.r, f.y);
-            ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-        }
-        ctx.fillStyle = 'rgba(' + rgb + ',' + (t.type === 'solaire' ? 0.09 : 0.065) + ')';
+        _tracerEnveloppe(ctx, formes, env);
+        ctx.fillStyle = 'rgba(' + rgb + ',' + (t.type === 'solaire' ? 0.07 : 0.06) + ')';
         ctx.fill();
-
-        /* Contour : uniquement les arcs qui sont au bord. */
-        _arcsAuBord(formes, _arcs);
         ctx.strokeStyle = 'rgba(' + rgb + ',' + (t.type === 'solaire' ? 0.85 : 0.65) + ')';
         ctx.lineWidth = Math.max(1.5, (t.type === 'solaire' ? 2.5 : 2) / cam.zoom);
-        ctx.beginPath();
-        for (let k = 0; k < _arcs.length; k++) {
-            const f = formes[_arcs[k][0]];
-            ctx.moveTo(f.x + Math.cos(_arcs[k][1]) * f.r, f.y + Math.sin(_arcs[k][1]) * f.r);
-            ctx.arc(f.x, f.y, f.r, _arcs[k][1], _arcs[k][2]);
-        }
         ctx.stroke();
     }
 }
