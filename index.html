@@ -6276,6 +6276,7 @@ function _groupeTir(src) {
 
 function majChargementTir(dt) {
     if (gameState._firePhase !== 'aiming' || !gameState._fireSource) {
+        if (gameState._fireLanceur && gameState.isMulti) sendAction('aim_end', {});
         gameState._fireLanceur = null;
         gameState._fireGroupe = null;
         return;
@@ -6295,6 +6296,21 @@ function majChargementTir(dt) {
         gameState._chargeAcc = 0;
     }
     if (groupe.length < 2) return;
+
+    /* En multijoueur c'est le serveur qui fait autorite : on lui envoie la
+       cible visee, il choisit le lanceur et deplace les spores lui-meme. Le
+       client se contente d'afficher ce que les instantanes lui renvoient. La
+       cadence d'envoi est limitee - la cible bouge a chaque image, le serveur
+       n'a pas besoin de la connaitre aussi souvent. */
+    if (gameState.isMulti) {
+        gameState._viseeEnvoi = (gameState._viseeEnvoi || 0) + dt;
+        if (gameState._viseeEnvoi >= 0.15) {
+            gameState._viseeEnvoi = 0;
+            sendAction('aim', { srcName: gameState._fireSource.name,
+                                tx: gameState.mouseWorldX, ty: gameState.mouseWorldY });
+        }
+        return;
+    }
 
     gameState._chargeAcc = (gameState._chargeAcc || 0) + dt;
     while (gameState._chargeAcc >= CHARGE_PERIODE) {
