@@ -2532,6 +2532,10 @@ const gameState = {
     launching: false,
     launchSource: null,
     launchPreview: [],
+    _filetsCharge: [],   /* filets lumineux du chargement de tir */
+    _fireLanceur: null,  /* l'astre du groupe qui tirera */
+    _fireGroupe: null,
+    _chargeAcc: 0,
     mouseWorldX: 0,
     mouseWorldY: 0
 };
@@ -6181,6 +6185,10 @@ function finishStartGame() {
     _ownerClustersCache = [];
     _territoires = [];
     marquerTerritoiresSales();
+    gameState._filetsCharge = [];
+    gameState._fireLanceur = null;
+    gameState._fireGroupe = null;
+    gameState._chargeAcc = 0;
     const _logBody = document.querySelector('#eventLog .log-body');
     if (_logBody) _logBody.innerHTML = '';
     _gameRng = mulberry32((gameState.multiSeed || 42) + 5555);
@@ -6233,6 +6241,117 @@ function finishStartGame() {
         const banner = document.getElementById('spawnBanner');
         if (banner) banner.textContent = 'En attente de l\'adversaire...';
         if (_socket) _socket.emit('spawn_ready');
+    }
+}
+
+/* ─────────────────────────────────────────────
+   TIR DEPUIS L'ASTRE LE PLUS PROCHE, ET CHARGEMENT
+   Quand une planete et toutes ses lunes sont tenues, elles ne tirent plus
+   chacune de leur cote. Pendant la visee :
+   - c'est l'astre du groupe LE PLUS PROCHE DE LA CIBLE qui tirera ;
+   - les autres lui envoient leurs spores par paquets de 100, donc plus on
+     attend, plus le tir est gros - et ils se vident vraiment ;
+   - si la cible bouge et qu'un autre astre devient le plus proche, le
+     chargement repart de zero sur celui-la. Rien n'est transfere en arriere :
+     ce qui a deja ete envoye reste ou il est.
+   Le chargement se fait au niveau d'un systeme planetaire - une planete et
+   SES lunes - jamais a l'echelle d'un systeme solaire entier.
+   ───────────────────────────────────────────── */
+const CHARGE_PAQUET = 100;
+const CHARGE_PERIODE = 0.35;   /* secondes entre deux paquets */
+
+function _groupeTir(src) {
+    if (!src) return [];
+    const planete = (src.type === 'planet') ? src : (src.parent || null);
+    if (!planete || planete.type !== 'planet') return [src];
+    const proprio = src.owner;
+    if (planete.owner !== proprio) return [src];
+    const lunes = planete.moons || [];
+    if (!lunes.length) return [planete];
+    for (let i = 0; i < lunes.length; i++) {
+        if (lunes[i].owner !== proprio) return [src];   /* groupe incomplet */
+    }
+    return [planete].concat(lunes);
+}
+
+function majChargementTir(dt) {
+    if (gameState._firePhase !== 'aiming' || !gameState._fireSource) {
+        gameState._fireLanceur = null;
+        gameState._fireGroupe = null;
+        return;
+    }
+    const groupe = _groupeTir(gameState._fireSource);
+    gameState._fireGroupe = groupe;
+
+    let lanceur = gameState._fireSource, meilleure = Infinity;
+    for (let i = 0; i < groupe.length; i++) {
+        const b = groupe[i];
+        const dx = gameState.mouseWorldX - b.x, dy = gameState.mouseWorldY - b.y;
+        const d = dx * dx + dy * dy;
+        if (d < meilleure) { meilleure = d; lanceur = b; }
+    }
+    if (lanceur !== gameState._fireLanceur) {
+        gameState._fireLanceur = lanceur;
+        gameState._chargeAcc = 0;
+    }
+    if (groupe.length < 2) return;
+
+    gameState._chargeAcc = (gameState._chargeAcc || 0) + dt;
+    while (gameState._chargeAcc >= CHARGE_PERIODE) {
+        gameState._chargeAcc -= CHARGE_PERIODE;
+        let place = lanceur.maxSpores - lanceur.spores;
+        if (place <= 1) break;
+        let envoye = 0;
+        for (let i = 0; i < groupe.length && place > 1; i++) {
+            const b = groupe[i];
+            if (b === lanceur) continue;
+            const envoi = Math.min(CHARGE_PAQUET, Math.floor(b.spores), Math.floor(place));
+            if (envoi <= 0) continue;
+            b.spores -= envoi;
+            lanceur.spores += envoi;
+            place -= envoi;
+            envoye += envoi;
+            gameState._filetsCharge.push({ de: b, vers: lanceur, age: 0, maxAge: 0.45 });
+        }
+        if (envoye === 0) break;
+    }
+}
+
+/* Les filets lumineux qui montrent qui alimente qui. Ils tiennent lieu de
+   reponse a "quelle planete va tirer ?" sans deplacer la camera : la vue ne
+   bouge jamais pendant la visee. */
+function majFiletsCharge(dt) {
+    const f = gameState._filetsCharge;
+    for (let i = f.length - 1; i >= 0; i--) {
+        f[i].age += dt;
+        if (f[i].age >= f[i].maxAge) f.splice(i, 1);
+    }
+}
+
+function drawFiletsCharge(ctx) {
+    const lanceur = gameState._fireLanceur;
+    const f = gameState._filetsCharge;
+    if (!lanceur && !f.length) return;
+    const cam = gameState.camera;
+
+    for (let i = 0; i < f.length; i++) {
+        const t = f[i];
+        const k = 1 - t.age / t.maxAge;
+        ctx.strokeStyle = 'rgba(200,170,255,' + (0.75 * k).toFixed(3) + ')';
+        ctx.lineWidth = Math.max(1, 2.5 / cam.zoom);
+        ctx.beginPath();
+        ctx.moveTo(t.de.x, t.de.y);
+        ctx.lineTo(t.vers.x, t.vers.y);
+        ctx.stroke();
+    }
+
+    if (lanceur && gameState._firePhase === 'aiming') {
+        const pulse = 0.55 + 0.45 * Math.sin((gameState.time || 0) * 6);
+        ctx.strokeStyle = 'rgba(220,200,255,' + (0.5 + 0.4 * pulse).toFixed(3) + ')';
+        ctx.lineWidth = Math.max(1.5, 3 / cam.zoom);
+        ctx.beginPath();
+        ctx.arc(lanceur.x, lanceur.y, lanceur.radius + 8 / cam.zoom, 0, Math.PI * 2);
+        ctx.stroke();
     }
 }
 
@@ -8535,6 +8654,9 @@ function setupInput() {
     function _cancelFire() {
         gameState._firePhase = null;
         gameState._fireSource = null;
+        gameState._fireLanceur = null;
+        gameState._fireGroupe = null;
+        gameState._chargeAcc = 0;
         gameState.launchPreview = [];
         // Remettre zoom
         if (gameState._fireCamZoom !== null) { cam.zoom = gameState._fireCamZoom; gameState._fireCamZoom = null; }
@@ -8580,7 +8702,7 @@ function setupInput() {
         // Phase aiming : relâche → tir
         if (gameState._firePhase === 'aiming' && gameState._aimHolding) {
             gameState._aimHolding = false;
-            const src = gameState._fireSource;
+            const src = gameState._fireLanceur || gameState._fireSource;
             if (src) {
                 const dx = gameState.mouseWorldX - src.x;
                 const dy = gameState.mouseWorldY - src.y;
@@ -8598,6 +8720,9 @@ function setupInput() {
             if (gameState._fireCamZoom !== null) { cam.zoom = gameState._fireCamZoom; gameState._fireCamZoom = null; }
             gameState._firePhase = null;
             gameState._fireSource = null;
+            gameState._fireLanceur = null;
+            gameState._fireGroupe = null;
+            gameState._chargeAcc = 0;
             gameState.launchPreview = [];
         }
     });
@@ -9039,6 +9164,8 @@ if (gameState.isMulti) {
         updateCosmicEffects(dt);
         updateConquestEffects(dt);
         updateImpacts(dt);
+        majChargementTir(dt);
+        majFiletsCharge(dt);
         if (gameState._hudCounter % 10 === 0) {
             updateHUD();
             updateMultiPanel();
@@ -9061,6 +9188,8 @@ if (gameState.isMulti) {
     updateJets(dt);
     updateImpacts(dt);
     updateConquestEffects(dt);
+    majChargementTir(dt);
+    majFiletsCharge(dt);
     updateCameraFollow();
     // Mise à jour HUD throttlé (perf)
     gameState.dt = dt;
@@ -9197,7 +9326,8 @@ function render() {
         }
     }
     if (gameState._firePhase === 'aiming' && gameState._fireSource) {
-        const src = gameState._fireSource;
+        /* le trait part de l'astre qui tirera, pas de celui qu'on a clique */
+        const src = gameState._fireLanceur || gameState._fireSource;
         const dx = gameState.mouseWorldX - src.x;
         const dy = gameState.mouseWorldY - src.y;
         const len = Math.sqrt(dx*dx + dy*dy);
@@ -9207,6 +9337,7 @@ function render() {
             gameState.launchPreview = computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 200);
         }
     }
+    drawFiletsCharge(ctx);
     drawLaunchPreview(ctx);
 
     // ── Impacts (LOD mid+) ──
