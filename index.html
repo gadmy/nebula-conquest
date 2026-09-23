@@ -5306,12 +5306,10 @@ function setupUI() {
     function _construire(mode) {
         const body = _astreActif();
         if (!body) return;
-        body.buildMode = mode;
-        body.buildProgress = 0;
+        if (!demanderConstruction(body, mode)) return;
         if (typeof updateCodexBuild === 'function' && gameState.selectedBody === body) {
             updateCodexBuild(body);
         }
-        if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: mode });
     }
 
     function _viserDepuisSelection() {
@@ -6186,11 +6184,9 @@ function _stmInit() {
             const b = _stmBldSectors[hit.idx];
             if (!b.disabled && _stmLiveBody) {
                 const body = _stmLiveBody;
-                body.buildMode = b.mode;
-                body.buildProgress = 0;
+                if (!demanderConstruction(body, b.mode)) return;
                 _closeSporMenu();
                 addEvent('build', b.icon, `${b.name} activé sur ${body.name}`, body, gameState.players[localSlot()]?.color);
-                if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: b.mode });
             }
         }
     });
@@ -7183,8 +7179,7 @@ const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.10) : b.mode==='nid' ? 
             card.appendChild(prog);
         }
         card.addEventListener('click', () => {
-            body.buildMode = b.mode;
-            if (b.mode === 'off' || (b.mode !== 'nid' && b.mode !== 'biome')) body.buildProgress = 0;
+            if (!demanderConstruction(body, b.mode)) return;
             grid._lastMode = null;
             updateCodexBuild(body);
         });
@@ -7255,10 +7250,8 @@ document.querySelectorAll('input[name="buildMode"]').forEach(radio => {
     radio.addEventListener('change', (e) => {
         const body = gameState.selectedBody;
         if (!body || body.owner !== localSlot()) return;
-        body.buildMode = e.target.value;
-        if (body.buildMode === 'off') body.buildProgress = 0;
+        if (!demanderConstruction(body, e.target.value)) return;
         updateCodexBuild(body);
-        if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: body.buildMode });
     });
 });
 
@@ -9292,6 +9285,7 @@ if (gameState.isMulti) {
         majChargementTir(dt);
         majFiletsCharge(dt);
         majPopProduction(dt);
+        majSecousse(dt);
         if (gameState._hudCounter % 10 === 0) {
             updateHUD();
             updateMultiPanel();
@@ -9317,6 +9311,7 @@ if (gameState.isMulti) {
     majChargementTir(dt);
     majFiletsCharge(dt);
     majPopProduction(dt);
+    majSecousse(dt);
     updateCameraFollow();
     // Mise à jour HUD throttlé (perf)
     gameState.dt = dt;
@@ -9352,6 +9347,13 @@ function render() {
 
     // ── Appliquer la transformation caméra ──
     ctx.save();
+    /* Secousse : un decalage aleatoire qui s'amortit, applique avant la
+       camera pour que toute la scene bouge d'un bloc. L'interface, dessinee
+       hors de cette transformation, ne bouge pas - ce serait desagreable. */
+    if (gameState._secousse > 0) {
+        const f = gameState._secousse;
+        ctx.translate((Math.random() - 0.5) * f, (Math.random() - 0.5) * f);
+    }
     ctx.translate(w / 2, h / 2);
     ctx.scale(cam.zoom, cam.zoom);
     ctx.translate(-cam.x, -cam.y);
@@ -10054,15 +10056,13 @@ function drawPlanets(ctx) {
 
             // Icônes bâtiments sous la planète (si possédée par le joueur local)
             if (p.owner === localSlot() && gameState.lod >= 1) {
+                /* L'icone ADN marquait un chantier en attente de spores.
+                   Une demande de construction est desormais acceptee ou
+                   refusee sur-le-champ, il n'y a plus d'attente a signaler.
+                   Seule la spore parasitaire, qui met deux minutes a murir,
+                   garde un signe. */
                 const _t = gameState.time || 0;
-                /* 🧬 : un batiment est demande mais pas encore paye. La
-                   construction etant immediate, cette icone ne s'allume que
-                   pendant l'attente : l'astre met de cote jusqu'a pouvoir se
-                   l'offrir. L'ancienne icone 💧 des modes Ruche et Mare est
-                   retiree, ces modes n'existent plus. */
-                const _isBuild = p.buildMode && ['nid','biome','alveole','parasite'].includes(p.buildMode);
-
-                if (_isBuild) {
+                if (p.buildMode === 'parasite') {
                     ctx.save();
                     ctx.textAlign = 'center';
                     const _pulse = 1 + 0.18 * Math.sin(_t * 3.5);
@@ -10070,7 +10070,7 @@ function drawPlanets(ctx) {
                     const _fs = Math.max(10, p.radius * 0.6);
                     ctx.font = (_fs * _pulse) + 'px sans-serif';
                     ctx.globalAlpha = _alpha;
-                    ctx.fillText('🧬', p.x, p.y + p.radius + 18);
+                    ctx.fillText('🦠', p.x, p.y + p.radius + 18);
                     ctx.globalAlpha = 1;
                     ctx.restore();
                 }
@@ -10119,8 +10119,7 @@ function drawPlanets(ctx) {
             // Icônes bâtiments sur lune (joueur local, LOD >= 1)
             if (m.owner === localSlot() && gameState.lod >= 1 && m.buildMode && m.buildMode !== 'off') {
                 const _t = gameState.time || 0;
-                const _isBuild = ['nid','biome','alveole','parasite'].includes(m.buildMode);
-                if (_isBuild) {
+                if (m.buildMode === 'parasite') {
                     ctx.save();
                     ctx.textAlign = 'center';
                     const _pulse = 1 + 0.15 * Math.sin(_t * 3.5);
@@ -10128,7 +10127,7 @@ function drawPlanets(ctx) {
                     const _fs = Math.max(8, m.radius * 0.8);
                     ctx.font = (_fs * _pulse) + 'px sans-serif';
                     ctx.globalAlpha = _alpha;
-                    ctx.fillText('🧬', m.x, m.y + m.radius + 12);
+                    ctx.fillText('🦠', m.x, m.y + m.radius + 12);
                     ctx.globalAlpha = 1;
                     ctx.restore();
                 }
@@ -11102,6 +11101,49 @@ const BONUS_ALVEOLE = 0.06;   /* stockage maximum, par alveole */
 const BONUS_NID     = 0.03;   /* production, par nid */
 const BONUS_BIOME   = 0.06;   /* defense a l'impact, par biome */
 
+/* Le cout d'un batiment, en spores. */
+const COUT_BATIMENT = { alveole: 0.10, nid: 0.15, biome: 0.20 };
+function coutBatiment(body, mode) {
+    const pctc = COUT_BATIMENT[mode];
+    if (!pctc) return 0;
+    return Math.floor((body.baseMaxSpores || body.maxSpores) * pctc);
+}
+
+/* SECOUSSE DE L'ECRAN. Une breve vibration amortie pour dire non sans
+   ouvrir de fenetre : la demande est refusee, on le sent tout de suite. */
+function secouerEcran(force) {
+    gameState._secousse = Math.max(gameState._secousse || 0, force || 7);
+}
+
+function majSecousse(dt) {
+    if (!gameState._secousse) return;
+    gameState._secousse -= dt * 26;
+    if (gameState._secousse < 0.15) gameState._secousse = 0;
+}
+
+/* Demande de construction, quelle que soit la porte d'entree : menu radial,
+   barre du panneau, fiche, ou les touches 1 2 3. Le batiment sort a l'image
+   suivante si l'astre peut payer ; sinon rien n'est mis en attente et l'ecran
+   vibre. Il n'y a donc plus d'etat "chantier en attente" - c'est ce que
+   marquait l'icone ADN, qui disparait. */
+function demanderConstruction(body, mode) {
+    if (!body || body.owner !== localSlot()) return false;
+    if (mode === 'off' || mode === 'parasite') {
+        body.buildMode = mode;
+        body.buildProgress = 0;
+        if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: mode });
+        return true;
+    }
+    if (body.spores < coutBatiment(body, mode)) {
+        secouerEcran(8);
+        return false;
+    }
+    body.buildMode = mode;
+    body.buildProgress = 0;
+    if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: mode });
+    return true;
+}
+
 /* Pour les textes : 0.06 devient "6", 0.025 devient "2,5". */
 function pct(x) {
     const v = Math.round(x * 1000) / 10;
@@ -11844,11 +11886,11 @@ function updateMyPlanets() {
                         });
                         return;
                     }
+                    let accepte = 0;
                     for (const b of targets) {
-                        b.buildMode = mode;
-                        if (mode === 'off') b.buildProgress = 0;
-                        if (gameState.isMulti) sendAction('build_mode', { bodyName: b.name, mode });
+                        if (demanderConstruction(b, mode)) accepte++;
                     }
+                    if (accepte === 0) return;
                     buildBar.querySelectorAll('.mp-bbtn').forEach(s => s.classList.remove('active'));
                     btn.classList.add('active');
                 });
