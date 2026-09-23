@@ -11259,6 +11259,7 @@ function playBuildSound() {
     o.frequency.setValueAtTime(400, t); o.frequency.exponentialRampToValueAtTime(800, t + 0.3);
     const g = ac.createGain(); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
     o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.5);
+    o.onended = function () { try { o.disconnect(); g.disconnect(); } catch (e) {} };
 }
 
 // ── Ambiance spatiale (drone) ──
@@ -11791,6 +11792,16 @@ function _playBuffer(key, volume = 1.0, loop = false) {
     g.gain.setValueAtTime(volume, ac.currentTime);
     src.connect(g);
     g.connect(gameState.audio.masterGain);
+    /* Un son termine laissait son GainNode branche sur le master pour toujours.
+       Sur une longue partie (chaque lancement, chaque conquete, chaque impact)
+       le graphe audio accumulait un noeud par son joue, tous remixes a chaque
+       tranche de rendu. On debranche quand le son se termine. Les sons en
+       boucle n'emettent jamais 'ended' : ils sont coupes ailleurs. */
+    if (!loop) {
+        src.onended = function () {
+            try { src.disconnect(); g.disconnect(); } catch (e) {}
+        };
+    }
     src.start();
     return { src, gain: g };
 }
