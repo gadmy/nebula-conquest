@@ -465,17 +465,26 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        pose, sans quitter la partie. Le livre n'existe qu'a un exemplaire -
        il est DEPLACE entre l'ecran AIDE et la pause, pour qu'il n'y ait
        jamais deux textes a tenir a jour.
-     - LA COURBE DE NAISSANCE, sur la zone choisie. Le rendement ne depend que
+     - LE PANNEAU NAISSANCE, au-dessus d'Evolution. Le rendement ne depend que
        du taux de remplissage, et cette relation n'a rien d'intuitif : une
        bosse au quart, un creux au milieu, le pic aux sept dixiemes, puis
-       l'extinction. Plutot que de la faire deviner, le graphe la dessine en
-       entier et y pose un point - vous etes ici -, avec le pourcentage de
-       remplissage et le rendement du moment. Taille constante a l'ecran, et
-       rabattu dans la bande que les panneaux laissent libre : colle a la
-       zone, il disparaissait derriere les scores des qu'on visait un bord.
-       Le plafond d'une zone ne voyage pas sur le reseau, il se recalcule
-       cote client a l'identique du serveur, sinon la courbe serait sans
-       echelle en multijoueur.
+       l'extinction. Plutot que de la faire deviner, le panneau dessine la
+       courbe en entier et y pose un point - vous etes ici -, avec le nom de
+       la zone, sa taille, son remplissage et son rendement du moment. Pas de
+       zone choisie, pas de panneau. Il a d'abord ete dessine sur le canevas
+       a cote de la zone : colle a elle il se cachait derriere les scores des
+       qu'on visait un bord, et il fallait le rabattre a la main dans la
+       bande libre. Dans la colonne de gauche il est toujours au meme endroit
+       et ne gene plus rien. Le plafond d'une zone ne voyage pas sur le
+       reseau, il se recalcule cote client a l'identique du serveur, sinon la
+       courbe serait sans echelle en multijoueur.
+     - LES CHIFFRES SOUS UN ASTRE SE NOMMENT AU SURVOL. Sous un astre dispute
+       s'empilent celui qui le tient et un compteur par assaillant, chacun a
+       sa couleur - mais une couleur n'est pas un nom, et on se battait en
+       devinant qui etait la. Chaque nombre enregistre au trace le rectangle
+       qu'il occupe a l'ecran ; la souris dessus, une infobulle donne le
+       joueur, sa guilde, ce qu'il fait la et combien il a. La liste se
+       refait a chaque image, les astres orbitant avec leurs chiffres.
      - LA SOURIS DESIGNE LA RIPOSTE. R sur un astre survole n'engage que SES
        zones ; R dans le vide fait repartir tous les astres contamines, comme
        avant. On concentre donc l'effort sans depenser ses reserves partout.
@@ -982,6 +991,41 @@ canvas#gameCanvas.grabbing {
     pointer-events: none;
 }
 #colonneGauche > * { pointer-events: auto; }
+
+#naissancePanel {
+    position: static;
+    flex: 0 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Exo 2', sans-serif;
+    background: rgba(10,8,30,0.92);
+    border: 1px solid rgba(100,70,180,0.4);
+    border-radius: 8px;
+    padding: 7px 10px 6px;
+    display: none;
+}
+#naissancePanel.actif { display: block; }
+#naissanceTitre {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #7DD3FC;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+#naissanceZone { font-size: 8px; letter-spacing: 1px; color: rgba(200,210,230,0.45); }
+#naissanceCanvas { display: block; width: 100%; height: 88px; }
+#naissancePied {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    margin-top: 4px;
+    color: rgba(190,210,245,0.75);
+}
+#naissanceRend { font-weight: bold; }
 
 #evoPanel {
     position: static;
@@ -2315,6 +2359,7 @@ input[type="radio"]:checked + .build-icon-btn {
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic sur une zone de la planète</td><td style="padding:3px 0;">Choisit la zone d'où partira le tir — elle se cerne d'un trait double et d'un « TIR »</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Double-clic sur un astre</td><td style="padding:3px 0;">Plonge sur sa surface : on vise alors au pixel près (voir Tir de surface)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur fond vide + glisser</td><td style="padding:3px 0;">Déplace la caméra</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Survol d'un nombre de spores</td><td style="padding:3px 0;">Nomme le joueur à qui il appartient, et dit s'il tient l'astre ou l'assaille</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Molette</td><td style="padding:3px 0;">Zoom / dézoom (ne fait pas défiler les panneaux quand la souris est dessus)</td></tr>
 </table>
 <p style="margin-bottom:6px;color:rgba(200,210,230,0.55);font-size:11px;letter-spacing:1px;">CLAVIER</p>
@@ -2358,7 +2403,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;">Une tache sur une planète n'est pas un morceau de camp : c'est une <span style="color:#FFD700;">zone</span>, avec <span style="color:#E9D5FF;">ses spores</span> et <span style="color:#E9D5FF;">son rendement</span>, écrits en son milieu quand on zoome. Deux taches d'un même joueur vivent chacune leur vie et ne mettent leurs réserves en commun que si le terrain finit par les souder.</p>
 <p style="margin-bottom:6px;">Perdre du sol, c'est perdre les spores qui étaient dessus : elles sont sur le terrain, pas dans un coffre. Une zone coupée en deux partage les siennes au prorata des cases.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">On clique une zone</span> pour choisir d'où l'on tire et où l'on construit. Un clic qui tombe sur le terrain d'un autre prend la vôtre la plus proche.</p>
-<p style="margin-bottom:6px;">La zone choisie affiche alors son graphe <span style="color:#FFD700;">NAISSANCE</span> : la courbe de production en entier, et un point qui dit où vous en êtes dessus. On voit d'un coup d'œil si la zone monte vers le pic, si elle stagne dans le creux, ou si elle s'étouffe en approchant du plafond.</p>
+<p style="margin-bottom:6px;">Un panneau <span style="color:#FFD700;">NAISSANCE</span> s'ouvre alors en haut à gauche, au-dessus d'Évolution : la courbe de production en entier, et un point qui dit où en est la zone choisie. On voit d'un coup d'œil si elle monte vers le pic, si elle stagne dans le creux, ou si elle s'étouffe en approchant du plafond. Sans zone choisie, le panneau se retire.</p>
 <p style="margin-bottom:16px;">Sous <span style="color:#EF4444;">dix cases</span>, une zone ne peut plus ni attaquer ni bâtir — l'écran vibre si vous essayez — et une fois son élan retombé elle s'effrite case par case jusqu'à disparaître.</p>
 <!-- TIR DE SURFACE -->
 <p id="h-surface" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🎯 TIR DE SURFACE</p>
@@ -2415,7 +2460,8 @@ input[type="radio"]:checked + .build-icon-btn {
   <tr><td style="padding:3px 0;color:#EF4444;">Vous perdez un astre</td><td style="padding:3px 0;">Balise + éclat lumineux au bord de l'écran, du bon côté, et une secousse</td></tr>
   <tr><td style="padding:3px 0;color:#FBBF24;">Un groupement se referme</td><td style="padding:3px 0;">Balise sur le territoire qui vient de se former, quel que soit le joueur</td></tr>
 </table>
-<p style="margin-bottom:16px;">Quand l'astre est hors-champ, la balise devient une <span style="color:#E9D5FF;">flèche collée au bord</span>, exactement dans sa direction.</p>
+<p style="margin-bottom:6px;">Quand l'astre est hors-champ, la balise devient une <span style="color:#E9D5FF;">flèche collée au bord</span>, exactement dans sa direction.</p>
+<p style="margin-bottom:16px;">Sous un astre disputé s'empilent plusieurs nombres : celui de qui le tient, puis un <span style="color:#E9D5FF;">⚔</span> par assaillant, chacun à sa couleur. <span style="color:#E9D5FF;">Passez la souris dessus</span> et il vous dit de qui il s'agit.</p>
 
 <!-- DANGERS -->
 <p id="h-dangers" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚠️ DANGERS</p>
@@ -2588,6 +2634,16 @@ input[type="radio"]:checked + .build-icon-btn {
 <!-- ═══ MES ASTRES (bas-gauche) ═══ -->
 <!-- ═══ COLONNE GAUCHE : evolution au-dessus de mes astres ═══ -->
 <div id="colonneGauche">
+<!-- La courbe de production de la zone choisie. Il n'apparait que lorsqu'une
+     zone est selectionnee : sans zone, il n'y a rien a tracer. -->
+<div id="naissancePanel">
+    <div id="naissanceTitre">NAISSANCE<span id="naissanceZone"></span></div>
+    <canvas id="naissanceCanvas" width="388" height="176"></canvas>
+    <div id="naissancePied">
+        <span id="naissancePlein">—</span>
+        <span id="naissanceRend">—</span>
+    </div>
+</div>
 <div id="evoPanel">
         <div class="evo-tabs">
             <div class="evo-tab active" data-tab="tabEvo">✦ ÉVOLUTION</div>
@@ -8098,6 +8154,9 @@ function updateHUD() {
         }
     }
 
+    // Courbe de naissance de la zone choisie
+    majPanneauNaissance();
+
     // Tableau des scores
     updateScoreBoard();
 
@@ -10421,13 +10480,6 @@ function drawLuttes(ctx) {
                 }
             }
             ctx.restore();
-
-            /* Le graphe de naissance de la zone choisie, dessine apres toutes
-               les zones pour qu'il passe au-dessus de leurs chiffres. */
-            const zSel = gameState._zoneSel;
-            if (zSel && zSel.body === body && L.zones[zSel.id]) {
-                dessinerNaissance(ctx, body, L.zones[zSel.id], zc);
-            }
         }
 
         /* Le stock de chaque assaillant, a sa couleur, sous l'astre. Le grand
@@ -10445,8 +10497,10 @@ function drawLuttes(ctx) {
         for (const k in L.assaut) {
             const j2 = gameState.players[+k];
             if (!j2) continue;
-            _texteLisible(ctx, '\u2694' + _sp(L.assaut[+k]), body.x, ligne,
-                          j2.color, Math.max(2, monde * 0.2));
+            const txt = '\u2694' + _sp(L.assaut[+k]);
+            _texteLisible(ctx, txt, body.x, ligne, j2.color, Math.max(2, monde * 0.2));
+            _noterChiffre(body.x, ligne, ctx.measureText(txt).width, monde * 0.85,
+                          { slot: +k, valeur: L.assaut[+k], astre: body.name, role: 'assaut' });
             ligne += monde * 0.95;
         }
         ctx.restore();
@@ -10458,145 +10512,100 @@ function drawLuttes(ctx) {
    un creux a mi-chemin, le grand pic aux sept dixiemes, puis l'extinction.
    Plutot que de le faire deviner, on dessine la courbe et on y pose un point
    - vous etes ici. */
-/* La bande d'ecran qu'aucun panneau ne recouvre. Mesuree une fois par image :
-   les panneaux se replient, changent de taille au curseur UI, et un graphe
-   colle dessous ne sert a rien. */
-let _bandeCache = null, _bandeImage = -1;
-function _bandeLibre() {
-    if (_bandeImage === gameState._hudCounter && _bandeCache) return _bandeCache;
-    _bandeImage = gameState._hudCounter;
-    const W = gameState.width, H = gameState.height;
-    let x0 = 8, x1 = W - 8;
-    const g = document.getElementById('colonneGauche');
-    if (g && g.offsetParent !== null) {
-        const r = g.getBoundingClientRect();
-        if (r.width > 0) x0 = Math.max(x0, r.right + 8);
-    }
-    const d = document.getElementById('sidePanel');
-    if (d && d.offsetParent !== null) {
-        const r = d.getBoundingClientRect();
-        if (r.width > 0) x1 = Math.min(x1, r.left - 8);
-    }
-    if (x1 - x0 < 140) { x0 = 8; x1 = W - 8; }   // ecran trop etroit : tant pis
-    _bandeCache = { x0: x0, x1: x1, y0: 56, y1: H - 90 };
-    return _bandeCache;
-}
-
+/* LE PANNEAU NAISSANCE. Le rendement d'une zone ne depend que de son taux de
+   remplissage, et cette relation n'a rien d'intuitif : une bosse au quart, un
+   creux a mi-chemin, le grand pic aux sept dixiemes, puis l'extinction. On
+   dessine donc la courbe en entier et on y pose un point - vous etes ici. */
 let _naissancePts = null;
 function _pointsNaissance() {
     if (_naissancePts) return _naissancePts;
     _naissancePts = [];
-    for (let i = 0; i <= 48; i++) {
-        const t = i / 48;
+    for (let i = 0; i <= 64; i++) {
+        const t = i / 64;
         _naissancePts.push([t, courbeCroissance(t)]);
     }
     return _naissancePts;
 }
 
-function dessinerNaissance(ctx, body, z, zc) {
-    const plafond = Math.max(1, z.plafond || 1);
-    const part = Math.max(0, Math.min(1, (z.spores || 0) / plafond));
+let _naiEls = null;
+function majPanneauNaissance() {
+    if (!_naiEls) {
+        _naiEls = {
+            panneau: document.getElementById('naissancePanel'),
+            cv: document.getElementById('naissanceCanvas'),
+            zone: document.getElementById('naissanceZone'),
+            plein: document.getElementById('naissancePlein'),
+            rend: document.getElementById('naissanceRend')
+        };
+        if (!_naiEls.panneau) return;
+    }
+    const E = _naiEls;
+    if (!E.panneau) return;
+
+    const sel = gameState._zoneSel;
+    const body = sel && sel.body;
+    const z = (body && body.lutte && body.lutte.zones) ? body.lutte.zones[sel.id] : null;
+    if (gameState.phase !== 'game' || !z) {
+        if (E.panneau.classList.contains('actif')) E.panneau.classList.remove('actif');
+        return;
+    }
+    if (!E.panneau.classList.contains('actif')) E.panneau.classList.add('actif');
+
+    const part = Math.max(0, Math.min(1, (z.spores || 0) / Math.max(1, z.plafond || 1)));
     const rend = courbeCroissance(part);
     const teinte = rend >= 0.85 ? '#4ADE80' : rend >= 0.5 ? '#FACC15' : '#F87171';
 
-    /* Taille constante a l'ecran : un graphe qui grossit avec le zoom devient
-       aussi illisible qu'un graphe minuscule. */
-    const LARG = 132, HAUT = 80;
-    const W = LARG / zc, H = HAUT / zc, m = 2.2 / zc;
-    const c = zoneCentre(body, z);
-    const rz = Math.sqrt(z.n / Math.PI) * ((2 * body.radius) / LUTTE_N);
+    E.zone.textContent = body.name + ' \u00b7 ' + z.n + ' cases';
+    E.plein.textContent = Math.round(part * 100) + '% plein';
+    E.rend.textContent = Math.round(rend * 100) + '%';
+    E.rend.style.color = teinte;
 
-    /* On place le cadre AU-DESSUS de la zone, puis on le rabat dans la bande
-       libre de l'ecran : sans cela il se cachait derriere les panneaux des
-       que la zone touchait un bord. */
-    const cam = gameState.camera;
-    const vers = (wx, wy) => ({ x: (wx - cam.x) * zc + gameState.width / 2,
-                                y: (wy - cam.y) * zc + gameState.height / 2 });
-    const depuis = (sx, sy) => ({ x: (sx - gameState.width / 2) / zc + cam.x,
-                                  y: (sy - gameState.height / 2) / zc + cam.y });
-    const b = _bandeLibre();
-    const ce = vers(c.x, c.y - rz);
-    const sx = Math.min(Math.max(ce.x - LARG / 2, b.x0), b.x1 - LARG);
-    const sy = Math.min(Math.max(ce.y - HAUT - 14, b.y0), b.y1 - HAUT);
-    const coin = depuis(sx, sy);
-    const x = coin.x, y = coin.y;
+    const cv = E.cv, x = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    x.clearRect(0, 0, W, H);
 
-    ctx.save();
-    ctx.lineJoin = 'round';
-
-    // Le cadre
-    ctx.fillStyle = 'rgba(10,14,32,0.88)';
-    ctx.strokeStyle = 'rgba(140,170,230,0.45)';
-    ctx.lineWidth = m * 0.5;
-    ctx.beginPath();
-    ctx.rect(x, y, W, H);
-    ctx.fill();
-    ctx.stroke();
-
-    // Le titre
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-    ctx.font = 'bold ' + (9.5 / zc) + 'px Orbitron';
-    ctx.fillStyle = 'rgba(190,210,245,0.92)';
-    ctx.fillText('NAISSANCE', x + m * 2, y + 12 / zc);
-
-    // Le cadran
-    const gx = x + m * 2, gw = W - m * 4;
-    const gy = y + 18 / zc, gh = H - 30 / zc;
+    const m = 6, gx = m, gw = W - m * 2, gy = m, gh = H - m * 2;
     const px = t => gx + t * gw;
     const py = v => gy + gh - Math.max(0, Math.min(1, v)) * gh;
 
-    ctx.strokeStyle = 'rgba(140,170,230,0.18)';
-    ctx.lineWidth = m * 0.4;
-    ctx.beginPath();
-    ctx.moveTo(gx, gy + gh); ctx.lineTo(gx + gw, gy + gh);
-    ctx.stroke();
+    // La ligne de sol
+    x.strokeStyle = 'rgba(140,170,230,0.20)';
+    x.lineWidth = 2;
+    x.beginPath(); x.moveTo(gx, gy + gh); x.lineTo(gx + gw, gy + gh); x.stroke();
 
-    // La courbe, remplie sous le trait pour qu'on lise la forme d'un coup
+    // La courbe, remplie dessous pour qu'on lise la forme d'un coup d'oeil
     const pts = _pointsNaissance();
-    ctx.beginPath();
-    ctx.moveTo(px(0), py(pts[0][1]));
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(px(pts[i][0]), py(pts[i][1]));
-    ctx.lineTo(px(1), gy + gh);
-    ctx.lineTo(px(0), gy + gh);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(120,170,255,0.16)';
-    ctx.fill();
+    x.beginPath();
+    x.moveTo(px(0), py(pts[0][1]));
+    for (let i = 1; i < pts.length; i++) x.lineTo(px(pts[i][0]), py(pts[i][1]));
+    x.lineTo(px(1), gy + gh); x.lineTo(px(0), gy + gh); x.closePath();
+    x.fillStyle = 'rgba(120,170,255,0.16)';
+    x.fill();
 
-    ctx.beginPath();
-    ctx.moveTo(px(0), py(pts[0][1]));
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(px(pts[i][0]), py(pts[i][1]));
-    ctx.strokeStyle = 'rgba(160,200,255,0.85)';
-    ctx.lineWidth = m * 0.7;
-    ctx.stroke();
+    x.beginPath();
+    x.moveTo(px(0), py(pts[0][1]));
+    for (let i = 1; i < pts.length; i++) x.lineTo(px(pts[i][0]), py(pts[i][1]));
+    x.strokeStyle = 'rgba(160,200,255,0.9)';
+    x.lineWidth = 3;
+    x.lineJoin = 'round';
+    x.stroke();
 
     // Vous etes ici : le fil a plomb, puis le point
-    ctx.beginPath();
-    ctx.moveTo(px(part), gy + gh);
-    ctx.lineTo(px(part), py(rend));
-    ctx.strokeStyle = teinte;
-    ctx.globalAlpha = 0.55;
-    ctx.lineWidth = m * 0.5;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+    x.beginPath();
+    x.moveTo(px(part), gy + gh); x.lineTo(px(part), py(rend));
+    x.strokeStyle = teinte;
+    x.globalAlpha = 0.5;
+    x.lineWidth = 2;
+    x.stroke();
+    x.globalAlpha = 1;
 
-    ctx.beginPath();
-    ctx.arc(px(part), py(rend), m * 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = teinte;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(10,14,32,0.9)';
-    ctx.lineWidth = m * 0.4;
-    ctx.stroke();
-
-    // Les deux chiffres qui comptent : ou l'on en est, ce que ca rapporte
-    ctx.font = 'bold ' + (9 / zc) + 'px Orbitron';
-    ctx.fillStyle = 'rgba(190,210,245,0.75)';
-    ctx.fillText(Math.round(part * 100) + '% plein', gx, y + H - m * 1.5);
-    ctx.textAlign = 'right';
-    ctx.fillStyle = teinte;
-    ctx.fillText(Math.round(rend * 100) + '%', gx + gw, y + H - m * 1.5);
-
-    ctx.restore();
+    x.beginPath();
+    x.arc(px(part), py(rend), 6, 0, Math.PI * 2);
+    x.fillStyle = teinte;
+    x.fill();
+    x.strokeStyle = 'rgba(10,8,30,0.95)';
+    x.lineWidth = 2.5;
+    x.stroke();
 }
 
 /* PRISE D'UN ASTRE. Extrait d'applyConquest : ce n'est plus l'impact d'un
@@ -11305,6 +11314,12 @@ if (body && _pied && (e.button === 2)) {
         gameState.mouseWorldX = (mx - gameState.width / 2) / cam.zoom + cam.x;
         gameState.mouseWorldY = (my - gameState.height / 2) / cam.zoom + cam.y;
 
+        /* Un chiffre pose sous un astre dit combien, sa couleur dit qui - mais
+           une couleur n'est pas un nom. Au survol, on le nomme. */
+        const c = (gameState.phase === 'game' && e.target === canvas) ? chiffreSous(mx, my) : null;
+        if (c) { _stmShowTip(libelleChiffre(c), e.clientX, e.clientY); _bulleChiffre = true; }
+        else if (_bulleChiffre) { _stmHideTip(); _bulleChiffre = false; }
+
         // Prévisualisation de lancement (phase aiming)
         if (gameState._firePhase === 'aiming' && gameState._fireSource) {
             // Preview mise à jour dans la boucle de rendu
@@ -11638,6 +11653,7 @@ function detaillerRendu() {
                   'drawImpacts', 'drawConquestEffects', 'drawSporeCountOnBodies',
                   'drawOffscreenIndicators', 'drawMinimap'];
     const res = [];
+    _enMesureRendu = true;
     for (let i = 0; i < noms.length; i++) {
         const f = window[noms[i]];
         if (typeof f !== 'function') continue;
@@ -11658,6 +11674,7 @@ function detaillerRendu() {
         ctx.getImageData(0, 0, 1, 1);   /* vider la file du GPU avant de lire l'horloge */
         res.push([noms[i].replace('draw', ''), (performance.now() - t0) / N]);
     }
+    _enMesureRendu = false;
     res.sort(function (a, b) { return b[1] - a[1]; });
     _diagDetail = res.slice(0, 8);
 }
@@ -11771,6 +11788,8 @@ function render() {
     ctx.translate(w / 2, h / 2);
     ctx.scale(cam.zoom, cam.zoom);
     ctx.translate(-cam.x, -cam.y);
+
+    _chiffresSpores.length = 0;
 
     // ── Fond spatial ──
     drawBackground(ctx);
@@ -14338,6 +14357,45 @@ const BATI_SIGNES = [
     { cle: 'biomes',   signe: '●', couleur: BATI_TEINTES.biome },
 ];
 
+/* LES CHIFFRES POSES SOUS LES ASTRES. Plusieurs couleurs se cotoient la -
+   le defenseur et chacun de ses assaillants - et une couleur ne dit pas un
+   nom. On enregistre donc, au trace, le rectangle que chaque nombre occupe
+   A L'ECRAN, pour pouvoir le survoler ensuite. La liste est refaite a chaque
+   image : les astres orbitent, leurs chiffres avec eux. */
+let _chiffresSpores = [];
+let _enMesureRendu = false;
+/* Vrai quand l'infobulle affichee est la NOTRE : le menu radial se sert du
+   meme cadre, et on n'a pas a effacer la sienne. */
+let _bulleChiffre = false;
+
+function _noterChiffre(cx, cy, larg, haut, info) {
+    if (_enMesureRendu) return;          /* le detail du rendu redessine tout */
+    const cam = gameState.camera, z = cam.zoom;
+    const sx = (cx - cam.x) * z + gameState.width / 2;
+    const sy = (cy - cam.y) * z + gameState.height / 2;
+    const w = Math.max(14, larg * z), h = Math.max(10, haut * z);
+    _chiffresSpores.push({ x: sx - w / 2, y: sy - h, w: w, h: h * 1.3, info: info });
+}
+
+/* Ce qu'il y a sous le curseur, le dernier trace l'emportant : c'est celui
+   qui est dessus. */
+/* Ce que dit l'infobulle : un nom, ce que ce joueur fait la, et combien. */
+function libelleChiffre(c) {
+    const j = gameState.players[c.info.slot];
+    const nom = (j && j.name) || 'Joueur ' + ((c.info.slot | 0) + 1);
+    const tag = (j && j.guildTag) ? ' [' + j.guildTag + ']' : '';
+    const quoi = c.info.role === 'assaut' ? 'assaut sur ' : 'tient ';
+    return nom + tag + ' \u2014 ' + quoi + c.info.astre + ' \u00b7 ' + _sp(c.info.valeur) + ' spores';
+}
+
+function chiffreSous(sx, sy) {
+    for (let i = _chiffresSpores.length - 1; i >= 0; i--) {
+        const c = _chiffresSpores[i];
+        if (sx >= c.x && sx <= c.x + c.w && sy >= c.y && sy <= c.y + c.h) return c;
+    }
+    return null;
+}
+
 function drawSporeCountOnBodies(ctx) {
     const z = gameState.camera.zoom;
     const bodies = gameState.allBodies;
@@ -14352,7 +14410,10 @@ function drawSporeCountOnBodies(ctx) {
 
         if (body.spores >= 1) {
             ctx.font = 'bold ' + monde + 'px Orbitron';
-            _texteLisible(ctx, _sp(body.spores), body.x, ligne, col, Math.max(2, monde * 0.22));
+            const txt = _sp(body.spores);
+            _texteLisible(ctx, txt, body.x, ligne, col, Math.max(2, monde * 0.22));
+            _noterChiffre(body.x, ligne, ctx.measureText(txt).width, monde,
+                          { slot: body.owner, valeur: body.spores, astre: body.name, role: 'tient' });
             ligne += monde * 1.05;
         }
 
