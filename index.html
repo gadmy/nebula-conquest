@@ -296,6 +296,26 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        recouvert en entier, un astre possede tombe aussi des que son
        defenseur n'a plus une spore. Le serveur livre la meme bataille et
        n'envoie que les comptes de cases : le client peint la tache.
+       LE TERRAIN CONQUIS RESTE. Une attaque qui s'essouffle ne s'evaporait
+       plus d'un coup : l'assaillant garde ce qu'il a pris et continue d'y
+       produire. Il a fallu pour cela changer deux choses. L'usure du front
+       ronge une PART du stock et non un nombre fixe de spores - sinon le
+       plus petit stock tombait a zero et se faisait balayer jusqu'a la
+       derniere case ; et cette part est mesuree sur le front PARTAGE, la
+       meme des deux cotes - sinon une petite poche, qui n'est que du bord,
+       payait trois fois plus qu'un grand territoire. Elle pese en revanche
+       d'autant plus lourd que l'adverse est fort, faute de quoi le rapport
+       des stocks se conservait a jamais et l'on ne pouvait plus prendre une
+       planete, seulement l'entamer. La pression d'un camp compte enfin
+       quinze secondes de sa production en plus de son stock : un camp a sec
+       garde ainsi de quoi tenir. Resultat : la frontiere se fige la ou les
+       deux camps s'equilibrent, et c'est la production - ou un renfort - qui
+       la fait ensuite glisser d'un cote ou de l'autre.
+       LA FRONTIERE SE DESSINE. La grille passe a trente-deux cases de cote,
+       et chaque camp porte son propre lisere : a une couture on voit les
+       deux, cote a cote. Le bord qui donne sur un autre camp est net et
+       opaque, celui qui donne sur le vide reste discret. Le sol que personne
+       ne tient a lui aussi sa frontiere, en gris.
      - ONDES SOLAIRES. Un systeme entierement tenu se met a vivre : son
        etoile s'embrase toutes les cinq secondes et envoie une onde qui
        balaie ses astres. Chacun la recoit au PASSAGE DU FRONT, pas au
@@ -8820,11 +8840,19 @@ function checkJetCollision(jet) {
    deux camps y perdent autant, donc le plus gros stock finit par l'emporter -
    exactement comme dans l'ancien choc instantane, mais etale dans le temps.
    ───────────────────────────────────────────── */
-const LUTTE_N = 18;            /* grille N x N posee sur le disque */
+const LUTTE_N = 32;            /* grille N x N posee sur le disque */
 const LUTTE_PAS = 0.2;         /* un tour de bataille toutes les 0,2 s */
-const LUTTE_AVANCE = 3.2;      /* vitesse de gain de terrain a pression ecrasante */
+const LUTTE_AVANCE = 5;      /* vitesse de gain de terrain a pression ecrasante */
 const LUTTE_REMOUS = 0.18;     /* agitation du front a forces egales */
-const LUTTE_USURE = 6;         /* spores perdues par seconde et par contact */
+const LUTTE_USURE = 0.15;      /* part du stock rongee par seconde au front */
+const LUTTE_FRONT_REF = 54;    /* longueur de front de reference pour cette part */
+/* Secondes de production comptees dans la pression d'un camp, en plus de son
+   stock. Sans ce terme, un camp a sec tombe a une pression nulle et se fait
+   balayer jusqu'a la derniere case : le terrain conquis ne resterait jamais.
+   Avec lui, deux camps epuises pesent le meme poids par case - la frontiere
+   se fige ou elle est - et c'est la difference de production qui la fait
+   ensuite glisser d'un cote ou de l'autre. */
+const LUTTE_FENETRE = 15;         /* spores perdues par seconde et par contact */
 const LUTTE_VIDE = 255;        /* case hors du disque */
 
 let _lutteMasque = null, _lutteVoisins = null, _lutteTampon = null;
@@ -8997,14 +9025,15 @@ function majLutte(body, pas) {
         if (!n) continue;
         if (v === 0) {
             if (!neutre) {
-                const gain = debitPour(body, body.owner) * (n / total) * pas;
-                if (body.spores < body.maxSpores) body.spores = Math.min(body.maxSpores, body.spores + gain);
-                _luttePression[0] = body.spores / n;
+                const deb = debitPour(body, body.owner) * (n / total);
+                if (body.spores < body.maxSpores) body.spores = Math.min(body.maxSpores, body.spores + deb * pas);
+                _luttePression[0] = (body.spores + deb * LUTTE_FENETRE) / n;
             }
         } else {
             const s = v - 1;
-            L.assaut[s] = (L.assaut[s] || 0) + debitPour(body, s) * (n / total) * pas;
-            _luttePression[v] = L.assaut[s] / n;
+            const deb = debitPour(body, s) * (n / total);
+            L.assaut[s] = (L.assaut[s] || 0) + deb * pas;
+            _luttePression[v] = (L.assaut[s] + deb * LUTTE_FENETRE) / n;
         }
     }
 
@@ -9035,15 +9064,39 @@ function majLutte(body, pas) {
        se grignoteraient pendant deux minutes : une grosse bataille reste plus
        longue qu'une petite, sans devenir interminable. Le facteur etant le
        meme pour tout le monde, le vainqueur garde toujours la difference. */
-    let engage = (neutre ? 0 : body.spores);
-    for (const k in L.assaut) engage += L.assaut[k] || 0;
-    const echelle = 1 + engage / 6000;
-    for (let v = 0; v < _lutteUsure.length; v++) {
-        const f = _lutteUsure[v];
-        if (!f) continue;
-        const perte = LUTTE_USURE * pas * f * echelle;
-        if (v === 0) { if (!neutre) body.spores = Math.max(0, body.spores - perte); }
-        else { const s = v - 1; L.assaut[s] = Math.max(0, (L.assaut[s] || 0) - perte); }
+    /* L'usure du front ronge une PART du stock, la MEME des deux cotes. Deux
+       choix qui comptent :
+       - une part et non un nombre fixe de spores : avec un nombre fixe, le
+         plus petit stock tombait a zero et se faisait balayer jusqu'a la
+         derniere case, le terrain conquis ne restait jamais ;
+       - la meme part pour tous, mesuree sur la longueur du front partage et
+         non sur le perimetre de chaque camp : sinon une petite poche, qui
+         n'est que du bord, payait trois fois plus qu'un grand territoire et
+         finissait toujours par ceder.
+       Chaque camp se stabilise donc la ou sa production compense son usure,
+       et comme le taux est commun, deux camps de meme production pesent le
+       meme poids par case : la frontiere se fige. C'est alors la difference
+       de production - ou un renfort de spores - qui la fait glisser. */
+    let front = 0, pTotale = 0;
+    for (let v = 0; v < _lutteUsure.length; v++) front += _lutteUsure[v];
+    front /= 2;
+    for (let v = 0; v < _luttePression.length; v++) pTotale += _luttePression[v];
+    if (front > 0) {
+        const base = LUTTE_USURE * pas * (front / LUTTE_FRONT_REF);
+        /* Chacun perd une part de son stock d'autant plus grosse que l'adverse
+           pese lourd : a forces egales les deux perdent autant et la
+           frontiere se fige, mais des qu'un camp domine il s'use moins vite
+           que l'autre et finit par emporter l'astre. Sans ce poids, une part
+           identique des deux cotes gardait le rapport des stocks a jamais -
+           on ne pouvait plus prendre une planete, seulement l'entamer. */
+        const perdre = function (avoir, pression) {
+            const adv = pTotale - pression;
+            if (adv <= 0) return avoir;
+            const t = Math.min(0.4, base * 2 * (adv / (pression + adv)));
+            return Math.max(0, avoir * (1 - t));
+        };
+        if (!neutre) body.spores = perdre(body.spores, _luttePression[0]);
+        for (const k in L.assaut) L.assaut[k] = perdre(L.assaut[k], _luttePression[(+k) + 1]);
     }
 
     /* 5. Qui plie ? */
@@ -9051,12 +9104,15 @@ function majLutte(body, pas) {
     total = 0;
     for (let i = 0; i < nb; i++) { const v = cel[i]; if (v === LUTTE_VIDE) continue; total++; _lutteCompte[v]++; }
 
+    /* LE TERRAIN CONQUIS RESTE. Une attaque qui s'essouffle ne s'evapore
+       plus : l'assaillant garde ce qu'il a pris et continue d'y produire.
+       C'est la generation des deux camps qui fait ensuite respirer la
+       frontiere, d'un cote puis de l'autre, au lieu d'un assaut unique qui
+       reussit ou disparait. On ne chasse donc un camp que lorsqu'il ne tient
+       plus une seule case. */
     for (const k in L.assaut) {
         const s = +k, v = s + 1;
-        if (L.assaut[s] > 0.5 && _lutteCompte[v] > 0) continue;
-        /* A sec ou sans terrain : rejete a la mer, sa surface revient au sol. */
-        for (let i = 0; i < nb; i++) if (cel[i] === v) { cel[i] = 0; _lutteCompte[0]++; }
-        _lutteCompte[v] = 0;
+        if (_lutteCompte[v] > 0) continue;
         delete L.assaut[s];
         L.sale = true;
         if (body.owner === localSlot() || s === localSlot()) {
@@ -9072,11 +9128,10 @@ function majLutte(body, pas) {
     }
     if (vainqueur < 0) { body.lutte = null; return; }
 
-    /* L'astre tombe quand il ne reste plus un pouce de sol au defenseur, ou -
-       pour un astre deja possede - quand ce defenseur n'a plus une spore. Un
-       astre neutre ne tombe qu'a la premiere condition : personne ne le
-       defend, il faut donc vraiment le recouvrir. */
-    if (_lutteCompte[0] === 0 || (!neutre && body.spores <= 0.5)) {
+    /* L'astre ne tombe qu'au dernier pouce de sol. Un defenseur a sec n'est
+       plus mis en deroute : il ne pousse plus, mais il produit toujours sur
+       ce qu'il tient, et peut donc repartir. */
+    if (_lutteCompte[0] === 0) {
         const reste = L.assaut[vainqueur] || 0;
         body.lutte = null;
         conquerir(body, vainqueur, reste);
@@ -9093,7 +9148,20 @@ function _rgb255(c) {
     return out;
 }
 
-function _peindreLutte(L) {
+/* La couleur d'un camp : celle du joueur, ou le gris du sol pour ce que
+   personne ne tient - un astre neutre a bien une frontiere, elle est grise. */
+const LUTTE_GRIS = [154, 160, 172];
+function _teinteCamp(body, v) {
+    if (v === 0) {
+        if (body.owner === null || body.owner === undefined) return LUTTE_GRIS;
+        const j = gameState.players[body.owner];
+        return _rgb255((j && j.color) || '#FFFFFF');
+    }
+    const j = gameState.players[v - 1];
+    return _rgb255((j && j.color) || '#FFFFFF');
+}
+
+function _peindreLutte(body, L) {
     const N = LUTTE_N;
     if (!L.canvas) {
         L.canvas = document.createElement('canvas');
@@ -9102,15 +9170,39 @@ function _peindreLutte(L) {
     }
     const img = L.ctx.createImageData(N, N);
     const d = img.data;
+    const cel = L.cellules;
     for (let i = 0; i < N * N; i++) {
-        const v = L.cellules[i];
-        if (v === 0 || v === LUTTE_VIDE) continue;
-        const j = gameState.players[v - 1];
-        const rgb = _rgb255((j && j.color) || '#FFFFFF');
-        d[i * 4] = rgb[0]; d[i * 4 + 1] = rgb[1]; d[i * 4 + 2] = rgb[2]; d[i * 4 + 3] = 225;
+        const v = cel[i];
+        if (v === LUTTE_VIDE) continue;
+
+        /* Chaque camp porte son propre lisere : a une couture on voit les
+           deux, cote a cote, comme dans un jeu de territoires. On separe le
+           bord qui donne sur un AUTRE CAMP - la frontiere, celle qui bouge et
+           qu'on doit lire d'un coup d'oeil - de celui qui donne sur le vide
+           hors du disque, simple trait de cote qu'on garde discret. */
+        let front = false, cote = false;
+        for (let k = 0; k < 4; k++) {
+            const j2 = _lutteVoisins[i * 4 + k];
+            if (j2 < 0) cote = true;
+            else if (cel[j2] !== v) front = true;
+        }
+        const c = _teinteCamp(body, v);
+        const sol = (v === 0);      /* le camp du defenseur, ou le sol neutre */
+        if (front || cote) {
+            d[i * 4]     = c[0] + (255 - c[0]) * 0.6;
+            d[i * 4 + 1] = c[1] + (255 - c[1]) * 0.6;
+            d[i * 4 + 2] = c[2] + (255 - c[2]) * 0.6;
+            d[i * 4 + 3] = front ? (sol ? 235 : 255) : (sol ? 55 : 150);
+        } else {
+            d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2];
+            /* L'interieur du defenseur reste discret : c'est sa planete, on
+               doit continuer a voir sa surface sous la couleur. */
+            d[i * 4 + 3] = sol ? 55 : 185;
+        }
     }
     L.ctx.putImageData(img, 0, 0);
 }
+
 
 /* La grille fait dix-huit cases de cote pour un disque qui en fait cent a
    l'ecran : on la laisse volontairement s'etaler au filtrage, ce qui donne
@@ -9123,14 +9215,17 @@ function drawLuttes(ctx) {
         const L = body.lutte;
         if (!L) continue;
         if (!aLEcran(body.x, body.y, body.radius + 20)) continue;
-        if (L.sale || !L.canvas) { _peindreLutte(L); L.sale = false; }
+        if (L.sale || !L.canvas) { _peindreLutte(body, L); L.sale = false; }
         const r = body.radius;
         ctx.save();
-        ctx.imageSmoothingEnabled = true;
+        /* Pas de filtrage : les cases doivent rester nettes, sinon le lisere
+           d'une case de large que porte chaque camp se dissout en une bande
+           floue et la frontiere ne se lit plus. */
+        ctx.imageSmoothingEnabled = false;
         ctx.beginPath();
         ctx.arc(body.x, body.y, r, 0, Math.PI * 2);
         ctx.clip();
-        ctx.globalAlpha = 0.78;
+        ctx.globalAlpha = 0.95;
         ctx.drawImage(L.canvas, body.x - r, body.y - r, r * 2, r * 2);
         ctx.restore();
 
