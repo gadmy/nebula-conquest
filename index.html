@@ -375,6 +375,20 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
      - ON BATIT SUR SA TETE DE PONT, paye par la reserve qu'on a sur place, et
        ON TIRE DEPUIS ELLE : un astre a moitie conquis peut envoyer des spores
        ailleurs sans avoir a etre pris en entier.
+     - LES ZONES. Une tache sur une planete n'est plus un morceau de camp :
+       c'est une zone, avec SES spores et SON rendement. Deux taches du meme
+       joueur vivent chacune leur vie et ne mettent leurs reserves en commun
+       que si le terrain finit par les souder ; une zone coupee en deux
+       partage les siennes au prorata des cases. Perdre du sol, c'est donc
+       perdre les spores qui etaient dessus - elles sont sur le terrain, pas
+       dans un coffre. body.spores et les totaux d'assaut ne sont plus que des
+       sommes.
+     - ON CLIQUE UNE ZONE POUR CHOISIR D'OU L'ON TIRE. Elle se cerne d'un
+       trait clair qui bat, et chaque zone porte en son milieu sa reserve et
+       son rendement des qu'on est assez pres.
+     - Sous dix cases, une zone ne peut plus ni attaquer ni batir, et une fois
+       son elan retombe elle s'effrite case par case jusqu'a disparaitre : les
+       confettis ne restent pas sur la carte.
      - ONDES SOLAIRES. Un systeme entierement tenu se met a vivre : son
        etoile s'embrase toutes les cinq secondes et envoie une onde qui
        balaie ses astres. Chacun la recoit au PASSAGE DU FRONT, pas au
@@ -8640,7 +8654,7 @@ function launchJet(source, dirX, dirY, sporeType, slot) {
     const player = gameState.players[tireur];
     if (!player) return;
     const chezSoi = (source.owner === tireur);
-    if (!chezSoi && !(source.lutte && (source.lutte.assaut[tireur] || 0) > 0)) return;
+    if (!chezSoi && !(source.lutte && zonesDe(source, tireur).length)) return;
 
     sporeType = sporeType || 'normal';
     let sporeCount;
@@ -8649,12 +8663,21 @@ function launchJet(source, dirX, dirY, sporeType, slot) {
         if ((source.parasiteSpore || 0) < 1) return;
         source.parasiteSpore = 0;
         sporeCount = 1;
-    } else {
-        const reserve = chezSoi ? source.spores : source.lutte.assaut[tireur];
-        sporeCount = Math.floor(reserve * gameState.jetRatio);
+    } else if (source.lutte) {
+        /* Sur un astre partage, un tir part d'une ZONE et de sa reserve a
+           elle. Une zone de moins de dix cases n'a pas de quoi organiser un
+           depart : elle ne peut plus attaquer, elle ne fait que fondre. */
+        const zt = zoneDeTir(source, tireur);
+        if (!zt) return;
+        if (zt.z.n < ZONE_MIN) { if (tireur === localSlot()) secouerEcran(8); return; }
+        sporeCount = Math.floor(zt.z.spores * gameState.jetRatio);
         if (sporeCount < 5) return;
-        if (chezSoi) source.spores -= sporeCount;
-        else source.lutte.assaut[tireur] -= sporeCount;
+        zt.z.spores -= sporeCount;
+        zonesAgreger(source, source.lutte);
+    } else {
+        sporeCount = Math.floor(source.spores * gameState.jetRatio);
+        if (sporeCount < 5) return;
+        source.spores -= sporeCount;
     }
 
     const speed = 20 + player.stats.velocity * 6;
@@ -9078,14 +9101,29 @@ function debitPour(body, slot) {
 }
 
 /* Des spores touchent un astre ennemi ou neutre : elles debarquent. */
+/* OUVRIR UNE BATAILLE sur un astre qui n'en avait pas. Le defenseur y entre
+   avec ses spores, versees dans la zone unique qui couvre alors tout le
+   disque : sans ce versement, declencher un combat effacerait d'un coup la
+   reserve de celui qu'on attaque. */
+function naitreLutte(body) {
+    if (body.lutte) return body.lutte;
+    _luttePrepare();
+    const N = LUTTE_N;
+    const cel = new Uint8Array(N * N);
+    for (let i = 0; i < cel.length; i++) cel[i] = _lutteMasque[i] ? 0 : LUTTE_VIDE;
+    body.lutte = { cellules: cel, assaut: {}, acc: 0, canvas: null, ctx: null, sale: true };
+    zonesRecalculer(body, body.lutte);
+    const garnison = body.spores || 0;
+    for (const id in body.lutte.zones) {
+        if (body.lutte.zones[id].v === 0) body.lutte.zones[id].spores = garnison;
+    }
+    return body.lutte;
+}
+
 function engagerLutte(body, slot, spores, angle) {
     _luttePrepare();
     const N = LUTTE_N;
-    if (!body.lutte) {
-        const cel = new Uint8Array(N * N);
-        for (let i = 0; i < cel.length; i++) cel[i] = _lutteMasque[i] ? 0 : LUTTE_VIDE;
-        body.lutte = { cellules: cel, assaut: {}, acc: 0, canvas: null, ctx: null, sale: true };
-    }
+    naitreLutte(body);
     const L = body.lutte;
     const v = slot + 1;
 
@@ -9104,16 +9142,20 @@ function engagerLutte(body, slot, spores, angle) {
         const i = by * N + bx;
         if (bx >= 0 && bx < N && by >= 0 && by < N && _lutteMasque[i]) { tete = i; break; }
     }
+    if (!L.zid) zonesRecalculer(body, L);
     if (tete >= 0 && L.cellules[tete] !== v) {
         L.cellules[tete] = v;
+        L.zid[tete] = 0;              /* zone a naitre : le recalcul lui donnera un numero */
         L.sale = true;
     }
-
-    L.assaut[slot] = (L.assaut[slot] || 0) + spores;
-    /* Les spores qui debarquent sont engagees dans l'assaut : c'est cet elan
-       qui achete du sol, case par case, jusqu'a epuisement. */
-    if (!L.elan) L.elan = {};
-    L.elan[v] = (L.elan[v] || 0) + spores;
+    /* Les spores vont a la ZONE touchee : c'est elle qui les depense pour
+       acheter du sol. Un tir sur son propre terrain renforce la tache qui est
+       dessous ; ailleurs, il en ouvre une nouvelle. */
+    zonesRecalculer(body, L);
+    const id = (tete >= 0) ? L.zid[tete] : 0;
+    const z = L.zones[id];
+    if (z) { z.spores += spores; z.elan = (z.elan || 0) + spores; }
+    zonesAgreger(body, L);
     L.dormante = false;
 }
 
@@ -9179,7 +9221,9 @@ function peutTirerSurface(body, slot) {
     if (body.owner === slot) return true;
     const L = body.lutte;
     if (!L) return false;
-    return (L.assaut[slot] || 0) > 0;
+    /* Tenir du terrain suffit : une zone a court de spores reste une zone,
+       et c'est d'elle qu'on pourra tirer des qu'elle aura reproduit. */
+    return zonesDe(body, slot).length > 0;
 }
 
 function estTirSurface() {
@@ -9215,11 +9259,13 @@ function pointTirSurface(body, slot, tx, ty) {
         const d = Math.sqrt(dx * dx + dy * dy) || 1;
         return { x: body.x + dx / d * r * 0.86, y: body.y + dy / d * r * 0.86 };
     }
-    const v = (slot === body.owner) ? 0 : slot + 1;
+    /* On part de la zone choisie, et d'elle seule : c'est de la qu'on tire. */
+    const zt = zoneDeTir(body, slot);
+    const idz = zt ? zt.id : -1;
     const cel = L.cellules;
     let best = -1, bd = Infinity;
     for (let i = 0; i < cel.length; i++) {
-        if (cel[i] !== v) continue;
+        if (L.zid[i] !== idz) continue;
         const p = _celluleVers(body, i);
         const d = (p.x - tx) * (p.x - tx) + (p.y - ty) * (p.y - ty);
         if (d < bd) { bd = d; best = i; }
@@ -9284,8 +9330,10 @@ function apercuTirSurface(body, slot, tx, ty) {
 function lancerJetSurface(body, slot, tx, ty) {
     const joueur = gameState.players[slot];
     if (!joueur) return false;
-    const dispo = (slot === body.owner) ? body.spores
-                : ((body.lutte && body.lutte.assaut[slot]) || 0);
+    /* Le tir de surface part lui aussi d'une zone, et de sa reserve. */
+    const zt = body.lutte ? zoneDeTir(body, slot) : null;
+    if (body.lutte && (!zt || zt.z.n < ZONE_MIN)) { secouerEcran(8); return false; }
+    const dispo = zt ? zt.z.spores : body.spores;
     const nb = Math.floor(dispo * gameState.jetRatio);
     if (nb < 5) { secouerEcran(6); return false; }
 
@@ -9296,12 +9344,14 @@ function lancerJetSurface(body, slot, tx, ty) {
     /* En multijoueur c'est le serveur qui tire : on ne lui annonce que la
        cible, il verifie le terrain, choisit le depart et calcule la cloche. */
     if (gameState.isMulti) {
-        sendAction('jet_surface', { srcName: body.name, tx: tx, ty: ty });
+        const _zc = zt ? zoneCentre(body, zt.z) : null;
+        sendAction('jet_surface', { srcName: body.name, tx: tx, ty: ty,
+                                    zx: _zc ? _zc.x : undefined, zy: _zc ? _zc.y : undefined });
         return true;
     }
 
-    if (slot === body.owner) body.spores -= nb;
-    else body.lutte.assaut[slot] -= nb;
+    if (zt) { zt.z.spores -= nb; zonesAgreger(body, body.lutte); }
+    else body.spores -= nb;
 
     const rel = trajectoireSurface(body, p.x - body.x, p.y - body.y,
                                    tx - body.x, ty - body.y);
@@ -9328,11 +9378,7 @@ function debarquerSurface(body, slot, spores, wx, wy) {
         body.spores = Math.min(body.maxSpores, (body.spores || 0) + spores);
         return;
     }
-    if (!body.lutte) {
-        const cel0 = new Uint8Array(N * N);
-        for (let i = 0; i < cel0.length; i++) cel0[i] = _lutteMasque[i] ? 0 : LUTTE_VIDE;
-        body.lutte = { cellules: cel0, assaut: {}, acc: 0, canvas: null, ctx: null, sale: true };
-    }
+    naitreLutte(body);
     const L = body.lutte;
     L.dormante = false;
     const v = (slot === body.owner) ? 0 : slot + 1;
@@ -9359,12 +9405,15 @@ function debarquerSurface(body, slot, spores, wx, wy) {
             }
         }
     }
-    if (v === 0) body.spores = Math.min(body.maxSpores, (body.spores || 0) + spores);
-    else L.assaut[slot] = (L.assaut[slot] || 0) + spores;
     /* Debarquer, c'est attaquer - y compris sur son propre sol, ou c'est la
-       contre-attaque qui reprend le terrain perdu. */
-    if (!L.elan) L.elan = {};
-    L.elan[v] = (L.elan[v] || 0) + spores;
+       contre-attaque qui reprend le terrain perdu. Les spores vont a la zone
+       du point de chute. */
+    zonesRecalculer(body, L);
+    const idc = (centre >= 0) ? L.zid[centre] : 0;
+    const zc = L.zones[idc];
+    if (zc) { zc.spores += spores; zc.elan = (zc.elan || 0) + spores; }
+    zonesAgreger(body, L);
+    L.dormante = false;
     L.sale = true;
     if (!gameState._ondes) gameState._ondes = [];
     const j = gameState.players[slot];
@@ -9415,7 +9464,20 @@ function suivreLutte(body, pas) {
         const manque = vise[v] - _lutteCompte[v];
         if (manque <= 0) continue;
         let cases = Math.min(manque, Math.max(1, Math.round(LUTTE_CADENCE * pas)));
-        const front = _frontDe(L, v, _lutteCandidats);
+        /* En suivi, le front se prend au camp et non a la zone : on ne
+           reproduit qu'une silhouette, pas une comptabilite. */
+        const front = _lutteCandidats;
+        front.length = 0;
+        for (let i = 0; i < nb; i++) {
+            const w = cel[i];
+            if (w === LUTTE_VIDE || w === v) continue;
+            let c = 0;
+            for (let k = 0; k < 8; k++) {
+                const j = _lutteVoisins8[i * 8 + k];
+                if (j >= 0 && cel[j] === v) c++;
+            }
+            if (c) front.push({ i: i, n: c });
+        }
         if (!front.length) continue;
         for (let i = 0; i < front.length; i++) {
             const f = front[i];
@@ -9456,6 +9518,17 @@ function appliquerResumeLutte(body, lu) {
     /* Le serveur dit aussi si l'etranger est majoritaire : c'est lui qui
        decide si l'astre sort du groupement. */
     if (L.majorite !== !!lu.m) { L.majorite = !!lu.m; marquerTerritoiresSales(); }
+    /* Les zones viennent du serveur : leurs chiffres font autorite. La grille
+       locale n'est qu'une silhouette, ses numeros a elle ne servent a rien. */
+    if (lu.z) {
+        const zs = {};
+        for (let i = 0; i < lu.z.length; i++) {
+            const t = lu.z[i];
+            zs[t[0]] = { v: t[1], n: t[2], spores: t[3], rendement: t[4] / 100,
+                         cx: t[5], cy: t[6], elan: 0, plafond: 0 };
+        }
+        L.zones = zs;
+    }
     L.cible = { d: lu.d || 0, a: {} };
     for (let i = 0; i < (lu.a || []).length; i++) {
         const t = lu.a[i];
@@ -9470,19 +9543,199 @@ function appliquerResumeLutte(body, lu) {
     }
 }
 
-/* Les cases qu'un camp peut prendre : celles d'un AUTRE camp qui touchent
+/* ─────────────────────────────────────────────
+   LES ZONES
+   Une tache de couleur sur une planete n'est plus un simple morceau de camp :
+   c'est une ZONE, avec ses spores a elle et son propre rendement. Deux taches
+   du meme joueur sur le meme astre vivent donc leur vie chacune de leur cote,
+   se remplissent separement, et ne mettent leurs spores en commun que si le
+   terrain finit par les souder.
+
+   L'identite d'une zone tient dans L.zid, qui donne pour chaque case le
+   numero de sa zone. A chaque tour on refait les composantes connexes : une
+   composante reprend le numero le plus represente parmi ses cases, ce qui la
+   fait survivre aux gains et aux pertes de terrain. Deux zones soudees
+   mettent leurs spores ensemble ; une zone coupee en deux les partage au
+   prorata des cases. Perdre du sol, c'est donc perdre les spores qui etaient
+   dessus - elles sont sur le terrain, pas dans un coffre.
+   ───────────────────────────────────────────── */
+const ZONE_MIN = 10;           /* en dessous, une zone ne peut plus attaquer et s'effrite */
+const ZONE_FONTE = 0.5;        /* secondes entre deux cases perdues par fonte */
+const _zoneMarque = new Int16Array(LUTTE_N * LUTTE_N);
+const _zonePile = [];
+
+function _zidNeuf(zones) {
+    for (let id = 1; id < 255; id++) if (!zones[id]) return id;
+    return 0;
+}
+
+function zonesRecalculer(body, L) {
+    const nb = L.cellules.length, cel = L.cellules;
+    if (!L.zid) L.zid = new Uint8Array(nb);
+    if (!L.zones) L.zones = {};
+    const zid = L.zid, anciennes = L.zones;
+    _zoneMarque.fill(0);
+
+    /* Composantes connexes, huit voisins : deux taches qui se touchent par un
+       coin sont bien la meme. */
+    const compos = [];
+    for (let i = 0; i < nb; i++) {
+        if (cel[i] === LUTTE_VIDE || _zoneMarque[i]) continue;
+        const v = cel[i];
+        const comp = { v: v, cases: [], anciens: {} };
+        compos.push(comp);
+        const m = compos.length;
+        _zonePile.length = 0; _zonePile.push(i); _zoneMarque[i] = m;
+        while (_zonePile.length) {
+            const j = _zonePile.pop();
+            comp.cases.push(j);
+            const a = zid[j];
+            if (a) comp.anciens[a] = (comp.anciens[a] || 0) + 1;
+            for (let k = 0; k < 8; k++) {
+                const w = _lutteVoisins8[j * 8 + k];
+                if (w >= 0 && !_zoneMarque[w] && cel[w] === v) { _zoneMarque[w] = m; _zonePile.push(w); }
+            }
+        }
+    }
+
+    /* Les plus grosses composantes choisissent leur numero les premieres :
+       c'est le gros morceau qui garde l'identite quand une zone se coupe. */
+    compos.sort(function (a, b) { return b.cases.length - a.cases.length; });
+
+    const neuves = {};
+    for (let c = 0; c < compos.length; c++) {
+        const comp = compos[c];
+        let id = 0, best = 0;
+        for (const a in comp.anciens) {
+            if (neuves[a]) continue;
+            if (comp.anciens[a] > best) { best = comp.anciens[a]; id = +a; }
+        }
+        if (!id) id = _zidNeuf(neuves);
+        if (!id) continue;
+        /* Les spores suivent le sol : chaque ancienne zone verse au prorata
+           des cases qu'elle apporte ici. */
+        let sp = 0, el = 0;
+        for (const a in comp.anciens) {
+            const z = anciennes[a];
+            if (!z) continue;
+            /* Le prorata se prend sur les cases que la zone avait AU DEBUT
+               du tour : la poussee a deja bouge les compteurs, s'en servir
+               ferait payer deux fois le terrain perdu. */
+            const part = Math.min(1, comp.anciens[a] / Math.max(1, z.nRef || z.n));
+
+            sp += z.spores * part;
+            el += (z.elan || 0) * part;
+        }
+        const z0 = anciennes[id];
+        /* nRef fige le compte de CE recalcul : c'est sur lui que se fera le
+           prorata au suivant, quoi que la poussee change entre-temps. Sans
+           lui, le terrain perdu etait facture deux fois et un defenseur se
+           retrouvait a sec en tenant encore les deux tiers de sa planete. */
+        neuves[id] = { v: comp.v, n: comp.cases.length, nRef: comp.cases.length,
+                       spores: sp, elan: el,
+                       cx: 0, cy: 0, debit: z0 ? z0.debit : 0,
+                       rendement: z0 ? z0.rendement : 0, fonte: z0 ? z0.fonte : 0 };
+        let sx = 0, sy = 0;
+        for (let k = 0; k < comp.cases.length; k++) {
+            const j = comp.cases[k];
+            zid[j] = id;
+            sx += j % LUTTE_N; sy += (j / LUTTE_N) | 0;
+        }
+        neuves[id].cx = sx / comp.cases.length;
+        neuves[id].cy = sy / comp.cases.length;
+    }
+    L.zones = neuves;
+}
+
+/* Les totaux par camp, refaits depuis les zones : tout le reste du jeu lit
+   body.spores et L.assaut, qui ne sont plus que des sommes. */
+function zonesAgreger(body, L) {
+    let def = 0;
+    const att = {};
+    for (const id in L.zones) {
+        const z = L.zones[id];
+        if (z.v === 0) def += z.spores;
+        else att[z.v - 1] = (att[z.v - 1] || 0) + z.spores;
+    }
+    if (body.owner !== null && body.owner !== undefined) body.spores = def;
+    L.assaut = att;
+}
+
+/* Les zones d'un joueur sur un astre, de la plus grande a la plus petite. */
+function zonesDe(body, slot) {
+    const L = body.lutte;
+    if (!L || !L.zones) return [];
+    const v = campDe(body, slot);
+    const out = [];
+    for (const id in L.zones) if (L.zones[id].v === v) out.push({ id: +id, z: L.zones[id] });
+    out.sort(function (a, b) { return b.z.n - a.z.n; });
+    return out;
+}
+
+/* La zone sous un point du monde. */
+function zoneA(body, wx, wy) {
+    const L = body.lutte;
+    if (!L || !L.zones) return 0;
+    if (gameState.isMulti) {
+        /* En multijoueur la grille locale n'est qu'une silhouette et ses
+           numeros ne sont pas ceux du serveur : on prend la zone dont le
+           centre est le plus proche du point clique. */
+        let best = 0, bd = Infinity;
+        for (const id in L.zones) {
+            const c = zoneCentre(body, L.zones[id]);
+            const d = (c.x - wx) * (c.x - wx) + (c.y - wy) * (c.y - wy);
+            if (d < bd) { bd = d; best = +id; }
+        }
+        return best;
+    }
+    if (!L.zid) return 0;
+    const i = _celluleA(body, wx, wy);
+    if (i < 0) return 0;
+    return L.zid[i] || 0;
+}
+
+/* Le centre d'une zone, en coordonnees du monde. */
+function zoneCentre(body, z) {
+    const r = body.radius, pas = (2 * r) / LUTTE_N;
+    return { x: body.x - r + (z.cx + 0.5) * pas, y: body.y - r + (z.cy + 0.5) * pas };
+}
+
+/* La zone d'ou l'on tire : celle qu'on a choisie si elle tient toujours, sinon
+   la plus grande qu'on ait sur cet astre. */
+function zoneDeTir(body, slot) {
+    const L = body.lutte;
+    if (!L || !L.zones) return null;
+    const sel = gameState._zoneSel;
+    if (sel && sel.body === body) {
+        const z = L.zones[sel.id];
+        if (z && z.v === campDe(body, slot)) return { id: sel.id, z: z };
+    }
+    /* A defaut de choix, c'est la zone la mieux pourvue qui tire parmi celles
+       qui en ont le droit - la plus GRANDE n'est pas forcement celle qui a des
+       troupes, et proposer une zone vide n'aurait servi a rien. */
+    const liste = zonesDe(body, slot);
+    if (!liste.length) return null;
+    let best = null;
+    for (let i = 0; i < liste.length; i++) {
+        if (liste[i].z.n < ZONE_MIN) continue;
+        if (!best || liste[i].z.spores > best.z.spores) best = liste[i];
+    }
+    return best || liste[0];
+}
+
+/* Les cases qu'une zone peut prendre : celles d'un AUTRE camp qui touchent
    les siennes. Le choix se fait ensuite au poids, pas dans l'ordre de la
    grille - sinon le front avancerait par lignes bien droites. */
-function _frontDe(L, v, sortie) {
+function _frontDe(L, id, v, sortie) {
     sortie.length = 0;
-    const cel = L.cellules;
+    const cel = L.cellules, zid = L.zid;
     for (let i = 0; i < cel.length; i++) {
         const w = cel[i];
         if (w === LUTTE_VIDE || w === v) continue;
         let n = 0;
         for (let k = 0; k < 8; k++) {
             const j = _lutteVoisins8[i * 8 + k];
-            if (j >= 0 && cel[j] === v) n++;
+            if (j >= 0 && zid[j] === id) n++;
         }
         if (n) sortie.push({ i: i, n: n });
     }
@@ -9490,17 +9743,13 @@ function _frontDe(L, v, sortie) {
 }
 
 /* Le grain du sol : un poids fixe par case, tire une fois pour toutes a la
-   naissance de la bataille. C'est lui qui rend l'avancee organique - certains
-   endroits cedent plus vite que d'autres - au lieu du bloc regulier que
-   donnerait un front purement geometrique. */
+   naissance de la bataille, puis lisse. C'est lui qui fait avancer le front
+   par lobes au lieu d'un cercle regulier. */
 function _grainLutte(L) {
     if (L.grain) return L.grain;
     const N = LUTTE_N;
     const brut = new Float32Array(N * N);
     for (let i = 0; i < brut.length; i++) brut[i] = gameRandom();
-    /* Lisse une fois : un bruit case par case ne donne qu'une bordure
-       pelucheuse, tandis qu'un bruit en taches fait avancer le front par
-       lobes, comme une coulee. */
     const g = new Float32Array(N * N);
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
         let somme = 0, n = 0;
@@ -9519,47 +9768,44 @@ function majLutte(body, pas) {
     const L = body.lutte, cel = L.cellules, nb = cel.length;
     const neutre = (body.owner === null || body.owner === undefined);
 
-    /* 1. Qui tient quoi. La case 0 est le defenseur, la case s+1 l'assaillant s. */
+    zonesRecalculer(body, L);
+
     _lutteCompte.fill(0);
     let total = 0;
     for (let i = 0; i < nb; i++) { const v = cel[i]; if (v === LUTTE_VIDE) continue; total++; _lutteCompte[v]++; }
     if (!total) { body.lutte = null; return; }
 
-    /* 2. La surface fabrique les spores : chacun produit au prorata de ce
-       qu'il tient, sous le plafond que lui donne son terrain, et au rendement
-       de la courbe de croissance. */
-    for (let v = 0; v < _lutteCompte.length; v++) {
-        const n = _lutteCompte[v];
-        if (!n) continue;
-        const plafond = body.maxSpores * (n / total);
-        if (v === 0) {
-            if (neutre) continue;
-            const deb = debitPour(body, body.owner) * (n / total)
-                      * courbeCroissance(body.spores / Math.max(1, plafond));
-            if (body.spores < plafond) body.spores = Math.min(plafond, body.spores + deb * pas);
-        } else {
-            const s = v - 1;
-            const stock = L.assaut[s] || 0;
-            const deb = debitPour(body, s) * (n / total)
-                      * courbeCroissance(stock / Math.max(1, plafond));
-            if (stock < plafond) L.assaut[s] = Math.min(plafond, stock + deb * pas);
-        }
+    /* CHAQUE ZONE PRODUIT POUR ELLE-MEME, au prorata de la surface qu'elle
+       tient, sous le plafond que lui donne cette surface, et au rendement de
+       la courbe de croissance. Deux taches du meme joueur ont donc chacune
+       leur reserve et leur rythme. */
+    for (const id in L.zones) {
+        const z = L.zones[id];
+        const slot = (z.v === 0) ? body.owner : z.v - 1;
+        z.plafond = body.maxSpores * (z.n / total);
+        if (slot === null || slot === undefined) { z.debit = 0; z.rendement = 0; continue; }
+        z.rendement = courbeCroissance(z.spores / Math.max(1, z.plafond));
+        z.debit = debitPour(body, slot) * (z.n / total) * z.rendement;
+        if (z.spores < z.plafond) z.spores = Math.min(z.plafond, z.spores + z.debit * pas);
     }
 
+    const cout = coutCase(body, total);
+    const grain = _grainLutte(L);
+    let pousseEncore = false;
+
     /* Le chantier d'un astre partage : updateSporeGeneration ne passe plus
-       par la, c'est donc ici qu'il aboutit, paye par la reserve du camp qui
-       l'a demande et pose sur le sol de ce camp. */
+       par la, c'est donc ici qu'il aboutit, paye par la zone qui l'a demande
+       et pose sur son sol. */
     if (body.buildMode === 'nid' || body.buildMode === 'biome' || body.buildMode === 'alveole') {
         const bs = (body.buildSlot !== undefined) ? body.buildSlot : body.owner;
-        const bv = campDe(body, bs);
-        if (_lutteCompte[bv] > 0) {
+        const zb = zoneDeTir(body, bs);
+        if (zb) {
             const prixB = coutBatiment(body, body.buildMode);
-            const caisse = (bv === 0) ? (neutre ? 0 : body.spores) : (L.assaut[bs] || 0);
-            if (caisse >= prixB) {
-                if (bv === 0) body.spores -= prixB; else L.assaut[bs] -= prixB;
+            if (zb.z.spores >= prixB) {
+                zb.z.spores -= prixB;
                 const genre = body.buildMode;
                 if (genre === 'alveole') body.baseMaxSpores = body.baseMaxSpores || body.maxSpores;
-                poserEdifice(body, genre, bv);
+                poserEdifice(body, genre, zb.z.v);
                 body.buildMode = 'off';
                 body.buildProgress = 0;
                 L.sale = true;
@@ -9574,38 +9820,29 @@ function majLutte(body, pas) {
         }
     }
 
-    /* 3. LA POUSSEE. Un camp n'avance que s'il a de l'elan - des spores
-       engagees dans l'assaut - et chaque case lui en coute le prix du sol.
-       Personne ne repousse tout seul : quand l'elan s'epuise le front
-       s'arrete, et il faut une nouvelle attaque pour le relancer. */
-    const cout = coutCase(body, total);
-    const grain = _grainLutte(L);
-    const elan = L.elan || (L.elan = {});
-    let pousseEncore = false;
-
-    /* L'IA contre-attaque d'elle-meme des qu'elle a de quoi : un joueur
-       humain choisit quand relancer, une IA n'a personne pour le faire a sa
-       place et se laisserait grignoter sans reagir. Elle n'engage que le
-       surplus au-dela de la moitie de son plafond, pour ne pas se vider. */
-    if (!neutre && _lutteCompte[0] > 0 && !(elan[0] >= cout)) {
+    /* L'IA contre-attaque d'elle-meme des qu'elle a de quoi : un joueur humain
+       choisit quand relancer, une IA n'a personne pour le faire a sa place. */
+    if (!neutre) {
         const j0 = gameState.players[body.owner];
         if (j0 && !j0.isHuman) {
-            const plafond0 = body.maxSpores * (_lutteCompte[0] / total);
-            const surplus = body.spores - plafond0 * 0.5;
-            if (surplus >= cout) elan[0] = surplus;
+            const miennes = zonesDe(body, body.owner);
+            for (let k = 0; k < miennes.length; k++) {
+                const z = miennes[k].z;
+                if (z.n < ZONE_MIN || z.elan >= cout) continue;
+                const surplus = z.spores - z.plafond * 0.5;
+                if (surplus >= cout) z.elan = surplus;
+            }
         }
     }
 
-    for (const k in elan) {
-        const v = +k;
-        if (!(elan[v] >= cout)) { delete elan[v]; continue; }
-        if (!_lutteCompte[v]) { delete elan[v]; continue; }
-
+    /* LA POUSSEE, zone par zone. Une zone n'avance que si elle a de l'elan -
+       des spores engagees - et chaque case lui coute le prix du sol. */
+    for (const id in L.zones) {
+        const z = L.zones[id];
+        if (!(z.elan >= cout)) { z.elan = 0; continue; }
         let cases = Math.max(1, Math.round(LUTTE_CADENCE * pas));
-        const front = _frontDe(L, v, _lutteCandidats);
-        if (!front.length) { delete elan[v]; continue; }
-        /* Au poids : les creux du front d'abord - c'est ce qui referme les
-           encoches - puis le grain du sol, puis un peu de hasard. */
+        const front = _frontDe(L, +id, z.v, _lutteCandidats);
+        if (!front.length) { z.elan = 0; continue; }
         for (let i = 0; i < front.length; i++) {
             const f = front[i];
             /* Les creux du front d'abord - c'est ce qui evite les dentelles -
@@ -9614,38 +9851,75 @@ function majLutte(body, pas) {
             f.p = f.n * 0.30 + grain[f.i] * 2.6 + gameRandom() * 1.3;
         }
         front.sort(function (a, b) { return b.p - a.p; });
-
         for (let i = 0; i < front.length && cases > 0; i++) {
-            if (elan[v] < cout) break;
             const j = front[i].i;
             const perdant = cel[j];
-            if (perdant === v || perdant === LUTTE_VIDE) continue;
+            if (perdant === z.v || perdant === LUTTE_VIDE) continue;
             /* Le sol vierge se prend pour presque rien : personne ne le
                defend. Coloniser ne doit pas couter aussi cher que conquerir. */
             const prix = (perdant === 0 && neutre) ? cout * 0.15 : cout;
-            if (elan[v] < prix) break;
-            cel[j] = v;
+            if (z.elan < prix || z.spores < prix) break;
+            const perdue = L.zones[L.zid[j]];
+            if (perdue) perdue.n--;      /* ses spores suivront au prochain prorata */
+            cel[j] = z.v;
+            L.zid[j] = +id;
+            z.n++;
             _lutteCompte[perdant]--;
-            _lutteCompte[v]++;
-            elan[v] -= prix;
-            /* L'elan sort du stock du camp : ce sont bien ses spores qui
-               achetent le sol. */
-            if (v === 0) { if (!neutre) body.spores = Math.max(0, body.spores - prix); }
-            else { const s = v - 1; L.assaut[s] = Math.max(0, (L.assaut[s] || 0) - prix); }
+            _lutteCompte[z.v]++;
+            z.elan -= prix;
+            z.spores = Math.max(0, z.spores - prix);
             cases--;
             L.sale = true;
         }
-        if (elan[v] >= cout) pousseEncore = true; else delete elan[v];
+        if (z.elan >= cout) pousseEncore = true; else z.elan = 0;
     }
     L.dormante = !pousseEncore;
 
-    /* 4. Qui plie ? Un camp sans terrain est chasse ; celui qui tient tout
+    /* LA FONTE. Une zone de moins de dix cases ne tient pas : une fois son
+       elan retombe, elle s'effrite case par case jusqu'a disparaitre. C'est
+       ce qui empeche les confettis de rester eternellement sur la carte. */
+    for (const id in L.zones) {
+        const z = L.zones[id];
+        if (z.n >= ZONE_MIN || z.elan >= cout) { z.fonte = 0; continue; }
+        z.fonte = (z.fonte || 0) + pas;
+        if (z.fonte < ZONE_FONTE) continue;
+        z.fonte = 0;
+        /* La case la plus exposee part la premiere, au camp qui l'entoure le
+           mieux. */
+        let pire = -1, pireN = -1, repreneur = 0;
+        for (let i = 0; i < nb; i++) {
+            if (L.zid[i] !== +id) continue;
+            const voisins = {};
+            let etrangers = 0;
+            for (let k = 0; k < 8; k++) {
+                const j = _lutteVoisins8[i * 8 + k];
+                if (j < 0 || cel[j] === LUTTE_VIDE || cel[j] === z.v) continue;
+                voisins[cel[j]] = (voisins[cel[j]] || 0) + 1;
+                etrangers++;
+            }
+            if (etrangers > pireN) {
+                pireN = etrangers; pire = i;
+                let best = 0;
+                for (const w in voisins) if (voisins[w] > best) { best = voisins[w]; repreneur = +w; }
+            }
+        }
+        if (pire >= 0 && pireN > 0) {
+            cel[pire] = repreneur;
+            _lutteCompte[z.v]--;
+            _lutteCompte[repreneur]++;
+            z.n--;                       /* ses spores suivront au prochain prorata */
+            L.sale = true;
+        }
+    }
+
+    zonesAgreger(body, L);
+
+    /* Qui plie ? Un camp sans terrain est chasse ; celui qui tient tout
        emporte l'astre. */
     for (const k in L.assaut) {
         const s = +k, v = s + 1;
         if (_lutteCompte[v] > 0) continue;
         delete L.assaut[s];
-        delete elan[v];
         L.sale = true;
         if (body.owner === localSlot() || s === localSlot()) {
             gameState.conquestEffects.push({ x: body.x, y: body.y - body.radius - 15, baseX: body.x,
@@ -9660,9 +9934,8 @@ function majLutte(body, pas) {
     if (L.majorite !== majo) { L.majorite = majo; marquerTerritoiresSales(); }
 
     let vainqueur = -1, meilleur = 0;
-    for (const k in L.assaut) {
-        const v = (+k) + 1;
-        if (_lutteCompte[v] > meilleur) { meilleur = _lutteCompte[v]; vainqueur = +k; }
+    for (let v = 1; v < _lutteCompte.length; v++) {
+        if (_lutteCompte[v] > meilleur) { meilleur = _lutteCompte[v]; vainqueur = v - 1; }
     }
     if (vainqueur < 0) { body.lutte = null; marquerTerritoiresSales(); return; }
     if (_lutteCompte[0] === 0) {
@@ -9825,6 +10098,7 @@ function drawLuttes(ctx) {
         if (!aLEcran(body.x, body.y, body.radius + 20)) continue;
         if (L.sale || !L.canvas) { _peindreLutte(body, L); L.sale = false; }
         const r = body.radius;
+        const zc = gameState.camera.zoom;
         ctx.save();
         /* Pas de filtrage : les cases doivent rester nettes, sinon le lisere
            d'une case de large que porte chaque camp se dissout en une bande
@@ -9835,7 +10109,92 @@ function drawLuttes(ctx) {
         ctx.clip();
         ctx.globalAlpha = 0.95;
         ctx.drawImage(L.canvas, body.x - r, body.y - r, r * 2, r * 2);
+        /* LA ZONE CHOISIE, cernee d'un trait clair qui bat : c'est d'elle
+           que partira le prochain tir, et il faut le voir sans hesiter. */
+        const sel = gameState._zoneSel;
+        if (sel && sel.body === body && L.zones && L.zones[sel.id] && gameState.isMulti) {
+            /* La grille locale n'etant pas celle du serveur, on cerne la zone
+               d'un anneau pose sur son centre plutot que de suivre ses cases. */
+            const z = L.zones[sel.id];
+            const c = zoneCentre(body, z);
+            const rr = Math.sqrt(z.n / Math.PI) * ((2 * r) / LUTTE_N);
+            const bat = 0.55 + 0.45 * Math.sin((gameState.time || 0) * 6);
+            ctx.save();
+            ctx.globalAlpha = 0.5 + 0.5 * bat;
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = Math.max(1 / zc, r * 0.02);
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, Math.max(rr, r * 0.08), 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        } else if (sel && sel.body === body && L.zones && L.zones[sel.id]) {
+            const pas = (2 * r) / LUTTE_N;
+            const x0 = body.x - r, y0 = body.y - r;
+            const bat = 0.55 + 0.45 * Math.sin((gameState.time || 0) * 6);
+            ctx.save();
+            ctx.globalAlpha = 0.55 + 0.45 * bat;
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = Math.max(1 / zc, pas * 0.26);
+            ctx.lineCap = 'round';
+            for (let y = 0; y < LUTTE_N; y++) for (let x = 0; x < LUTTE_N; x++) {
+                const i = y * LUTTE_N + x;
+                if (L.zid[i] !== sel.id) continue;
+                /* Seules les aretes qui donnent sur l'exterieur de la zone. */
+                if (x === LUTTE_N - 1 || L.zid[i + 1] !== sel.id) {
+                    ctx.beginPath();
+                    ctx.moveTo(x0 + (x + 1) * pas, y0 + y * pas);
+                    ctx.lineTo(x0 + (x + 1) * pas, y0 + (y + 1) * pas);
+                    ctx.stroke();
+                }
+                if (x === 0 || L.zid[i - 1] !== sel.id) {
+                    ctx.beginPath();
+                    ctx.moveTo(x0 + x * pas, y0 + y * pas);
+                    ctx.lineTo(x0 + x * pas, y0 + (y + 1) * pas);
+                    ctx.stroke();
+                }
+                if (y === LUTTE_N - 1 || L.zid[i + LUTTE_N] !== sel.id) {
+                    ctx.beginPath();
+                    ctx.moveTo(x0 + x * pas, y0 + (y + 1) * pas);
+                    ctx.lineTo(x0 + (x + 1) * pas, y0 + (y + 1) * pas);
+                    ctx.stroke();
+                }
+                if (y === 0 || L.zid[i - LUTTE_N] !== sel.id) {
+                    ctx.beginPath();
+                    ctx.moveTo(x0 + x * pas, y0 + y * pas);
+                    ctx.lineTo(x0 + (x + 1) * pas, y0 + y * pas);
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
+        }
+
         ctx.restore();
+
+        /* CE QUE PORTE CHAQUE ZONE, ecrit en son milieu des qu'on est assez
+           pres : sa reserve, et son rendement du moment. Une zone trop petite
+           pour attaquer le dit aussi - elle ne fait plus que fondre. */
+        if (r * zc > 70 && L.zones) {
+            const px = _taillePx(zc, 11, r * zc * 0.25, 10, 22);
+            const monde = px / zc;
+            ctx.save();
+            ctx.textAlign = 'center';
+            for (const id in L.zones) {
+                const z = L.zones[id];
+                if (z.n < 3) continue;
+                const c = zoneCentre(body, z);
+                const j2 = gameState.players[(z.v === 0) ? body.owner : z.v - 1];
+                ctx.font = 'bold ' + monde + 'px Orbitron';
+                _texteLisible(ctx, _sp(z.spores), c.x, c.y,
+                              (j2 && j2.color) || '#CCCCCC', Math.max(2, monde * 0.24));
+                ctx.font = 'bold ' + (monde * 0.72) + 'px Orbitron';
+                const rd = Math.round((z.rendement || 0) * 100);
+                _texteLisible(ctx, z.n < ZONE_MIN ? '\u25BC ' + z.n : '\u25D1' + rd + '%',
+                              c.x, c.y + monde * 0.95,
+                              z.n < ZONE_MIN ? '#F87171' : (rd >= 85 ? '#4ADE80' : rd >= 50 ? '#FACC15' : '#F87171'),
+                              Math.max(2, monde * 0.2));
+            }
+            ctx.restore();
+        }
 
         /* Le stock de chaque assaillant, a sa couleur, sous l'astre. Le grand
            nombre qui y figure deja est celui du defenseur : sans celui-ci on
@@ -9866,6 +10225,7 @@ function drawLuttes(ctx) {
    alerte, effets. */
 function conquerir(body, nouveauProprio, sporesArrivees) {
     body.lutte = null;
+    if (gameState._zoneSel && gameState._zoneSel.body === body) gameState._zoneSel = null;
     const attacking = sporesArrivees;
     const jet = { owner: nouveauProprio };
     const attackerColor = gameState.players[nouveauProprio]?.color || '#FFF';
@@ -10425,7 +10785,18 @@ function setupInput() {
 
         // Sinon : centrer caméra sur l'astre
         const body = _bodyAt(wp.x, wp.y);
-        if (body) { followingBody = body; }
+        if (body) {
+            followingBody = body;
+            /* Sur un astre partage, le clic choisit la ZONE sur laquelle il
+               tombe, si elle est a nous : c'est d'elle qu'on tirera. */
+            if (body.lutte) {
+                const id = zoneA(body, wp.x, wp.y);
+                const z = id && body.lutte.zones ? body.lutte.zones[id] : null;
+                if (z && z.v === campDe(body, localSlot())) {
+                    gameState._zoneSel = { body: body, id: id };
+                }
+            }
+        }
     });
 
     window.addEventListener('mouseup', (e) => {
@@ -10449,7 +10820,14 @@ function setupInput() {
                 if (len > 10) {
                     const dX = dx/len, dY = dy/len;
                     if (gameState.isMulti) {
-                        sendAction('jet', { srcName: src.name, dirX: dX, dirY: dY, sporeType: gameState._fireType });
+                        /* On annonce le POINT de la zone choisie : le serveur
+                           n'a pas la meme numerotation, mais il retrouve la
+                           zone sous ce point. */
+                        const _zt = src.lutte ? zoneDeTir(src, localSlot()) : null;
+                        const _zc = _zt ? zoneCentre(src, _zt.z) : null;
+                        sendAction('jet', { srcName: src.name, dirX: dX, dirY: dY,
+                                            sporeType: gameState._fireType,
+                                            zx: _zc ? _zc.x : undefined, zy: _zc ? _zc.y : undefined });
                     } else {
                         launchJet(src, dX, dY, gameState._fireType, localSlot());
                     }
@@ -13140,7 +13518,7 @@ function demanderConstruction(body, mode) {
        l'autre : une tete de pont est un territoire comme un autre. */
     const v = campDe(body, moi);
     const chezMoi = (body.owner === moi);
-    if (!chezMoi && !(body.lutte && (body.lutte.assaut[moi] || 0) > 0)) return false;
+    if (!chezMoi && !(body.lutte && zonesDe(body, moi).length)) return false;
 
     if (mode === 'off' || mode === 'parasite') {
         body.buildMode = mode;
@@ -13149,7 +13527,9 @@ function demanderConstruction(body, mode) {
         if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: mode });
         return true;
     }
-    const reserve = chezMoi ? body.spores : (body.lutte.assaut[moi] || 0);
+    const zb = body.lutte ? zoneDeTir(body, moi) : null;
+    if (body.lutte && (!zb || zb.z.n < ZONE_MIN)) { secouerEcran(8); return false; }
+    const reserve = zb ? zb.z.spores : body.spores;
     if (reserve < coutBatiment(body, mode)) {
         secouerEcran(8);
         return false;
