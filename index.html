@@ -194,37 +194,214 @@ v9.7.3 | 2026-09-23 | Performance du rendu
        lecture seule cote client, search_path fige sur increment_bot_votes,
        EXECUTE revoque a anon, 12 index de cles etrangeres.
 
-v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
+v9.7.4 | 2026-09-23 | Bataille de surface, zones, production, livre des regles
      ── GAMEPLAY ──
-     - Spores d'attaque et de defense supprimees (modes Ruche et Mare), ainsi
-       que la nidification et la planete mere. Un seul type de spore.
+     - UN SEUL TYPE DE SPORE. Les spores d'attaque et de defense (modes Ruche
+       et Mare) disparaissent, ainsi que la nidification et la planete mere.
+       Restent les spores et le parasite.
      - TERRITOIRES. Une planete dont toutes les lunes sont tenues forme un
        territoire ; un soleil entierement tenu en forme un plus grand, qui
        remplace les precedents et inclut l'etoile. La frontiere est
-       l'enveloppe tendue des astres, tracee en courbes.
-     - TIR GROUPE. Pendant la visee, c'est l'astre du groupe le plus proche
-       de la cible qui tirera ; les autres lui envoient leurs spores par
-       paquets de 100. Changer de cible remet le chargement a zero. La camera
-       ne bouge pas : un anneau et des filets lumineux disent ou part le tir.
-     - CONSTRUCTION IMMEDIATE, et refusee sur-le-champ avec une secousse de
-       l'ecran si l'astre ne peut pas payer. Plus d'attente, donc plus d'icone
-       ADN.
-     - BATIMENTS A RENDEMENTS DECROISSANTS : 20 %, 15 %, 10 %, puis 5 % par
-       batiment d'un meme genre, et a partir du quatrieme un cout majore de
-       10 % a chaque fois.
-     - Raccourcis : 1 2 3 construisent, Espace passe en visee, Tab suit la
-       liste de gauche. Compteur de batiments sous chaque astre et dans le
-       HUD. Production et debit affiches au-dessus de l'astre selectionne.
-     - Nombres de spores agrandis et cernes : ils faisaient 6 a 8 pixels.
+       l'enveloppe tendue des astres, tracee en courbes. Deux frontieres d'un
+       meme joueur qui se croisent n'en font plus qu'une - la fusion se
+       decide a chaque image, les astres orbitant.
+     - UNE TETE DE PONT NE CASSE PLUS UN GROUPEMENT : un astre envahi a moins
+       de moitie compte toujours comme tenu. Au-dela, il en sort.
+     - ONDES SOLAIRES. Un systeme entierement tenu s'embrase toutes les cinq
+       secondes et envoie une onde qui balaie ses astres. Chacun la recoit au
+       PASSAGE DU FRONT, pas au depart : le systeme s'allume de l'interieur
+       vers l'exterieur.
+     - SENSITIVITY, quatrieme voie d'evolution : elle regle ce que l'onde
+       apporte, cinq pour cent de la capacite de l'astre par point.
+     - TIR GROUPE. Pendant la visee, c'est l'astre du groupe le plus proche de
+       la cible QUI VOIT LA CIBLE qui tirera ; les autres lui envoient leurs
+       spores par paquets de 100 le long d'arcs lumineux. Changer de cible
+       remet le chargement a zero. On ne tire pas a travers une etoile ni un
+       trou noir : quand aucun astre n'a la vue, le trait passe au rouge au
+       lieu de laisser croire la cible invulnerable - c'etait la vraie cause
+       des "planetes inattaquables", l'impact n'ayant jamais resiste.
+     - CONSTRUCTION IMMEDIATE, refusee sur-le-champ avec une secousse si
+       l'astre ne peut pas payer. Rendements decroissants par genre : 20, 15,
+       10 puis 5 % (le nid une fois et demie plus fort), et a partir du
+       quatrieme un cout majore de 10 % a chaque fois.
+     - LES BATIMENTS SONT POSES SUR LE SOL. Chacun occupe une case de la
+       surface. Quand la frontiere passe dessus il change de mains avec le
+       terrain : la conquete ne detruit plus rien, elle recupere - le reglage
+       Detruire / Conserver disparait. Seuls comptent les nids qu'on tient,
+       et les biomes qui defendent sont ceux que l'assaillant ne tient pas.
+       On batit aussi sur une simple tete de pont, paye sur place.
+
+     ── BATAILLE DE SURFACE ──
+     - Une conquete ne se joue plus en un choc. Les spores qui touchent un
+       astre y prennent pied sur UNE case, du cote d'ou vient le tir, et
+       s'etalent sur le disque. Le serveur livre la meme bataille et n'envoie
+       que des resumes de zones : le client peint la tache.
+     - ON ACHETE LE SOL. La planete vaut sa capacite en spores, donc une case
+       coute cette capacite divisee par le nombre de cases. Attaquer avec X
+       spores rapporte X cases, puis le front s'arrete net. Il n'y a donc plus
+       besoin d'etre le plus fort pour attaquer. Personne ne repousse tout
+       seul : il faut relancer. Le sol vierge se prend a 15 % du prix -
+       coloniser n'est pas conquerir. Ce modele remplace un duel de pressions
+       qui avait resiste a cinq equilibrages : l'usure absolue balayait le
+       plus petit stock, l'usure proportionnelle figeait le rapport a jamais,
+       et la pression ramenee aux cases faisait tenir cinq spores sur trois
+       cases contre cinq cents.
+     - LE TERRAIN CONQUIS RESTE. Une attaque qui s'essouffle ne s'evapore
+       plus : l'assaillant garde ce qu'il a pris et continue d'y produire.
+     - LE FRONT S'ENDORT quand plus personne n'a de quoi pousser ; le partage
+       tient jusqu'au prochain debarquement.
+     - LE FRONT AVANCE PAR LOBES : huit voisins au lieu de quatre - a quatre
+       une tache pousse en croix et finit carree - et un grain du sol tire une
+       fois par bataille puis lisse, qui fait ceder certains endroits plus
+       vite que d'autres.
+     - LA FRONTIERE SE DESSINE. Grille de 32 cases de cote, chaque camp avec
+       son propre lisere : a une couture on voit les deux. Le bord qui donne
+       sur un autre camp est net, celui qui donne sur le vide reste discret.
+       Le sol que personne ne tient a aussi sa frontiere, en gris.
+     - CHAQUE TIR OUVRE SON PROPRE FRONT la ou il touche : deux attaques sur
+       la meme planete font deux taches. Les spores ne renforcent une tache
+       que si le tir retombe sur du terrain deja tenu.
+     - TIR DE SURFACE. Un double-clic plonge sur l'astre et l'on vise sa
+       surface : le tir part du bout de terrain qu'on y tient le plus proche
+       du curseur et suit une cloche deviee vers le centre - plus on vise
+       loin, plus il faut corriger. Il passe au-dessus du disque, dans
+       l'atmosphere, et seul le point de chute revient sur la planete. On y
+       reste tant que l'astre garde 70 pixels de rayon a l'ecran : une geante
+       se bombarde de loin, une lune demande qu'on s'approche.
+     - LA TOUCHE R RIPOSTE. Elle engage, sur chaque astre ou plusieurs camps
+       se partagent le sol et ou l'on tient une zone d'au moins dix cases -
+       chez soi, chez l'autre, ou sur un neutre entame -, juste la facture du
+       terrain etranger, repartie entre nos zones au prorata de leurs
+       reserves. LA SOURIS DESIGNE LA CIBLE : sur un astre survole, la riposte
+       s'y limite ; dans le vide, toute la galaxie repart. Rien a nettoyer,
+       l'ecran vibre. Le serveur fait le meme calcul.
+
+     ── LES ZONES ──
+     - Une tache sur une planete n'est pas un morceau de camp : c'est une
+       ZONE, avec SES spores et SON rendement. Deux taches du meme joueur
+       vivent chacune leur vie et ne mettent leurs reserves en commun que si
+       le terrain les soude ; une zone coupee en deux partage les siennes au
+       prorata des cases. Perdre du sol, c'est perdre les spores qui etaient
+       dessus - elles sont sur le terrain, pas dans un coffre. body.spores et
+       les totaux d'assaut ne sont plus que des sommes.
+     - ON CLIQUE UNE ZONE pour choisir d'ou l'on tire et ou l'on batit. Elle
+       se cerne d'un trait double - sombre dessous, clair dessus, sans quoi il
+       se perdait parmi les liseres - et se signe d'un "TIR". Chaque zone
+       porte en son milieu sa reserve et son rendement. Un clic qui tombe sur
+       le terrain d'un autre prend la notre la plus proche.
+     - Sous dix cases, une zone ne peut plus ni attaquer ni batir, et une fois
+       son elan retombe elle s'effrite case par case jusqu'a disparaitre. Le
+       refus fait vibrer l'ecran, en solo comme en multijoueur - la ou le
+       refus du serveur etait muet.
+
+     ── PRODUCTION ──
+     - LA PRODUCTION SUIT LA CAPACITE, en part par seconde et non plus en
+       nombre fixe de spores. Une geante de vingt mille mettait des heures a
+       se remplir au meme rythme qu'une lune de quatre cents : tout le monde
+       stagnait faute de pouvoir accumuler de quoi relancer une attaque.
+       Mesure : 80 secondes pour le quart de la capacite, trois minutes et
+       demie pour le grand pic, quelle que soit la taille de l'astre.
+     - COURBE A DEUX REGIMES : une bosse modeste au quart, un creux a
+       mi-chemin qui punit qui reste a moitie plein, un PIC franc aux sept
+       dixiemes, puis l'extinction a saturation. Il y a donc deux rendements
+       a connaitre - le petit, facile a tenir, et le gros, qui demande de
+       rester juste sous le plafond au risque qu'un renfort vous y pousse.
+       La courbe multiplie le reste : flore, symbiose, nids et Growth.
+     - Une alveole augmente aussi la production, puisqu'un plus grand silo
+       nourrit plus de monde. Dans une bataille, la capacite d'un camp suit la
+       surface qu'il tient : perdre du terrain abaisse aussi son plafond.
+
+     ── INTERFACE ──
+     - ALERTES DIRECTIONNELLES. La carte est bien plus grande que l'ecran :
+       dire qu'il se passe quelque chose ne suffit pas, il faut dire OU.
+       Trois evenements posent une balise sur l'astre concerne - on se fait
+       tirer dessus, on perd un astre, un groupement se referme. L'astre a
+       l'ecran recoit un anneau qui bat ; hors-champ, c'est une fleche collee
+       au bord, dans sa direction. La perte y ajoute un eclat lumineux du bon
+       cote et une secousse.
+     - LES CHIFFRES SOUS UN ASTRE SE NOMMENT AU SURVOL. Sous un astre dispute
+       s'empilent celui qui le tient et un compteur par assaillant, chacun a
+       sa couleur - mais une couleur n'est pas un nom. Chaque nombre
+       enregistre au trace le rectangle qu'il occupe a l'ecran ; la souris
+       dessus, une infobulle donne le joueur, sa guilde, ce qu'il fait la et
+       combien il a.
+     - LE PANNEAU NAISSANCE, au-dessus d'Evolution : la courbe de production
+       en entier et un point qui dit ou en est la zone choisie, avec son nom,
+       sa taille, son remplissage et son rendement. Pas de zone choisie, pas
+       de panneau. Dessine d'abord sur le canevas a cote de la zone, il se
+       cachait derriere les scores des qu'on visait un bord ; dans la colonne
+       il est toujours au meme endroit. Le plafond d'une zone ne voyage pas
+       sur le reseau, il se recalcule cote client a l'identique du serveur.
+     - LE LIVRE DES REGLES REFAIT, ET OUVERT A LA PAUSE. Il en restait deux
+       versions empilees dans le meme panneau, la seconde d'avant la refonte :
+       spores d'attaque et de defense, faune a vaincre, nidification,
+       terminaux de commerce, diplomatie et signaux - tout cela n'existe plus.
+       La copie morte est supprimee et les chapitres refaits, douze au lieu de
+       dix, chacun avec son lien en tete, et les controles listent enfin tout
+       le clavier. Echap l'affiche entier dans le menu de pause : on cherche
+       une regle au moment ou la question se pose. Le livre n'existe qu'a un
+       exemplaire, DEPLACE entre l'ecran AIDE et la pause, pour qu'il n'y ait
+       jamais deux textes a tenir a jour.
+     - Le panneau d'evolution ne s'ouvre plus au clic droit : il est toujours
+       la, empile au-dessus de Mes Astres dans une colonne a largeur fixe. Les
+       trois panneaux de droite se replient mais ne se retirent plus - la case
+       a cocher les faisait disparaitre avec elle-meme.
+     - LE CONVOI DE CHARGE ne se voyait pas : un trait droit qui palissait.
+       Chaque envoi est desormais un arc le long duquel filent trois grains
+       lumineux, avec un anneau de choc a l'arrivee, et l'astre qui charge
+       porte deux anneaux tournants dont l'eclat monte avec la charge.
+     - Raccourcis : 1 2 3 construisent (& é " en azerty, lues a leur
+       position), Espace passe en visee, Tab suit la liste de gauche, ZQSD et
+       les fleches deplacent la camera, A et E reglent l'envoi par crans de
+       5 %, R riposte, F3 puis D diagnostiquent.
+     - La jauge d'envoi gagne une barre et le nombre de spores qui partiront,
+       en gros et en vert, en bas au centre : il se reglait au curseur, ecrit
+       en onze pixels dans un coin. Les nombres de spores sont agrandis et
+       cernes - ils faisaient 6 a 8 pixels.
+     - Le rendement du moment s'affiche au-dessus de l'astre selectionne, en
+       vert, jaune ou rouge. Compteur de batiments sous chaque astre et dans
+       le HUD.
+     - Les explications des mutations passent en infobulle au survol : elles
+       tenaient trois lignes chacune en permanence, pour un texte qu'on lit
+       une fois.
+     - Le secteur "Normal" du menu de tir s'appelle desormais "Spores".
+
+     ── RENDU ──
+     - LES LUEURS S'AJOUTENT AU FOND AU LIEU DE SE POSER DESSUS. Un vaisseau,
+       un rocher ou un jet qui passait devant une planete perdait ses effets :
+       reacteur, feux d'aile, cercle de detection, halo de groupe, reflet,
+       brume et trainee etaient peints en transparence simple, donc plus
+       sombres qu'une planete eclairee - ils s'y effacaient. Ces elements sont
+       de la lumiere : ils passent en composition additive. Mesure sur une
+       planete eclairee : la trainee d'un jet passe de 155 a 242 de luminosite
+       pour un fond a 75 ; dans le vide elle ne gagne que 96 -> 130, donc rien
+       n'est crame. Aucun cout mesurable (2,8 ms par image avant comme apres).
+     - Fond spatial sans filtrage bilineaire, etoiles en repere ecran, halos
+       de soleil et lueur du trou noir cuits en sprites : image complete
+       13-15 ms -> 4-6 ms.
+     - Culling ajoute aux six fonctions de dessin qui n'en avaient aucune.
+       Nettoyeurs : 0,83 -> 0,06 ms par image.
+     - Diagnostic integre : F3 affiche FPS, simulation, rendu, taille de la
+       fenetre et dpr ; D detaille le rendu fonction par fonction.
 
      ── CORRECTIONS ──
+     - VISER CHEZ SOI NE CHANGE PLUS LE LANCEUR. Traverser sa propre frontiere
+       pour aller chercher une cible derriere faisait sauter le tir d'une lune
+       a l'autre, et chaque saut remettait la charge a zero : elle ne montait
+       jamais. Meme regle sur le serveur.
      - Un astre a qui l'on demandait un batiment hors de ses moyens restait
        fige pour toujours : la construction court-circuitait la production,
        donc il ne pouvait plus gagner de quoi payer.
      - Calcul du stockage des alveoles blinde : sans le maximum de base, le
        maximum deja augmente servait de base et se remultipliait a chaque
        image - 1e109 en quelques secondes.
+     - Une zone perdait deux fois les spores du terrain cede : le prorata se
+       faisait sur un compte deja decremente. Fige a l'entree du calcul.
+     - Ouvrir une bataille effacait la reserve du defenseur, la premiere zone
+       naissant vide. Elle herite desormais des spores de l'astre.
      - Noeuds audio des sons termines debranches (300 sons = 300 noeuds).
+     - Barres de chantier retirees ou reaffectees : elles suivaient une
+       construction devenue immediate.
 
      ── SECURITE (serveur) ──
      - spawn : le slot venait du client et l'astre vise n'etait pas verifie.
@@ -234,261 +411,7 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        production par dix.
      - Ratio de tir enfin transmis au serveur, et par joueur.
 
-     ── PERFORMANCE ──
-     - Fond spatial sans filtrage bilineaire, etoiles en repere ecran, halos
-       de soleil et lueur du trou noir cuits en sprites : image complete
-       13-15 ms -> 4-6 ms.
-     - Culling ajoute aux six fonctions de dessin qui n'en avaient aucune.
-       Nettoyeurs : 0,83 -> 0,06 ms par image.
-     - Diagnostic integre : F3 affiche FPS, simulation, rendu, taille de la
-       fenetre et dpr ; D detaille le rendu fonction par fonction.
-
-     ── INTERFACE ──
-     - ALERTES DIRECTIONNELLES. La carte est bien plus grande que l'ecran :
-       dire qu'il se passe quelque chose ne suffisait pas, il fallait dire
-       ou. Trois evenements posent maintenant une balise sur l'astre
-       concerne - on se fait tirer dessus, on perd un astre, un groupement
-       se referme quelque part. L'astre a l'ecran recoit un anneau qui bat ;
-       hors-champ, c'est une fleche collee au bord, exactement dans sa
-       direction. La perte y ajoute un eclat lumineux du bon cote de l'ecran
-       et une secousse.
-     - Le panneau d'evolution ne s'ouvre plus au clic droit : il est
-       toujours la, empile au-dessus de Mes Astres dans une colonne, a
-       largeur fixe pour ne plus changer de taille entre ses deux onglets.
-     - Les trois panneaux de droite se replient, mais ne se retirent plus :
-       la case a cocher les faisait disparaitre avec elle-meme, sans aucun
-       moyen de les rappeler.
-     - Barres de chantier retirees ou reaffectees : elles suivaient une
-       construction qui est devenue immediate.
-     - FRONTIERES QUI SE RELIENT. Deux frontieres d'un meme joueur qui se
-       croisent n'en font plus qu'une : se chevaucher donnait un double
-       trait au milieu de son propre empire. La fusion se decide a chaque
-       image, pas a la conquete - les astres orbitent, deux frontieres se
-       croisent puis se separent sans qu'aucun astre n'ait change de mains.
-     - VISER CHEZ SOI NE CHANGE PLUS LE LANCEUR. Traverser sa propre
-       frontiere pour aller chercher une cible derriere faisait sauter le
-       tir d'une lune a l'autre, et chaque saut remettait la charge a zero :
-       elle ne montait jamais. Meme regle sur le serveur.
-     - ZQSD deplace la camera (les codes physiques : ZQSD en azerty, WASD en
-       qwerty), A et E reglent la part de spores envoyee par crans de 5 %.
-       Les fleches gardent desormais la meme vitesse.
-     - Le pourcentage d'envoi s'affiche en gros en bas au centre, avec le
-       nombre de spores que partirait vraiment de l'astre en main. Il se
-       reglait au curseur, ecrit en onze pixels dans un coin.
-     - Les explications des mutations passent en infobulle au survol : elles
-       tenaient trois lignes chacune en permanence, pour un texte qu'on lit
-       une fois. L'infobulle des cartes de construction leur sert de base,
-       desormais partagee.
-     - La jauge d'envoi gagne une barre - on voit qu'on est au tiers sans
-       lire le chiffre - et le nombre de spores qui partiront passe en gros
-       et en vert.
-     - Les batiments se construisent aussi avec & é " : ce sont les touches
-       1 2 3 d'un clavier francais, lues a leur position et non au caractere.
-     - BATAILLE DE SURFACE. Une conquete ne se joue plus en un choc. Les
-       spores qui touchent un astre y prennent pied sur UNE case, du cote
-       d'ou vient le tir, et s'etalent sur le disque. Ce que tient un camp
-       lui donne sa part de la production de l'astre et sa pression - ses
-       spores rapportees a sa surface -, et c'est la pression qui fait
-       avancer le front. A pression egale seule l'usure decide, et comme les
-       deux camps y perdent autant, le vainqueur garde la difference :
-       l'economie de l'ancien choc, etalee sur quelques secondes a une
-       demi-minute selon les masses engagees. Un astre neutre ne tombe que
-       recouvert en entier, un astre possede tombe aussi des que son
-       defenseur n'a plus une spore. Le serveur livre la meme bataille et
-       n'envoie que les comptes de cases : le client peint la tache.
-       LE TERRAIN CONQUIS RESTE. Une attaque qui s'essouffle ne s'evaporait
-       plus d'un coup : l'assaillant garde ce qu'il a pris et continue d'y
-       produire. Il a fallu pour cela changer deux choses. L'usure du front
-       ronge une PART du stock et non un nombre fixe de spores - sinon le
-       plus petit stock tombait a zero et se faisait balayer jusqu'a la
-       derniere case ; et cette part est mesuree sur le front PARTAGE, la
-       meme des deux cotes - sinon une petite poche, qui n'est que du bord,
-       payait trois fois plus qu'un grand territoire. Elle pese en revanche
-       d'autant plus lourd que l'adverse est fort, faute de quoi le rapport
-       des stocks se conservait a jamais et l'on ne pouvait plus prendre une
-       planete, seulement l'entamer. La pression d'un camp compte enfin
-       quinze secondes de sa production en plus de son stock : un camp a sec
-       garde ainsi de quoi tenir. Resultat : la frontiere se fige la ou les
-       deux camps s'equilibrent, et c'est la production - ou un renfort - qui
-       la fait ensuite glisser d'un cote ou de l'autre.
-       LA FRONTIERE SE DESSINE. La grille passe a trente-deux cases de cote,
-       et chaque camp porte son propre lisere : a une couture on voit les
-       deux, cote a cote. Le bord qui donne sur un autre camp est net et
-       opaque, celui qui donne sur le vide reste discret. Le sol que personne
-       ne tient a lui aussi sa frontiere, en gris.
-       LE FRONT S'ENDORT quand plus personne n'a de quoi pousser : l'assaut
-       s'arrete la ou il en est et le partage tient. Chacun continue a
-       produire sur ce qu'il tient, mais il faut un nouveau debarquement pour
-       relancer le conflit.
-     - TIR DE SURFACE. Un double-clic sur un astre plonge dessus et l'on vise
-       sa surface : le tir part du bout de terrain qu'on y tient le plus
-       proche du curseur, et suit une cloche deviee vers le centre de
-       l'astre - plus on vise loin, plus il faut corriger ; d'une frontiere a
-       celle d'en face, le tir reste tendu. Les spores debarquent au point de
-       chute et y prennent pied sur quelques cases. On repasse en visee
-       normale des qu'on prend du recul.
-     - Le secteur "Normal" du menu de tir s'appelle desormais "Spores".
-     - COURBE DE CROISSANCE. Un astre presque vide produit peu - il n'y a
-       personne pour se reproduire - et un astre plein produit peu aussi : le
-       rendement est maximal A MI-CAPACITE. Le rendement du moment s'affiche
-       au-dessus de l'astre selectionne, en vert, jaune ou rouge. Dans une
-       bataille, la capacite d'un camp suit la surface qu'il tient : perdre
-       du terrain abaisse aussi son plafond.
-     - LA PRESSION EST LE STOCK, et non le stock par case. Diviser par la
-       surface recompensait la petite poche : cinq spores sur trois cases
-       tenaient tete a cinq cents spores sur sept cents. Le front avance
-       maintenant a l'ECART de pression, avec un levier de quatre - sans lui,
-       quatre mille cent contre quatre mille n'avancait pour ainsi dire pas -
-       et le remous du front ne s'applique plus entre camps trop etroits,
-       ou il effacait une tete de pont par pur hasard.
-     - Le front s'endort sous deux pour cent de la capacite de l'astre, et non
-       sous trente spores : trente ne veut pas dire la meme chose sur une lune
-       et sur une geante.
-     - Le tir de surface passe desormais au-dessus du disque - dans
-       l'atmosphere, voire au-dela du limbe. Seul le point de chute est ramene
-       sur la planete.
-     - ON ACHETE LE SOL. Il n'y a plus de duel de pressions : la planete vaut
-       sa capacite en spores, donc une case coute cette capacite divisee par
-       le nombre de cases. Attaquer avec X spores rapporte X cases, puis le
-       front s'arrete net. Personne ne repousse tout seul - il faut relancer
-       une attaque - et pendant ce temps les deux camps produisent sur ce
-       qu'ils tiennent. Le sol vierge se prend a quinze pour cent du prix :
-       coloniser n'est pas conquerir. L'IA, elle, contre-attaque d'elle-meme
-       des qu'elle a du surplus, n'ayant personne pour decider a sa place.
-     - LE FRONT AVANCE PAR LOBES. Huit voisins au lieu de quatre - a quatre
-       une tache pousse en croix et finit carree - et un grain du sol tire une
-       fois par bataille puis lisse, qui fait ceder certains endroits plus
-       vite que d'autres.
-     - UNE TETE DE PONT NE CASSE PLUS UN GROUPEMENT : un astre envahi a moins
-       de moitie compte toujours comme tenu. Au-dela de la moitie, il en
-       sort.
-     - CHAQUE TIR OUVRE SON PROPRE FRONT, la ou il touche : deux attaques sur
-       la meme planete font deux taches, qui s'etalent chacune de leur cote.
-       Les spores ne renforcent une tache que si le tir retombe sur du terrain
-       deja tenu - la meme regle que le tir de surface.
-     - LES BATIMENTS SONT POSES SUR LE SOL. Un batiment occupe une case de la
-       surface : on le voit ou il est, et quand la frontiere passe dessus il
-       change de mains avec le terrain. La conquete ne detruit donc plus rien,
-       elle recupere - le reglage Detruire / Conserver disparait. Seuls
-       comptent les nids qu'on tient, et les biomes qui defendent sont ceux
-       que l'assaillant ne tient pas.
-     - ON BATIT SUR SA TETE DE PONT, paye par la reserve qu'on a sur place, et
-       ON TIRE DEPUIS ELLE : un astre a moitie conquis peut envoyer des spores
-       ailleurs sans avoir a etre pris en entier.
-     - LES ZONES. Une tache sur une planete n'est plus un morceau de camp :
-       c'est une zone, avec SES spores et SON rendement. Deux taches du meme
-       joueur vivent chacune leur vie et ne mettent leurs reserves en commun
-       que si le terrain finit par les souder ; une zone coupee en deux
-       partage les siennes au prorata des cases. Perdre du sol, c'est donc
-       perdre les spores qui etaient dessus - elles sont sur le terrain, pas
-       dans un coffre. body.spores et les totaux d'assaut ne sont plus que des
-       sommes.
-     - ON CLIQUE UNE ZONE POUR CHOISIR D'OU L'ON TIRE. Elle se cerne d'un
-       trait double - sombre dessous, clair dessus, sans quoi il se perdait
-       parmi les liseres de camp - et se signe d'un "TIR". Chaque zone porte
-       en son milieu sa reserve et son rendement. Un clic qui tombe sur le
-       terrain d'un autre prend la notre la plus proche : cliquer sa planete
-       doit toujours designer quelque chose.
-     - Sous dix cases, une zone ne peut plus ni attaquer ni batir, et une fois
-       son elan retombe elle s'effrite case par case jusqu'a disparaitre : les
-       confettis ne restent pas sur la carte. Le refus fait vibrer l'ecran,
-       en solo comme en multijoueur - la ou le refus du serveur etait muet.
-     - Le tir de surface ne demande plus le grossissement maximum : on y reste
-       tant que l'astre garde soixante-dix pixels de rayon a l'ecran, de quoi
-       viser ses cases. Une geante se bombarde donc de loin, une petite lune
-       demande qu'on s'approche.
-     - LA PRODUCTION SUIT LA CAPACITE, en part par seconde et non plus en
-       nombre fixe de spores. Une geante de vingt mille mettait des heures a
-       se remplir au meme rythme qu'une lune de quatre cents : tout le monde
-       stagnait faute de pouvoir accumuler de quoi relancer une attaque.
-       Mesure : quatre-vingts secondes pour le quart de la capacite, trois
-       minutes et demie pour le grand pic, quelle que soit la taille de
-       l'astre. Une alveole augmente desormais aussi la production, puisqu'un
-       plus grand silo nourrit plus de monde.
-     - COURBE DE PRODUCTION A DEUX REGIMES : une bosse modeste au quart de la
-       capacite, un creux a mi-chemin qui punit qui reste a moitie plein, un
-       PIC franc aux sept dixiemes, puis l'extinction a saturation. Il y a
-       donc deux rendements a connaitre - le petit, facile a tenir, et le
-       gros, qui demande de rester juste sous le plafond au risque qu'un
-       renfort vous y pousse et vous coupe tout. La courbe multiplie le reste,
-       flore et bonus compris, qui comptent exactement pareil.
-     - ONDES SOLAIRES. Un systeme entierement tenu se met a vivre : son
-       etoile s'embrase toutes les cinq secondes et envoie une onde qui
-       balaie ses astres. Chacun la recoit au PASSAGE DU FRONT, pas au
-       depart : le systeme s'allume de l'interieur vers l'exterieur.
-     - SENSITIVITY, quatrieme voie d'evolution : elle regle ce que l'onde
-       apporte, cinq pour cent de la capacite de l'astre par point. A un
-       point une lune de quatre cents recoit vingt spores - le forfait
-       d'origine, devenu proportionnel.
-     - LE CONVOI DE CHARGE ne se voyait pas : un trait droit qui palissait.
-       Chaque envoi est desormais un arc le long duquel filent trois grains
-       lumineux, avec un anneau de choc a l'arrivee, et l'astre qui charge
-       porte deux anneaux tournants dont l'eclat monte avec la charge.
-     - ON NE TIRE PLUS A TRAVERS UNE ETOILE. Les soleils et le trou noir
-       detruisent les jets ; le lanceur choisi pendant la visee est donc le
-       plus proche QUI VOIT LA CIBLE, et non le plus proche tout court.
-       Quand aucun n'a la vue, le trait de visee passe au rouge au lieu de
-       laisser croire que la cible est invulnerable - c'etait la vraie cause
-       des "planetes inattaquables" : l'impact, lui, n'a jamais resiste.
-     - LA TOUCHE R RIPOSTE PARTOUT A LA FOIS. Elle passe en revue tous les
-       astres ou plusieurs camps se partagent le sol et ou l'on tient une
-       zone d'au moins dix cases - chez soi comme chez l'autre, y compris un
-       neutre entame - et engage sur chacun juste ce qu'il faut pour acheter
-       le terrain etranger : la facture est repartie entre nos zones au
-       prorata de leurs reserves. Rien a nettoyer, l'ecran vibre. Le serveur
-       fait le meme calcul de son cote.
-     - LES LUEURS S'AJOUTENT AU FOND AU LIEU DE SE POSER DESSUS. Un vaisseau
-       ou un rocher qui passait devant une planete perdait tous ses effets :
-       reacteur, feux d'aile, cercle de detection, halo de groupe et reflet
-       etaient peints en transparence simple, donc plus sombres qu'une
-       planete eclairee - ils s'y effacaient. Ces elements sont de la
-       lumiere : ils passent en composition additive et restent visibles sur
-       n'importe quel fond. Aucun cout mesurable (2,8 ms par image avant
-       comme apres). Les jets de spores suivent - brume, trainee, halo,
-       noyau et scintillements -, seul leur compteur reste en rendu normal.
-       Mesure sur une planete eclairee : la trainee passe de 155 a 242 de
-       luminosite pour un fond a 75 ; dans le vide elle ne gagne que 96 ->
-       130, donc rien n'est crame.
-     - LE LIVRE DES REGLES REMIS A JOUR ET OUVERT A LA PAUSE. Il en restait
-       deux versions empilees dans le meme panneau, la seconde datant d'avant
-       la refonte : spores d'attaque et de defense, faune a vaincre,
-       nidification et planete mere, terminaux de commerce, diplomatie et
-       signaux - autant de choses qui n'existent plus. La copie morte est
-       supprimee et les chapitres restants refaits : production et sa courbe
-       a deux regimes, bataille de surface et l'achat du sol, zones, tir de
-       surface, batiments poses au sol et recuperables, territoires et ondes
-       solaires, les quatre voies d'evolution dont Sensitivity, les alertes
-       directionnelles, et la touche R. Les controles listent enfin tout le
-       clavier. Douze chapitres au lieu de dix, chacun avec son lien en tete.
-     - ECHAP OUVRE LE LIVRE. Le menu de pause l'affiche entier, avec ses
-       liens de chapitre : on cherche une regle au moment ou la question se
-       pose, sans quitter la partie. Le livre n'existe qu'a un exemplaire -
-       il est DEPLACE entre l'ecran AIDE et la pause, pour qu'il n'y ait
-       jamais deux textes a tenir a jour.
-     - LE PANNEAU NAISSANCE, au-dessus d'Evolution. Le rendement ne depend que
-       du taux de remplissage, et cette relation n'a rien d'intuitif : une
-       bosse au quart, un creux au milieu, le pic aux sept dixiemes, puis
-       l'extinction. Plutot que de la faire deviner, le panneau dessine la
-       courbe en entier et y pose un point - vous etes ici -, avec le nom de
-       la zone, sa taille, son remplissage et son rendement du moment. Pas de
-       zone choisie, pas de panneau. Il a d'abord ete dessine sur le canevas
-       a cote de la zone : colle a elle il se cachait derriere les scores des
-       qu'on visait un bord, et il fallait le rabattre a la main dans la
-       bande libre. Dans la colonne de gauche il est toujours au meme endroit
-       et ne gene plus rien. Le plafond d'une zone ne voyage pas sur le
-       reseau, il se recalcule cote client a l'identique du serveur, sinon la
-       courbe serait sans echelle en multijoueur.
-     - LES CHIFFRES SOUS UN ASTRE SE NOMMENT AU SURVOL. Sous un astre dispute
-       s'empilent celui qui le tient et un compteur par assaillant, chacun a
-       sa couleur - mais une couleur n'est pas un nom, et on se battait en
-       devinant qui etait la. Chaque nombre enregistre au trace le rectangle
-       qu'il occupe a l'ecran ; la souris dessus, une infobulle donne le
-       joueur, sa guilde, ce qu'il fait la et combien il a. La liste se
-       refait a chaque image, les astres orbitant avec leurs chiffres.
-     - LA SOURIS DESIGNE LA RIPOSTE. R sur un astre survole n'engage que SES
-       zones ; R dans le vide fait repartir tous les astres contamines, comme
-       avant. On concentre donc l'effort sans depenser ses reserves partout.
-       Le client envoie le nom de l'astre vise, le serveur fait le meme tri.
+v9.7.5 | 2026-09-24 | (en cours)
 
    À FAIRE
   🎯 Fond spatial : le sortir du canvas vers deux couches CSS deplacees par
@@ -2129,7 +2052,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.4) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.5) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2495,7 +2418,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;">Les panneaux <span style="color:#E9D5FF;">Scores / Carte / Événements</span> se replient via ▲ PANNEAUX en bas à droite ; le curseur <span style="color:#E9D5FF;">taille UI</span> en haut à droite les redimensionne.</p>
 <p style="margin-bottom:16px;"><span style="color:#E9D5FF;">F3</span> affiche les images par seconde, puis <span style="color:#E9D5FF;">D</span> détaille ce qui coûte cher à dessiner — utile si le jeu rame.</p>
 
-<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.4</p>
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.5</p>
     </div>
     <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
 </div>
