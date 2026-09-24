@@ -260,6 +260,25 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        moyen de les rappeler.
      - Barres de chantier retirees ou reaffectees : elles suivaient une
        construction qui est devenue immediate.
+     - FRONTIERES QUI SE RELIENT. Deux frontieres d'un meme joueur qui se
+       croisent n'en font plus qu'une : se chevaucher donnait un double
+       trait au milieu de son propre empire. La fusion se decide a chaque
+       image, pas a la conquete - les astres orbitent, deux frontieres se
+       croisent puis se separent sans qu'aucun astre n'ait change de mains.
+     - VISER CHEZ SOI NE CHANGE PLUS LE LANCEUR. Traverser sa propre
+       frontiere pour aller chercher une cible derriere faisait sauter le
+       tir d'une lune a l'autre, et chaque saut remettait la charge a zero :
+       elle ne montait jamais. Meme regle sur le serveur.
+     - ZQSD deplace la camera (les codes physiques : ZQSD en azerty, WASD en
+       qwerty), A et E reglent la part de spores envoyee par crans de 5 %.
+       Les fleches gardent desormais la meme vitesse.
+     - Le pourcentage d'envoi s'affiche en gros en bas au centre, avec le
+       nombre de spores que partirait vraiment de l'astre en main. Il se
+       reglait au curseur, ecrit en onze pixels dans un coin.
+     - Les explications des mutations passent en infobulle au survol : elles
+       tenaient trois lignes chacune en permanence, pour un texte qu'on lit
+       une fois. L'infobulle des cartes de construction leur sert de base,
+       desormais partagee.
 
    À FAIRE
   🎯 Fond spatial : le sortir du canvas vers deux couches CSS deplacees par
@@ -951,7 +970,6 @@ canvas#gameCanvas.grabbing {
 #evoPanel .tech-pips { display:flex; gap:2px; margin-bottom:4px; }
 #evoPanel .tech-pip { flex:1; height:4px; border-radius:2px; background:rgba(168,85,247,0.15); transition:all 0.3s; }
 #evoPanel .tech-pip.filled { background:linear-gradient(90deg,#7C3AED,#C084FC); }
-#evoPanel .tech-desc { font-size:11px; color:rgba(200,170,255,0.4); margin-bottom:4px; line-height:1.3; }
 #evoPanel .tech-lvl-name { font-size:12px; color:rgba(200,170,255,0.6); text-align:center; margin-bottom:3px; }
 #evoPanel .tech-buy { display:block; width:100%; padding:4px; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.4); color:#E9D5FF; cursor:pointer; font-family:'Exo 2',sans-serif; font-size:12px; border-radius:4px; transition:all 0.2s; }
 #evoPanel .tech-buy:hover { background:rgba(168,85,247,0.3); border-color:#C084FC; }
@@ -1269,6 +1287,42 @@ input[type="radio"]:checked + .build-icon-btn {
     border-color: rgba(160,120,255,0.6);
     box-shadow: 0 0 6px rgba(160,120,255,0.3);
 }
+
+/* ── Jauge d'envoi (bas, centre) ── */
+/* Le pourcentage d'envoi se reglait au curseur, ecrit en 11 pixels dans un
+   coin : on tirait sans savoir avec quoi. Il est maintenant en gros au
+   milieu du bas de l'ecran, la ou le regard revient entre deux tirs. */
+#envoiHud {
+    position: fixed;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
+    z-index: 24;
+    pointer-events: none;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    user-select: none;
+    transition: opacity 0.2s;
+}
+#envoiHud .envoi-val {
+    font-size: 38px;
+    font-weight: 900;
+    line-height: 1;
+    color: #E9D5FF;
+    letter-spacing: 2px;
+    text-shadow: 0 0 14px rgba(140,90,240,0.55), 0 2px 4px rgba(0,0,0,0.9);
+    transition: color 0.15s, text-shadow 0.15s;
+}
+#envoiHud .envoi-val span { font-size: 22px; opacity: 0.75; margin-left: 2px; }
+#envoiHud.pulse .envoi-val { color: #FFFFFF; text-shadow: 0 0 22px rgba(190,140,255,0.95), 0 2px 4px rgba(0,0,0,0.9); }
+#envoiHud .envoi-sub {
+    margin-top: 3px;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: rgba(200,160,255,0.55);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+#envoiHud .envoi-sub b { color: #C8A0FF; font-weight: 600; }
 
 /* ── Liste planètes du joueur ── */
 #myPlanets {
@@ -2335,21 +2389,18 @@ input[type="radio"]:checked + .build-icon-btn {
                 <div class="tech-branch-header"><span class="tech-branch-icon">🎯</span><span class="tech-branch-name">Tête chercheuse</span><span class="tech-branch-lvl" id="techHomingLvl">0/10</span></div>
                 <div class="tech-pips" id="techHomingPips"></div>
                 <div class="tech-lvl-name" id="techHomingName">—</div>
-                <div class="tech-desc" id="techHomingDesc">Les jets dévient vers les planètes neutres/ennemies proches.</div>
                 <button class="tech-buy" id="techHomingBuy">Débloquer</button>
             </div>
             <div class="tech-branch" id="techTenacity">
                 <div class="tech-branch-header"><span class="tech-branch-icon">💪</span><span class="tech-branch-name">Ténacité</span><span class="tech-branch-lvl" id="techTenacityLvl">0/10</span></div>
                 <div class="tech-pips" id="techTenacityPips"></div>
                 <div class="tech-lvl-name" id="techTenacityName">—</div>
-                <div class="tech-desc" id="techTenacityDesc">Jets séparés conservent plus de spores et visent les systèmes.</div>
                 <button class="tech-buy" id="techTenacityBuy">Débloquer</button>
             </div>
             <div class="tech-branch" id="techMimicry">
                 <div class="tech-branch-header"><span class="tech-branch-icon">🦎</span><span class="tech-branch-name">Mimétisme</span><span class="tech-branch-lvl" id="techMimicryLvl">0/10</span></div>
                 <div class="tech-pips" id="techMimicryPips"></div>
                 <div class="tech-lvl-name" id="techMimicryName">—</div>
-                <div class="tech-desc" id="techMimicryDesc">À la conquête, jets se scindent vers les lunes.</div>
                 <button class="tech-buy" id="techMimicryBuy">Débloquer</button>
             </div>
         <div class="evo-sep"></div>
@@ -2359,6 +2410,12 @@ input[type="radio"]:checked + .build-icon-btn {
     <div class="mp-title">MES ASTRES</div>
     <div id="myPlanetsList"></div>
 </div>
+</div>
+
+<!-- ═══ JAUGE D'ENVOI (bas, centre) ═══ -->
+<div id="envoiHud" style="display:none;">
+    <div class="envoi-val" id="envoiPct">50<span>%</span></div>
+    <div class="envoi-sub" id="envoiSub">ENVOI</div>
 </div>
 
 <!-- ═══ PANNEAU BAS-DROITE ═══ -->
@@ -5443,6 +5500,62 @@ function setupUI() {
         if (lignes[i]) lignes[i].classList.add('active');
     }
 
+    /* ─────────────────────────────────────────────
+       CAMERA AU CLAVIER : ZQSD.
+       On lit le CODE physique de la touche, pas le caractere : KeyW KeyA
+       KeyS KeyD tombent sur Z Q S D en azerty et sur W A S D en qwerty,
+       donc les memes quatre touches sous les doigts dans les deux cas.
+       Les touches restent enfoncees : on ne bouge pas a chaque frappe, on
+       retient qui est appuye et la camera glisse dans la boucle.
+       ───────────────────────────────────────────── */
+    const _camTouches = { KeyW: 0, KeyA: 0, KeyS: 0, KeyD: 0 };
+    const CAM_VITESSE = 900;     /* pixels d'ecran par seconde, zoom compris */
+
+    window.majCameraClavier = function (dt) {
+        const h = _camTouches.KeyD - _camTouches.KeyA;
+        const v = _camTouches.KeyS - _camTouches.KeyW;
+        if (!h && !v) return;
+        /* Conduire la camera, c'est reprendre la main : on lache l'astre suivi
+           et l'astre en surbrillance dans la liste, comme pour un glisser. */
+        if (typeof followingBody !== 'undefined' && followingBody) {
+            followingBody = null;
+            document.querySelectorAll('.mp-body-row.active')
+                    .forEach(function (el) { el.classList.remove('active'); });
+        }
+        const cam = gameState.camera;
+        /* Divise par le zoom : de loin on survole vite, de pres on ajuste. */
+        let pas = CAM_VITESSE * dt / cam.zoom;
+        if (h && v) pas *= 0.7071;          /* pas plus vite en diagonale */
+        cam.x += h * pas;
+        cam.y += v * pas;
+    };
+
+    /* ─────────────────────────────────────────────
+       A et E : la part de spores envoyee a chaque tir, par crans de 5 %.
+       Ce sont les codes KeyQ et KeyE : A et E en azerty, Q et E en qwerty -
+       de part et d'autre de la main qui tient ZQSD.
+       ───────────────────────────────────────────── */
+    window.reglerEnvoi = function (delta) {
+        const sl = document.getElementById('jetRatioSlider');
+        if (!sl) return;
+        const v = Math.max(0, Math.min(100, Math.round(gameState.jetRatio * 100) + delta));
+        if (v === Math.round(gameState.jetRatio * 100)) return;
+        sl.value = v;
+        gameState.jetRatio = v / 100;
+        const lbl = document.getElementById('jetRatioVal');
+        if (lbl) lbl.textContent = v + '%';
+        if (gameState.isMulti) sendAction('set_jet_ratio', { value: gameState.jetRatio });
+        majJaugeEnvoi(true);
+    };
+
+    window.addEventListener('keyup', (e) => {
+        if (_camTouches[e.code] !== undefined) _camTouches[e.code] = 0;
+    });
+    /* Fenetre quittee touche enfoncee : sans cela la camera part toute seule. */
+    window.addEventListener('blur', () => {
+        _camTouches.KeyW = _camTouches.KeyA = _camTouches.KeyS = _camTouches.KeyD = 0;
+    });
+
     window.addEventListener('keydown', (e) => {
         /* Les raccourcis de jeu ne doivent pas se declencher pendant une
            saisie, ni par-dessus un menu de pause. */
@@ -5454,6 +5567,9 @@ function setupUI() {
             if (e.key === '3') { e.preventDefault(); _construire('biome');   return; }
             if (e.code === 'Space') { e.preventDefault(); _viserDepuisSelection(); return; }
             if (e.key === 'Tab')    { e.preventDefault(); _astreSuivant();    return; }
+            if (_camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
+            if (e.code === 'KeyQ')  { e.preventDefault(); reglerEnvoi(-5); return; }
+            if (e.code === 'KeyE')  { e.preventDefault(); reglerEnvoi(+5); return; }
         }
         if (e.key === 'Escape') {
             if (gameState.phase === 'game') togglePause();
@@ -6020,6 +6136,7 @@ function setPhase(phase) {
     document.getElementById('gameCanvas').style.display = 'none';
 
     document.getElementById('myPlanets').style.display = 'none';
+    document.getElementById('envoiHud').style.display = 'none';
     document.getElementById('sidePanel').style.display = 'none';
     document.getElementById('topRight').style.display = 'none';
     document.getElementById('sporeCounter').style.display = 'none';
@@ -6457,6 +6574,26 @@ function _groupeTir(src) {
     return [planete].concat(lunes);
 }
 
+/* Le curseur est-il DANS la frontiere du groupe qui tire ? Un groupe de tir
+   est une planete et ses lunes : sa frontiere tient dans un cercle centre sur
+   la planete, du rayon de l'orbite lunaire la plus large, plus la marge. Pas
+   besoin de l'enveloppe exacte ici - on cherche a savoir si le joueur vise
+   chez lui, pas a tracer un trait. Le serveur fait le meme calcul, mot pour
+   mot, pour que le multijoueur se comporte pareil. */
+function _viseeInterne(groupe, x, y) {
+    if (!groupe || groupe.length < 2) return false;
+    const p = groupe[0];              /* la planete ; les suivantes sont ses lunes */
+    let r = p.radius;
+    for (let i = 1; i < groupe.length; i++) {
+        const b = groupe[i];
+        const d = Math.sqrt((b.x - p.x) * (b.x - p.x) + (b.y - p.y) * (b.y - p.y)) + b.radius;
+        if (d > r) r = d;
+    }
+    r += MARGE_FRONTIERE;
+    const dx = x - p.x, dy = y - p.y;
+    return dx * dx + dy * dy <= r * r;
+}
+
 function majChargementTir(dt) {
     if (gameState._firePhase !== 'aiming' || !gameState._fireSource) {
         if (gameState._fireLanceur && gameState.isMulti) sendAction('aim_end', {});
@@ -6467,12 +6604,21 @@ function majChargementTir(dt) {
     const groupe = _groupeTir(gameState._fireSource);
     gameState._fireGroupe = groupe;
 
-    let lanceur = gameState._fireSource, meilleure = Infinity;
-    for (let i = 0; i < groupe.length; i++) {
-        const b = groupe[i];
-        const dx = gameState.mouseWorldX - b.x, dy = gameState.mouseWorldY - b.y;
-        const d = dx * dx + dy * dy;
-        if (d < meilleure) { meilleure = d; lanceur = b; }
+    /* Viser chez soi ne change plus le lanceur. Traverser sa propre frontiere
+       pour aller chercher une cible derriere faisait sauter le tir d'une lune
+       a l'autre, et chaque saut remettait la charge a zero : la charge ne
+       montait jamais. Des que le curseur ressort, la bascule reprend. */
+    const interne = _viseeInterne(groupe, gameState.mouseWorldX, gameState.mouseWorldY);
+    let lanceur = gameState._fireLanceur;
+    if (!interne || !lanceur || groupe.indexOf(lanceur) < 0) {
+        lanceur = gameState._fireSource;
+        let meilleure = Infinity;
+        for (let i = 0; i < groupe.length; i++) {
+            const b = groupe[i];
+            const dx = gameState.mouseWorldX - b.x, dy = gameState.mouseWorldY - b.y;
+            const d = dx * dx + dy * dy;
+            if (d < meilleure) { meilleure = d; lanceur = b; }
+        }
     }
     if (lanceur !== gameState._fireLanceur) {
         gameState._fireLanceur = lanceur;
@@ -7022,11 +7168,39 @@ function updateMultiPanel() {
 // ─────────────────────────────────────────────
 // ARBRE TECHNOLOGIQUE — Spores
 // ─────────────────────────────────────────────
+/* Les explications ne sont plus ecrites sous chaque branche : elles tenaient
+   trois lignes chacune en permanence, pour un texte qu'on lit une fois. Elles
+   sont passees en infobulle, au survol de la branche. */
 const TECH_BRANCHES = {
-    homing: { icon:'🎯', name:'Tête chercheuse', levels:['Instinct','Attraction','Magnétisme','Radar','Sonar spatial','Traque','Poursuite','Prédation','Guidage total','Œil omniscient'] },
-    tenacity: { icon:'💪', name:'Ténacité', levels:['Résistance','Endurance','Persistance','Résilience','Insubmersible','Régénération','Duplication','Essaim','Prolifération','Hydre cosmique'] },
-    mimicry: { icon:'🦎', name:'Mimétisme', levels:['Écho','Résonance','Fragmentation','Propagation','Ramification','Cascade','Nuée','Pandémie','Assimilation','Fléau lunaire'] }
+    homing: { icon:'🎯', name:'Tête chercheuse', desc:'Les jets dévient d\'eux-mêmes vers les planètes neutres ou ennemies proches de leur trajectoire. Plus le niveau est haut, plus la déviation est forte et lointaine.', levels:['Instinct','Attraction','Magnétisme','Radar','Sonar spatial','Traque','Poursuite','Prédation','Guidage total','Œil omniscient'] },
+    tenacity: { icon:'💪', name:'Ténacité', desc:'Les jets séparés gardent davantage de spores en route et visent les systèmes plutôt que les astres isolés. Plus le niveau est haut, moins le voyage coûte cher.', levels:['Résistance','Endurance','Persistance','Résilience','Insubmersible','Régénération','Duplication','Essaim','Prolifération','Hydre cosmique'] },
+    mimicry: { icon:'🦎', name:'Mimétisme', desc:'À la conquête d\'une planète, le jet se scinde et part aussi vers ses lunes. Plus le niveau est haut, plus de lunes sont touchées et plus la part qui leur revient est grosse.', levels:['Écho','Résonance','Fragmentation','Propagation','Ramification','Cascade','Nuée','Pandémie','Assimilation','Fléau lunaire'] }
 };
+
+/* Posees une seule fois : le contenu est calcule au survol, donc le niveau et
+   le cout affiches sont toujours ceux du moment. */
+let _infobullesTech = false;
+function poserInfobullesTech() {
+    if (_infobullesTech) return;
+    _infobullesTech = true;
+    const branches = { homing: 'techHoming', tenacity: 'techTenacity', mimicry: 'techMimicry' };
+    Object.keys(branches).forEach(function (cle) {
+        const el = document.getElementById(branches[cle]);
+        if (!el) return;
+        infobulle(el, function () {
+            const info = TECH_BRANCHES[cle];
+            const joueur = gameState.players && gameState.players[localSlot()];
+            let txt = info.name + ' — ' + info.desc;
+            if (joueur && joueur.tech) {
+                const n = joueur.tech[cle] || 0;
+                txt += '\n\n' + (n > 0 ? 'Niveau ' + n + '/10 : ' + info.levels[n - 1]
+                                       : 'Pas encore débloquée.');
+                if (n < 10) txt += '\nSuivant : ' + info.levels[n] + ' (' + getTechCost(joueur, cle) + ' spores)';
+            }
+            return txt;
+        });
+    });
+}
 function getTechCost(player, branch) {
     const tech = player.tech; const lvl = tech[branch];
     if (lvl >= 10) return Infinity;
@@ -7134,6 +7308,44 @@ function openCodex(body) {
 
     const codexEl = document.getElementById('codex');
     codexEl.classList.add('open');
+}
+
+/* INFOBULLE AU SURVOL. Une seule bulle pour toute la page, deplacee sous le
+   curseur : dix bulles cachees dans le document coutent plus cher qu'une seule
+   qu'on rehabille. Le texte peut etre une fonction, evaluee au moment du
+   survol - c'est ce qui permet a une infobulle d'annoncer un niveau ou un
+   cout qui a change depuis le chargement de la page. */
+function infobulle(el, texte) {
+    if (!el) return;
+    let bulle = document.getElementById('_bldTooltip');
+    if (!bulle) {
+        bulle = document.createElement('div');
+        bulle.id = '_bldTooltip';
+        bulle.style.cssText = 'position:fixed;z-index:200;background:rgba(10,8,35,0.97);border:1px solid rgba(100,70,180,0.5);border-radius:6px;padding:7px 10px;font-family:"Exo 2",sans-serif;font-size:12px;color:#E2D9F3;pointer-events:none;max-width:240px;line-height:1.5;opacity:0;transition:opacity 0.15s;white-space:pre-line;';
+        document.body.appendChild(bulle);
+    }
+    let minuteur = null;
+    const placer = function (e) {
+        /* Rester dans la fenetre : la bulle passe a gauche du curseur si elle
+           deborderait a droite, et remonte si elle deborderait en bas. */
+        const l = Math.min(e.clientX + 12, window.innerWidth - bulle.offsetWidth - 8);
+        const t = Math.min(e.clientY - 10, window.innerHeight - bulle.offsetHeight - 8);
+        bulle.style.left = Math.max(8, l) + 'px';
+        bulle.style.top = Math.max(8, t) + 'px';
+    };
+    el.addEventListener('mouseenter', (e) => {
+        clearTimeout(minuteur);
+        minuteur = setTimeout(() => {
+            bulle.textContent = (typeof texte === 'function') ? texte() : texte;
+            bulle.style.opacity = '1';
+            placer(e);
+        }, 200);
+    });
+    el.addEventListener('mouseleave', () => {
+        clearTimeout(minuteur);
+        bulle.style.opacity = '0';
+    });
+    el.addEventListener('mousemove', placer);
 }
 
 function _bldInfoText(body, mode) {
@@ -7254,35 +7466,7 @@ const _bldCost = b.mode==='alveole' ? Math.floor(_base*0.10) : b.mode==='nid' ? 
             grid._lastMode = null;
             updateCodexBuild(body);
         });
-        // Tooltip infobulle au survol
-        if (b.tip) {
-            let _bldTT = document.getElementById('_bldTooltip');
-            if (!_bldTT) {
-                _bldTT = document.createElement('div');
-                _bldTT.id = '_bldTooltip';
-                _bldTT.style.cssText = 'position:fixed;z-index:200;background:rgba(10,8,35,0.97);border:1px solid rgba(100,70,180,0.5);border-radius:6px;padding:7px 10px;font-family:"Exo 2",sans-serif;font-size:12px;color:#E2D9F3;pointer-events:none;max-width:220px;line-height:1.5;opacity:0;transition:opacity 0.15s;white-space:normal;';
-                document.body.appendChild(_bldTT);
-            }
-            let _bldTT2 = _bldTT;
-            let _bldTTTimer = null;
-            card.addEventListener('mouseenter', (e) => {
-                clearTimeout(_bldTTTimer);
-                _bldTTTimer = setTimeout(() => {
-                    _bldTT2.textContent = b.tip;
-                    _bldTT2.style.left = (e.clientX + 12) + 'px';
-                    _bldTT2.style.top = (e.clientY - 10) + 'px';
-                    _bldTT2.style.opacity = '1';
-                }, 200);
-            });
-            card.addEventListener('mouseleave', () => {
-                clearTimeout(_bldTTTimer);
-                _bldTT2.style.opacity = '0';
-            });
-            card.addEventListener('mousemove', (e) => {
-                _bldTT2.style.left = (e.clientX + 12) + 'px';
-                _bldTT2.style.top = (e.clientY - 10) + 'px';
-            });
-        }
+        if (b.tip) infobulle(card, b.tip);
         grid.appendChild(card);
     }
     }
@@ -7330,8 +7514,40 @@ document.querySelectorAll('input[name="buildMode"]').forEach(radio => {
 // ─────────────────────────────────────────────
 // HUD — Mise à jour
 // ─────────────────────────────────────────────
+/* La jauge d'envoi : le pourcentage en gros, et sous lui le nombre de spores
+   que partirait vraiment de l'astre en main - selectionne, suivi, ou celui
+   qui s'apprete a tirer. Le pourcentage seul ne dit pas grand-chose quand on
+   ne sait pas sur quoi il s'applique. */
+let _jaugePulseT = null;
+function majJaugeEnvoi(pulse) {
+    const hud = document.getElementById('envoiHud');
+    if (!hud) return;
+    if (gameState.phase !== 'game') { hud.style.display = 'none'; return; }
+    hud.style.display = 'block';
+
+    const pct = Math.round(gameState.jetRatio * 100);
+    const val = document.getElementById('envoiPct');
+    if (val) val.innerHTML = pct + '<span>%</span>';
+
+    const src = gameState._fireLanceur || gameState._fireSource
+             || ((typeof followingBody !== 'undefined' && followingBody) ? followingBody : null)
+             || gameState.selectedBody;
+    const sub = document.getElementById('envoiSub');
+    if (sub) {
+        sub.innerHTML = (src && src.owner === localSlot() && src.spores !== undefined)
+            ? 'ENVOI · <b>' + Math.floor(src.spores * gameState.jetRatio) + '</b> SPORES'
+            : 'ENVOI';
+    }
+    if (pulse) {
+        hud.classList.add('pulse');
+        clearTimeout(_jaugePulseT);
+        _jaugePulseT = setTimeout(function () { hud.classList.remove('pulse'); }, 220);
+    }
+}
+
 function updateHUD() {
     if (gameState.phase !== 'game') return;
+    majJaugeEnvoi(false);
 
     // Zoom clavier P/M
     if (_keysDown['p'] || _keysDown['P']) {
@@ -9186,7 +9402,9 @@ function gameLoop(timestamp) {
     }
 
     // Déplacement caméra par flèches
-    const camSpeed = 500 / gameState.camera.zoom;
+    /* Meme allure que ZQSD : passer d'un jeu de touches a l'autre ne doit pas
+       changer la vitesse de la vue. */
+    const camSpeed = 900 / gameState.camera.zoom;
     if (_keysDown['ArrowLeft'] || _keysDown['ArrowRight'] || _keysDown['ArrowUp'] || _keysDown['ArrowDown']) {
         followingBody = null;
         document.querySelectorAll('.mp-body-row.active').forEach(el => el.classList.remove('active'));
@@ -9349,6 +9567,7 @@ if (gameState.isMulti) {
         majPopProduction(dt);
         majSecousse(dt);
         majAlertes(dt);
+        if (typeof majCameraClavier === 'function') majCameraClavier(dt);
         if (gameState._hudCounter % 10 === 0) {
             updateHUD();
             updateMultiPanel();
@@ -9376,6 +9595,7 @@ if (gameState.isMulti) {
     majPopProduction(dt);
     majSecousse(dt);
     majAlertes(dt);
+    if (typeof majCameraClavier === 'function') majCameraClavier(dt);
     updateCameraFollow();
     // Mise à jour HUD throttlé (perf)
     gameState.dt = dt;
@@ -10425,6 +10645,42 @@ function _tracerEnveloppe(ctx, formes, env) {
     ctx.closePath();
 }
 
+/* Deux enveloppes convexes se chevauchent-elles ? Theoreme de l'axe
+   separateur : si l'on trouve une seule direction, prise parmi les normales
+   des aretes, ou les deux nuages ne se recouvrent pas, ils sont disjoints ;
+   sinon ils se touchent. Les enveloppes sont echantillonnees - on cherche un
+   chevauchement visible, pas une precision au pixel - et la sortie est
+   immediate des qu'un axe separe, ce qui est le cas courant. */
+function _axeSepare(A, B, pasA) {
+    for (let i = 0; i < A.length; i += pasA) {
+        const a = A[i], b = A[(i + pasA) % A.length];
+        const nx = -(b.y - a.y), ny = (b.x - a.x);
+        let a0 = Infinity, a1 = -Infinity, b0 = Infinity, b1 = -Infinity;
+        for (let k = 0; k < A.length; k++) {
+            const d = A[k].x * nx + A[k].y * ny;
+            if (d < a0) a0 = d; if (d > a1) a1 = d;
+        }
+        for (let k = 0; k < B.length; k++) {
+            const d = B[k].x * nx + B[k].y * ny;
+            if (d < b0) b0 = d; if (d > b1) b1 = d;
+        }
+        if (a1 < b0 || b1 < a0) return true;
+    }
+    return false;
+}
+function _enveloppesSeCroisent(A, B) {
+    if (A.length < 3 || B.length < 3) return false;
+    const pasA = Math.max(1, Math.floor(A.length / 16));
+    const pasB = Math.max(1, Math.floor(B.length / 16));
+    return !_axeSepare(A, B, pasA) && !_axeSepare(B, A, pasB);
+}
+
+/* Les territoires visibles du tour, avec de quoi les reunir. La fusion se
+   decide ici et non au calcul des territoires : les astres orbitent, deux
+   frontieres se croisent puis se separent sans qu'aucune conquete n'ait eu
+   lieu. C'est donc une affaire d'image, pas de possession. */
+const _bordsVus = [];
+
 function drawTerritoryBorders(ctx) {
     const ts = territoires();
     if (!ts.length) return;
@@ -10432,6 +10688,7 @@ function drawTerritoryBorders(ctx) {
     const halfW = gameState.width / 2 / cam.zoom;
     const halfH = gameState.height / 2 / cam.zoom;
 
+    _bordsVus.length = 0;
     for (let ti = 0; ti < ts.length; ti++) {
         const t = ts[ti];
         const joueur = gameState.players[t.owner];
@@ -10449,16 +10706,56 @@ function drawTerritoryBorders(ctx) {
         if (x1 < cam.x - halfW || x0 > cam.x + halfW ||
             y1 < cam.y - halfH || y0 > cam.y + halfH) continue;
 
+        _bordsVus.push({ t: t, joueur: joueur, formes: formes,
+                         x0: x0, y0: y0, x1: x1, y1: y1,
+                         env: _enveloppe(formes, cam.zoom),
+                         lien: -1, chef: 0, reunies: null, solaire: t.type === 'solaire' });
+    }
+
+    const n = _bordsVus.length;
+    if (!n) return;
+
+    /* Deux frontieres d'un meme joueur qui se croisent n'en font plus qu'une :
+       se chevaucher donnait un double trait au milieu de son propre empire.
+       On les relie par proche-en-proche - si A rejoint B et B rejoint C, les
+       trois ne forment qu'un seul contour. */
+    const racine = function (i) { while (_bordsVus[i].lien >= 0) i = _bordsVus[i].lien; return i; };
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            const a = _bordsVus[i], b = _bordsVus[j];
+            if (a.t.owner !== b.t.owner) continue;
+            if (a.x1 < b.x0 || b.x1 < a.x0 || a.y1 < b.y0 || b.y1 < a.y0) continue;
+            const ra = racine(i), rb = racine(j);
+            if (ra === rb) continue;
+            if (!_enveloppesSeCroisent(a.env, b.env)) continue;
+            _bordsVus[rb].lien = ra;
+        }
+    }
+    for (let i = 0; i < n; i++) _bordsVus[i].chef = racine(i);
+    for (let i = 0; i < n; i++) {
+        const b = _bordsVus[i];
+        if (b.chef === i) continue;
+        const c = _bordsVus[b.chef];
+        if (!c.reunies) c.reunies = c.formes.slice();
+        for (let k = 0; k < b.formes.length; k++) c.reunies.push(b.formes[k]);
+        if (b.solaire) c.solaire = true;
+    }
+
+    for (let i = 0; i < n; i++) {
+        const b = _bordsVus[i];
+        if (b.chef !== i) continue;
+        const joueur = b.joueur;
+        const formes = b.reunies || b.formes;
+        const env = b.reunies ? _enveloppe(formes, cam.zoom) : b.env;
         const couleur = (gameState.config && gameState.config.teamCount >= 2 && joueur.teamColor)
                       ? joueur.teamColor : (joueur.color || '#FFFFFF');
         const rgb = _rgbDe(couleur);
-        const env = _enveloppe(formes, cam.zoom);
 
         _tracerEnveloppe(ctx, formes, env);
-        ctx.fillStyle = 'rgba(' + rgb + ',' + (t.type === 'solaire' ? 0.07 : 0.06) + ')';
+        ctx.fillStyle = 'rgba(' + rgb + ',' + (b.solaire ? 0.07 : 0.06) + ')';
         ctx.fill();
-        ctx.strokeStyle = 'rgba(' + rgb + ',' + (t.type === 'solaire' ? 0.85 : 0.65) + ')';
-        ctx.lineWidth = Math.max(1.5, (t.type === 'solaire' ? 2.5 : 2) / cam.zoom);
+        ctx.strokeStyle = 'rgba(' + rgb + ',' + (b.solaire ? 0.85 : 0.65) + ')';
+        ctx.lineWidth = Math.max(1.5, (b.solaire ? 2.5 : 2) / cam.zoom);
         ctx.stroke();
     }
 }
@@ -13105,6 +13402,7 @@ let _panelsInitialized = false;
 function initSidePanel() {
     if (_panelsInitialized) return;
     _panelsInitialized = true;
+    poserInfobullesTech();
 
     // Toggle global show/hide
     const toggle = document.getElementById('sidePanelToggle');
@@ -13270,6 +13568,7 @@ document.getElementById('jetRatioSlider').addEventListener('input', (e) => {
     /* En multijoueur c'est le serveur qui tire : sans cet envoi il gardait
        50 % quoi que le curseur affiche. */
     if (gameState.isMulti) sendAction('set_jet_ratio', { value: gameState.jetRatio });
+    majJaugeEnvoi(true);
 });
 
 // ═══ Tabs Évolution / Technologies ═══
