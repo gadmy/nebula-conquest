@@ -284,6 +284,18 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        et en vert.
      - Les batiments se construisent aussi avec & é " : ce sont les touches
        1 2 3 d'un clavier francais, lues a leur position et non au caractere.
+     - BATAILLE DE SURFACE. Une conquete ne se joue plus en un choc. Les
+       spores qui touchent un astre y prennent pied sur UNE case, du cote
+       d'ou vient le tir, et s'etalent sur le disque. Ce que tient un camp
+       lui donne sa part de la production de l'astre et sa pression - ses
+       spores rapportees a sa surface -, et c'est la pression qui fait
+       avancer le front. A pression egale seule l'usure decide, et comme les
+       deux camps y perdent autant, le vainqueur garde la difference :
+       l'economie de l'ancien choc, etalee sur quelques secondes a une
+       demi-minute selon les masses engagees. Un astre neutre ne tombe que
+       recouvert en entier, un astre possede tombe aussi des que son
+       defenseur n'a plus une spore. Le serveur livre la meme bataille et
+       n'envoie que les comptes de cases : le client peint la tache.
      - ON NE TIRE PLUS A TRAVERS UNE ETOILE. Les soleils et le trou noir
        detruisent les jets ; le lanceur choisi pendant la visee est donc le
        plus proche QUI VOIT LA CIBLE, et non le plus proche tout court.
@@ -6525,6 +6537,7 @@ function finishStartGame() {
     if (typeof _floatingBubbles !== 'undefined') _floatingBubbles.length = 0;
 
     _ownerClustersCache = [];
+    for (const _b of (gameState.allBodies || [])) _b.lutte = null;
     _territoires = [];
     _ancresGroupe = null;
     gameState._alertes = [];
@@ -8146,6 +8159,11 @@ function updateSporeGeneration(dt) {
         const symMaxTime = body.type === 'planet' ? 600 : 300; // 10min planètes, 5min lunes
         body.symbiosis = Math.min(100, (body.symOwnerTime / symMaxTime) * 100);
 
+        /* Astre en pleine bataille de surface : c'est majLutte qui repartit
+           sa production entre les camps, au prorata du terrain tenu. On ne
+           construit pas non plus sous le siege. */
+        if (body.lutte) continue;
+
         if (body.flore <= 0) continue;
         const player = gameState.players[body.owner];
         if (!player) continue;
@@ -8611,6 +8629,7 @@ function checkJetCollision(jet) {
                     if (body.spores < 0) {
                         body.spores = Math.abs(body.spores);
                         body.owner = null;
+                        body.lutte = null;
                         marquerTerritoiresSales();
                         body.symOwnerTime = 0;
                         body.symbiosis = 0;
@@ -8667,6 +8686,463 @@ function checkJetCollision(jet) {
             return;
         }
     }
+}
+
+
+/* ─────────────────────────────────────────────
+   BATAILLE DE SURFACE
+   Une conquete ne se joue plus en un choc : les spores qui touchent un astre
+   y prennent pied et s'etalent. Le disque est decoupe en une petite grille,
+   chaque case etant un morceau de surface. Les assaillants arrivent sur UNE
+   case, du cote d'ou vient le tir, et gagnent du terrain case par case.
+
+   Ce que tient un camp vaut deux choses : sa part de la production de
+   l'astre - la surface fabrique les spores - et sa pression, c'est-a-dire ses
+   spores rapportees a sa surface. C'est la pression qui fait avancer un
+   front : un camp qui a beaucoup de spores sur peu de terrain pousse fort.
+   A pression egale, plus rien n'avance et seule l'usure du front decide : les
+   deux camps y perdent autant, donc le plus gros stock finit par l'emporter -
+   exactement comme dans l'ancien choc instantane, mais etale dans le temps.
+   ───────────────────────────────────────────── */
+const LUTTE_N = 18;            /* grille N x N posee sur le disque */
+const LUTTE_PAS = 0.2;         /* un tour de bataille toutes les 0,2 s */
+const LUTTE_AVANCE = 3.2;      /* vitesse de gain de terrain a pression ecrasante */
+const LUTTE_REMOUS = 0.18;     /* agitation du front a forces egales */
+const LUTTE_USURE = 6;         /* spores perdues par seconde et par contact */
+const LUTTE_VIDE = 255;        /* case hors du disque */
+
+let _lutteMasque = null, _lutteVoisins = null, _lutteTampon = null;
+const _lutteCompte = new Int16Array(34);
+const _lutteUsure = new Int32Array(34);
+const _luttePression = new Float64Array(34);
+
+function _luttePrepare() {
+    if (_lutteMasque) return;
+    const N = LUTTE_N, c = (N - 1) / 2, r = N / 2 - 0.15;
+    _lutteMasque = new Uint8Array(N * N);
+    _lutteVoisins = new Int16Array(N * N * 4);
+    _lutteTampon = new Uint8Array(N * N);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const dx = x - c, dy = y - c;
+        _lutteMasque[y * N + x] = (dx * dx + dy * dy <= r * r) ? 1 : 0;
+    }
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const i = y * N + x;
+        const v = [x > 0 ? i - 1 : -1, x < N - 1 ? i + 1 : -1,
+                   y > 0 ? i - N : -1, y < N - 1 ? i + N : -1];
+        for (let k = 0; k < 4; k++) _lutteVoisins[i * 4 + k] = (v[k] >= 0 && _lutteMasque[v[k]]) ? v[k] : -1;
+    }
+}
+
+/* La production d'un astre s'il appartenait a ce joueur-la. Meme formule que
+   debitAstre, qui n'en est plus que le cas particulier du proprietaire. */
+function debitPour(body, slot) {
+    if (!body || slot === null || slot === undefined) return 0;
+    if (!(body.flore > 0)) return 0;
+    const joueur = gameState.players[slot];
+    if (!joueur || !joueur.stats) return 0;
+    const sym = 1 + ((body.symbiosis || 0) / 100) * (body.type === 'planet' ? 0.20 : 0.10);
+    const nid = 1 + bonusBatiment(body.nids || 0, 'nid');
+    const soleil = body.type === 'planet' ? body.parent : (body.parent ? body.parent.parent : null);
+    const sys = (soleil && isSystemComplete(soleil, slot)) ? 1.03 : 1;
+    const part = 1 - Math.min((joueur.multiSacrifice || 0) / 100, 0.5);
+    return (0.4 + (body.flore / 100) * 0.6) * (1 + joueur.stats.growth * 0.3)
+           * 2.5 * sym * nid * sys * part;
+}
+
+/* Des spores touchent un astre ennemi ou neutre : elles debarquent. */
+function engagerLutte(body, slot, spores, angle) {
+    _luttePrepare();
+    const N = LUTTE_N;
+    if (!body.lutte) {
+        const cel = new Uint8Array(N * N);
+        for (let i = 0; i < cel.length; i++) cel[i] = _lutteMasque[i] ? 0 : LUTTE_VIDE;
+        body.lutte = { cellules: cel, assaut: {}, acc: 0, canvas: null, ctx: null, sale: true };
+    }
+    const L = body.lutte;
+    L.assaut[slot] = (L.assaut[slot] || 0) + spores;
+
+    /* Tete de pont : une seule case, au bord, du cote d'ou vient le tir. Tout
+       part de la - c'est ce qui donne la tache qui s'etale, et non un camp
+       qui apparait d'un bloc. */
+    let tient = false;
+    for (let i = 0; i < L.cellules.length; i++) if (L.cellules[i] === slot + 1) { tient = true; break; }
+    if (!tient) {
+        const c = (N - 1) / 2;
+        for (let k = 0; k <= N; k++) {
+            const rr = (N / 2 - 1) - k;
+            if (rr < 0) break;
+            const bx = Math.round(c + Math.cos(angle) * rr);
+            const by = Math.round(c + Math.sin(angle) * rr);
+            const i = by * N + bx;
+            if (bx >= 0 && bx < N && by >= 0 && by < N && _lutteMasque[i]) { L.cellules[i] = slot + 1; break; }
+        }
+        L.sale = true;
+    }
+}
+
+function majLuttes(dt) {
+    const bodies = gameState.allBodies;
+    const multi = gameState.isMulti;
+    for (let bi = 0; bi < bodies.length; bi++) {
+        const body = bodies[bi];
+        if (!body.lutte) continue;
+        body.lutte.acc += dt;
+        let gardes = 8;
+        while (body.lutte && body.lutte.acc >= LUTTE_PAS && gardes-- > 0) {
+            body.lutte.acc -= LUTTE_PAS;
+            if (multi) suivreLutte(body, LUTTE_PAS); else majLutte(body, LUTTE_PAS);
+        }
+        if (body.lutte && body.lutte.acc > LUTTE_PAS) body.lutte.acc = 0;
+    }
+}
+
+/* EN MULTIJOUEUR c'est le serveur qui livre la bataille : il n'envoie que les
+   comptes de cases et les stocks, jamais la grille - trois cents octets par
+   astre et par instantane seraient du gaspillage pour une tache que le client
+   sait peindre. Le client fait donc avancer SA grille vers ces comptes : un
+   camp en retard sur son objectif pousse, un camp en avance recule. Le front
+   suit le meme mouvement que dans le solo, sans jamais decider de rien. */
+function suivreLutte(body, pas) {
+    const L = body.lutte, cel = L.cellules, nb = cel.length;
+    const cible = L.cible;
+    if (!cible) return;
+
+    _lutteCompte.fill(0);
+    for (let i = 0; i < nb; i++) { const v = cel[i]; if (v !== LUTTE_VIDE) _lutteCompte[v]++; }
+
+    /* La pression n'est plus faite de spores mais de retard sur l'objectif. */
+    _luttePression.fill(0);
+    _luttePression[0] = 1 + Math.max(0, (cible.d || 0) - _lutteCompte[0]);
+    for (const k in cible.a) {
+        const v = (+k) + 1;
+        _luttePression[v] = 1 + Math.max(0, cible.a[k] - _lutteCompte[v]);
+    }
+
+    _lutteTampon.set(cel);
+    for (let i = 0; i < nb; i++) {
+        const v = cel[i];
+        if (v === LUTTE_VIDE) continue;
+        for (let k = 0; k < 4; k++) {
+            const j = _lutteVoisins[i * 4 + k];
+            if (j < 0) continue;
+            const w = cel[j];
+            if (w === LUTTE_VIDE || w === v) continue;
+            const somme = _luttePression[v] + _luttePression[w];
+            const r = somme > 0 ? _luttePression[w] / somme : 0.5;
+            const p = LUTTE_AVANCE * pas * Math.max(0, 2 * r - 1) + LUTTE_REMOUS * pas;
+            if (Math.random() < p) { _lutteTampon[i] = w; break; }
+        }
+    }
+    cel.set(_lutteTampon);
+    L.sale = true;
+}
+
+/* Le resume d'un instantane devient, ou met a jour, la bataille locale. */
+function appliquerResumeLutte(body, lu) {
+    if (!lu) { body.lutte = null; return; }
+    _luttePrepare();
+    const N = LUTTE_N;
+    if (!body.lutte) {
+        const cel = new Uint8Array(N * N);
+        for (let i = 0; i < cel.length; i++) cel[i] = _lutteMasque[i] ? 0 : LUTTE_VIDE;
+        body.lutte = { cellules: cel, assaut: {}, acc: 0, canvas: null, ctx: null, sale: true };
+    }
+    const L = body.lutte;
+    L.assaut = {};
+    L.cible = { d: lu.d || 0, a: {} };
+    for (let i = 0; i < (lu.a || []).length; i++) {
+        const t = lu.a[i];
+        L.assaut[t[0]] = t[1];
+        L.cible.a[t[0]] = t[2];
+        /* Un assaillant que le client ne connait pas encore n'a pas de tete de
+           pont : on lui en pose une, sinon il n'aurait aucune case d'ou
+           pousser et resterait invisible. */
+        let tient = false;
+        for (let c = 0; c < L.cellules.length; c++) if (L.cellules[c] === t[0] + 1) { tient = true; break; }
+        if (!tient && t[2] > 0) engagerLutte(body, t[0], 0, Math.random() * Math.PI * 2);
+    }
+}
+
+function majLutte(body, pas) {
+    const L = body.lutte, N = LUTTE_N, cel = L.cellules, nb = cel.length;
+    const neutre = (body.owner === null || body.owner === undefined);
+
+    /* 1. Qui tient quoi. La case 0 est le defenseur, la case s+1 l'assaillant s. */
+    _lutteCompte.fill(0);
+    let total = 0;
+    for (let i = 0; i < nb; i++) { const v = cel[i]; if (v === LUTTE_VIDE) continue; total++; _lutteCompte[v]++; }
+    if (!total) { body.lutte = null; return; }
+
+    /* 2. La surface fabrique les spores : chacun produit au prorata. */
+    _luttePression.fill(0);
+    for (let v = 0; v < _lutteCompte.length; v++) {
+        const n = _lutteCompte[v];
+        if (!n) continue;
+        if (v === 0) {
+            if (!neutre) {
+                const gain = debitPour(body, body.owner) * (n / total) * pas;
+                if (body.spores < body.maxSpores) body.spores = Math.min(body.maxSpores, body.spores + gain);
+                _luttePression[0] = body.spores / n;
+            }
+        } else {
+            const s = v - 1;
+            L.assaut[s] = (L.assaut[s] || 0) + debitPour(body, s) * (n / total) * pas;
+            _luttePression[v] = L.assaut[s] / n;
+        }
+    }
+
+    /* 3. Le front bouge, et use les deux camps au contact. */
+    _lutteTampon.set(cel);
+    _lutteUsure.fill(0);
+    for (let i = 0; i < nb; i++) {
+        const v = cel[i];
+        if (v === LUTTE_VIDE) continue;
+        for (let k = 0; k < 4; k++) {
+            const j = _lutteVoisins[i * 4 + k];
+            if (j < 0) continue;
+            const w = cel[j];
+            if (w === LUTTE_VIDE || w === v) continue;
+            _lutteUsure[v]++;
+            const somme = _luttePression[v] + _luttePression[w];
+            const r = somme > 0 ? _luttePression[w] / somme : 0.5;
+            const p = LUTTE_AVANCE * pas * Math.max(0, 2 * r - 1) + LUTTE_REMOUS * pas;
+            if (gameRandom() < p) { _lutteTampon[i] = w; break; }
+        }
+    }
+    cel.set(_lutteTampon);
+    L.sale = true;
+
+    /* 4. L'usure du front. Les deux camps y perdent autant : c'est le plus
+       gros stock qui tient, comme dans l'ancien choc, mais dans la duree.
+       L'usure suit la masse engagee, sinon deux armadas de dix mille spores
+       se grignoteraient pendant deux minutes : une grosse bataille reste plus
+       longue qu'une petite, sans devenir interminable. Le facteur etant le
+       meme pour tout le monde, le vainqueur garde toujours la difference. */
+    let engage = (neutre ? 0 : body.spores);
+    for (const k in L.assaut) engage += L.assaut[k] || 0;
+    const echelle = 1 + engage / 6000;
+    for (let v = 0; v < _lutteUsure.length; v++) {
+        const f = _lutteUsure[v];
+        if (!f) continue;
+        const perte = LUTTE_USURE * pas * f * echelle;
+        if (v === 0) { if (!neutre) body.spores = Math.max(0, body.spores - perte); }
+        else { const s = v - 1; L.assaut[s] = Math.max(0, (L.assaut[s] || 0) - perte); }
+    }
+
+    /* 5. Qui plie ? */
+    _lutteCompte.fill(0);
+    total = 0;
+    for (let i = 0; i < nb; i++) { const v = cel[i]; if (v === LUTTE_VIDE) continue; total++; _lutteCompte[v]++; }
+
+    for (const k in L.assaut) {
+        const s = +k, v = s + 1;
+        if (L.assaut[s] > 0.5 && _lutteCompte[v] > 0) continue;
+        /* A sec ou sans terrain : rejete a la mer, sa surface revient au sol. */
+        for (let i = 0; i < nb; i++) if (cel[i] === v) { cel[i] = 0; _lutteCompte[0]++; }
+        _lutteCompte[v] = 0;
+        delete L.assaut[s];
+        L.sale = true;
+        if (body.owner === localSlot() || s === localSlot()) {
+            gameState.conquestEffects.push({ x: body.x, y: body.y - body.radius - 15, baseX: body.x,
+                                             text: 'Repoussé', color: '#888', age: 0, maxAge: 3 });
+        }
+    }
+
+    let vainqueur = -1, meilleur = 0;
+    for (const k in L.assaut) {
+        const v = (+k) + 1;
+        if (_lutteCompte[v] > meilleur) { meilleur = _lutteCompte[v]; vainqueur = +k; }
+    }
+    if (vainqueur < 0) { body.lutte = null; return; }
+
+    /* L'astre tombe quand il ne reste plus un pouce de sol au defenseur, ou -
+       pour un astre deja possede - quand ce defenseur n'a plus une spore. Un
+       astre neutre ne tombe qu'a la premiere condition : personne ne le
+       defend, il faut donc vraiment le recouvrir. */
+    if (_lutteCompte[0] === 0 || (!neutre && body.spores <= 0.5)) {
+        const reste = L.assaut[vainqueur] || 0;
+        body.lutte = null;
+        conquerir(body, vainqueur, reste);
+    }
+}
+
+/* ── Rendu : la surface prise, peinte sur le disque ── */
+const _lutteRgb = {};
+function _rgb255(c) {
+    if (_lutteRgb[c]) return _lutteRgb[c];
+    const m = _rgbDe(c).split(',');
+    const out = [+m[0], +m[1], +m[2]];
+    _lutteRgb[c] = out;
+    return out;
+}
+
+function _peindreLutte(L) {
+    const N = LUTTE_N;
+    if (!L.canvas) {
+        L.canvas = document.createElement('canvas');
+        L.canvas.width = N; L.canvas.height = N;
+        L.ctx = L.canvas.getContext('2d');
+    }
+    const img = L.ctx.createImageData(N, N);
+    const d = img.data;
+    for (let i = 0; i < N * N; i++) {
+        const v = L.cellules[i];
+        if (v === 0 || v === LUTTE_VIDE) continue;
+        const j = gameState.players[v - 1];
+        const rgb = _rgb255((j && j.color) || '#FFFFFF');
+        d[i * 4] = rgb[0]; d[i * 4 + 1] = rgb[1]; d[i * 4 + 2] = rgb[2]; d[i * 4 + 3] = 225;
+    }
+    L.ctx.putImageData(img, 0, 0);
+}
+
+/* La grille fait dix-huit cases de cote pour un disque qui en fait cent a
+   l'ecran : on la laisse volontairement s'etaler au filtrage, ce qui donne
+   des taches molles plutot qu'un damier. Une seule image par astre et par
+   frame, repeinte seulement quand le front a bouge. */
+function drawLuttes(ctx) {
+    const bodies = gameState.allBodies;
+    for (let bi = 0; bi < bodies.length; bi++) {
+        const body = bodies[bi];
+        const L = body.lutte;
+        if (!L) continue;
+        if (!aLEcran(body.x, body.y, body.radius + 20)) continue;
+        if (L.sale || !L.canvas) { _peindreLutte(L); L.sale = false; }
+        const r = body.radius;
+        ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        ctx.beginPath();
+        ctx.arc(body.x, body.y, r, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.globalAlpha = 0.78;
+        ctx.drawImage(L.canvas, body.x - r, body.y - r, r * 2, r * 2);
+        ctx.restore();
+
+        /* Le stock de chaque assaillant, a sa couleur, sous l'astre. Le grand
+           nombre qui y figure deja est celui du defenseur : sans celui-ci on
+           se bat a l'aveugle. Memes unites que drawSporeCountOnBodies - du
+           monde, pas de l'ecran - et place sous la ligne des batiments. */
+        const z = gameState.camera.zoom;
+        if (z < 0.3) continue;
+        const monde = _taillePx(z, 15, r * z, 13, 34) / z;
+        let ligne = body.y + r + monde * 2.25;
+        if ((body.alveoles || 0) + (body.nids || 0) + (body.biomes || 0) > 0) ligne += monde * 0.9;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = 'bold ' + (monde * 0.85) + 'px Orbitron';
+        for (const k in L.assaut) {
+            const j2 = gameState.players[+k];
+            if (!j2) continue;
+            _texteLisible(ctx, '\u2694' + _sp(L.assaut[+k]), body.x, ligne,
+                          j2.color, Math.max(2, monde * 0.2));
+            ligne += monde * 0.95;
+        }
+        ctx.restore();
+    }
+}
+
+/* PRISE D'UN ASTRE. Extrait d'applyConquest : ce n'est plus l'impact d'un
+   jet qui conquiert, mais la bataille de surface qui se termine, et les deux
+   ont besoin du meme rituel - changement de camp, batiments, evenements,
+   alerte, effets. */
+function conquerir(body, nouveauProprio, sporesArrivees) {
+    body.lutte = null;
+    const attacking = sporesArrivees;
+    const jet = { owner: nouveauProprio };
+    const attackerColor = gameState.players[nouveauProprio]?.color || '#FFF';
+    const oldOwner = body.owner;
+    if (oldOwner !== null && gameState.players[oldOwner]) {
+        const arr = gameState.players[oldOwner].bodies;
+        const idx = arr.indexOf(body);
+        if (idx >= 0) arr.splice(idx, 1);
+    }
+
+    body.owner = jet.owner;
+    body.spores = attacking;
+    body.faune = 0; // Faune détruite après conquête
+    // Invalider cache isSystemComplete du soleil concerné
+    const _conquSun = body.type === 'planet' ? body.parent : (body.parent?.parent || null);
+    if (_conquSun) _conquSun._sysCache = null;
+    marquerTerritoiresSales();
+    body.symbiosis = 0; // Reset symbiose
+    body.symOwnerTime = 0;
+    body.buildMode = 'off';
+    body.buildProgress = 0;
+    if (!gameState.conquestKeepBuildings) {
+        body.nids = 0;
+        body.biomes = 0;
+        body.alveoles = 0;
+        body.maxSpores = body.baseMaxSpores || body.maxSpores;
+    }
+
+    if (gameState.players[jet.owner]) {
+        gameState.players[jet.owner].bodies.push(body);
+    }
+
+    gameState.gameStats.bodiesConquered++;
+
+    // Log événement
+    const attackerName = gameState.players[jet.owner]?.name || 'IA-' + jet.owner;
+    const bType = body.type === 'planet' ? 'Planète' : 'Lune';
+    const aColor = gameState.players[jet.owner]?.color || '#AAA';
+    const oColor = oldOwner !== null ? (gameState.players[oldOwner]?.color || '#AAA') : '#AAA';
+    if (oldOwner === null) {
+        const _virginBonus = body.type === 'planet' ? 500 : 250;
+        body.spores = Math.min(body.maxSpores, (body.spores || 0) + _virginBonus);
+        gameState.conquestEffects.push({
+            x: body.x, y: body.y - body.radius - 30,
+            baseX: body.x,
+            text: '+' + _virginBonus + ' 🎁',
+            color: '#FFD700', age: 0, maxAge: 3
+        });
+        if (jet.owner === localSlot()) {
+            addEvent('neutral', '🏳️', `${bType} ${body.name} colonisée ! +${_virginBonus} sp 🎁`, body, aColor);
+        } else {
+            addEvent('neutral', '🏳️', `${bType} ${body.name} colonisée par ${attackerName}`, body, aColor);
+        }
+    } else if (jet.owner === localSlot()) {
+        addEvent('mine', '⚔️', `${bType} ${body.name} conquise !`, body, aColor);
+    } else if (oldOwner === localSlot()) {
+        addEvent('mine', '💀', `${bType} ${body.name} perdue ! (${attackerName})`, body, aColor);
+        /* La perte est la seule alerte qu'on ne peut pas se permettre de
+           rater : balise, eclat lumineux du bon cote, et secousse. */
+        ajouterAlerte('perte', body, aColor);
+        eclatBord(body, '#FF3B55');
+        secouerEcran(9);
+    } else {
+        addEvent('war', '⚔️', `${bType} ${body.name} : ${attackerName} prend à ${gameState.players[oldOwner]?.name || 'IA-'+oldOwner}`, body, aColor);
+    }
+
+    // Effet d'éclosion
+    gameState.bloomEffects.push({
+        body: body, age: 0, maxAge: 1.5, color: attackerColor
+    });
+
+    // Effet texte
+    gameState.conquestEffects.push({
+        x: body.x, y: body.y - body.radius - 15,
+        baseX: body.x,
+        text: oldOwner === null ? 'COLONISÉ !' : 'CONQUIS !',
+        color: attackerColor, age: 0, maxAge: 5
+    });
+
+    // Particules d'explosion conquête
+    const _pCount = body.type === 'planet' ? 18 : 10;
+    for (let _pi = 0; _pi < _pCount; _pi++) {
+        const _ang = (Math.PI * 2 * _pi / _pCount) + (Math.random() - 0.5) * 0.4;
+        const _spd = body.radius * (0.8 + Math.random() * 1.2);
+        gameState.particles.push({
+            x: body.x, y: body.y,
+            vx: Math.cos(_ang) * _spd, vy: Math.sin(_ang) * _spd,
+            life: 0, maxLife: 0.6 + Math.random() * 0.4,
+            color: attackerColor, radius: 1.5 + Math.random() * 2,
+            fade: true
+        });
+    }
+    // Anneau de couleur expansif
+    gameState.bloomEffects.push({
+        body: body, age: 0, maxAge: 0.6, color: attackerColor, ring: true
+    });
 }
 
 function applyConquest(body, jet) {
@@ -8751,110 +9227,13 @@ function applyConquest(body, jet) {
     const biomeDefense = 1 + bonusBatiment(body.biomes || 0, 'biome');
     attacking = attacking / biomeDefense;
 
-    // Combattre les spores défensives
-    if (attacking > 0 && body.owner !== null && body.spores > 0) {
-        const defenseDmg = Math.min(body.spores, attacking);
-        body.spores -= defenseDmg;
-        attacking -= defenseDmg;
-    }
-
-    // Conquête réussie ?
-    if (attacking > 0 && body.spores <= 0) {
-        const oldOwner = body.owner;
-        if (oldOwner !== null && gameState.players[oldOwner]) {
-            const arr = gameState.players[oldOwner].bodies;
-            const idx = arr.indexOf(body);
-            if (idx >= 0) arr.splice(idx, 1);
-        }
-
-        body.owner = jet.owner;
-        body.spores = attacking;
-        body.faune = 0; // Faune détruite après conquête
-        // Invalider cache isSystemComplete du soleil concerné
-        const _conquSun = body.type === 'planet' ? body.parent : (body.parent?.parent || null);
-        if (_conquSun) _conquSun._sysCache = null;
-        marquerTerritoiresSales();
-        body.symbiosis = 0; // Reset symbiose
-        body.symOwnerTime = 0;
-        body.buildMode = 'off';
-        body.buildProgress = 0;
-        if (!gameState.conquestKeepBuildings) {
-            body.nids = 0;
-            body.biomes = 0;
-            body.alveoles = 0;
-            body.maxSpores = body.baseMaxSpores || body.maxSpores;
-        }
-
-        if (gameState.players[jet.owner]) {
-            gameState.players[jet.owner].bodies.push(body);
-        }
-
-        gameState.gameStats.bodiesConquered++;
-
-        // Log événement
-        const attackerName = gameState.players[jet.owner]?.name || 'IA-' + jet.owner;
-        const bType = body.type === 'planet' ? 'Planète' : 'Lune';
-        const aColor = gameState.players[jet.owner]?.color || '#AAA';
-        const oColor = oldOwner !== null ? (gameState.players[oldOwner]?.color || '#AAA') : '#AAA';
-        if (oldOwner === null) {
-            const _virginBonus = body.type === 'planet' ? 500 : 250;
-            body.spores = Math.min(body.maxSpores, (body.spores || 0) + _virginBonus);
-            gameState.conquestEffects.push({
-                x: body.x, y: body.y - body.radius - 30,
-                baseX: body.x,
-                text: '+' + _virginBonus + ' 🎁',
-                color: '#FFD700', age: 0, maxAge: 3
-            });
-            if (jet.owner === localSlot()) {
-                addEvent('neutral', '🏳️', `${bType} ${body.name} colonisée ! +${_virginBonus} sp 🎁`, body, aColor);
-            } else {
-                addEvent('neutral', '🏳️', `${bType} ${body.name} colonisée par ${attackerName}`, body, aColor);
-            }
-        } else if (jet.owner === localSlot()) {
-            addEvent('mine', '⚔️', `${bType} ${body.name} conquise !`, body, aColor);
-        } else if (oldOwner === localSlot()) {
-            addEvent('mine', '💀', `${bType} ${body.name} perdue ! (${attackerName})`, body, aColor);
-            /* La perte est la seule alerte qu'on ne peut pas se permettre de
-               rater : balise, eclat lumineux du bon cote, et secousse. */
-            ajouterAlerte('perte', body, aColor);
-            eclatBord(body, '#FF3B55');
-            secouerEcran(9);
-        } else {
-            addEvent('war', '⚔️', `${bType} ${body.name} : ${attackerName} prend à ${gameState.players[oldOwner]?.name || 'IA-'+oldOwner}`, body, aColor);
-        }
-
-        // Effet d'éclosion
-        gameState.bloomEffects.push({
-            body: body, age: 0, maxAge: 1.5, color: attackerColor
-        });
-
-        // Effet texte
-        gameState.conquestEffects.push({
-            x: body.x, y: body.y - body.radius - 15,
-            baseX: body.x,
-            text: oldOwner === null ? 'COLONISÉ !' : 'CONQUIS !',
-            color: attackerColor, age: 0, maxAge: 5
-        });
-
-        // Particules d'explosion conquête
-        const _pCount = body.type === 'planet' ? 18 : 10;
-        for (let _pi = 0; _pi < _pCount; _pi++) {
-            const _ang = (Math.PI * 2 * _pi / _pCount) + (Math.random() - 0.5) * 0.4;
-            const _spd = body.radius * (0.8 + Math.random() * 1.2);
-            gameState.particles.push({
-                x: body.x, y: body.y,
-                vx: Math.cos(_ang) * _spd, vy: Math.sin(_ang) * _spd,
-                life: 0, maxLife: 0.6 + Math.random() * 0.4,
-                color: attackerColor, radius: 1.5 + Math.random() * 2,
-                fade: true
-            });
-        }
-        // Anneau de couleur expansif
-        gameState.bloomEffects.push({
-            body: body, age: 0, maxAge: 0.6, color: attackerColor, ring: true
-        });
-    } else if (attacking <= 0 && body.faune <= 0 && body.spores > 0) {
-        // Attaque repoussée
+    /* Les spores qui restent ne s'annulent plus d'un coup contre le stock du
+       defenseur : elles debarquent et se battent pour la surface. C'est la
+       bataille qui decidera, et qui pourra aussi les rejeter a la mer. */
+    if (attacking > 0) {
+        engagerLutte(body, jet.owner, attacking,
+                     Math.atan2(jet.y - body.y, jet.x - body.x));
+    } else if (body.faune <= 0 && body.spores > 0) {
         gameState.conquestEffects.push({
             x: body.x, y: body.y - body.radius - 15,
             baseX: body.x,
@@ -9655,6 +10034,7 @@ if (gameState.isMulti) {
         updateCosmicEffects(dt);
         updateConquestEffects(dt);
         updateImpacts(dt);
+        majLuttes(dt);
         majChargementTir(dt);
         majFiletsCharge(dt);
         majPopProduction(dt);
@@ -9683,6 +10063,7 @@ if (gameState.isMulti) {
     updateJets(dt);
     updateImpacts(dt);
     updateConquestEffects(dt);
+    majLuttes(dt);
     majChargementTir(dt);
     majFiletsCharge(dt);
     majPopProduction(dt);
@@ -9809,6 +10190,7 @@ function render() {
 
     // ── Planètes & Lunes ──
     drawPlanets(ctx);
+    drawLuttes(ctx);
     if (gameState._hudCounter % 3 === 0) _updateOwnerClusters();
     _drawOwnerClustersCache(ctx);
 
@@ -14119,7 +14501,8 @@ function applySnapshot(snap) {
         const p = gameState.planets.find(p => p.name === sp.name);
         if (!p) return;
         const ownerChanged = p.owner !== sp.owner;
-        if (ownerChanged) marquerTerritoiresSales();
+        if (ownerChanged) { marquerTerritoiresSales(); p.lutte = null; }
+        if (sp.lu !== undefined) appliquerResumeLutte(p, sp.lu);
         p.owner         = sp.owner;
         p.spores        = sp.spores;
         p.symbiosis     = sp.symbiosis     ?? p.symbiosis;
@@ -14166,7 +14549,8 @@ function applySnapshot(snap) {
         const m = gameState.moons.find(m => m.name === sm.name);
         if (!m) return;
         const ownerChanged = m.owner !== sm.owner;
-        if (ownerChanged) marquerTerritoiresSales();
+        if (ownerChanged) { marquerTerritoiresSales(); m.lutte = null; }
+        if (sm.lu !== undefined) appliquerResumeLutte(m, sm.lu);
         m.owner     = sm.owner;
         m.spores    = sm.spores;
         m.buildMode = sm.buildMode ?? m.buildMode;
