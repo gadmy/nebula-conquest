@@ -316,6 +316,18 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        deux, cote a cote. Le bord qui donne sur un autre camp est net et
        opaque, celui qui donne sur le vide reste discret. Le sol que personne
        ne tient a lui aussi sa frontiere, en gris.
+       LE FRONT S'ENDORT quand plus personne n'a de quoi pousser : l'assaut
+       s'arrete la ou il en est et le partage tient. Chacun continue a
+       produire sur ce qu'il tient, mais il faut un nouveau debarquement pour
+       relancer le conflit.
+     - TIR DE SURFACE. Un double-clic sur un astre plonge dessus et l'on vise
+       sa surface : le tir part du bout de terrain qu'on y tient le plus
+       proche du curseur, et suit une cloche deviee vers le centre de
+       l'astre - plus on vise loin, plus il faut corriger ; d'une frontiere a
+       celle d'en face, le tir reste tendu. Les spores debarquent au point de
+       chute et y prennent pied sur quelques cases. On repasse en visee
+       normale des qu'on prend du recul.
+     - Le secteur "Normal" du menu de tir s'appelle desormais "Spores".
      - ONDES SOLAIRES. Un systeme entierement tenu se met a vivre : son
        etoile s'embrase toutes les cinq secondes et envoie une onde qui
        balaie ses astres. Chacun la recoit au PASSAGE DU FRONT, pas au
@@ -1341,6 +1353,26 @@ input[type="radio"]:checked + .build-icon-btn {
     background: rgba(100,70,180,0.3);
     border-color: rgba(160,120,255,0.6);
     box-shadow: 0 0 6px rgba(160,120,255,0.3);
+}
+
+/* ── Bandeau du mode surface ── */
+#surfaceHud {
+    position: fixed;
+    left: 50%;
+    top: 58px;
+    transform: translateX(-50%);
+    z-index: 24;
+    pointer-events: none;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #FFD27A;
+    background: rgba(10,8,30,0.72);
+    border: 1px solid rgba(255,210,122,0.35);
+    border-radius: 20px;
+    padding: 5px 16px;
+    text-shadow: 0 0 10px rgba(255,210,122,0.5);
+    white-space: nowrap;
 }
 
 /* ── Jauge d'envoi (bas, centre) ── */
@@ -2496,6 +2528,8 @@ input[type="radio"]:checked + .build-icon-btn {
     <div id="myPlanetsList"></div>
 </div>
 </div>
+
+<div id="surfaceHud" style="display:none;">☍ TIR DE SURFACE — DÉZOOMEZ POUR SORTIR</div>
 
 <!-- ═══ JAUGE D'ENVOI (bas, centre) ═══ -->
 <div id="envoiHud" style="display:none;">
@@ -5551,6 +5585,17 @@ function setupUI() {
     }
 
     function _viserDepuisSelection() {
+        /* En mode surface on vise l'astre sous les yeux meme s'il ne nous
+           appartient pas : il suffit d'y tenir du terrain. */
+        const ms = gameState._modeSurface;
+        if (ms && peutTirerSurface(ms, localSlot())) {
+            _closeSporMenu();
+            followingBody = ms;
+            gameState._fireSource = ms;
+            gameState._fireType = 'normal';
+            gameState._firePhase = 'aiming';
+            return;
+        }
         const body = _astreActif();
         if (!body) return;
         _closeSporMenu();
@@ -6229,6 +6274,7 @@ function setPhase(phase) {
 
     document.getElementById('myPlanets').style.display = 'none';
     document.getElementById('envoiHud').style.display = 'none';
+    document.getElementById('surfaceHud').style.display = 'none';
     document.getElementById('sidePanel').style.display = 'none';
     document.getElementById('topRight').style.display = 'none';
     document.getElementById('sporeCounter').style.display = 'none';
@@ -6579,6 +6625,9 @@ function finishStartGame() {
     gameState._eclatBord = null;
     marquerTerritoiresSales();
     gameState._filetsCharge = [];
+    gameState._modeSurface = null;
+    gameState._zoomCible = null;
+    gameState._fireSurface = false;
     gameState._ondes = [];
     gameState._ondesSolaires = [];
     gameState._fireLanceur = null;
@@ -7036,10 +7085,15 @@ if (false) { _stmCanvas.addEventListener('mousemove', (e) => {
 function _stmOpen(body, clientX, clientY) {
     _stmInit();
     const ratio = gameState.jetRatio;
-    const norm = _sp((body.spores || 0) * ratio);
+    /* Sur un astre qu'on assiege, les spores disponibles ne sont pas celles
+       de l'astre - qui sont au defenseur - mais celles qu'on tient a sa
+       surface. */
+    const _dispo = (body.owner === localSlot()) ? (body.spores || 0)
+                 : ((body.lutte && body.lutte.assaut[localSlot()]) || 0);
+    const norm = _sp(_dispo * ratio);
     const paraCount = (body.parasiteSpore || 0);
     _stmSectors = [
-        { type:'normal',      icon:'⚪', label:'Normal',  count: norm + ' sp',         color:'rgba(60,40,120,0.85)',  colorHover:'rgba(100,70,180,0.95)', disabled: norm < 5 },
+        { type:'normal',      icon:'⚪', label:'Spores',  count: norm + ' sp',         color:'rgba(60,40,120,0.85)',  colorHover:'rgba(100,70,180,0.95)', disabled: norm < 5 },
         { type:'parasite',    icon:'🦠', label:'Parasite',count: paraCount + ' prête', color:'rgba(10,60,25,0.85)',  colorHover:'rgba(20,120,50,0.95)',  disabled: paraCount < 1 },
     ];
     const _base = body.baseMaxSpores || body.maxSpores || 0;
@@ -7757,6 +7811,18 @@ document.querySelectorAll('input[name="buildMode"]').forEach(radio => {
    ne sait pas sur quoi il s'applique. */
 let _jaugePulseT = null;
 function majJaugeEnvoi(pulse) {
+    const surf = document.getElementById('surfaceHud');
+    if (surf) {
+        const dedans = gameState.phase === 'game' && !!gameState._modeSurface;
+        const veut = dedans ? 'block' : 'none';
+        if (surf.style.display !== veut) surf.style.display = veut;
+        if (dedans) {
+            const b = gameState._modeSurface;
+            surf.textContent = peutTirerSurface(b, localSlot())
+                ? '\u260D TIR DE SURFACE \u00B7 ' + b.name + ' \u2014 DÉZOOMEZ POUR SORTIR'
+                : '\u260D ' + b.name + ' \u2014 AUCUN TERRAIN TENU ICI';
+        }
+    }
     const hud = document.getElementById('envoiHud');
     if (!hud) return;
     if (gameState.phase !== 'game') { hud.style.display = 'none'; return; }
@@ -8593,6 +8659,13 @@ function updateJets(dt) {
         const idx = Math.floor(jet.posIndex);
 
         if (idx >= jet.trajectory.length - 1) {
+            /* Un tir de surface est arrive au bout de sa cloche : il se pose. */
+            if (jet._surface) {
+                const fin = jet.trajectory[jet.trajectory.length - 1];
+                const fx = jet._surface.x + fin.x, fy = jet._surface.y + fin.y;
+                spawnImpact(fx, fy, jet.color);
+                debarquerSurface(jet._surface, jet.owner, jet.spores, fx, fy);
+            }
             jet.alive = false;
             continue;
         }
@@ -8603,8 +8676,16 @@ function updateJets(dt) {
         jet.trail.push({ x: jet.x, y: jet.y, t: jet.age });
         if (jet.trail.length > 30) jet.trail.shift();
 
-        jet.x = pt.x;
-        jet.y = pt.y;
+        if (jet._surface) {
+            /* Trajectoire gardee dans le repere de l'astre : il orbite
+               pendant le vol, un trace en coordonnees du monde se
+               decrocherait de lui. */
+            jet.x = jet._surface.x + pt.x;
+            jet.y = jet._surface.y + pt.y;
+        } else {
+            jet.x = pt.x;
+            jet.y = pt.y;
+        }
         }
 
         // Animer les particules scintillantes
@@ -8736,6 +8817,11 @@ function updateJets(dt) {
 }
 
 function checkJetCollision(jet) {
+    /* Un tir de surface ne connait que l'astre d'ou il part : il decolle du
+       sol, monte en cloche et y retombe. Rien d'autre ne le concerne - ni les
+       soleils, ni les autres astres qu'il survolerait. */
+    if (jet._surface) return;   /* il se pose au bout de sa cloche, pas par choc */
+
     // Destruction par les soleils
     for (const sun of gameState.suns) {
         const dx = sun.x - jet.x;
@@ -8845,7 +8931,12 @@ const LUTTE_PAS = 0.2;         /* un tour de bataille toutes les 0,2 s */
 const LUTTE_AVANCE = 5;      /* vitesse de gain de terrain a pression ecrasante */
 const LUTTE_REMOUS = 0.18;     /* agitation du front a forces egales */
 const LUTTE_USURE = 0.15;      /* part du stock rongee par seconde au front */
-const LUTTE_FRONT_REF = 54;    /* longueur de front de reference pour cette part */
+const LUTTE_FRONT_REF = 54;
+/* En dessous de ce stock, plus personne n'a de quoi pousser : le front
+   s'endort. Il ne se rendort pas tout seul et ne se reveille pas tout seul
+   non plus - il faut un nouveau debarquement pour relancer le conflit.
+   Chacun continue en revanche de produire sur ce qu'il tient. */
+const LUTTE_SEUIL = 30;    /* longueur de front de reference pour cette part */
 /* Secondes de production comptees dans la pression d'un camp, en plus de son
    stock. Sans ce terme, un camp a sec tombe a une pression nulle et se fait
    balayer jusqu'a la derniere case : le terrain conquis ne resterait jamais.
@@ -8905,6 +8996,7 @@ function engagerLutte(body, slot, spores, angle) {
     }
     const L = body.lutte;
     L.assaut[slot] = (L.assaut[slot] || 0) + spores;
+    L.dormante = false;      /* un debarquement reveille toujours le front */
 
     /* Tete de pont : une seule case, au bord, du cote d'ou vient le tir. Tout
        part de la - c'est ce qui donne la tache qui s'etale, et non un camp
@@ -8923,6 +9015,257 @@ function engagerLutte(body, slot, spores, angle) {
         }
         L.sale = true;
     }
+}
+
+
+/* ─────────────────────────────────────────────
+   MODE SURFACE ET TIR DE SURFACE
+   Un double-clic sur un astre plonge dessus : la camera s'y colle et l'on
+   passe en tir de surface. On vise comme avant, mais le jet est cette fois
+   soumis a la pesanteur de l'astre lui-meme - il part en cloche et retombe
+   sur le sol, ce qui permet d'arroser l'autre bout de la planete, ou de
+   frapper droit devant d'une frontiere a l'autre. Des qu'on prend du recul,
+   on repasse en visee normale.
+   ───────────────────────────────────────────── */
+const SURFACE_PAS = 0.05;      /* pas d'integration de la cloche */
+const SURFACE_ETAPES = 200;
+
+function zoomSurface(body) {
+    const m = Math.min(gameState.width, gameState.height);
+    return Math.min(gameState.camera.maxZoom, (m * 0.40) / Math.max(6, body.radius));
+}
+
+function entrerModeSurface(body) {
+    if (!body || body.type === 'sun') return;
+    gameState._modeSurface = body;
+    followingBody = body;
+    gameState._zoomCible = zoomSurface(body);
+}
+
+function sortirModeSurface() {
+    if (!gameState._modeSurface) return;
+    gameState._modeSurface = null;
+    gameState._zoomCible = null;
+    if (gameState._firePhase === 'aiming' && gameState._fireSurface) {
+        gameState._firePhase = null;
+        gameState._fireSource = null;
+        gameState._fireLanceur = null;
+        gameState.launchPreview = [];
+    }
+    gameState._fireSurface = false;
+}
+
+function majModeSurface(dt) {
+    const cam = gameState.camera;
+    if (gameState._zoomCible) {
+        const c = gameState._zoomCible;
+        cam.zoom += (c - cam.zoom) * Math.min(1, dt * 6);
+        if (Math.abs(cam.zoom - c) < c * 0.012) { cam.zoom = c; gameState._zoomCible = null; }
+    }
+    const b = gameState._modeSurface;
+    if (!b) return;
+    if (b.type === 'sun') { sortirModeSurface(); return; }
+    /* On sort des qu'on prend du recul, ou qu'on s'eloigne de l'astre. */
+    if (!gameState._zoomCible && cam.zoom < zoomSurface(b) * 0.62) { sortirModeSurface(); return; }
+    const dx = cam.x - b.x, dy = cam.y - b.y;
+    const loin = b.radius * 10;
+    if (dx * dx + dy * dy > loin * loin) sortirModeSurface();
+}
+
+/* Le joueur peut-il tirer a la surface de cet astre ? Soit il le possede,
+   soit il y tient deja du terrain. */
+function peutTirerSurface(body, slot) {
+    if (!body || body.type === 'sun') return false;
+    if (body.owner === slot) return true;
+    const L = body.lutte;
+    if (!L) return false;
+    return (L.assaut[slot] || 0) > 0;
+}
+
+function estTirSurface() {
+    return !!(gameState._modeSurface && gameState._fireSource === gameState._modeSurface
+              && peutTirerSurface(gameState._modeSurface, localSlot()));
+}
+
+/* ── Passage case <-> monde ── */
+function _celluleVers(body, i) {
+    const N = LUTTE_N, r = body.radius, pas = (2 * r) / N;
+    return { x: body.x - r + ((i % N) + 0.5) * pas,
+             y: body.y - r + (((i / N) | 0) + 0.5) * pas };
+}
+function _celluleA(body, wx, wy) {
+    const N = LUTTE_N, r = body.radius, pas = (2 * r) / N;
+    const x = Math.floor((wx - (body.x - r)) / pas);
+    const y = Math.floor((wy - (body.y - r)) / pas);
+    if (x < 0 || x >= N || y < 0 || y >= N) return -1;
+    const i = y * N + x;
+    return (_lutteMasque && _lutteMasque[i]) ? i : -1;
+}
+
+/* D'ou part le tir : le bout de terrain qu'on tient le plus proche de la
+   cible. C'est la transposition, a l'echelle d'un astre, de la regle du tir
+   groupe - on tire de la ou l'on est le plus pres. */
+function pointTirSurface(body, slot, tx, ty) {
+    const L = body.lutte;
+    const r = body.radius;
+    if (!L) {
+        /* Pas de bataille : on part du point de la surface tourne vers la
+           cible. */
+        const dx = tx - body.x, dy = ty - body.y;
+        const d = Math.sqrt(dx * dx + dy * dy) || 1;
+        return { x: body.x + dx / d * r * 0.86, y: body.y + dy / d * r * 0.86 };
+    }
+    const v = (slot === body.owner) ? 0 : slot + 1;
+    const cel = L.cellules;
+    let best = -1, bd = Infinity;
+    for (let i = 0; i < cel.length; i++) {
+        if (cel[i] !== v) continue;
+        const p = _celluleVers(body, i);
+        const d = (p.x - tx) * (p.x - tx) + (p.y - ty) * (p.y - ty);
+        if (d < bd) { bd = d; best = i; }
+    }
+    if (best < 0) return { x: body.x, y: body.y };
+    return _celluleVers(body, best);
+}
+
+
+/* LA CLOCHE, calculee dans le repere de l'astre : il orbite pendant le vol,
+   un trace en coordonnees du monde se decrocherait de lui.
+
+   Le vol dure d'autant plus longtemps que la cible est loin, et part a la
+   vitesse qu'il faut pour l'atteindre en ligne droite - MAIS une acceleration
+   constante vers le centre de l'astre le devie en chemin. C'est la ce qui
+   fait tout le sel du tir de surface : plus on vise loin, plus la courbe
+   s'ecarte, et il faut la corriger a l'oeil. D'une frontiere a la frontiere
+   d'en face, a courte portee, le tir reste presque tendu.
+
+   Le trace ne quitte jamais le disque : ce qui deborde est ramene au bord,
+   car il s'agit d'un tir a la surface et non d'un depart pour l'espace. */
+const SURFACE_COURBE = 0.16;   /* deviation vers le centre, en rayons par seconde carree */
+
+function trajectoireSurface(body, ox, oy, tx, ty) {
+    const R = body.radius;
+    const px = tx - ox, py = ty - oy;
+    const portee = Math.sqrt(px * px + py * py) || 1;
+    const tVol = Math.max(0.7, Math.min(3.4, 0.55 + portee / (R * 0.85)));
+    const n = Math.max(6, Math.round(tVol / SURFACE_PAS));
+    const a = R * SURFACE_COURBE;
+    let x = ox, y = oy, vx = px / tVol, vy = py / tVol;
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+        const d = Math.sqrt(x * x + y * y) || 1;
+        vx -= x / d * a * SURFACE_PAS;
+        vy -= y / d * a * SURFACE_PAS;
+        x += vx * SURFACE_PAS;
+        y += vy * SURFACE_PAS;
+        const dd = Math.sqrt(x * x + y * y);
+        if (dd > R * 0.97) {
+            /* Rase le bord plutot que de partir dans le vide. */
+            x = x / dd * R * 0.97; y = y / dd * R * 0.97;
+            vx *= 0.55; vy *= 0.55;
+        }
+        /* h monte puis redescend : c'est l'altitude, qui ne sert qu'au dessin. */
+        pts.push({ x: x, y: y, h: Math.sin(Math.PI * (i + 1) / n) });
+    }
+    return pts;
+}
+
+/* Le trace de visee, en coordonnees du monde, recalcule a chaque image. */
+function apercuTirSurface(body, slot, tx, ty) {
+    const p = pointTirSurface(body, slot, tx, ty);
+    const rel = trajectoireSurface(body, p.x - body.x, p.y - body.y,
+                                   tx - body.x, ty - body.y);
+    const pts = [];
+    for (let i = 0; i < rel.length; i++) pts.push({ x: body.x + rel[i].x, y: body.y + rel[i].y });
+    return { depart: p, points: pts };
+}
+
+function lancerJetSurface(body, slot, tx, ty) {
+    const joueur = gameState.players[slot];
+    if (!joueur) return false;
+    const dispo = (slot === body.owner) ? body.spores
+                : ((body.lutte && body.lutte.assaut[slot]) || 0);
+    const nb = Math.floor(dispo * gameState.jetRatio);
+    if (nb < 5) { secouerEcran(6); return false; }
+
+    const p = pointTirSurface(body, slot, tx, ty);
+    const dx = tx - p.x, dy = ty - p.y;
+    if (dx * dx + dy * dy < 1) return false;
+
+    /* En multijoueur c'est le serveur qui tire : on ne lui annonce que la
+       cible, il verifie le terrain, choisit le depart et calcule la cloche. */
+    if (gameState.isMulti) {
+        sendAction('jet_surface', { srcName: body.name, tx: tx, ty: ty });
+        return true;
+    }
+
+    if (slot === body.owner) body.spores -= nb;
+    else body.lutte.assaut[slot] -= nb;
+
+    const rel = trajectoireSurface(body, p.x - body.x, p.y - body.y,
+                                   tx - body.x, ty - body.y);
+    gameState.gameStats.jetsLaunched++;
+    playLaunchSound();
+    gameState.jets.push({
+        owner: slot, color: joueur.color, spores: nb, sporeType: 'normal',
+        trajectory: rel, posIndex: 0, x: p.x, y: p.y,
+        /* Les points sont espaces de SURFACE_PAS secondes ; updateJets avance
+           l'indice de speed * dt * 0.70, d'ou cette vitesse. */
+        speed: 1 / (0.70 * SURFACE_PAS),
+        alive: true, trail: [], sparkles: [], age: 0, selected: false,
+        source: body, sourceName: body.name, _surface: body
+    });
+    return true;
+}
+
+/* Un tir de surface retombe : ses spores debarquent la ou il touche, et
+   prennent pied sur quelques cases autour du point de chute. */
+function debarquerSurface(body, slot, spores, wx, wy) {
+    _luttePrepare();
+    const N = LUTTE_N;
+    if (slot === body.owner && !body.lutte) {
+        body.spores = Math.min(body.maxSpores, (body.spores || 0) + spores);
+        return;
+    }
+    if (!body.lutte) {
+        const cel0 = new Uint8Array(N * N);
+        for (let i = 0; i < cel0.length; i++) cel0[i] = _lutteMasque[i] ? 0 : LUTTE_VIDE;
+        body.lutte = { cellules: cel0, assaut: {}, acc: 0, canvas: null, ctx: null, sale: true };
+    }
+    const L = body.lutte;
+    L.dormante = false;
+    const v = (slot === body.owner) ? 0 : slot + 1;
+
+    let centre = _celluleA(body, wx, wy);
+    if (centre < 0) {
+        const dx = wx - body.x, dy = wy - body.y;
+        const d = Math.sqrt(dx * dx + dy * dy) || 1;
+        centre = _celluleA(body, body.x + dx / d * body.radius * 0.8,
+                                 body.y + dy / d * body.radius * 0.8);
+    }
+    if (centre >= 0) {
+        /* Le rayon de la tete de pont suit la masse debarquee. */
+        const rayon = Math.min(4.5, 0.7 + Math.sqrt(spores) / 10);
+        const cx = centre % N, cy = (centre / N) | 0;
+        const r2 = rayon * rayon;
+        for (let y = Math.max(0, cy - 5); y <= Math.min(N - 1, cy + 5); y++) {
+            for (let x = Math.max(0, cx - 5); x <= Math.min(N - 1, cx + 5); x++) {
+                const dd = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+                if (dd > r2) continue;
+                const i = y * N + x;
+                if (L.cellules[i] === LUTTE_VIDE) continue;
+                L.cellules[i] = v;
+            }
+        }
+    }
+    if (v === 0) body.spores = Math.min(body.maxSpores, (body.spores || 0) + spores);
+    else L.assaut[slot] = (L.assaut[slot] || 0) + spores;
+    L.sale = true;
+    if (!gameState._ondes) gameState._ondes = [];
+    const j = gameState.players[slot];
+    gameState._ondes.push({ x: wx, y: wy, r0: body.radius * 0.05, r1: body.radius * 0.5,
+                            age: 0, maxAge: 0.5,
+                            couleur: _rgbDe((j && j.color) || '#FFFFFF'), ep: 2.5 });
 }
 
 function majLuttes(dt) {
@@ -9038,6 +9381,10 @@ function majLutte(body, pas) {
     }
 
     /* 3. Le front bouge, et use les deux camps au contact. */
+    /* Front endormi : chacun produit sur ce qu'il tient, mais plus rien ne
+       bouge et personne ne s'use. Il faut un nouveau debarquement. */
+    if (L.dormante) return;
+
     _lutteTampon.set(cel);
     _lutteUsure.fill(0);
     for (let i = 0; i < nb; i++) {
@@ -9121,12 +9468,16 @@ function majLutte(body, pas) {
         }
     }
 
-    let vainqueur = -1, meilleur = 0;
+    let vainqueur = -1, meilleur = 0, plusGrosStock = neutre ? 0 : body.spores;
     for (const k in L.assaut) {
         const v = (+k) + 1;
         if (_lutteCompte[v] > meilleur) { meilleur = _lutteCompte[v]; vainqueur = +k; }
+        if (L.assaut[k] > plusGrosStock) plusGrosStock = L.assaut[k];
     }
     if (vainqueur < 0) { body.lutte = null; return; }
+    /* Plus personne n'a de quoi pousser : l'assaut s'arrete la ou il en est,
+       et le partage tient jusqu'au prochain debarquement. */
+    if (plusGrosStock < LUTTE_SEUIL) L.dormante = true;
 
     /* L'astre ne tombe qu'au dernier pouce de sol. Un defenseur a sec n'est
        plus mis en deroute : il ne pousse plus, mais il produit toujours sur
@@ -9669,8 +10020,10 @@ function drawLaunchPreview(ctx) {
 
     if (preview.length < 2) return;
 
-    // Nombre de points à afficher (70%)
-    const count = Math.floor(preview.length * 0.7);
+    /* En surface on montre la cloche ENTIERE : c'est le point de chute qui
+       interesse, pas la direction de depart. Le depart est marque d'un rond. */
+    const surface = gameState._fireSurface;
+    const count = surface ? preview.length : Math.floor(preview.length * 0.7);
 
     ctx.save();
     const zScale = Math.max(1, 2 / gameState.camera.zoom);
@@ -9678,8 +10031,23 @@ function drawLaunchPreview(ctx) {
     const player = gameState.players[src.owner];
     /* Trait rouge quand une etoile ou le trou noir barre la route : le jet y
        serait detruit, et la cible passerait pour invulnerable. */
-    const bloque = gameState._tirBloque;
+    const bloque = !surface && gameState._tirBloque;
     const col = bloque ? '#FF3B30' : (player ? player.color : '#C8A0FF');
+    if (surface && gameState._departSurface) {
+        const d0 = gameState._departSurface;
+        ctx.setLineDash([]);
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(d0.x, d0.y, Math.max(1.5, 4 * zScale), 0, Math.PI * 2);
+        ctx.fill();
+        const fin = preview[preview.length - 1];
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 2 * zScale;
+        ctx.beginPath();
+        ctx.arc(fin.x, fin.y, Math.max(2, 7 * zScale), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([4 * zScale, 6 * zScale]);
+    }
 
     for (let i = 0; i < count - 1; i++) {
         const alpha = (bloque ? 0.85 : 0.5) * (1 - i / count);
@@ -9707,6 +10075,8 @@ function setupInput() {
         const mpEl = document.getElementById('myPlanets');
         if (mpEl && mpEl.matches(':hover')) return;
         e.preventDefault();
+        /* La molette reprend la main sur le zoom automatique du mode surface. */
+        gameState._zoomCible = null;
         const direction = e.deltaY > 0 ? -1 : 1;
         const factor = 1 + cam.zoomSpeed;
         const oldZoom = cam.zoom;
@@ -9797,6 +10167,13 @@ function setupInput() {
         if (e.button !== 0 || gameState.phase !== 'game') return;
 
         // Phase aiming : relâche → tir
+        if (gameState._firePhase === 'aiming' && gameState._aimHolding && estTirSurface()) {
+            gameState._aimHolding = false;
+            lancerJetSurface(gameState._modeSurface, localSlot(),
+                             gameState.mouseWorldX, gameState.mouseWorldY);
+            /* On reste en visee : une bataille de surface se mene par rafales. */
+            return;
+        }
         if (gameState._firePhase === 'aiming' && gameState._aimHolding) {
             gameState._aimHolding = false;
             const src = gameState._fireLanceur || gameState._fireSource;
@@ -9824,6 +10201,14 @@ function setupInput() {
         }
     });
 
+    /* Double-clic : on plonge sur l'astre et l'on passe en tir de surface. */
+    canvas.addEventListener('dblclick', (e) => {
+        if (gameState.phase !== 'game') return;
+        const wp = _worldPos(e.clientX, e.clientY);
+        const body = _bodyAt(wp.x, wp.y);
+        if (body) { e.preventDefault(); entrerModeSurface(body); }
+    });
+
     // ── Clic droit ──
     canvas.addEventListener('mousedown', (e) => {
         if (e.button === 2 || e.button === 1) {
@@ -9831,7 +10216,8 @@ function setupInput() {
             if (gameState.phase === 'game') {
                 const wp = _worldPos(e.clientX, e.clientY);
                 const body = _bodyAt(wp.x, wp.y);
-if (body && body.owner === localSlot() && (e.button === 2)) {
+const _surf = gameState._modeSurface === body && peutTirerSurface(body, localSlot());
+if (body && (body.owner === localSlot() || _surf) && (e.button === 2)) {
                     if (gameState.phase === 'spawn') return;
                     followingBody = body;
                     gameState._firePhase = 'menu';
@@ -10247,6 +10633,7 @@ if (gameState.isMulti) {
         updateImpacts(dt);
         majLuttes(dt);
         majOndesSolaires(dt);
+        majModeSurface(dt);
         majChargementTir(dt);
         majFiletsCharge(dt);
         majPopProduction(dt);
@@ -10277,6 +10664,7 @@ if (gameState.isMulti) {
     updateConquestEffects(dt);
     majLuttes(dt);
     majOndesSolaires(dt);
+    majModeSurface(dt);
     majChargementTir(dt);
     majFiletsCharge(dt);
     majPopProduction(dt);
@@ -10426,7 +10814,16 @@ function render() {
             gameState.launchPreview = computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 120);
         }
     }
-    if (gameState._firePhase === 'aiming' && gameState._fireSource) {
+    if (gameState._firePhase === 'aiming' && estTirSurface()) {
+        /* En surface le trait part du bout de terrain qu'on tient le plus
+           proche du curseur, et suit la cloche de la pesanteur de l'astre. */
+        const b = gameState._modeSurface;
+        const ap = apercuTirSurface(b, localSlot(), gameState.mouseWorldX, gameState.mouseWorldY);
+        gameState.launchPreview = ap.points;
+        gameState._departSurface = ap.depart;
+        gameState._fireSurface = true;
+    } else if (gameState._firePhase === 'aiming' && gameState._fireSource) {
+        gameState._fireSurface = false;
         /* le trait part de l'astre qui tirera, pas de celui qu'on a clique */
         const src = gameState._fireLanceur || gameState._fireSource;
         const dx = gameState.mouseWorldX - src.x;
