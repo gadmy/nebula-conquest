@@ -430,6 +430,13 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        Quand aucun n'a la vue, le trait de visee passe au rouge au lieu de
        laisser croire que la cible est invulnerable - c'etait la vraie cause
        des "planetes inattaquables" : l'impact, lui, n'a jamais resiste.
+     - LA TOUCHE R RIPOSTE PARTOUT A LA FOIS. Elle passe en revue tous les
+       astres ou plusieurs camps se partagent le sol et ou l'on tient une
+       zone d'au moins dix cases - chez soi comme chez l'autre, y compris un
+       neutre entame - et engage sur chacun juste ce qu'il faut pour acheter
+       le terrain etranger : la facture est repartie entre nos zones au
+       prorata de leurs reserves. Rien a nettoyer, l'ecran vibre. Le serveur
+       fait le meme calcul de son cote.
 
    À FAIRE
   🎯 Fond spatial : le sortir du canvas vers deux couches CSS deplacees par
@@ -2383,6 +2390,7 @@ input[type="radio"]:checked + .build-icon-btn {
         <p style="margin-bottom:6px;"><span style="color:#3B82F6;">Biome</span> — augmente la défense locale (+0.2%/biome)</p>
         <p style="margin-bottom:6px;">Activez via le panneau <span style="color:#E9D5FF;">Mes Astres</span> (icônes 🏗️🛡️🔵🔴) sur tout un système, ou dans le codex d'un astre individuel.</p>
         <p style="margin-bottom:16px;">Raccourcis sur l'astre sélectionné : <b>1</b> alvéole · <b>2</b> nid · <b>3</b> biome · <b>Espace</b> mode visée · <b>Tab</b> astre suivant.</p>
+        <p style="margin-bottom:16px;"><b>R</b> — riposte : toutes vos planètes contaminées engagent d'un coup juste ce qu'il faut pour chasser l'intrus.</p>
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🧬 MULTIPLICITÉ</p>
         <p style="margin-bottom:16px;">Sacrifiez une part de production pour évoluer. Chaque palier = +1 stat permanent. 10 paliers au total.</p>
         <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🪺 NIDIFICATION</p>
@@ -5798,6 +5806,7 @@ function setupUI() {
             if (e.code === 'Space') { e.preventDefault(); _viserDepuisSelection(); return; }
             if (e.key === 'Tab')    { e.preventDefault(); _astreSuivant();    return; }
             if (_camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
+            if (e.code === 'KeyR')  { e.preventDefault(); riposteGenerale(); return; }
             if (e.code === 'KeyQ')  { e.preventDefault(); reglerEnvoi(-5); return; }
             if (e.code === 'KeyE')  { e.preventDefault(); reglerEnvoi(+5); return; }
         }
@@ -9469,6 +9478,72 @@ function debarquerSurface(body, slot, spores, wx, wy) {
     gameState._ondes.push({ x: wx, y: wy, r0: body.radius * 0.05, r1: body.radius * 0.5,
                             age: 0, maxAge: 0.5,
                             couleur: _rgbDe((j && j.color) || '#FFFFFF'), ep: 2.5 });
+}
+
+/* CONTRE-ATTAQUE GENERALE (touche R). Sur chacun de nos astres ou un autre
+   tient du terrain, nos zones engagent JUSTE CE QU'IL FAUT pour le reprendre -
+   le nombre de cases etrangeres multiplie par le prix du sol - et pas une
+   spore de plus : nettoyer trois cases ne doit pas vider une planete. Quand
+   la reserve ne suffit pas, on engage ce qu'on a et le front s'arretera ou il
+   pourra. Les zones de moins de dix cases ne participent pas, elles n'ont
+   deja pas le droit d'attaquer. */
+function riposteGenerale() {
+    if (gameState.phase !== 'game') return 0;
+    const moi = localSlot();
+    if (gameState.isMulti) { sendAction('riposte', {}); }
+    let astres = 0, engage = 0;
+    const bodies = gameState.allBodies || [];
+    for (let bi = 0; bi < bodies.length; bi++) {
+        const body = bodies[bi];
+        const L = body.lutte;
+        if (!L || !L.zones) continue;
+
+        /* Tout astre ou plusieurs camps se partagent le sol et ou nous
+           tenons pied : le notre, celui d'en face, ou un neutre entame. */
+        const vMoi = campDe(body, moi);
+        let total = 0, etrangeres = 0;
+        for (const id in L.zones) {
+            const z = L.zones[id];
+            total += z.n;
+            if (z.v !== vMoi) etrangeres += z.n;
+        }
+        if (!etrangeres || !total) continue;
+
+        const miennes = [];
+        let dispo = 0;
+        const liste = zonesDe(body, moi);
+        for (let k = 0; k < liste.length; k++) {
+            if (liste[k].z.n < ZONE_MIN) continue;
+            miennes.push(liste[k].z);
+            dispo += liste[k].z.spores;
+        }
+        const cout = coutCase(body, total);
+        if (!miennes.length || dispo < cout) continue;
+
+        /* La facture exacte, repartie sur nos zones au prorata de ce qu'elles
+           ont : chacune paie sa part de la reconquete. */
+        const facture = etrangeres * cout;
+        const part = Math.min(1, facture / dispo);
+        for (let k = 0; k < miennes.length; k++) {
+            const z = miennes[k];
+            z.elan = Math.max(z.elan || 0, z.spores * part);
+        }
+        L.dormante = false;
+        astres++;
+        engage += Math.min(facture, dispo);
+        gameState.conquestEffects.push({
+            x: body.x, y: body.y - body.radius - 20, baseX: body.x,
+            text: '\u2694 RIPOSTE', color: '#FFD27A', age: 0, maxAge: 2.5 });
+    }
+    const j = gameState.players[moi];
+    if (astres) {
+        addEvent('mine', '\u2694', `Riposte sur ${astres} astre${astres > 1 ? 's' : ''} — ${Math.round(engage)} spores engagées`, null, j && j.color);
+        playLaunchSound();
+    } else {
+        addEvent('neutral', '\u2694', 'Aucun astre a nettoyer', null, '#888888');
+        secouerEcran(5);
+    }
+    return astres;
 }
 
 function majLuttes(dt) {
