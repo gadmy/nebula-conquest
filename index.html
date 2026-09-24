@@ -391,7 +391,12 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        doit toujours designer quelque chose.
      - Sous dix cases, une zone ne peut plus ni attaquer ni batir, et une fois
        son elan retombe elle s'effrite case par case jusqu'a disparaitre : les
-       confettis ne restent pas sur la carte.
+       confettis ne restent pas sur la carte. Le refus fait vibrer l'ecran,
+       en solo comme en multijoueur - la ou le refus du serveur etait muet.
+     - Le tir de surface ne demande plus le grossissement maximum : on y reste
+       tant que l'astre garde soixante-dix pixels de rayon a l'ecran, de quoi
+       viser ses cases. Une geante se bombarde donc de loin, une petite lune
+       demande qu'on s'approche.
      - ONDES SOLAIRES. Un systeme entierement tenu se met a vivre : son
        etoile s'embrase toutes les cinq secondes et envoie une onde qui
        balaie ses astres. Chacun la recoit au PASSAGE DU FRONT, pas au
@@ -9173,6 +9178,13 @@ function engagerLutte(body, slot, spores, angle) {
    on repasse en visee normale.
    ───────────────────────────────────────────── */
 const SURFACE_PAS = 0.05;      /* pas d'integration de la cloche */
+/* Rayon a l'ecran en dessous duquel viser la surface n'a plus de sens : la
+   grille fait trente-deux cases de cote, il faut donc quelques pixels par
+   case pour savoir ou l'on tire. Au-dessus de ce plancher on garde le mode,
+   quel que soit le grossissement - inutile d'imposer le zoom maximum pour
+   bombarder une planete, et une geante reste visable de loin tandis qu'une
+   petite lune demande qu'on s'approche. */
+const SURFACE_MIN_PX = 70;
 const SURFACE_ETAPES = 200;
 
 function zoomSurface(body) {
@@ -9211,7 +9223,9 @@ function majModeSurface(dt) {
     if (!b) return;
     if (b.type === 'sun') { sortirModeSurface(); return; }
     /* On sort des qu'on prend du recul, ou qu'on s'eloigne de l'astre. */
-    if (!gameState._zoomCible && cam.zoom < zoomSurface(b) * 0.62) { sortirModeSurface(); return; }
+    /* On ne sort pas a un grossissement donne mais quand l'astre devient trop
+       petit a l'ecran pour qu'on vise quoi que ce soit dessus. */
+    if (!gameState._zoomCible && b.radius * cam.zoom < SURFACE_MIN_PX) { sortirModeSurface(); return; }
     const dx = cam.x - b.x, dy = cam.y - b.y;
     const loin = b.radius * 10;
     if (dx * dx + dy * dy > loin * loin) sortirModeSurface();
@@ -10849,6 +10863,11 @@ function setupInput() {
                 const len = Math.sqrt(dx*dx + dy*dy);
                 if (len > 10) {
                     const dX = dx/len, dY = dy/len;
+                    /* Zone trop petite pour attaquer : l'ecran vibre. En
+                       multijoueur c'est le serveur qui refuse, et son refus
+                       est muet - on verifie donc aussi de ce cote. */
+                    const _zt = src.lutte ? zoneDeTir(src, localSlot()) : null;
+                    if (src.lutte && (!_zt || _zt.z.n < ZONE_MIN)) { secouerEcran(8); return; }
                     if (gameState.isMulti) {
                         /* On annonce le POINT de la zone choisie : le serveur
                            n'a pas la meme numerotation, mais il retrouve la
