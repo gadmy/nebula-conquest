@@ -465,6 +465,21 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        pose, sans quitter la partie. Le livre n'existe qu'a un exemplaire -
        il est DEPLACE entre l'ecran AIDE et la pause, pour qu'il n'y ait
        jamais deux textes a tenir a jour.
+     - LA COURBE DE NAISSANCE, sur la zone choisie. Le rendement ne depend que
+       du taux de remplissage, et cette relation n'a rien d'intuitif : une
+       bosse au quart, un creux au milieu, le pic aux sept dixiemes, puis
+       l'extinction. Plutot que de la faire deviner, le graphe la dessine en
+       entier et y pose un point - vous etes ici -, avec le pourcentage de
+       remplissage et le rendement du moment. Taille constante a l'ecran, et
+       rabattu dans la bande que les panneaux laissent libre : colle a la
+       zone, il disparaissait derriere les scores des qu'on visait un bord.
+       Le plafond d'une zone ne voyage pas sur le reseau, il se recalcule
+       cote client a l'identique du serveur, sinon la courbe serait sans
+       echelle en multijoueur.
+     - LA SOURIS DESIGNE LA RIPOSTE. R sur un astre survole n'engage que SES
+       zones ; R dans le vide fait repartir tous les astres contamines, comme
+       avant. On concentre donc l'effort sans depenser ses reserves partout.
+       Le client envoie le nom de l'astre vise, le serveur fait le meme tri.
 
    À FAIRE
   🎯 Fond spatial : le sortir du canvas vers deux couches CSS deplacees par
@@ -2310,7 +2325,7 @@ input[type="radio"]:checked + .build-icon-btn {
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans la liste Mes Astres</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#FFD27A;">R</b></td><td style="padding:3px 0;"><b style="color:#FFD27A;">Riposte</b> — voir le chapitre Bataille</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#FFD27A;">R</b></td><td style="padding:3px 0;"><b style="color:#FFD27A;">Riposte</b> — sur l'astre survolé, ou sur tous si la souris est dans le vide</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Échap</td><td style="padding:3px 0;">Pause (le livre des règles s’ouvre)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">F3 puis D</td><td style="padding:3px 0;">Diagnostic de performance, puis détail du rendu</td></tr>
 </table>
@@ -2335,13 +2350,15 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;">Une conquête ne se joue plus en un choc. Les spores qui touchent un astre y <span style="color:#FFD700;">prennent pied sur une case</span>, du côté d'où vient le tir, et s'étalent sur le disque en lobes irréguliers. Chaque camp porte son propre liseré ; le sol que personne ne tient a le sien, en gris.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ON ACHÈTE LE SOL.</span> La planète vaut sa capacité en spores, donc une case coûte cette capacité divisée par le nombre de cases. Attaquer avec X spores rapporte X cases, puis <span style="color:#E9D5FF;">le front s'arrête net</span>. Le sol vierge, lui, ne coûte que 15 % du prix : coloniser n'est pas conquérir.</p>
 <p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
-<p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Elle passe en revue d'un coup tous les astres où plusieurs camps se partagent le sol et où vous tenez une zone : chez vous, chez l'autre, ou sur un neutre entamé. Sur chacun elle engage exactement la facture du terrain étranger, répartie entre vos zones au prorata de leurs réserves. Rien à nettoyer : l'écran vibre.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Elle engage, sur chaque astre où plusieurs camps se partagent le sol et où vous tenez une zone, exactement la facture du terrain étranger, répartie entre vos zones au prorata de leurs réserves. Chez vous, chez l'autre, ou sur un neutre entamé.</p>
+<p style="margin-bottom:6px;"><span style="color:#E9D5FF;">C'est la souris qui désigne la cible :</span> le curseur sur un astre, la riposte ne touche que <b>ses</b> zones ; le curseur dans le vide, <b>tous</b> vos astres contaminés repartent d'un coup. Rien à nettoyer : l'écran vibre.</p>
 <p style="margin-bottom:16px;">Plusieurs attaques sur la même planète ouvrent <span style="color:#E9D5FF;">chacune leur propre front</span> à l'endroit touché. Des spores ne renforcent une tache que si le tir retombe sur du terrain que vous tenez déjà.</p>
 <!-- ZONES -->
 <p id="h-zones" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🗺 LES ZONES</p>
 <p style="margin-bottom:6px;">Une tache sur une planète n'est pas un morceau de camp : c'est une <span style="color:#FFD700;">zone</span>, avec <span style="color:#E9D5FF;">ses spores</span> et <span style="color:#E9D5FF;">son rendement</span>, écrits en son milieu quand on zoome. Deux taches d'un même joueur vivent chacune leur vie et ne mettent leurs réserves en commun que si le terrain finit par les souder.</p>
 <p style="margin-bottom:6px;">Perdre du sol, c'est perdre les spores qui étaient dessus : elles sont sur le terrain, pas dans un coffre. Une zone coupée en deux partage les siennes au prorata des cases.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">On clique une zone</span> pour choisir d'où l'on tire et où l'on construit. Un clic qui tombe sur le terrain d'un autre prend la vôtre la plus proche.</p>
+<p style="margin-bottom:6px;">La zone choisie affiche alors son graphe <span style="color:#FFD700;">NAISSANCE</span> : la courbe de production en entier, et un point qui dit où vous en êtes dessus. On voit d'un coup d'œil si la zone monte vers le pic, si elle stagne dans le creux, ou si elle s'étouffe en approchant du plafond.</p>
 <p style="margin-bottom:16px;">Sous <span style="color:#EF4444;">dix cases</span>, une zone ne peut plus ni attaquer ni bâtir — l'écran vibre si vous essayez — et une fois son élan retombé elle s'effrite case par case jusqu'à disparaître.</p>
 <!-- TIR DE SURFACE -->
 <p id="h-surface" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🎯 TIR DE SURFACE</p>
@@ -2427,7 +2444,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">💡 ASTUCES</p>
 <p style="margin-bottom:6px;">Ne laissez pas un astre <span style="color:#EF4444;">plein à ras bord</span> : il ne produit plus. Tirez pour le redescendre vers les sept dixièmes, là où il rapporte le plus.</p>
 <p style="margin-bottom:6px;">Un astre <span style="color:#EF4444;">vidé</span> remonte lentement. Gardez toujours de quoi relancer.</p>
-<p style="margin-bottom:6px;">La touche <span style="color:#FFD27A;">R</span> est faite pour ça : au lieu de surveiller dix planètes entamées, elle nettoie tout ce qui peut l'être d'un seul coup.</p>
+<p style="margin-bottom:6px;">La touche <span style="color:#FFD27A;">R</span> est faite pour ça : souris dans le vide, elle nettoie d'un coup tout ce qui peut l'être ; souris sur un astre, elle concentre l'effort sur lui seul et vous gardez vos réserves ailleurs.</p>
 <p style="margin-bottom:6px;">Une tête de pont chez l'ennemi produit, construit et tire. Dix cases bien placées valent mieux qu'une attaque ratée.</p>
 <p style="margin-bottom:6px;">Les panneaux <span style="color:#E9D5FF;">Scores / Carte / Événements</span> se replient via ▲ PANNEAUX en bas à droite ; le curseur <span style="color:#E9D5FF;">taille UI</span> en haut à droite les redimensionne.</p>
 <p style="margin-bottom:16px;"><span style="color:#E9D5FF;">F3</span> affiche les images par seconde, puis <span style="color:#E9D5FF;">D</span> détaille ce qui coûte cher à dessiner — utile si le jeu rame.</p>
@@ -5831,7 +5848,9 @@ function setupUI() {
             if (e.code === 'Space') { e.preventDefault(); _viserDepuisSelection(); return; }
             if (e.key === 'Tab')    { e.preventDefault(); _astreSuivant();    return; }
             if (_camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
-            if (e.code === 'KeyR')  { e.preventDefault(); riposteGenerale(); return; }
+            /* La souris designe la cible : sur un astre, la riposte s'y
+               limite ; dans le vide, toute la galaxie repart. */
+            if (e.code === 'KeyR')  { e.preventDefault(); riposteGenerale(astreSousSouris()); return; }
             if (e.code === 'KeyQ')  { e.preventDefault(); reglerEnvoi(-5); return; }
             if (e.code === 'KeyE')  { e.preventDefault(); reglerEnvoi(+5); return; }
         }
@@ -9538,12 +9557,25 @@ function debarquerSurface(body, slot, spores, wx, wy) {
    la reserve ne suffit pas, on engage ce qu'on a et le front s'arretera ou il
    pourra. Les zones de moins de dix cases ne participent pas, elles n'ont
    deja pas le droit d'attaquer. */
-function riposteGenerale() {
+/* L'astre sous le curseur, s'il y en a un : c'est lui qui decide si la
+   riposte vise une planete ou toute la galaxie. */
+function astreSousSouris() {
+    const bodies = gameState.allBodies || [];
+    const wx = gameState.mouseWorldX, wy = gameState.mouseWorldY;
+    for (let i = 0; i < bodies.length; i++) {
+        const b = bodies[i];
+        const dx = b.x - wx, dy = b.y - wy;
+        if (dx * dx + dy * dy < (b.radius + 8) * (b.radius + 8)) return b;
+    }
+    return null;
+}
+
+function riposteGenerale(cible) {
     if (gameState.phase !== 'game') return 0;
     const moi = localSlot();
-    if (gameState.isMulti) { sendAction('riposte', {}); }
+    if (gameState.isMulti) sendAction('riposte', { bodyName: cible ? cible.name : null });
     let astres = 0, engage = 0;
-    const bodies = gameState.allBodies || [];
+    const bodies = cible ? [cible] : (gameState.allBodies || []);
     for (let bi = 0; bi < bodies.length; bi++) {
         const body = bodies[bi];
         const L = body.lutte;
@@ -9588,10 +9620,12 @@ function riposteGenerale() {
     }
     const j = gameState.players[moi];
     if (astres) {
-        addEvent('mine', '\u2694', `Riposte sur ${astres} astre${astres > 1 ? 's' : ''} — ${Math.round(engage)} spores engagées`, null, j && j.color);
+        const ou = cible ? `sur ${cible.name}` : `sur ${astres} astre${astres > 1 ? 's' : ''}`;
+        addEvent('mine', '\u2694', `Riposte ${ou} — ${Math.round(engage)} spores engagées`, null, j && j.color);
         playLaunchSound();
     } else {
-        addEvent('neutral', '\u2694', 'Aucun astre a nettoyer', null, '#888888');
+        addEvent('neutral', '\u2694', cible ? `Rien a nettoyer sur ${cible.name}` : 'Aucun astre a nettoyer',
+                 null, '#888888');
         secouerEcran(5);
     }
     return astres;
@@ -9697,10 +9731,15 @@ function appliquerResumeLutte(body, lu) {
        locale n'est qu'une silhouette, ses numeros a elle ne servent a rien. */
     if (lu.z) {
         const zs = {};
+        let totalCases = 0;
+        for (let i = 0; i < lu.z.length; i++) totalCases += lu.z[i][2];
         for (let i = 0; i < lu.z.length; i++) {
             const t = lu.z[i];
+            /* Le plafond ne voyage pas : il se recalcule ici a l'identique du
+               serveur, sinon la courbe de naissance n'aurait pas d'echelle. */
             zs[t[0]] = { v: t[1], n: t[2], spores: t[3], rendement: t[4] / 100,
-                         cx: t[5], cy: t[6], elan: 0, plafond: 0 };
+                         cx: t[5], cy: t[6], elan: 0,
+                         plafond: (body.maxSpores || 1) * (t[2] / Math.max(1, totalCases)) };
         }
         L.zones = zs;
     }
@@ -10382,6 +10421,13 @@ function drawLuttes(ctx) {
                 }
             }
             ctx.restore();
+
+            /* Le graphe de naissance de la zone choisie, dessine apres toutes
+               les zones pour qu'il passe au-dessus de leurs chiffres. */
+            const zSel = gameState._zoneSel;
+            if (zSel && zSel.body === body && L.zones[zSel.id]) {
+                dessinerNaissance(ctx, body, L.zones[zSel.id], zc);
+            }
         }
 
         /* Le stock de chaque assaillant, a sa couleur, sous l'astre. Le grand
@@ -10405,6 +10451,152 @@ function drawLuttes(ctx) {
         }
         ctx.restore();
     }
+}
+
+/* LA COURBE DE NAISSANCE. Le rendement d'une zone ne depend que de son taux
+   de remplissage, et cette relation n'a rien d'intuitif : une bosse au quart,
+   un creux a mi-chemin, le grand pic aux sept dixiemes, puis l'extinction.
+   Plutot que de le faire deviner, on dessine la courbe et on y pose un point
+   - vous etes ici. */
+/* La bande d'ecran qu'aucun panneau ne recouvre. Mesuree une fois par image :
+   les panneaux se replient, changent de taille au curseur UI, et un graphe
+   colle dessous ne sert a rien. */
+let _bandeCache = null, _bandeImage = -1;
+function _bandeLibre() {
+    if (_bandeImage === gameState._hudCounter && _bandeCache) return _bandeCache;
+    _bandeImage = gameState._hudCounter;
+    const W = gameState.width, H = gameState.height;
+    let x0 = 8, x1 = W - 8;
+    const g = document.getElementById('colonneGauche');
+    if (g && g.offsetParent !== null) {
+        const r = g.getBoundingClientRect();
+        if (r.width > 0) x0 = Math.max(x0, r.right + 8);
+    }
+    const d = document.getElementById('sidePanel');
+    if (d && d.offsetParent !== null) {
+        const r = d.getBoundingClientRect();
+        if (r.width > 0) x1 = Math.min(x1, r.left - 8);
+    }
+    if (x1 - x0 < 140) { x0 = 8; x1 = W - 8; }   // ecran trop etroit : tant pis
+    _bandeCache = { x0: x0, x1: x1, y0: 56, y1: H - 90 };
+    return _bandeCache;
+}
+
+let _naissancePts = null;
+function _pointsNaissance() {
+    if (_naissancePts) return _naissancePts;
+    _naissancePts = [];
+    for (let i = 0; i <= 48; i++) {
+        const t = i / 48;
+        _naissancePts.push([t, courbeCroissance(t)]);
+    }
+    return _naissancePts;
+}
+
+function dessinerNaissance(ctx, body, z, zc) {
+    const plafond = Math.max(1, z.plafond || 1);
+    const part = Math.max(0, Math.min(1, (z.spores || 0) / plafond));
+    const rend = courbeCroissance(part);
+    const teinte = rend >= 0.85 ? '#4ADE80' : rend >= 0.5 ? '#FACC15' : '#F87171';
+
+    /* Taille constante a l'ecran : un graphe qui grossit avec le zoom devient
+       aussi illisible qu'un graphe minuscule. */
+    const LARG = 132, HAUT = 80;
+    const W = LARG / zc, H = HAUT / zc, m = 2.2 / zc;
+    const c = zoneCentre(body, z);
+    const rz = Math.sqrt(z.n / Math.PI) * ((2 * body.radius) / LUTTE_N);
+
+    /* On place le cadre AU-DESSUS de la zone, puis on le rabat dans la bande
+       libre de l'ecran : sans cela il se cachait derriere les panneaux des
+       que la zone touchait un bord. */
+    const cam = gameState.camera;
+    const vers = (wx, wy) => ({ x: (wx - cam.x) * zc + gameState.width / 2,
+                                y: (wy - cam.y) * zc + gameState.height / 2 });
+    const depuis = (sx, sy) => ({ x: (sx - gameState.width / 2) / zc + cam.x,
+                                  y: (sy - gameState.height / 2) / zc + cam.y });
+    const b = _bandeLibre();
+    const ce = vers(c.x, c.y - rz);
+    const sx = Math.min(Math.max(ce.x - LARG / 2, b.x0), b.x1 - LARG);
+    const sy = Math.min(Math.max(ce.y - HAUT - 14, b.y0), b.y1 - HAUT);
+    const coin = depuis(sx, sy);
+    const x = coin.x, y = coin.y;
+
+    ctx.save();
+    ctx.lineJoin = 'round';
+
+    // Le cadre
+    ctx.fillStyle = 'rgba(10,14,32,0.88)';
+    ctx.strokeStyle = 'rgba(140,170,230,0.45)';
+    ctx.lineWidth = m * 0.5;
+    ctx.beginPath();
+    ctx.rect(x, y, W, H);
+    ctx.fill();
+    ctx.stroke();
+
+    // Le titre
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = 'bold ' + (9.5 / zc) + 'px Orbitron';
+    ctx.fillStyle = 'rgba(190,210,245,0.92)';
+    ctx.fillText('NAISSANCE', x + m * 2, y + 12 / zc);
+
+    // Le cadran
+    const gx = x + m * 2, gw = W - m * 4;
+    const gy = y + 18 / zc, gh = H - 30 / zc;
+    const px = t => gx + t * gw;
+    const py = v => gy + gh - Math.max(0, Math.min(1, v)) * gh;
+
+    ctx.strokeStyle = 'rgba(140,170,230,0.18)';
+    ctx.lineWidth = m * 0.4;
+    ctx.beginPath();
+    ctx.moveTo(gx, gy + gh); ctx.lineTo(gx + gw, gy + gh);
+    ctx.stroke();
+
+    // La courbe, remplie sous le trait pour qu'on lise la forme d'un coup
+    const pts = _pointsNaissance();
+    ctx.beginPath();
+    ctx.moveTo(px(0), py(pts[0][1]));
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(px(pts[i][0]), py(pts[i][1]));
+    ctx.lineTo(px(1), gy + gh);
+    ctx.lineTo(px(0), gy + gh);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(120,170,255,0.16)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(px(0), py(pts[0][1]));
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(px(pts[i][0]), py(pts[i][1]));
+    ctx.strokeStyle = 'rgba(160,200,255,0.85)';
+    ctx.lineWidth = m * 0.7;
+    ctx.stroke();
+
+    // Vous etes ici : le fil a plomb, puis le point
+    ctx.beginPath();
+    ctx.moveTo(px(part), gy + gh);
+    ctx.lineTo(px(part), py(rend));
+    ctx.strokeStyle = teinte;
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = m * 0.5;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    ctx.beginPath();
+    ctx.arc(px(part), py(rend), m * 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = teinte;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(10,14,32,0.9)';
+    ctx.lineWidth = m * 0.4;
+    ctx.stroke();
+
+    // Les deux chiffres qui comptent : ou l'on en est, ce que ca rapporte
+    ctx.font = 'bold ' + (9 / zc) + 'px Orbitron';
+    ctx.fillStyle = 'rgba(190,210,245,0.75)';
+    ctx.fillText(Math.round(part * 100) + '% plein', gx, y + H - m * 1.5);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = teinte;
+    ctx.fillText(Math.round(rend * 100) + '%', gx + gw, y + H - m * 1.5);
+
+    ctx.restore();
 }
 
 /* PRISE D'UN ASTRE. Extrait d'applyConquest : ce n'est plus l'impact d'un
