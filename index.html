@@ -445,6 +445,22 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        lumiere : ils passent en composition additive et restent visibles sur
        n'importe quel fond. Aucun cout mesurable (2,8 ms par image avant
        comme apres).
+     - LE LIVRE DES REGLES REMIS A JOUR ET OUVERT A LA PAUSE. Il en restait
+       deux versions empilees dans le meme panneau, la seconde datant d'avant
+       la refonte : spores d'attaque et de defense, faune a vaincre,
+       nidification et planete mere, terminaux de commerce, diplomatie et
+       signaux - autant de choses qui n'existent plus. La copie morte est
+       supprimee et les chapitres restants refaits : production et sa courbe
+       a deux regimes, bataille de surface et l'achat du sol, zones, tir de
+       surface, batiments poses au sol et recuperables, territoires et ondes
+       solaires, les quatre voies d'evolution dont Sensitivity, les alertes
+       directionnelles, et la touche R. Les controles listent enfin tout le
+       clavier. Douze chapitres au lieu de dix, chacun avec son lien en tete.
+     - ECHAP OUVRE LE LIVRE. Le menu de pause l'affiche entier, avec ses
+       liens de chapitre : on cherche une regle au moment ou la question se
+       pose, sans quitter la partie. Le livre n'existe qu'a un exemplaire -
+       il est DEPLACE entre l'ecran AIDE et la pause, pour qu'il n'y ait
+       jamais deux textes a tenir a jour.
 
    À FAIRE
   🎯 Fond spatial : le sortir du canvas vers deux couches CSS deplacees par
@@ -1825,11 +1841,18 @@ input[type="radio"]:checked + .build-icon-btn {
 
 #pauseOverlay h2 {
     font-family: 'Orbitron', sans-serif;
-    font-size: 36px;
+    font-size: 30px;
     color: #C8A0FF;
-    margin-bottom: 30px;
+    margin-bottom: 14px;
     letter-spacing: 4px;
 }
+
+/* Le livre des regles pendant la pause : il prend la place qu'il peut sans
+   jamais pousser les boutons hors de l'ecran. */
+#pauseBook { width: 100%; display: flex; justify-content: center; }
+#pauseBook:empty { display: none; }
+#pauseBook > div { max-height: 62vh; margin: 0 16px; }
+#pauseBoutons { display: flex; gap: 12px; margin-top: 16px; }
 
 /* ── Contrôle volume intégré dans topRight ── */
 .vol-icon {
@@ -2240,18 +2263,20 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="helpScreen" class="screen hidden">
     <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:12px; letter-spacing:3px;">LIVRE DES RÈGLES</h2>
     <button class="btn" id="btnStartTutorial" style="margin-bottom:16px; background:rgba(34,197,94,0.2); border:1px solid rgba(34,197,94,0.5); color:#4ADE80; font-size:13px; padding:10px 28px; letter-spacing:2px;">🎮 LANCER LE TUTORIEL</button>
-    <div style="background:rgba(15,23,42,0.92); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px 28px; max-width:620px; margin:0 auto; max-height:70vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(100,180,255,0.3) transparent; font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.85); line-height:1.6;">
+    <div id="helpBook" style="background:rgba(15,23,42,0.92); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px 28px; max-width:620px; margin:0 auto; max-height:70vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(100,180,255,0.3) transparent; font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.85); line-height:1.6;">
 
 <!-- Navigation chapitres -->
 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(100,180,255,0.15);">
   <a href="#h-objectif" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🎯 Objectif</a>
   <a href="#h-controles" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🕹 Contrôles</a>
-  <a href="#h-spores" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🧬 Spores</a>
-  <a href="#h-stats" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">📊 Stats</a>
+  <a href="#h-prod" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🧬 Production</a>
+  <a href="#h-bataille" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚔ Bataille</a>
+  <a href="#h-zones" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🗺 Zones</a>
+  <a href="#h-surface" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🎯 Tir de surface</a>
   <a href="#h-batiments" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🏗 Bâtiments</a>
-  <a href="#h-terminaux" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">📡 Terminaux</a>
-  <a href="#h-diplomatie" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🤝 Diplomatie</a>
+  <a href="#h-territoires" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🛰 Territoires</a>
   <a href="#h-evolution" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">✦ Évolution</a>
+  <a href="#h-alertes" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🔔 Alertes</a>
   <a href="#h-dangers" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚠️ Dangers</a>
   <a href="#h-multi" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🌐 Multi</a>
 </div>
@@ -2263,95 +2288,113 @@ input[type="radio"]:checked + .build-icon-btn {
 
 <!-- CONTRÔLES -->
 <p id="h-controles" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🕹 CONTRÔLES</p>
+<p style="margin-bottom:6px;color:rgba(200,210,230,0.55);font-size:11px;letter-spacing:1px;">SOURIS</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche sur un astre</td><td style="padding:3px 0;">Le sélectionne et centre la caméra dessus</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un astre possédé</td><td style="padding:3px 0;">Menu radial : ⚪ Spores · 🦠 Parasite · 🍯 Alvéole · 🏗 Nid · 🛡 Biome · 📖 Codex</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche maintenu → relâcher</td><td style="padding:3px 0;">En mode visée : tire un jet de spores dans la direction pointée</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic sur une zone de la planète</td><td style="padding:3px 0;">Choisit la zone d'où partira le tir — elle se cerne d'un trait double et d'un « TIR »</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Double-clic sur un astre</td><td style="padding:3px 0;">Plonge sur sa surface : on vise alors au pixel près (voir Tir de surface)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur fond vide + glisser</td><td style="padding:3px 0;">Déplace la caméra</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Molette</td><td style="padding:3px 0;">Zoom / dézoom (ne fait pas défiler les panneaux quand la souris est dessus)</td></tr>
+</table>
+<p style="margin-bottom:6px;color:rgba(200,210,230,0.55);font-size:11px;letter-spacing:1px;">CLAVIER</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Z Q S D <span style="color:rgba(200,210,230,0.45)">ou flèches</span></td><td style="padding:3px 0;">Déplacer la caméra</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">P / M</td><td style="padding:3px 0;">Zoom avant / arrière</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;">Passe en mode visée depuis l'astre sélectionné</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans la liste Mes Astres</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#FFD27A;">R</b></td><td style="padding:3px 0;"><b style="color:#FFD27A;">Riposte</b> — voir le chapitre Bataille</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Échap</td><td style="padding:3px 0;">Pause (le livre des règles s’ouvre)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">F3 puis D</td><td style="padding:3px 0;">Diagnostic de performance, puis détail du rendu</td></tr>
+</table>
+<p style="margin-bottom:16px;color:rgba(200,210,230,0.5);font-size:11px;">💡 En mode visée, le clic droit annule. La part de spores envoyée se règle aussi au curseur <span style="color:#E9D5FF;">Envoi</span> du panneau Évolution, et s'affiche en gros en bas de l'écran.</p>
+
+<!-- PRODUCTION -->
+<p id="h-prod" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🧬 SPORES &amp; PRODUCTION</p>
+<p style="margin-bottom:6px;">Chaque astre a une <span style="color:#FFD700;">capacité</span> — le nombre de spores qu'il peut contenir — et se remplit tout seul. La vitesse de remplissage est une <span style="color:#C8A0FF;">part de cette capacité par seconde</span>, si bien qu'une géante et une petite lune mettent le même temps à se remplir : environ 80 secondes pour le premier quart, trois minutes et demie pour le gros pic.</p>
+<p style="margin-bottom:6px;">Mais le rendement n'est pas constant : il suit une <span style="color:#4ADE80;">courbe à deux régimes</span>.</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:55%;">Clic droit sur un astre possédé</td><td style="padding:3px 0;">Ouvre le menu radial (types de spores + bâtiments)</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic sur un type de spore dans le menu radial</td><td style="padding:3px 0;">Active le mode visée — un trait de trajectoire apparaît</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic gauche maintenu → relâcher (en mode visée)</td><td style="padding:3px 0;">Tire le jet de spores dans la direction pointée</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">📖 centre du menu radial</td><td style="padding:3px 0;">Ouvre le Codex de l'astre (stats, bâtiments, symbiose)</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic gauche sur un astre</td><td style="padding:3px 0;">Centre la caméra sur cet astre + ouvre le Codex</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Couronne extérieure du menu radial</td><td style="padding:3px 0;">Choisir / activer un bâtiment (tooltip au survol)</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit sur fond vide</td><td style="padding:3px 0;">Panneau Évolution (Multiplicité + Mutations)</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit maintenu + glisser (sur fond vide)</td><td style="padding:3px 0;">Déplacer la caméra</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Clic droit sur astre ennemi</td><td style="padding:3px 0;">Diplomatie (si pas allié) ou commerce (si allié avec terminal commun)</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Molette</td><td style="padding:3px 0;">Zoom / dézoom (ne scrolle pas les panneaux si souris dessus)</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">P / M</td><td style="padding:3px 0;">Zoom + / Zoom −</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Échap</td><td style="padding:3px 0;">Pause (solo uniquement)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:32%;">Presque vide</td><td style="padding:3px 0;">Rendement faible — il n'y a personne pour se reproduire</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Au quart plein</td><td style="padding:3px 0;">Première bosse, modeste mais facile à tenir</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">À moitié plein</td><td style="padding:3px 0;">Creux — rester là est la pire position</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Aux sept dixièmes</td><td style="padding:3px 0;color:#4ADE80;">LE PIC — le meilleur rendement du jeu</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Plein à ras bord</td><td style="padding:3px 0;">Extinction : un astre saturé ne produit plus rien</td></tr>
 </table>
-<p style="margin-bottom:16px;color:rgba(200,210,230,0.5);font-size:11px;">💡 En mode visée, clic droit annule. Le pourcentage de spores envoyées est réglable dans le panneau Évolution (slider Envoi).</p>
-
-<!-- SPORES & CONQUÊTE -->
-<p id="h-spores" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🧬 SPORES & CONQUÊTE</p>
-<p style="margin-bottom:6px;">Chaque astre possédé produit des spores à une vitesse dépendant de sa <span style="color:#4ADE80;">Flore</span> (0–100). La <span style="color:#22C55E;">Symbiose</span> augmente cette production avec le temps : jusqu'à <span style="color:#22C55E;">+20%</span> pour les planètes, <span style="color:#22C55E;">+10%</span> pour les lunes.</p>
-<p style="margin-bottom:6px;">Pour conquérir un astre ennemi ou neutre, vos spores doivent d'abord neutraliser sa <span style="color:#EF4444;">Faune</span> (défense naturelle), puis ses spores stockées. Plus vous envoyez de spores, plus le jet est puissant — mais vous laissez votre astre source vulnérable.</p>
-<p style="margin-bottom:6px;">Il existe trois types de spores envoyables depuis le <span style="color:#C8A0FF;">menu radial</span> (clic droit sur un astre possédé) :</p>
-<table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
-  <tr><td style="padding:3px 0;"><span style="color:#FFF;">⚪ Normal</span></td><td style="padding:3px 0;">Usage général — conquête, renforcement, neutralisation</td></tr>
-  <tr><td style="padding:3px 0;"><span style="color:#EF4444;">🔴 Attaque</span></td><td style="padding:3px 0;">×5 puissance à l'impact — très offensif</td></tr>
-  <tr><td style="padding:3px 0;"><span style="color:#38BDF8;">🔵 Défense</span></td><td style="padding:3px 0;">Ne conquiert pas — renforce les défenses alliées (×5 en stock de défense)</td></tr>
-  <tr><td style="padding:3px 0;"><span style="color:#22C55E;">🦠 Parasite</span></td><td style="padding:3px 0;">Infecte une planète ennemie — elle perd des spores progressivement</td></tr>
-</table>
-<p style="margin-bottom:6px;">Un <span style="color:#22C55E;">jet de spores parasitaires</span> prend <span style="color:#FFD700;">2 minutes</span> à charger. Une seule spore parasite à la fois par astre. Pour éliminer un parasite, envoyez <span style="color:#FFD700;">500 spores normales</span> sur la planète infectée.</p>
-<p style="margin-bottom:16px;">Envoyer des spores vers une planète <span style="color:#FFF;">alliée</span> (🤝) renforce ses stocks au lieu d'attaquer. Un <span style="color:#C8A0FF;">+xxx</span> violet apparaît à l'arrivée pour indiquer le gain.</p>
-
-<!-- STATS -->
-<p id="h-stats" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">📊 STATS DU COMMANDANT</p>
-<p style="margin-bottom:6px;">Choisissez 10 points à répartir avant la partie :</p>
-<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
-  <tr><td style="padding:3px 0;color:#4ADE80;width:30%;">Croissance</td><td style="padding:3px 0;">+5% production de spores par point (s'applique à tous vos astres)</td></tr>
-  <tr><td style="padding:3px 0;color:#60A5FA;">Vélocité</td><td style="padding:3px 0;">+5% vitesse des jets par point</td></tr>
-  <tr><td style="padding:3px 0;color:#F472B6;">Densité</td><td style="padding:3px 0;">+5% puissance d'impact par point (s'applique à toutes les spores)</td></tr>
-</table>
+<p style="margin-bottom:6px;">Le rendement du moment s'affiche au-dessus de l'astre sélectionné, en vert, jaune ou rouge. Tout le reste <span style="color:#E9D5FF;">multiplie</span> cette courbe : la <span style="color:#4ADE80;">Flore</span> de l'astre, la <span style="color:#22C55E;">Symbiose</span> qui monte avec le temps (jusqu'à +20 % sur une planète, +10 % sur une lune), vos <span style="color:#E9D5FF;">nids</span> et votre stat <span style="color:#4ADE80;">Growth</span>.</p>
+<p style="margin-bottom:16px;">Une <span style="color:#EAB308;">alvéole</span> augmente la capacité, donc aussi la production : un plus grand silo nourrit plus de monde. Attention, elle décale aussi le pic.</p>
+<p style="margin-bottom:16px;">Deux types de jets partent du menu radial : <span style="color:#E9D5FF;">⚪ Spores</span>, qui colonisent et attaquent, et <span style="color:#E9D5FF;">🦠 Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent).</p>
+<!-- BATAILLE -->
+<p id="h-bataille" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚔ BATAILLE DE SURFACE</p>
+<p style="margin-bottom:6px;">Une conquête ne se joue plus en un choc. Les spores qui touchent un astre y <span style="color:#FFD700;">prennent pied sur une case</span>, du côté d'où vient le tir, et s'étalent sur le disque en lobes irréguliers. Chaque camp porte son propre liseré ; le sol que personne ne tient a le sien, en gris.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">ON ACHÈTE LE SOL.</span> La planète vaut sa capacité en spores, donc une case coûte cette capacité divisée par le nombre de cases. Attaquer avec X spores rapporte X cases, puis <span style="color:#E9D5FF;">le front s'arrête net</span>. Le sol vierge, lui, ne coûte que 15 % du prix : coloniser n'est pas conquérir.</p>
+<p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Elle passe en revue d'un coup tous les astres où plusieurs camps se partagent le sol et où vous tenez une zone : chez vous, chez l'autre, ou sur un neutre entamé. Sur chacun elle engage exactement la facture du terrain étranger, répartie entre vos zones au prorata de leurs réserves. Rien à nettoyer : l'écran vibre.</p>
+<p style="margin-bottom:16px;">Plusieurs attaques sur la même planète ouvrent <span style="color:#E9D5FF;">chacune leur propre front</span> à l'endroit touché. Des spores ne renforcent une tache que si le tir retombe sur du terrain que vous tenez déjà.</p>
+<!-- ZONES -->
+<p id="h-zones" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🗺 LES ZONES</p>
+<p style="margin-bottom:6px;">Une tache sur une planète n'est pas un morceau de camp : c'est une <span style="color:#FFD700;">zone</span>, avec <span style="color:#E9D5FF;">ses spores</span> et <span style="color:#E9D5FF;">son rendement</span>, écrits en son milieu quand on zoome. Deux taches d'un même joueur vivent chacune leur vie et ne mettent leurs réserves en commun que si le terrain finit par les souder.</p>
+<p style="margin-bottom:6px;">Perdre du sol, c'est perdre les spores qui étaient dessus : elles sont sur le terrain, pas dans un coffre. Une zone coupée en deux partage les siennes au prorata des cases.</p>
+<p style="margin-bottom:6px;"><span style="color:#E9D5FF;">On clique une zone</span> pour choisir d'où l'on tire et où l'on construit. Un clic qui tombe sur le terrain d'un autre prend la vôtre la plus proche.</p>
+<p style="margin-bottom:16px;">Sous <span style="color:#EF4444;">dix cases</span>, une zone ne peut plus ni attaquer ni bâtir — l'écran vibre si vous essayez — et une fois son élan retombé elle s'effrite case par case jusqu'à disparaître.</p>
+<!-- TIR DE SURFACE -->
+<p id="h-surface" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🎯 TIR DE SURFACE</p>
+<p style="margin-bottom:6px;">Un <span style="color:#E9D5FF;">double-clic</span> sur un astre plonge dessus. On vise alors sa surface au pixel près : le tir part du bout de terrain que vous y tenez le plus proche du curseur.</p>
+<p style="margin-bottom:6px;">La trajectoire est une cloche déviée vers le centre de l'astre — plus on vise loin, plus il faut corriger ; d'une frontière à celle d'en face le tir reste tendu. Il passe <span style="color:#60A5FA;">au-dessus du disque, dans l'atmosphère</span>, et seul le point de chute revient sur la planète.</p>
+<p style="margin-bottom:16px;">Pas besoin du grossissement maximum : on reste en tir de surface tant que l'astre garde <span style="color:#E9D5FF;">70 pixels de rayon</span> à l'écran. Une géante se bombarde donc de loin, une petite lune demande qu'on s'approche.</p>
 
 <!-- BÂTIMENTS -->
 <p id="h-batiments" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🏗 BÂTIMENTS</p>
-<p style="margin-bottom:6px;">Accessibles via la <span style="color:#C8A0FF;">couronne extérieure du menu radial</span> (clic droit sur un astre possédé). Chaque astre ne peut avoir qu'un seul mode actif à la fois.</p>
+<p style="margin-bottom:6px;">Par la couronne extérieure du menu radial, ou aux touches <span style="color:#E9D5FF;">1 2 3</span>. La construction est <span style="color:#4ADE80;">immédiate</span> : si l'astre ne peut pas payer, elle est refusée sur-le-champ et l'écran vibre.</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
-  <tr style="color:#C8A0FF;"><td style="padding:4px 0;font-size:11px;">Bâtiment</td><td style="padding:4px 0;font-size:11px;">Coût</td><td style="padding:4px 0;font-size:11px;">Effet</td></tr>
-  <tr><td style="padding:3px 0;">🍯 Alvéole</td><td style="padding:3px 0;color:#FFD700;">10% du stock max</td><td style="padding:3px 0;">capacité de stockage</td></tr>
-  <tr><td style="padding:3px 0;">🏗️ Nid</td><td style="padding:3px 0;color:#FFD700;">15% du stock max</td><td style="padding:3px 0;">production locale</td></tr>
-  <tr><td style="padding:3px 0;">🛡️ Biome</td><td style="padding:3px 0;color:#FFD700;">20% du stock max</td><td style="padding:3px 0;">défense à l'impact</td></tr>
-  <tr><td colspan="3" style="padding:6px 0 0 0;color:#C8A0FF;">Pour chaque genre, les gains diminuent : <b>+20%</b> pour le premier, <b>+15%</b> pour le deuxième, <b>+10%</b> pour le troisième, puis <b>+5%</b> chacun. À partir du quatrième, le coût monte de <b>10%</b> à chaque fois.</td></tr>
-  <tr><td style="padding:3px 0;">🦠 Parasite</td><td style="padding:3px 0;color:#FFD700;">Gratuit (2 min)</td><td style="padding:3px 0;">Prépare 1 spore parasitaire</td></tr>
+  <tr style="color:rgba(200,210,230,0.5);"><td style="padding:3px 0;width:26%;">Bâtiment</td><td style="padding:3px 0;width:22%;">Coût</td><td style="padding:3px 0;">Gains successifs</td></tr>
+  <tr><td style="padding:3px 0;">🍯 Alvéole</td><td style="padding:3px 0;color:#FFD700;">10 % du stock max</td><td style="padding:3px 0;">capacité : +20 %, +15 %, +10 %, puis +5 %</td></tr>
+  <tr><td style="padding:3px 0;">🏗️ Nid</td><td style="padding:3px 0;color:#FFD700;">15 % du stock max</td><td style="padding:3px 0;">production : +30 %, +22,5 %, +15 %, puis +7,5 %</td></tr>
+  <tr><td style="padding:3px 0;">🛡️ Biome</td><td style="padding:3px 0;color:#FFD700;">20 % du stock max</td><td style="padding:3px 0;">défense : +20 %, +15 %, +10 %, puis +5 %</td></tr>
+  <tr><td colspan="3" style="padding:6px 0;color:rgba(200,210,230,0.6);font-size:11px;">À partir du quatrième d'un même genre, le coût monte de <b>10 %</b> à chaque fois. Le nid rapporte une fois et demie plus que les autres, à coût égal.</td></tr>
 </table>
-<p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Système solaire entier conquis</span> → bonus de production <span style="color:#4ADE80;">+3%</span> sur tous les astres du système.</p>
-<p style="margin-bottom:16px;">La construction est immédiate : dès que l'astre a de quoi payer, le bâtiment sort. S'il n'a pas assez de spores, l'icône 🧬 clignote sous lui et il continue à produire jusqu'à pouvoir se l'offrir.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">LES BÂTIMENTS SONT POSÉS SUR LE SOL.</span> Chacun occupe une case de la surface : on le voit là où il est. Vous pouvez bâtir sur une simple tête de pont chez l'ennemi, payée par la réserve que vous avez sur place.</p>
+<p style="margin-bottom:16px;">Quand la frontière passe dessus, le bâtiment <span style="color:#4ADE80;">change de mains avec le terrain</span> : la conquête ne détruit plus rien, elle récupère. Seuls comptent les nids que vous tenez, et les biomes qui défendent sont ceux que l'assaillant ne tient pas.</p>
+<p style="margin-bottom:16px;"><span style="color:#FFD700;">Système solaire entier conquis</span> → +3 % de production sur tous ses astres, et les ondes solaires se déclenchent (voir Territoires).</p>
 
-<!-- TERMINAUX DE COMMERCE -->
-<p id="h-terminaux" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">📡 TERMINAUX DE COMMERCE</p>
-<p style="margin-bottom:6px;">Pour commercer, deux astres alliés doivent posséder le <span style="color:#C8A0FF;">même type de terminal</span>. Une orbe lumineuse fait alors des allers-retours continus entre eux, livrant des spores à chaque arrivée. Les lunes ne peuvent pas construire Antre ni Fourme.</p>
-<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
-  <tr style="color:#C8A0FF;"><td style="padding:4px 0;font-size:11px;">Terminal</td><td style="padding:4px 0;font-size:11px;">Coût construction</td><td style="padding:4px 0;font-size:11px;">Échange</td><td style="padding:4px 0;font-size:11px;">Gain / voyage</td></tr>
-  <tr><td style="padding:3px 0;">🌫️ Gorge Chaude</td><td style="padding:3px 0;color:#FFD700;">500 sp normales</td><td style="padding:3px 0;">Miasme</td><td style="padding:3px 0;color:#4ADE80;">1 – 10 sp</td></tr>
-  <tr><td style="padding:3px 0;">🫧 Ectoplasme</td><td style="padding:3px 0;color:#FFD700;">1 000 sp normales</td><td style="padding:3px 0;">Particule</td><td style="padding:3px 0;color:#4ADE80;">25 – 50 sp</td></tr>
-  <tr><td style="padding:3px 0;">🕳️ Antre</td><td style="padding:3px 0;color:#FFD700;">100 sp défense</td><td style="padding:3px 0;">Molécule</td><td style="padding:3px 0;color:#4ADE80;">65 – 100 sp</td></tr>
-  <tr><td style="padding:3px 0;">🍄 Fourme</td><td style="padding:3px 0;color:#FFD700;">200 sp attaque</td><td style="padding:3px 0;">ADN</td><td style="padding:3px 0;color:#4ADE80;">650 – 1 000 sp</td></tr>
-</table>
-<p style="margin-bottom:6px;">Le gain varie selon la <span style="color:#C8A0FF;">distance</span> entre les deux astres (plus loin = plus rentable). Chaque astre ne peut commercer qu'avec un seul partenaire à la fois. Construire un nouveau terminal détruit l'ancien et annule l'orbe en cours.</p>
-<p style="margin-bottom:16px;">Une orbe peut être <span style="color:#EF4444;">interceptée</span> par un jet ennemi : elle change alors de direction vers la planète de l'intercepteur. Les alliés ne peuvent pas intercepter vos orbes.</p>
-
-<!-- DIPLOMATIE -->
-<p id="h-diplomatie" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🤝 DIPLOMATIE & SIGNAUX</p>
-<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Mélange d'ADN</span> (alliance) : clic droit sur un astre ennemi → proposer une alliance. Si l'IA accepte automatiquement. Si un humain, il reçoit une notification. Une fois alliés :</p>
-<ul style="margin:0 0 8px 18px;padding:0;">
-  <li>Vos jets vers ses astres le renforcent au lieu d'attaquer</li>
-  <li>Ses astres affichent un halo vert 🤝</li>
-  <li>Vous pouvez commercer via des terminaux compatibles</li>
-  <li>Plusieurs alliances simultanées sont possibles</li>
-</ul>
-<p style="margin-bottom:6px;">Pour <span style="color:#EF4444;">rompre une alliance</span>, clic droit sur un astre allié → "Rompre l'alliance". Les orbes de commerce actives sont annulées.</p>
-<p style="margin-bottom:6px;"><span style="color:#FCD34D;">📡 Signaux</span> : envoyez des émojis expressifs à n'importe quel joueur. Certains signaux (commerce, guerre, paix, accord…) proposent de choisir le destinataire parmi tous les joueurs en partie. Le signal apparaît sous forme de <span style="color:#FCD34D;">bulle flottante</span> au-dessus de l'astre du joueur ciblé.</p>
-<p style="margin-bottom:16px;">Signaux disponibles : 🌫️🫧🕳️🍄 (propositions commerce) · 🧬 (alliance) · ⚔️ (guerre) · 🏳️ (paix) · 👑 (respect) · 😈 (menace) · 🤝 (accord) · 💀 (avertissement) · 😂 (humour)</p>
+<!-- TERRITOIRES -->
+<p id="h-territoires" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🛰 TERRITOIRES &amp; ONDES SOLAIRES</p>
+<p style="margin-bottom:6px;">Une planète dont vous tenez toutes les lunes forme un <span style="color:#FFD700;">territoire</span>, entouré d'une frontière en courbes. Un soleil entièrement tenu en forme un plus grand, qui absorbe les précédents et inclut l'étoile. Deux frontières à vous qui se croisent n'en font plus qu'une.</p>
+<p style="margin-bottom:16px;">Une <span style="color:#E9D5FF;">tête de pont ennemie ne casse pas un groupement</span> : un astre envahi à moins de la moitié compte toujours comme tenu. Au-delà de la moitié, il en sort.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">ONDES SOLAIRES.</span> Un système entièrement tenu se met à vivre : son étoile s'embrase <span style="color:#E9D5FF;">toutes les 5 secondes</span> et envoie une onde qui balaie ses astres. Chacun la reçoit au passage du front, pas au départ — le système s'allume de l'intérieur vers l'extérieur.</p>
+<p style="margin-bottom:16px;">Ce que l'onde apporte dépend de votre stat <span style="color:#FBBF24;">Sensitivity</span> : <span style="color:#4ADE80;">+5 % de la capacité de l'astre par point</span>. À un point, une lune de 400 reçoit 20 spores.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro.</p>
+<p style="margin-bottom:16px;">On ne tire pas à travers une étoile ni un trou noir : ils détruisent les jets. Quand aucun de vos astres n'a la vue sur la cible, le trait de visée passe au <span style="color:#EF4444;">rouge</span>.</p>
 
 <!-- ÉVOLUTION -->
-<p id="h-evolution" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">✦ ÉVOLUTION & MUTATIONS</p>
-<p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Multiplicité</span> : sacrifiez une part de production (réglable en %) pour accumuler des points d'évolution. À chaque palier atteint (10 paliers max), choisissez +1 point dans Croissance, Vélocité ou Densité. Coût croissant : 500 × 1.8ᴺ spores par palier.</p>
-<p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Mutations</span> — trois branches technologiques (panneau Évolution) :</p>
-<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
-  <tr><td style="padding:3px 0;color:#E9D5FF;">🎯 Tête chercheuse</td><td style="padding:3px 0;">Jets déviés vers les astres non-alliés proches (ennemis et neutres). Portée initiale : 110 unités, +30 par niveau. Force de déviation croissante.</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">💪 Ténacité</td><td style="padding:3px 0;">Jets divisés par astéroïdes conservent plus de spores et sont redirigés vers les systèmes solaires.</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">🦎 Mimétisme</td><td style="padding:3px 0;">À la conquête d'une planète avec lunes, le jet se scinde vers elles. Niv.10 : 100% des spores vont directement aux lunes.</td></tr>
+<p id="h-evolution" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">✦ ÉVOLUTION &amp; MUTATIONS</p>
+<p style="margin-bottom:6px;">Quatre voies, 10 points à répartir avant la partie :</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+  <tr><td style="padding:3px 0;color:#4ADE80;width:26%;">🌱 Growth</td><td style="padding:3px 0;">+5 % de production de spores par point, sur tous vos astres</td></tr>
+  <tr><td style="padding:3px 0;color:#60A5FA;">⚡ Velocity</td><td style="padding:3px 0;">+5 % de vitesse des jets par point</td></tr>
+  <tr><td style="padding:3px 0;color:#F472B6;">💎 Density</td><td style="padding:3px 0;">+5 % de puissance à l'impact par point</td></tr>
+  <tr><td style="padding:3px 0;color:#FBBF24;">☀ Sensitivity</td><td style="padding:3px 0;">+5 % de la capacité de l'astre par point, à chaque onde solaire</td></tr>
 </table>
-<p style="margin-bottom:16px;">Coût branches : 1ʳᵉ = 1 000 + 100/niv · 2ᵉ = 2 000 + 200/niv · 3ᵉ = 3 000 + 300/niv. Nidification sacrifie aussi de la production (réglable séparément de la Multiplicité). Total sacrifié plafonné à 50%.</p>
+<p style="margin-bottom:16px;"><span style="color:#C8A0FF;">Multiplicité</span> : sacrifiez une part réglable de votre production pour accumuler des points d'évolution. À chaque palier (10 au maximum) vous gagnez +1 point dans la voie de votre choix. Coût croissant : 500 × 1,8<sup>N</sup> spores par palier.</p>
+<p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Mutations</span> — trois branches, dans l'onglet Mutations du panneau Évolution :</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:26%;">🎯 Tête chercheuse</td><td style="padding:3px 0;">Vos jets dévient vers les astres non-alliés proches. Portée 110 unités, +30 par niveau.</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">💪 Ténacité</td><td style="padding:3px 0;">Les jets éclatés par un astéroïde gardent plus de spores et sont redirigés vers les systèmes solaires.</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">🦎 Mimétisme</td><td style="padding:3px 0;">À la conquête d'une planète à lunes, le jet se scinde vers elles. Au niv. 10, 100 % des spores vont directement aux lunes.</td></tr>
+</table>
+<p style="margin-bottom:16px;">Coût des branches : 1<sup>re</sup> = 1 000 + 100/niv · 2<sup>e</sup> = 2 000 + 200/niv · 3<sup>e</sup> = 3 000 + 300/niv. Le total sacrifié est plafonné à 50 % de votre production.</p>
+
+<!-- ALERTES -->
+<p id="h-alertes" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🔔 ALERTES DIRECTIONNELLES</p>
+<p style="margin-bottom:6px;">La carte est bien plus grande que l'écran : dire qu'il se passe quelque chose ne suffit pas, il faut dire <span style="color:#E9D5FF;">où</span>. Trois événements posent une balise sur l'astre concerné :</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+  <tr><td style="padding:3px 0;color:#F87171;width:32%;">On vous attaque</td><td style="padding:3px 0;">Anneau battant sur l'astre visé</td></tr>
+  <tr><td style="padding:3px 0;color:#EF4444;">Vous perdez un astre</td><td style="padding:3px 0;">Balise + éclat lumineux au bord de l'écran, du bon côté, et une secousse</td></tr>
+  <tr><td style="padding:3px 0;color:#FBBF24;">Un groupement se referme</td><td style="padding:3px 0;">Balise sur le territoire qui vient de se former, quel que soit le joueur</td></tr>
+</table>
+<p style="margin-bottom:16px;">Quand l'astre est hors-champ, la balise devient une <span style="color:#E9D5FF;">flèche collée au bord</span>, exactement dans sa direction.</p>
 
 <!-- DANGERS -->
 <p id="h-dangers" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚠️ DANGERS</p>
@@ -2376,52 +2419,16 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;"><span style="color:#FB923C;">⚔️ Guildes</span> : créez ou rejoignez une guilde depuis le menu principal. Votre tag s'affiche après votre pseudo <span style="color:#FB923C;">[TAG]</span>. Les guildes ont leur propre classement ELO. Invitez une guilde entière dans une partie via son tag — tous les membres reçoivent l'invitation.</p>
 <p style="margin-bottom:16px;">Les scores et l'ELO sont mis à jour automatiquement après chaque partie multi (minimum 2 joueurs humains).</p>
 
-<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v4.8</p>
-        <p style="margin-bottom:16px;">Conquérir <span style="color:#FFD700;">80%</span> des astres de la galaxie. Colonisez des planètes et des lunes en envoyant vos <span style="color:#C8A0FF;">spores</span> à travers l'espace.</p>
-        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🚀 CONTRÔLES</p>
-        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">Clic maintenu + glisser</span> depuis un astre possédé → lance un jet de spores vers la cible</p>
-        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">Clic droit + glisser</span> → déplacer la caméra</p>
-        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">Molette</span> → zoom / dézoom</p>
-        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">Échap</span> → pause (solo uniquement)</p>
-        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">Clic droit sur un astre possédé</span> → menu radial : Normal / Défense / Attaque / Codex</p>
-        <p style="margin-bottom:16px;"><span style="color:#E9D5FF;">Clic droit sur fond vide</span> → panneau Évolution</p>
-        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🧬 SPORES & CONQUÊTE</p>
-        <p style="margin-bottom:6px;">Vos planètes produisent des spores automatiquement. La <span style="color:#4ADE80;">Flore</span> détermine la vitesse de production.</p>
-        <p style="margin-bottom:6px;">Pour conquérir un astre ennemi ou neutre, vos spores doivent d'abord vaincre sa <span style="color:#EF4444;">Faune</span> (défense naturelle), puis ses spores.</p>
-        <p style="margin-bottom:16px;">Plus vous envoyez de spores, plus le jet est puissant — mais vous laissez aussi l'astre d'origine vulnérable !</p>
-        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">📊 STATS DU COMMANDANT</p>
-        <p style="margin-bottom:6px;"><span style="color:#4ADE80;">Croissance</span> — augmente la vitesse de production de spores (+5%/pt)</p>
-        <p style="margin-bottom:6px;"><span style="color:#60A5FA;">Vélocité</span> — augmente la vitesse des jets (+5%/pt)</p>
-        <p style="margin-bottom:16px;"><span style="color:#F472B6;">Densité</span> — augmente la puissance des jets à l'impact (+5%/pt)</p>
-        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🏗️ NIDS & BIOMES</p>
-        <p style="margin-bottom:6px;"><span style="color:#4ADE80;">Nid</span> — augmente la production locale (+0.2%/nid)</p>
-        <p style="margin-bottom:6px;"><span style="color:#3B82F6;">Biome</span> — augmente la défense locale (+0.2%/biome)</p>
-        <p style="margin-bottom:6px;">Activez via le panneau <span style="color:#E9D5FF;">Mes Astres</span> (icônes 🏗️🛡️🔵🔴) sur tout un système, ou dans le codex d'un astre individuel.</p>
-        <p style="margin-bottom:16px;">Raccourcis sur l'astre sélectionné : <b>1</b> alvéole · <b>2</b> nid · <b>3</b> biome · <b>Espace</b> mode visée · <b>Tab</b> astre suivant.</p>
-        <p style="margin-bottom:16px;"><b>R</b> — riposte : toutes vos planètes contaminées engagent d'un coup juste ce qu'il faut pour chasser l'intrus.</p>
-        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🧬 MULTIPLICITÉ</p>
-        <p style="margin-bottom:16px;">Sacrifiez une part de production pour évoluer. Chaque palier = +1 stat permanent. 10 paliers au total.</p>
-        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🪺 NIDIFICATION</p>
-        <p style="margin-bottom:16px;">Système entièrement conquis → planètes clignotent en rouge dans Mes Astres → clic pour désigner la planète mère → halo doré visible par tous. Ses lunes doivent être conquises avant de pouvoir l'attaquer (sans lunes : conquérable normalement). Bouton 👑 Nidif. dans le menu radial : aspire 50% des spores de tous vos astres instantanément (cooldown 3 min). S'annule si une lune est perdue.</p>
-        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">🧬 MUTATIONS</p>
-        <p style="margin-bottom:6px;">Trois branches technologiques pour améliorer vos jets (onglet Mutations du panneau évolution) :</p>
-        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">🎯 Tête chercheuse</span> — les jets dévient vers les planètes neutres/ennemies proches. Plus le niveau est haut, plus la portée et la force d'attraction augmentent.</p>
-        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">💪 Ténacité</span> — les jets séparés par les météorites conservent plus de spores (jusqu'à 100% au niv.10) et sont redirigés vers les systèmes solaires.</p>
-        <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">🦎 Mimétisme</span> — à la conquête d'une planète avec lunes, le jet se scinde vers les lunes. Au niv.10 la planète n'est pas colonisée, les jets vont directement aux lunes avec 100% des spores.</p>
-        <p style="margin-bottom:6px;">La 1ère branche débloquée coûte 1000 (+100/niv), la 2ème 2000 (+200/niv), la 3ème 3000 (+300/niv).</p>
-        <p style="margin-bottom:16px;"><span style="color:#E9D5FF;">🚀 Envoi</span> — réglez le pourcentage de spores envoyées par jet (0-100%).</p>
-        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">⚠️ DANGERS</p>
-        <p style="margin-bottom:6px;"><span style="color:#A78BFA;">Trou noir</span> — détruit les jets trop proches, courbe les trajectoires</p>
-        <p style="margin-bottom:6px;"><span style="color:#EF4444;">Vaisseaux rouges</span> — attaquent vos jets</p>
-        <p style="margin-bottom:6px;"><span style="color:#4ADE80;">Vaisseaux verts</span> — doublent les jets croisés</p>
-        <p style="margin-bottom:6px;"><span style="color:#888;">Vaisseaux noirs</span> — renvoient vos jets contre vous</p>
-        <p style="margin-bottom:6px;"><span style="color:#888;">Astéroïdes noirs</span> ÷2 · <span style="color:#EF4444;">rouges</span> dévient · <span style="color:#4ADE80;">verts</span> ×5</p>
-        <p style="margin-bottom:16px;"><span style="color:#60A5FA;">Comètes</span> — détruisent les spores au contact</p>
-        <p style="font-family:'Orbitron',sans-serif; font-size:11px; color:#7DD3FC; letter-spacing:2px; margin-bottom:10px;">💡 ASTUCES</p>
-        <p style="margin-bottom:6px;">La <span style="color:#22C55E;">symbiose</span> augmente avec le temps (+20% prod planètes, +10% lunes).</p>
-        <p style="margin-bottom:6px;">Les panneaux <span style="color:#E9D5FF;">Scores / Carte / Événements</span> sont rétractables via le bouton ▲ PANNEAUX en bas à droite.</p>
-        <p style="margin-bottom:6px;">Le slider <span style="color:#E9D5FF;">taille UI</span> (haut droite) redimensionne les panneaux sans déborder de l'écran.</p>
-        <p><span style="color:#FFD700;">👑 Partie rapide</span> — lobby 4 joueurs humains, carte aléatoire. La partie se lance automatiquement quand le lobby est complet.</p>
+<!-- ASTUCES -->
+<p style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">💡 ASTUCES</p>
+<p style="margin-bottom:6px;">Ne laissez pas un astre <span style="color:#EF4444;">plein à ras bord</span> : il ne produit plus. Tirez pour le redescendre vers les sept dixièmes, là où il rapporte le plus.</p>
+<p style="margin-bottom:6px;">Un astre <span style="color:#EF4444;">vidé</span> remonte lentement. Gardez toujours de quoi relancer.</p>
+<p style="margin-bottom:6px;">La touche <span style="color:#FFD27A;">R</span> est faite pour ça : au lieu de surveiller dix planètes entamées, elle nettoie tout ce qui peut l'être d'un seul coup.</p>
+<p style="margin-bottom:6px;">Une tête de pont chez l'ennemi produit, construit et tire. Dix cases bien placées valent mieux qu'une attaque ratée.</p>
+<p style="margin-bottom:6px;">Les panneaux <span style="color:#E9D5FF;">Scores / Carte / Événements</span> se replient via ▲ PANNEAUX en bas à droite ; le curseur <span style="color:#E9D5FF;">taille UI</span> en haut à droite les redimensionne.</p>
+<p style="margin-bottom:16px;"><span style="color:#E9D5FF;">F3</span> affiche les images par seconde, puis <span style="color:#E9D5FF;">D</span> détaille ce qui coûte cher à dessiner — utile si le jeu rame.</p>
+
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.4</p>
     </div>
     <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
 </div>
@@ -2755,8 +2762,14 @@ input[type="radio"]:checked + .build-icon-btn {
 <!-- ═══ PAUSE ═══ -->
 <div id="pauseOverlay">
     <h2 id="pauseTitle">PAUSE</h2>
-    <button class="btn" id="btnResume">REPRENDRE</button>
-    <button class="btn" id="btnQuit">QUITTER</button>
+    <!-- Le livre des regles vient se loger ici pendant la pause : on deplace
+         le noeud au lieu de le dupliquer, pour n'avoir qu'un seul texte a
+         tenir a jour. -->
+    <div id="pauseBook"></div>
+    <div id="pauseBoutons">
+        <button class="btn" id="btnResume">REPRENDRE</button>
+        <button class="btn" id="btnQuit">QUITTER</button>
+    </div>
 </div>
 
 <script>
@@ -5634,14 +5647,14 @@ function setupUI() {
     document.getElementById('btnResume').addEventListener('click', () => {
         playClickSound();
         if (gameState.isMulti) {
-            document.getElementById('pauseOverlay').classList.remove('active');
+            afficherPause(false);
         } else {
             togglePause();
         }
     });
     document.getElementById('btnQuit').addEventListener('click', () => {
         playClickSound();
-        document.getElementById('pauseOverlay').classList.remove('active');
+        afficherPause(false);
         if (gameState.isMulti && currentRoom) {
             // Déconnexion franche → l'adversaire gagne
             disconnectSocket();
@@ -6378,7 +6391,7 @@ function setPhase(phase) {
     if (document.getElementById('rankedScreen')) document.getElementById('rankedScreen').classList.add('hidden');
     document.getElementById('spawnBanner').classList.add('hidden');
     document.getElementById('gameHud').style.display = 'none';
-    document.getElementById('pauseOverlay').classList.remove('active');
+    afficherPause(false);
     document.getElementById('endScreen').classList.remove('active');
     document.getElementById('gameCanvas').style.display = 'none';
 
@@ -6463,18 +6476,44 @@ case 'createMulti':
             document.getElementById('gameCanvas').style.display = 'block';
             document.getElementById('gameHud').style.display = 'block';
             document.getElementById('pauseTitle').textContent = 'PAUSE';
-            document.getElementById('pauseOverlay').classList.add('active');
+            afficherPause(true);
             break;
     }
+}
+
+/* Le livre des regles n'existe qu'a un seul exemplaire : on le DEPLACE entre
+   l'ecran AIDE et le menu de pause, plutot que d'en tenir deux copies qui
+   finiraient par diverger. */
+function livreVersPause() {
+    const livre = document.getElementById('helpBook');
+    const hote = document.getElementById('pauseBook');
+    if (!livre || !hote) return;
+    if (livre.parentNode !== hote) hote.appendChild(livre);
+    livre.scrollTop = 0;
+}
+
+function livreVersAide() {
+    const livre = document.getElementById('helpBook');
+    const ecran = document.getElementById('helpScreen');
+    const retour = document.getElementById('btnHelpBack');
+    if (!livre || !ecran || livre.parentNode === ecran) return;
+    if (retour) ecran.insertBefore(livre, retour); else ecran.appendChild(livre);
+}
+
+function afficherPause(oui) {
+    const ov = document.getElementById('pauseOverlay');
+    if (!ov) return;
+    if (oui) { livreVersPause(); ov.classList.add('active'); }
+    else { ov.classList.remove('active'); livreVersAide(); }
 }
 
 function togglePause() {
     if (gameState.isMulti) {
         if (gameState.phase === 'game') {
             document.getElementById('pauseTitle').textContent = 'MENU';
-            document.getElementById('pauseOverlay').classList.add('active');
+            afficherPause(true);
         } else {
-            document.getElementById('pauseOverlay').classList.remove('active');
+            afficherPause(false);
         }
         return;
     }
@@ -16691,6 +16730,7 @@ async function leaveGuild() {
 
 document.getElementById('btnHelp').addEventListener('click', () => {
     playClickSound();
+    livreVersAide();
     document.getElementById('titleScreen').classList.add('hidden');
     document.getElementById('helpScreen').classList.remove('hidden');
 });
