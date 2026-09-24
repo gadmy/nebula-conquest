@@ -279,6 +279,17 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        tenaient trois lignes chacune en permanence, pour un texte qu'on lit
        une fois. L'infobulle des cartes de construction leur sert de base,
        desormais partagee.
+     - La jauge d'envoi gagne une barre - on voit qu'on est au tiers sans
+       lire le chiffre - et le nombre de spores qui partiront passe en gros
+       et en vert.
+     - Les batiments se construisent aussi avec & é " : ce sont les touches
+       1 2 3 d'un clavier francais, lues a leur position et non au caractere.
+     - ON NE TIRE PLUS A TRAVERS UNE ETOILE. Les soleils et le trou noir
+       detruisent les jets ; le lanceur choisi pendant la visee est donc le
+       plus proche QUI VOIT LA CIBLE, et non le plus proche tout court.
+       Quand aucun n'a la vue, le trait de visee passe au rouge au lieu de
+       laisser croire que la cible est invulnerable - c'etait la vraie cause
+       des "planetes inattaquables" : l'impact, lui, n'a jamais resiste.
 
    À FAIRE
   🎯 Fond spatial : le sortir du canvas vers deux couches CSS deplacees par
@@ -1315,14 +1326,42 @@ input[type="radio"]:checked + .build-icon-btn {
 }
 #envoiHud .envoi-val span { font-size: 22px; opacity: 0.75; margin-left: 2px; }
 #envoiHud.pulse .envoi-val { color: #FFFFFF; text-shadow: 0 0 22px rgba(190,140,255,0.95), 0 2px 4px rgba(0,0,0,0.9); }
+/* La barre dit d'un coup d'oeil ou l'on est dans la course, ce qu'un nombre
+   seul ne fait pas : on voit qu'on est au tiers sans lire le chiffre. */
+#envoiHud .envoi-jauge {
+    width: 190px;
+    height: 7px;
+    margin: 6px auto 0;
+    border-radius: 4px;
+    background: rgba(10,8,30,0.75);
+    border: 1px solid rgba(140,90,240,0.45);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+    overflow: hidden;
+}
+#envoiHud .envoi-jauge i {
+    display: block;
+    height: 100%;
+    width: 50%;
+    background: linear-gradient(90deg, #7C3AED, #C8A0FF);
+    box-shadow: 0 0 10px rgba(180,130,255,0.75);
+    transition: width 0.12s;
+}
+#envoiHud .envoi-nb {
+    margin-top: 5px;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4ADE80;
+    text-shadow: 0 0 10px rgba(74,222,128,0.5), 0 2px 4px rgba(0,0,0,0.95);
+}
+#envoiHud .envoi-nb em { font-style: normal; font-size: 10px; letter-spacing: 3px; opacity: 0.7; margin-left: 4px; }
 #envoiHud .envoi-sub {
-    margin-top: 3px;
+    margin-top: 2px;
     font-size: 9px;
     letter-spacing: 3px;
     color: rgba(200,160,255,0.55);
     text-shadow: 0 1px 3px rgba(0,0,0,0.9);
 }
-#envoiHud .envoi-sub b { color: #C8A0FF; font-weight: 600; }
 
 /* ── Liste planètes du joueur ── */
 #myPlanets {
@@ -2415,7 +2454,9 @@ input[type="radio"]:checked + .build-icon-btn {
 <!-- ═══ JAUGE D'ENVOI (bas, centre) ═══ -->
 <div id="envoiHud" style="display:none;">
     <div class="envoi-val" id="envoiPct">50<span>%</span></div>
-    <div class="envoi-sub" id="envoiSub">ENVOI</div>
+    <div class="envoi-jauge"><i id="envoiBar"></i></div>
+    <div class="envoi-nb" id="envoiNb"></div>
+    <div class="envoi-sub">ENVOI</div>
 </div>
 
 <!-- ═══ PANNEAU BAS-DROITE ═══ -->
@@ -5562,9 +5603,13 @@ function setupUI() {
         const cible = document.activeElement;
         const enSaisie = cible && (cible.tagName === 'INPUT' || cible.tagName === 'TEXTAREA');
         if (gameState.phase === 'game' && !enSaisie && !e.ctrlKey && !e.altKey && !e.metaKey) {
-            if (e.key === '1') { e.preventDefault(); _construire('alveole'); return; }
-            if (e.key === '2') { e.preventDefault(); _construire('nid');     return; }
-            if (e.key === '3') { e.preventDefault(); _construire('biome');   return; }
+            /* Rangee du haut, quel que soit le clavier : en azerty ces touches
+               sortent & é " sans majuscule, on lit donc leur position et non
+               le caractere. Le pave numerique et un vrai 1 2 3 marchent aussi. */
+            const _rang = { Digit1: 'alveole', Digit2: 'nid', Digit3: 'biome',
+                            Numpad1: 'alveole', Numpad2: 'nid', Numpad3: 'biome' };
+            const _bat = _rang[e.code] || ({ '1': 'alveole', '2': 'nid', '3': 'biome' })[e.key];
+            if (_bat) { e.preventDefault(); _construire(_bat); return; }
             if (e.code === 'Space') { e.preventDefault(); _viserDepuisSelection(); return; }
             if (e.key === 'Tab')    { e.preventDefault(); _astreSuivant();    return; }
             if (_camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
@@ -6580,6 +6625,36 @@ function _groupeTir(src) {
    besoin de l'enveloppe exacte ici - on cherche a savoir si le joueur vise
    chez lui, pas a tracer un trait. Le serveur fait le meme calcul, mot pour
    mot, pour que le multijoueur se comporte pareil. */
+/* Le segment ax,ay -> bx,by coupe-t-il le disque cx,cy,r ? Le point du
+   segment le plus proche du centre suffit : s'il est dans le disque, ils se
+   coupent. */
+function _segmentCoupeDisque(ax, ay, bx, by, cx, cy, r) {
+    const dx = bx - ax, dy = by - ay;
+    const a = dx * dx + dy * dy;
+    if (a < 1e-9) { const ux = ax - cx, uy = ay - cy; return ux * ux + uy * uy < r * r; }
+    let t = -((ax - cx) * dx + (ay - cy) * dy) / a;
+    if (t < 0) t = 0; else if (t > 1) t = 1;
+    const px = ax + dx * t - cx, py = ay + dy * t - cy;
+    return px * px + py * py < r * r;
+}
+
+/* Un tir de A vers B passe-t-il a travers une etoile ou le trou noir ? Les
+   jets sont detruits net par les deux : viser par-dessus une etoile revenait
+   a ne pas tirer du tout, et la planete derriere passait pour invulnerable.
+   Les rayons sont ceux qui tuent le jet dans checkJetCollision et updateJets,
+   avec un peu de marge : on ecarte le tir qui frole autant que celui qui
+   traverse. */
+function tirBloque(ax, ay, bx, by) {
+    const suns = gameState.suns || [];
+    for (let i = 0; i < suns.length; i++) {
+        const s = suns[i];
+        if (_segmentCoupeDisque(ax, ay, bx, by, s.x, s.y, s.radius + 14)) return true;
+    }
+    const bh = gameState.blackHole;
+    if (bh && _segmentCoupeDisque(ax, ay, bx, by, bh.x, bh.y, bh.dangerZone * 0.4 + 10)) return true;
+    return false;
+}
+
 function _viseeInterne(groupe, x, y) {
     if (!groupe || groupe.length < 2) return false;
     const p = groupe[0];              /* la planete ; les suivantes sont ses lunes */
@@ -6599,6 +6674,7 @@ function majChargementTir(dt) {
         if (gameState._fireLanceur && gameState.isMulti) sendAction('aim_end', {});
         gameState._fireLanceur = null;
         gameState._fireGroupe = null;
+        gameState._tirBloque = false;
         return;
     }
     const groupe = _groupeTir(gameState._fireSource);
@@ -6611,15 +6687,27 @@ function majChargementTir(dt) {
     const interne = _viseeInterne(groupe, gameState.mouseWorldX, gameState.mouseWorldY);
     let lanceur = gameState._fireLanceur;
     if (!interne || !lanceur || groupe.indexOf(lanceur) < 0) {
+        /* Le plus proche QUI VOIT LA CIBLE. Une etoile avale le jet : le plus
+           proche n'est pas le meilleur s'il tire a travers un soleil. On ne
+           retombe sur le plus proche tout court que si aucun n'a la vue. */
         lanceur = gameState._fireSource;
-        let meilleure = Infinity;
+        let meilleure = Infinity, meilleureVue = Infinity, lanceurVue = null;
         for (let i = 0; i < groupe.length; i++) {
             const b = groupe[i];
             const dx = gameState.mouseWorldX - b.x, dy = gameState.mouseWorldY - b.y;
             const d = dx * dx + dy * dy;
             if (d < meilleure) { meilleure = d; lanceur = b; }
+            if (d < meilleureVue && !tirBloque(b.x, b.y, gameState.mouseWorldX, gameState.mouseWorldY)) {
+                meilleureVue = d; lanceurVue = b;
+            }
         }
+        if (lanceurVue) lanceur = lanceurVue;
     }
+    /* Quand meme le lanceur retenu n'a pas la vue, le trait de visee le dit :
+       sans cela le joueur tire dans une etoile sans comprendre pourquoi rien
+       n'arrive. */
+    gameState._tirBloque = tirBloque(lanceur.x, lanceur.y,
+                                     gameState.mouseWorldX, gameState.mouseWorldY);
     if (lanceur !== gameState._fireLanceur) {
         gameState._fireLanceur = lanceur;
         gameState._chargeAcc = 0;
@@ -7528,15 +7616,17 @@ function majJaugeEnvoi(pulse) {
     const pct = Math.round(gameState.jetRatio * 100);
     const val = document.getElementById('envoiPct');
     if (val) val.innerHTML = pct + '<span>%</span>';
+    const bar = document.getElementById('envoiBar');
+    if (bar) bar.style.width = pct + '%';
 
     const src = gameState._fireLanceur || gameState._fireSource
              || ((typeof followingBody !== 'undefined' && followingBody) ? followingBody : null)
              || gameState.selectedBody;
-    const sub = document.getElementById('envoiSub');
-    if (sub) {
-        sub.innerHTML = (src && src.owner === localSlot() && src.spores !== undefined)
-            ? 'ENVOI · <b>' + Math.floor(src.spores * gameState.jetRatio) + '</b> SPORES'
-            : 'ENVOI';
+    const nb = document.getElementById('envoiNb');
+    if (nb) {
+        nb.innerHTML = (src && src.owner === localSlot() && src.spores !== undefined)
+            ? Math.floor(src.spores * gameState.jetRatio) + '<em>SPORES</em>'
+            : '';
     }
     if (pulse) {
         hud.classList.add('pulse');
@@ -8996,12 +9086,15 @@ function drawLaunchPreview(ctx) {
     const zScale = Math.max(1, 2 / gameState.camera.zoom);
     ctx.setLineDash([4 * zScale, 6 * zScale]);
     const player = gameState.players[src.owner];
-    const col = player ? player.color : '#C8A0FF';
+    /* Trait rouge quand une etoile ou le trou noir barre la route : le jet y
+       serait detruit, et la cible passerait pour invulnerable. */
+    const bloque = gameState._tirBloque;
+    const col = bloque ? '#FF3B30' : (player ? player.color : '#C8A0FF');
 
     for (let i = 0; i < count - 1; i++) {
-        const alpha = 0.5 * (1 - i / count);
+        const alpha = (bloque ? 0.85 : 0.5) * (1 - i / count);
         ctx.strokeStyle = col + Math.floor(alpha * 255).toString(16).padStart(2, '0');
-        ctx.lineWidth = 2 * zScale;
+        ctx.lineWidth = (bloque ? 3 : 2) * zScale;
         ctx.beginPath();
         ctx.moveTo(preview[i].x, preview[i].y);
         ctx.lineTo(preview[i+1].x, preview[i+1].y);
