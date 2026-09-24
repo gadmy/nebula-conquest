@@ -444,7 +444,11 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        planete eclairee - ils s'y effacaient. Ces elements sont de la
        lumiere : ils passent en composition additive et restent visibles sur
        n'importe quel fond. Aucun cout mesurable (2,8 ms par image avant
-       comme apres).
+       comme apres). Les jets de spores suivent - brume, trainee, halo,
+       noyau et scintillements -, seul leur compteur reste en rendu normal.
+       Mesure sur une planete eclairee : la trainee passe de 155 a 242 de
+       luminosite pour un fond a 75 ; dans le vide elle ne gagne que 96 ->
+       130, donc rien n'est crame.
      - LE LIVRE DES REGLES REMIS A JOUR ET OUVERT A LA PAUSE. Il en restait
        deux versions empilees dans le meme panneau, la seconde datant d'avant
        la refonte : spores d'attaque et de defense, faune a vaincre,
@@ -10741,6 +10745,14 @@ function drawJets(ctx) {
     for (const jet of gameState.jets) {
         if (!jet.alive) continue;
 
+        /* Un jet n'est que de la lumiere : brume, trainee, halo, noyau et
+           scintillements s'AJOUTENT au fond. En transparence simple ils
+           s'effacaient des qu'un jet passait devant une planete eclairee,
+           qui est plus claire qu'eux. Le nombre de spores, lui, reste en
+           rendu normal - c'est du texte, pas une lueur. */
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+
         // ── Traîne diffuse (brume colorée) ──
         const trail = jet.trail;
         if (trail.length > 1) {
@@ -10803,6 +10815,8 @@ function drawJets(ctx) {
             ctx.arc(sx, sy, sr + 3 * sparkScale, 0, Math.PI * 2);
             ctx.fill();
         }
+
+        ctx.restore();
 
         // ── Afficher le nombre de spores si sélectionné (clic) ──
         if (jet.selected) {
