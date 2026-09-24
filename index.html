@@ -296,6 +296,18 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        recouvert en entier, un astre possede tombe aussi des que son
        defenseur n'a plus une spore. Le serveur livre la meme bataille et
        n'envoie que les comptes de cases : le client peint la tache.
+     - ONDES SOLAIRES. Un systeme entierement tenu se met a vivre : son
+       etoile s'embrase toutes les cinq secondes et envoie une onde qui
+       balaie ses astres. Chacun la recoit au PASSAGE DU FRONT, pas au
+       depart : le systeme s'allume de l'interieur vers l'exterieur.
+     - SENSITIVITY, quatrieme voie d'evolution : elle regle ce que l'onde
+       apporte, cinq pour cent de la capacite de l'astre par point. A un
+       point une lune de quatre cents recoit vingt spores - le forfait
+       d'origine, devenu proportionnel.
+     - LE CONVOI DE CHARGE ne se voyait pas : un trait droit qui palissait.
+       Chaque envoi est desormais un arc le long duquel filent trois grains
+       lumineux, avec un anneau de choc a l'arrivee, et l'astre qui charge
+       porte deux anneaux tournants dont l'eclat monte avec la charge.
      - ON NE TIRE PLUS A TRAVERS UNE ETOILE. Les soleils et le trou noir
        detruisent les jets ; le lanceur choisi pendant la visee est donc le
        plus proche QUI VOIT LA CIBLE, et non le plus proche tout court.
@@ -2406,6 +2418,7 @@ input[type="radio"]:checked + .build-icon-btn {
             <div class="stat-row" title="Multiplie la vitesse de production de spores sur vos planètes (+30% par point)"><span class="stat-icon">🌱</span><span class="stat-name">Growth</span><span class="stat-val" id="evoStatGrowth">3</span><span class="stat-bonus" id="evoStatGrowthBonus"></span><span class="stat-effect" id="evoStatGrowthFx"></span></div>
             <div class="stat-row" title="Augmente la vitesse de déplacement des jets de spores (+6 par point)"><span class="stat-icon">⚡</span><span class="stat-name">Velocity</span><span class="stat-val" id="evoStatVelocity">4</span><span class="stat-bonus" id="evoStatVelocityBonus"></span><span class="stat-effect" id="evoStatVelocityFx"></span></div>
             <div class="stat-row" title="Augmente les spores délivrées à l'impact (+5% par point)"><span class="stat-icon">💎</span><span class="stat-name">Density</span><span class="stat-val" id="evoStatDensity">3</span><span class="stat-bonus" id="evoStatDensityBonus"></span><span class="stat-effect" id="evoStatDensityFx"></span></div>
+            <div class="stat-row" title="Force des ondes solaires : un système entièrement conquis arrose ses astres toutes les 5 s (+5% de leur capacité par point)"><span class="stat-icon">☀</span><span class="stat-name">Sensitivity</span><span class="stat-val" id="evoStatSensitivity">1</span><span class="stat-bonus" id="evoStatSensitivityBonus"></span><span class="stat-effect" id="evoStatSensitivityFx"></span></div>
         </div>
         <div class="evo-sep"></div>
         <div class="evo-multi-title" title="Sacrifiez une partie de votre production pour gagner des paliers d'évolution. Chaque palier donne +1 point de stat au choix.">✦ MULTIPLICITÉ ✦</div>
@@ -2422,6 +2435,7 @@ input[type="radio"]:checked + .build-icon-btn {
             <button id="evoGrowth">🌱 Growth <div class="stat-current" id="evoGrowthCur"></div></button>
             <button id="evoVelocity">⚡ Velocity <div class="stat-current" id="evoVelocityCur"></div></button>
             <button id="evoDensity">💎 Density <div class="stat-current" id="evoDensityCur"></div></button>
+            <button id="evoSensitivity">☀ Sensitivity <div class="stat-current" id="evoSensitivityCur"></div></button>
         </div>
         <div class="evo-sep"></div>
         <div style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(200,160,255,0.5);letter-spacing:2px;text-align:center;margin:4px 0 6px;">⚔ CONQUÊTE</div>
@@ -2720,7 +2734,8 @@ const gameState = {
     playerStats: {
         growth: 3,
         velocity: 4,
-        density: 2
+        density: 2,
+        sensitivity: 1
     },
     playerColor: '#8B5CF6',
 
@@ -6544,6 +6559,8 @@ function finishStartGame() {
     gameState._eclatBord = null;
     marquerTerritoiresSales();
     gameState._filetsCharge = [];
+    gameState._ondes = [];
+    gameState._ondesSolaires = [];
     gameState._fireLanceur = null;
     gameState._fireGroupe = null;
     gameState._chargeAcc = 0;
@@ -6769,36 +6786,127 @@ function majChargementTir(dt) {
 function majFiletsCharge(dt) {
     const f = gameState._filetsCharge;
     for (let i = f.length - 1; i >= 0; i--) {
-        f[i].age += dt;
-        if (f[i].age >= f[i].maxAge) f.splice(i, 1);
+        const t = f[i];
+        t.age += dt;
+        /* Arrivee du convoi : un anneau de choc sur l'astre qui charge. On ne
+           le pose qu'une fois, a la traversee du seuil. */
+        if (!t.arrive && t.age >= t.maxAge * 0.72) {
+            t.arrive = true;
+            if (!gameState._ondes) gameState._ondes = [];
+            gameState._ondes.push({ x: t.vers.x, y: t.vers.y, suit: t.vers,
+                                    r0: t.vers.radius * 0.6, r1: t.vers.radius * 2.1,
+                                    age: 0, maxAge: 0.45, couleur: '220,200,255', ep: 2.5 });
+        }
+        if (t.age >= t.maxAge) f.splice(i, 1);
+    }
+    const o = gameState._ondes;
+    if (o) for (let i = o.length - 1; i >= 0; i--) {
+        o[i].age += dt;
+        if (o[i].age >= o[i].maxAge) o.splice(i, 1);
     }
 }
 
+/* Anneaux qui s'ouvrent : arrivee d'un convoi de charge, onde d'un soleil. */
+function drawOndes(ctx) {
+    const o = gameState._ondes;
+    if (!o || !o.length) return;
+    const ep = 1 / gameState.camera.zoom;
+    ctx.save();
+    for (let i = 0; i < o.length; i++) {
+        const w = o[i];
+        const u = w.age / w.maxAge;
+        const k = 1 - u;
+        if (w.suit) { w.x = w.suit.x; w.y = w.suit.y; }
+        const r = w.r0 + (w.r1 - w.r0) * u;
+        if (!aLEcran(w.x, w.y, r)) continue;
+        ctx.strokeStyle = 'rgba(' + w.couleur + ',' + (k * k * 0.85).toFixed(3) + ')';
+        ctx.lineWidth = Math.max(1, w.ep * ep * k);
+        ctx.beginPath();
+        ctx.arc(w.x, w.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+/* LE CONVOI DE CHARGE. C'etait un trait droit qui palissait : on ne voyait
+   ni d'ou partaient les spores, ni qu'elles arrivaient. Chaque envoi est
+   maintenant un arc - le cote est tire au depart, deux astres voisins ne se
+   superposent donc pas - le long duquel filent trois grains lumineux. Le
+   sillage est peint en deux passes, large et sourde dessous, fine et claire
+   dessus : c'est ce qui donne l'impression de lumiere sans cout de flou. */
 function drawFiletsCharge(ctx) {
     const lanceur = gameState._fireLanceur;
     const f = gameState._filetsCharge;
     if (!lanceur && !f.length) return;
     const cam = gameState.camera;
+    const ep = 1 / cam.zoom;
+    const temps = gameState.time || 0;
 
+    ctx.save();
+    ctx.lineCap = 'round';
     for (let i = 0; i < f.length; i++) {
         const t = f[i];
-        const k = 1 - t.age / t.maxAge;
-        ctx.strokeStyle = 'rgba(200,170,255,' + (0.75 * k).toFixed(3) + ')';
-        ctx.lineWidth = Math.max(1, 2.5 / cam.zoom);
+        if (t.cote === undefined) t.cote = (i % 2) ? 1 : -1;
+        const u0 = t.age / t.maxAge;
+        const k = 1 - u0;
+        const ax = t.de.x, ay = t.de.y, bx = t.vers.x, by = t.vers.y;
+        const dx = bx - ax, dy = by - ay;
+        const d = Math.sqrt(dx * dx + dy * dy) || 1;
+        const cx = (ax + bx) / 2 - dy / d * d * 0.15 * t.cote;
+        const cy = (ay + by) / 2 + dx / d * d * 0.15 * t.cote;
+
         ctx.beginPath();
-        ctx.moveTo(t.de.x, t.de.y);
-        ctx.lineTo(t.vers.x, t.vers.y);
+        ctx.moveTo(ax, ay);
+        ctx.quadraticCurveTo(cx, cy, bx, by);
+        ctx.strokeStyle = 'rgba(140,100,255,' + (0.26 * k).toFixed(3) + ')';
+        ctx.lineWidth = 8 * ep;
         ctx.stroke();
+        ctx.strokeStyle = 'rgba(228,210,255,' + (0.7 * k).toFixed(3) + ')';
+        ctx.lineWidth = 2 * ep;
+        ctx.stroke();
+
+        /* Les grains. Ils courent un peu plus vite que la vie du filet, pour
+           arriver avant qu'il ne s'efface. */
+        for (let g = 0; g < 3; g++) {
+            const u = u0 * 1.4 - g * 0.12;
+            if (u < 0 || u > 1) continue;
+            const iu = 1 - u;
+            const px = iu * iu * ax + 2 * iu * u * cx + u * u * bx;
+            const py = iu * iu * ay + 2 * iu * u * cy + u * u * by;
+            const r = (5.5 - g * 1.3) * ep * (0.75 + 0.25 * Math.sin(temps * 18 + g * 2));
+            ctx.fillStyle = 'rgba(170,130,255,0.30)';
+            ctx.beginPath(); ctx.arc(px, py, r * 2.6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(255,250,255,' + (0.95 * k).toFixed(3) + ')';
+            ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
+        }
     }
 
+    /* L'ASTRE QUI CHARGE. Deux anneaux qui tournent en sens inverse, et une
+       lueur qui monte avec la charge accumulee : on voit le tir se remplir. */
     if (lanceur && gameState._firePhase === 'aiming') {
-        const pulse = 0.55 + 0.45 * Math.sin((gameState.time || 0) * 6);
-        ctx.strokeStyle = 'rgba(220,200,255,' + (0.5 + 0.4 * pulse).toFixed(3) + ')';
-        ctx.lineWidth = Math.max(1.5, 3 / cam.zoom);
+        const charge = Math.min(1, (gameState._chargeAcc || 0) / CHARGE_PERIODE);
+        const battement = 0.55 + 0.45 * Math.sin(temps * 6);
+        const base = lanceur.radius + 8 * ep;
+        ctx.strokeStyle = 'rgba(220,200,255,' + (0.45 + 0.45 * battement).toFixed(3) + ')';
+        ctx.lineWidth = Math.max(1.5, 3 * ep);
         ctx.beginPath();
-        ctx.arc(lanceur.x, lanceur.y, lanceur.radius + 8 / cam.zoom, 0, Math.PI * 2);
+        ctx.arc(lanceur.x, lanceur.y, base, 0, Math.PI * 2);
         ctx.stroke();
+
+        ctx.lineWidth = Math.max(1, 2.5 * ep);
+        for (let a = 0; a < 2; a++) {
+            const sens = a ? -1 : 1;
+            const dep = temps * 1.9 * sens + a * Math.PI;
+            ctx.strokeStyle = 'rgba(190,150,255,' + (0.35 + 0.45 * charge).toFixed(3) + ')';
+            ctx.beginPath();
+            ctx.arc(lanceur.x, lanceur.y, base + (5 + a * 5) * ep, dep, dep + Math.PI * 0.55);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(lanceur.x, lanceur.y, base + (5 + a * 5) * ep, dep + Math.PI, dep + Math.PI * 1.55);
+            ctx.stroke();
+        }
     }
+    ctx.restore();
 }
 
 function _selectSporeType(type) {
@@ -7084,7 +7192,7 @@ function createPlayers() {
                 color: rp.color,
                 isHuman: true,
                 isLocal: isMe,
-                stats: isMe ? { ...gameState.playerStats } : (rp.stats || { growth: 3, velocity: 4, density: 2 }),
+                stats: isMe ? { ...gameState.playerStats } : (rp.stats || { growth: 3, velocity: 4, density: 2, sensitivity: 1 }),
                 bodies: [],
                 totalSpores: 0,
                 alive: true,
@@ -7110,7 +7218,7 @@ function createPlayers() {
                     name: randomAiName(),
                     color: aiColor,
                     isHuman: false,
-                    stats: { growth: 3, velocity: 4, density: 2 },
+                    stats: { growth: 3, velocity: 4, density: 2, sensitivity: 1 },
                     bodies: [],
                     totalSpores: 0,
                     alive: true,
@@ -7157,7 +7265,7 @@ function createPlayers() {
             name: randomAiName(),
             color: aiColor,
             isHuman: false,
-            stats: { growth: 3, velocity: 4, density: 2 },
+            stats: { growth: 3, velocity: 4, density: 2, sensitivity: 1 },
             bodies: [],
             totalSpores: 0,
             alive: true,
@@ -7180,12 +7288,14 @@ function getMultiTierCost(currentTier) {
 }
 
 function aiChooseMultiStat(player) {
-    // IA : boost le stat le plus faible
+    /* L'IA monte sa statistique la plus faible. Sensitivity entre dans le
+       tirage comme les autres - sans quoi l'IA n'en aurait jamais. */
     const s = player.stats;
-    const min = Math.min(s.growth, s.velocity, s.density);
-    if (s.growth === min) s.growth++;
-    else if (s.density === min) s.density++;
-    else s.velocity++;
+    if (s.sensitivity === undefined) s.sensitivity = 1;
+    const noms = ['growth', 'velocity', 'density', 'sensitivity'];
+    let choix = noms[0];
+    for (let i = 1; i < noms.length; i++) if (s[noms[i]] < s[choix]) choix = noms[i];
+    s[choix]++;
     player.multiTier++;
 }
 
@@ -7239,31 +7349,37 @@ function updateMultiPanel() {
         document.getElementById('evoGrowthCur').textContent = `(${human.stats.growth})`;
         document.getElementById('evoVelocityCur').textContent = `(${human.stats.velocity})`;
         document.getElementById('evoDensityCur').textContent = `(${human.stats.density})`;
+        document.getElementById('evoSensitivityCur').textContent = `(${human.stats.sensitivity || 0})`;
         document.getElementById('evoGrowth').disabled = human.stats.growth >= 8;
         document.getElementById('evoVelocity').disabled = human.stats.velocity >= 8;
         document.getElementById('evoDensity').disabled = human.stats.density >= 8;
+        document.getElementById('evoSensitivity').disabled = (human.stats.sensitivity || 0) >= 8;
     } else {
         chooseEl.style.display = 'none';
     }
 
     // Mise à jour panneau stats + effets
     const s = human.stats;
-    const base = gameState.playerStats || { growth: 3, velocity: 4, density: 2 };
+    const base = gameState.playerStats || { growth: 3, velocity: 4, density: 2, sensitivity: 1 };
     document.getElementById('evoStatGrowth').textContent = s.growth;
     document.getElementById('evoStatVelocity').textContent = s.velocity;
     document.getElementById('evoStatDensity').textContent = s.density;
+    document.getElementById('evoStatSensitivity').textContent = s.sensitivity || 0;
     const gB = s.growth - base.growth;
     const vB = s.velocity - base.velocity;
     const dB = s.density - base.density;
+    const sB = (s.sensitivity || 0) - (base.sensitivity || 0);
     document.getElementById('evoStatGrowthBonus').textContent = gB > 0 ? `+${gB}` : '';
     document.getElementById('evoStatVelocityBonus').textContent = vB > 0 ? `+${vB}` : '';
     document.getElementById('evoStatDensityBonus').textContent = dB > 0 ? `+${dB}` : '';
+    document.getElementById('evoStatSensitivityBonus').textContent = sB > 0 ? `+${sB}` : '';
     // Effets concrets
     const velSpeed = 20 + s.velocity * 6;
     const densPct = Math.round(s.density * 5);
     document.getElementById('evoStatGrowthFx').textContent = `×${(1 + s.growth * 0.3).toFixed(1)} prod`;
     document.getElementById('evoStatVelocityFx').textContent = `${velSpeed} vitesse`;
     document.getElementById('evoStatDensityFx').textContent = `+${densPct}% impact`;
+    document.getElementById('evoStatSensitivityFx').textContent = `+${Math.round((s.sensitivity || 0) * ONDE_PAR_POINT * 100)}% onde`;
 }
 
 // ─────────────────────────────────────────────
@@ -10035,6 +10151,7 @@ if (gameState.isMulti) {
         updateConquestEffects(dt);
         updateImpacts(dt);
         majLuttes(dt);
+        majOndesSolaires(dt);
         majChargementTir(dt);
         majFiletsCharge(dt);
         majPopProduction(dt);
@@ -10064,6 +10181,7 @@ if (gameState.isMulti) {
     updateImpacts(dt);
     updateConquestEffects(dt);
     majLuttes(dt);
+    majOndesSolaires(dt);
     majChargementTir(dt);
     majFiletsCharge(dt);
     majPopProduction(dt);
@@ -10225,7 +10343,9 @@ function render() {
             gameState.launchPreview = computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 200);
         }
     }
+    drawOndesSolaires(ctx);
     drawFiletsCharge(ctx);
+    drawOndes(ctx);
     drawLaunchPreview(ctx);
 
     // ── Impacts (LOD mid+) ──
@@ -12222,6 +12342,124 @@ function debitAstre(body) {
            * 2.5 * sym * nid * sys * part;
 }
 
+/* ─────────────────────────────────────────────
+   ONDES SOLAIRES
+   Un systeme solaire entierement tenu se met a vivre : son etoile envoie
+   toutes les cinq secondes une onde d'energie qui balaie ses planetes et ses
+   lunes. Chaque astre la recoit au passage du front - il ne gagne pas ses
+   spores a l'instant ou l'onde part, mais quand elle l'atteint, ce qui fait
+   du systeme une vague qui s'allume de l'interieur vers l'exterieur.
+
+   Ce que l'onde apporte depend de SENSITIVITY : cinq pour cent de la
+   capacite de l'astre par point. A un point, une lune de quatre cents
+   reçoit vingt spores - c'est le forfait d'origine, devenu proportionnel.
+   ───────────────────────────────────────────── */
+const ONDE_PERIODE = 5;
+const ONDE_PAR_POINT = 0.05;
+const ONDE_VITESSE = 1100;
+
+function gainOnde(body, slot) {
+    const j = gameState.players[slot];
+    const sens = (j && j.stats) ? (j.stats.sensitivity || 0) : 0;
+    return (body.maxSpores || 0) * ONDE_PAR_POINT * sens;
+}
+
+function majOndesSolaires(dt) {
+    if (!gameState._ondesSolaires) gameState._ondesSolaires = [];
+
+    for (let i = 0; i < gameState.suns.length; i++) {
+        const soleil = gameState.suns[i];
+        const planetes = soleil.planets || [];
+        if (!planetes.length) { soleil._ondeT = 0; continue; }
+        const proprio = planetes[0].owner;
+        if (proprio === null || proprio === undefined || !isSystemComplete(soleil, proprio)) {
+            soleil._ondeT = 0;
+            continue;
+        }
+        soleil._ondeT = (soleil._ondeT || 0) + dt;
+        if (soleil._ondeT < ONDE_PERIODE) continue;
+        soleil._ondeT = 0;
+
+        /* Portee : le plus lointain astre du systeme, avec de la marge. */
+        let portee = soleil.radius;
+        const corps = [];
+        for (let k = 0; k < planetes.length; k++) {
+            const pl = planetes[k];
+            corps.push(pl);
+            const lunes = pl.moons || [];
+            for (let m = 0; m < lunes.length; m++) corps.push(lunes[m]);
+        }
+        for (let k = 0; k < corps.length; k++) {
+            const b = corps[k];
+            const d = Math.sqrt((b.x - soleil.x) * (b.x - soleil.x) + (b.y - soleil.y) * (b.y - soleil.y)) + b.radius;
+            if (d > portee) portee = d;
+        }
+        const j = gameState.players[proprio];
+        /* L'etoile s'embrase au depart : on doit voir d'ou part l'onde. */
+        if (!gameState._ondes) gameState._ondes = [];
+        gameState._ondes.push({ x: soleil.x, y: soleil.y, suit: soleil,
+                                r0: soleil.radius * 0.9, r1: soleil.radius * 1.6,
+                                age: 0, maxAge: 0.7, couleur: '255,235,180', ep: 9 });
+        gameState._ondesSolaires.push({
+            soleil: soleil, slot: proprio, corps: corps, touches: [],
+            r: soleil.radius, portee: portee * 1.08,
+            couleur: _rgbDe((j && j.color) || '#FFD27A')
+        });
+    }
+
+    const os = gameState._ondesSolaires;
+    for (let i = os.length - 1; i >= 0; i--) {
+        const o = os[i];
+        o.r += ONDE_VITESSE * dt;
+        for (let k = 0; k < o.corps.length; k++) {
+            if (o.touches[k]) continue;
+            const b = o.corps[k];
+            if (b.owner !== o.slot) { o.touches[k] = 1; continue; }
+            const d = Math.sqrt((b.x - o.soleil.x) * (b.x - o.soleil.x) + (b.y - o.soleil.y) * (b.y - o.soleil.y));
+            if (o.r < d) continue;
+            o.touches[k] = 1;
+            const gain = gainOnde(b, o.slot);
+            if (gain <= 0) continue;
+            b.spores = Math.min(b.maxSpores, (b.spores || 0) + gain);
+            if (!gameState._ondes) gameState._ondes = [];
+            gameState._ondes.push({ x: b.x, y: b.y, suit: b, r0: b.radius * 0.8, r1: b.radius * 2.4,
+                                    age: 0, maxAge: 0.5, couleur: o.couleur, ep: 2.5 });
+            if (o.slot === localSlot()) {
+                gameState.conquestEffects.push({ x: b.x, y: b.y - b.radius - 12, baseX: b.x,
+                                                 text: '+' + Math.round(gain) + ' \u2600',
+                                                 color: '#FFD27A', age: 0, maxAge: 2 });
+            }
+        }
+        if (o.r >= o.portee) os.splice(i, 1);
+    }
+}
+
+/* Le front de l'onde : un anneau epais qui s'ouvre depuis l'etoile et
+   s'amincit en s'eloignant. */
+function drawOndesSolaires(ctx) {
+    const os = gameState._ondesSolaires;
+    if (!os || !os.length) return;
+    const ep = 1 / gameState.camera.zoom;
+    ctx.save();
+    for (let i = 0; i < os.length; i++) {
+        const o = os[i];
+        const u = Math.min(1, (o.r - o.soleil.radius) / Math.max(1, o.portee - o.soleil.radius));
+        const k = 1 - u;
+        if (!aLEcran(o.soleil.x, o.soleil.y, o.r)) continue;
+        ctx.strokeStyle = 'rgba(' + o.couleur + ',' + (k * 0.32).toFixed(3) + ')';
+        ctx.lineWidth = Math.max(3, 22 * ep * k);
+        ctx.beginPath();
+        ctx.arc(o.soleil.x, o.soleil.y, o.r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,242,205,' + (k * 0.82).toFixed(3) + ')';
+        ctx.lineWidth = Math.max(1.5, 4 * ep * k);
+        ctx.beginPath();
+        ctx.arc(o.soleil.x, o.soleil.y, o.r, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
 const POP_PROD_PERIODE = 5;
 
 function majPopProduction(dt) {
@@ -14102,6 +14340,10 @@ document.getElementById('evoVelocity').addEventListener('click', () => {
     const human = gameState.players[localSlot()];
     if (human && human._multiPending) { applyMultiChoice(human, 'velocity'); if (gameState.isMulti) sendAction('multi', { stat: 'velocity' }); }
 });
+document.getElementById('evoSensitivity').addEventListener('click', () => {
+    const human = gameState.players[localSlot()];
+    if (human && human._multiPending) { applyMultiChoice(human, 'sensitivity'); if (gameState.isMulti) sendAction('multi', { stat: 'sensitivity' }); }
+});
 document.getElementById('evoDensity').addEventListener('click', () => {
     const human = gameState.players[localSlot()];
     if (human && human._multiPending) { applyMultiChoice(human, 'density'); if (gameState.isMulti) sendAction('multi', { stat: 'density' }); }
@@ -15666,8 +15908,8 @@ function generateTournamentUniverse(mapData, mySlot, opponent) {
         }
     }
     universe.players = [
-        { id: 0, name: mySlot === 0 ? currentProfile.pseudo : opponent.pseudo, color: mySlot === 0 ? currentProfile.avatar_color : opponent.color, isHuman: true, alive: true, stats: { growth:0, velocity:0, density:0 }, bodies: [], multiSacrifice: 0, multiTier: 0, multiProgress: 0, totalSpores: 0, tech: { homing:0, tenacity:0, mimicry:0, _branchOrder:[] } },
-        { id: 1, name: mySlot === 1 ? currentProfile.pseudo : opponent.pseudo, color: mySlot === 1 ? currentProfile.avatar_color : opponent.color, isHuman: true, alive: true, stats: { growth:0, velocity:0, density:0 }, bodies: [], multiSacrifice: 0, multiTier: 0, multiProgress: 0, totalSpores: 0, tech: { homing:0, tenacity:0, mimicry:0, _branchOrder:[] } },
+        { id: 0, name: mySlot === 0 ? currentProfile.pseudo : opponent.pseudo, color: mySlot === 0 ? currentProfile.avatar_color : opponent.color, isHuman: true, alive: true, stats: { growth:0, velocity:0, density:0, sensitivity:0 }, bodies: [], multiSacrifice: 0, multiTier: 0, multiProgress: 0, totalSpores: 0, tech: { homing:0, tenacity:0, mimicry:0, _branchOrder:[] } },
+        { id: 1, name: mySlot === 1 ? currentProfile.pseudo : opponent.pseudo, color: mySlot === 1 ? currentProfile.avatar_color : opponent.color, isHuman: true, alive: true, stats: { growth:0, velocity:0, density:0, sensitivity:0 }, bodies: [], multiSacrifice: 0, multiTier: 0, multiProgress: 0, totalSpores: 0, tech: { homing:0, tenacity:0, mimicry:0, _branchOrder:[] } },
     ];
     universe.jetRatio = 0.5;
     universe.universeRadius = 6000;
