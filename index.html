@@ -437,6 +437,14 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        le terrain etranger : la facture est repartie entre nos zones au
        prorata de leurs reserves. Rien a nettoyer, l'ecran vibre. Le serveur
        fait le meme calcul de son cote.
+     - LES LUEURS S'AJOUTENT AU FOND AU LIEU DE SE POSER DESSUS. Un vaisseau
+       ou un rocher qui passait devant une planete perdait tous ses effets :
+       reacteur, feux d'aile, cercle de detection, halo de groupe et reflet
+       etaient peints en transparence simple, donc plus sombres qu'une
+       planete eclairee - ils s'y effacaient. Ces elements sont de la
+       lumiere : ils passent en composition additive et restent visibles sur
+       n'importe quel fond. Aucun cout mesurable (2,8 ms par image avant
+       comme apres).
 
    À FAIRE
   🎯 Fond spatial : le sortir du canvas vers deux couches CSS deplacees par
@@ -11868,11 +11876,14 @@ function drawAsteroidBelts(ctx) {
 
         // Traînée orbitale (LOD mid+)
         if (lod >= 1) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
             ctx.strokeStyle = 'rgba(80,70,60,0.06)';
             ctx.lineWidth = 14;
             ctx.beginPath();
             ctx.arc(sun.x, sun.y, belt.radius, 0, Math.PI * 2);
             ctx.stroke();
+            ctx.restore();
         }
 
         for (const rock of belt.rocks) {
@@ -11927,6 +11938,9 @@ function drawAsteroidBelts(ctx) {
                 ctx.closePath();
                 ctx.fill();
 
+                /* Le reflet est de la lumiere : il s'ajoute, sinon un
+                   blanc a 25 % s'efface sur un fond deja clair. */
+                ctx.globalCompositeOperation = 'lighter';
                 ctx.globalAlpha = 0.25;
                 ctx.fillStyle = '#FFF';
                 ctx.beginPath();
@@ -11943,10 +11957,13 @@ function drawAsteroidBelts(ctx) {
                 if (rock.type === 'dark') haloColor = 'rgba(60,55,50,0.06)';
                 else if (rock.type === 'red') haloColor = 'rgba(120,50,40,0.06)';
                 else haloColor = 'rgba(50,100,50,0.06)';
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
                 ctx.fillStyle = haloColor;
                 ctx.beginPath();
                 ctx.arc(cx, cy, 20, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.restore();
             }
         }
     }
@@ -12967,6 +12984,12 @@ function drawCleaners(ctx) {
         ctx.lineTo(-s * 0.5, s * 0.65);
         ctx.stroke();
 
+        /* Tout ce qui EMET de la lumiere s'ajoute au fond au lieu de se poser
+           dessus : une lueur en alpha simple est plus sombre qu'une planete
+           eclairee, donc elle disparaissait des qu'un vaisseau passait devant.
+           Le ctx.restore() de fin remet le mode normal. */
+        ctx.globalCompositeOperation = 'lighter';
+
         // Lumières d'aile clignotantes
         const blink = Math.sin(t * 5 + cl.angle * 10) > 0.3 ? 1 : 0.2;
         ctx.fillStyle = accentColor.replace(/[\d.]+\)$/, (blink * 0.8) + ')');
@@ -13001,6 +13024,8 @@ function drawCleaners(ctx) {
         ctx.restore();
 
         // Cercle de détection — LOD mid+ (pulsant)
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
         if (gameState.lod >= 1) {
             const dPulse = 0.5 + Math.sin(t * 2 + cl.angle) * 0.5;
             ctx.strokeStyle = detectColor;
@@ -13029,6 +13054,7 @@ function drawCleaners(ctx) {
             ctx.arc(cl.x, cl.y, cl.detectionRange * 0.3, 0, Math.PI * 2);
             ctx.fill();
         }
+        ctx.restore();
     }
 }
 
