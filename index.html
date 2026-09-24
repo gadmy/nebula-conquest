@@ -384,8 +384,11 @@ v9.7.4 | 2026-09-23 | Territoires, tir groupe, equilibrage, securite
        dans un coffre. body.spores et les totaux d'assaut ne sont plus que des
        sommes.
      - ON CLIQUE UNE ZONE POUR CHOISIR D'OU L'ON TIRE. Elle se cerne d'un
-       trait clair qui bat, et chaque zone porte en son milieu sa reserve et
-       son rendement des qu'on est assez pres.
+       trait double - sombre dessous, clair dessus, sans quoi il se perdait
+       parmi les liseres de camp - et se signe d'un "TIR". Chaque zone porte
+       en son milieu sa reserve et son rendement. Un clic qui tombe sur le
+       terrain d'un autre prend la notre la plus proche : cliquer sa planete
+       doit toujours designer quelque chose.
      - Sous dix cases, une zone ne peut plus ni attaquer ni batir, et une fois
        son elan retombe elle s'effrite case par case jusqu'a disparaitre : les
        confettis ne restent pas sur la carte.
@@ -10132,11 +10135,15 @@ function drawLuttes(ctx) {
             const x0 = body.x - r, y0 = body.y - r;
             const bat = 0.55 + 0.45 * Math.sin((gameState.time || 0) * 6);
             ctx.save();
-            ctx.globalAlpha = 0.55 + 0.45 * bat;
-            ctx.strokeStyle = '#FFFFFF';
-            ctx.lineWidth = Math.max(1 / zc, pas * 0.26);
             ctx.lineCap = 'round';
-            for (let y = 0; y < LUTTE_N; y++) for (let x = 0; x < LUTTE_N; x++) {
+            /* Deux passes : un trait sombre dessous, le blanc dessus. Sur une
+               planete deja bariolee de liseres, un simple trait clair se
+               perdait et l'on ne voyait pas ce qu'on avait choisi. */
+            for (let passe = 0; passe < 2; passe++) {
+              ctx.globalAlpha = passe ? (0.55 + 0.45 * bat) : 0.85;
+              ctx.strokeStyle = passe ? '#FFFFFF' : 'rgba(6,6,20,0.9)';
+              ctx.lineWidth = Math.max(1 / zc, pas * (passe ? 0.30 : 0.62));
+              for (let y = 0; y < LUTTE_N; y++) for (let x = 0; x < LUTTE_N; x++) {
                 const i = y * LUTTE_N + x;
                 if (L.zid[i] !== sel.id) continue;
                 /* Seules les aretes qui donnent sur l'exterieur de la zone. */
@@ -10164,6 +10171,7 @@ function drawLuttes(ctx) {
                     ctx.lineTo(x0 + (x + 1) * pas, y0 + y * pas);
                     ctx.stroke();
                 }
+              }
             }
             ctx.restore();
         }
@@ -10173,7 +10181,7 @@ function drawLuttes(ctx) {
         /* CE QUE PORTE CHAQUE ZONE, ecrit en son milieu des qu'on est assez
            pres : sa reserve, et son rendement du moment. Une zone trop petite
            pour attaquer le dit aussi - elle ne fait plus que fondre. */
-        if (r * zc > 70 && L.zones) {
+        if (r * zc > 40 && L.zones) {
             const px = _taillePx(zc, 11, r * zc * 0.25, 10, 22);
             const monde = px / zc;
             ctx.save();
@@ -10192,6 +10200,14 @@ function drawLuttes(ctx) {
                               c.x, c.y + monde * 0.95,
                               z.n < ZONE_MIN ? '#F87171' : (rd >= 85 ? '#4ADE80' : rd >= 50 ? '#FACC15' : '#F87171'),
                               Math.max(2, monde * 0.2));
+                /* La zone choisie se nomme : sans cela on ne sait pas d'ou
+                   partira le tir, et le trait seul ne suffit pas a le dire. */
+                const selz = gameState._zoneSel;
+                if (selz && selz.body === body && selz.id === +id) {
+                    ctx.font = 'bold ' + (monde * 0.62) + 'px Orbitron';
+                    _texteLisible(ctx, '\u2316 TIR', c.x, c.y - monde * 0.85,
+                                  '#FFFFFF', Math.max(2, monde * 0.2));
+                }
             }
             ctx.restore();
         }
@@ -10788,12 +10804,26 @@ function setupInput() {
         if (body) {
             followingBody = body;
             /* Sur un astre partage, le clic choisit la ZONE sur laquelle il
-               tombe, si elle est a nous : c'est d'elle qu'on tirera. */
-            if (body.lutte) {
+               tombe : c'est d'elle qu'on tirera. S'il tombe sur celle d'un
+               autre, on prend la notre la plus proche plutot que de ne rien
+               faire - un clic sur sa planete doit toujours designer quelque
+               chose. */
+            if (body.lutte && body.lutte.zones) {
+                const mien = campDe(body, localSlot());
                 const id = zoneA(body, wp.x, wp.y);
-                const z = id && body.lutte.zones ? body.lutte.zones[id] : null;
-                if (z && z.v === campDe(body, localSlot())) {
+                const z = id ? body.lutte.zones[id] : null;
+                if (z && z.v === mien) {
                     gameState._zoneSel = { body: body, id: id };
+                } else {
+                    let best = 0, bd = Infinity;
+                    for (const k in body.lutte.zones) {
+                        const zz = body.lutte.zones[k];
+                        if (zz.v !== mien) continue;
+                        const c = zoneCentre(body, zz);
+                        const d = (c.x - wp.x) * (c.x - wp.x) + (c.y - wp.y) * (c.y - wp.y);
+                        if (d < bd) { bd = d; best = +k; }
+                    }
+                    if (best) gameState._zoneSel = { body: body, id: best };
                 }
             }
         }
