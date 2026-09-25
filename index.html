@@ -568,6 +568,16 @@ v9.7.6 | 2026-09-25 | (en cours)
        A FAIRE COTE SERVEUR : en multijoueur c'est le serveur qui applique la
        riposte, avec l'ancien calcul. Il connait deja le pourcentage de
        chaque joueur (set_jet_ratio) ; son code n'est pas dans ce depot.
+     - LES POINTS DE MULTIPLICITE S'EMPILENT. Un palier atteint attendait le
+       choix du joueur sous la forme d'un simple oui/non : si un deuxieme
+       tombait avant qu'on ait choisi, il etait PERDU. C'est desormais un
+       compteur. Les points en attente comptent deja comme des paliers - pour
+       le prix du suivant et pour le plafond de 10 -, brillent dans la
+       rangee de pastilles, et le titre annonce "N POINTS A PLACER".
+       Verifie : trois paliers atteints sans choisir donnent trois points,
+       places ensuite un par un ; a 9 + 1 en attente, plus rien ne s'ajoute.
+       En multijoueur, chaque avis du serveur ajoute un point au compteur ;
+       reste a verifier que le serveur, lui, ne perd pas les siens.
 
      ── NETTOYAGE ──
      - buildProgress RETIRE. Reste de l'epoque ou construire prenait du
@@ -2842,7 +2852,7 @@ input[type="radio"]:checked + .build-icon-btn {
             <span class="sac-val" id="evoSacVal">0%</span>
         </div>
         <div class="evo-choose" id="evoChoose">
-            <div class="choose-title">⬆ CHOISISSEZ UN BONUS ⬆</div>
+            <div class="choose-title" id="evoChooseTitle">⬆ CHOISISSEZ UN BONUS ⬆</div>
             <button id="evoGrowth">🌱 Growth <div class="stat-current" id="evoGrowthCur"></div></button>
             <button id="evoVelocity">⚡ Velocity <div class="stat-current" id="evoVelocityCur"></div></button>
             <button id="evoDensity">💎 Density <div class="stat-current" id="evoDensityCur"></div></button>
@@ -7861,10 +7871,18 @@ function aiChooseMultiStat(player) {
     player.multiTier++;
 }
 
+/* Les paliers atteints mais pas encore places. C'etait un simple "oui/non" :
+   un deuxieme palier atteint avant qu'on ait choisi etait PERDU. C'est
+   desormais un compteur, les points s'empilent et on les place quand on
+   veut. */
+function multiEnAttente(player) {
+    return player._multiPending === true ? 1 : (player._multiPending | 0);
+}
+
 function applyMultiChoice(player, stat) {
     player.stats[stat]++;
     player.multiTier++;
-    player._multiPending = false;
+    player._multiPending = Math.max(0, multiEnAttente(player) - 1);
     if (player === gameState.players[localSlot()]) {
         addEvent('build', '✦', `Multiplicité palier ${player.multiTier} — ${stat} +1`, null, player.color);
     }
@@ -7879,26 +7897,29 @@ function updateMultiPanel() {
     const human = gameState.players[localSlot()];
     if (!human || !human.alive) return;
 
-    // Pips
+    // Pips - les paliers atteints mais pas encore places brillent comme le
+    // palier en cours : ils attendent qu'on s'en serve.
+    const attente = multiEnAttente(human);
+    const atteints = human.multiTier + attente;
     const pipsEl = document.getElementById('evoTierPips');
     let pipsHtml = '';
     for (let i = 0; i < 10; i++) {
         const filled = i < human.multiTier ? 'filled' : '';
-        const current = i === human.multiTier && human.multiTier < 10 ? 'current' : '';
+        const current = i >= human.multiTier && i <= atteints && i < 10 ? 'current' : '';
         const label = i < human.multiTier ? (i + 1) : '';
         pipsHtml += `<div class="tier-pip ${filled} ${current}">${label}</div>`;
     }
     pipsEl.innerHTML = pipsHtml;
 
     // Barre de progression
-    const cost = getMultiTierCost(human.multiTier);
-    const pct = human.multiTier >= 10 ? 100 : Math.min(100, (human.multiProgress / cost) * 100);
+    const cost = getMultiTierCost(atteints);
+    const pct = atteints >= 10 ? 100 : Math.min(100, (human.multiProgress / cost) * 100);
     document.getElementById('evoBar').style.width = pct + '%';
 
     // Info
-    const info = human.multiTier >= 10
-        ? 'ÉVOLUTION MAXIMALE'
-        : `Palier ${human.multiTier}/10 — ${Math.floor(human.multiProgress)} / ${cost} spores`;
+    const info = atteints >= 10
+        ? (attente ? 'ÉVOLUTION MAXIMALE — reste à placer' : 'ÉVOLUTION MAXIMALE')
+        : `Palier ${atteints}/10 — ${Math.floor(human.multiProgress)} / ${cost} spores`;
     document.getElementById('evoInfo').textContent = info;
 
     // Slider
@@ -7906,8 +7927,11 @@ function updateMultiPanel() {
 
     // Choix de stat en attente ?
     const chooseEl = document.getElementById('evoChoose');
-    if (human._multiPending) {
+    if (attente > 0) {
         chooseEl.style.display = 'block';
+        document.getElementById('evoChooseTitle').textContent = attente > 1
+            ? `⬆ CHOISISSEZ — ${attente} POINTS À PLACER ⬆`
+            : '⬆ CHOISISSEZ UN BONUS ⬆';
         document.getElementById('evoGrowthCur').textContent = `(${human.stats.growth})`;
         document.getElementById('evoVelocityCur').textContent = `(${human.stats.velocity})`;
         document.getElementById('evoDensityCur').textContent = `(${human.stats.density})`;
@@ -8924,14 +8948,17 @@ function updateSporeGeneration(dt) {
             // Arrêt si max atteint
             if (body.spores < body.maxSpores) { body.spores += produced; gameState.gameStats.sporesProduced += produced; }
 
-            // Accumuler multiplicité
-            if (multiSac > 0 && player.multiTier < 10) {
+            // Accumuler multiplicité - les points pas encore places comptent
+            // deja comme des paliers : pour le prix du suivant, et pour le
+            // plafond de 10.
+            const _atteints = player.multiTier + multiEnAttente(player);
+            if (multiSac > 0 && _atteints < 10) {
                 player.multiProgress += rate * multiSac * dt;
-                const tierCost = getMultiTierCost(player.multiTier);
+                const tierCost = getMultiTierCost(_atteints);
                 if (player.multiProgress >= tierCost) {
                     player.multiProgress = 0;
                     if (player.isHuman) {
-                        player._multiPending = true;
+                        player._multiPending = multiEnAttente(player) + 1;
                     } else {
                         aiChooseMultiStat(player);
                     }
@@ -16868,7 +16895,7 @@ function connectSocket() {
     _socket.on('multi_pending', ({ slot }) => {
         const localPlayer = gameState.players[localSlot()];
         if (localPlayer && localPlayer.id === slot) {
-            localPlayer._multiPending = true;
+            localPlayer._multiPending = multiEnAttente(localPlayer) + 1;
         }
     });
 
