@@ -482,6 +482,15 @@ v9.7.5 | 2026-09-24 | Resolution de rendu adaptative
        gameState._modeSurface, entrerModeSurface et sortirModeSurface
        disparaissent - l'etat n'existe plus, il se deduit de la position de la
        souris a chaque image.
+     - LA COURBE NE DEPEND PLUS D'UNE BATAILLE. Les zones n'existent que
+       pendant un conflit : sans bataille il n'y avait aucune zone a choisir,
+       donc pas de panneau - c'est-a-dire la plupart du temps, et il
+       disparaissait aussi des que la bataille se terminait. Un astre
+       tranquille suit pourtant exactement la meme courbe. Le panneau prend
+       donc la zone choisie quand il y en a une, et a defaut l'astre
+       selectionne, avec sa reserve et sa capacite. Verifie sur les quatre
+       cas : astre a soi sans bataille, apres un clic, pendant une bataille,
+       et une fois la bataille finie.
 
    À FAIRE
   🎯 Reste de code mort : buildProgress, conserve aux initialisations alors
@@ -2428,7 +2437,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;">Une tache sur une planète n'est pas un morceau de camp : c'est une <span style="color:#FFD700;">zone</span>, avec <span style="color:#E9D5FF;">ses spores</span> et <span style="color:#E9D5FF;">son rendement</span>, écrits en son milieu quand on zoome. Deux taches d'un même joueur vivent chacune leur vie et ne mettent leurs réserves en commun que si le terrain finit par les souder.</p>
 <p style="margin-bottom:6px;">Perdre du sol, c'est perdre les spores qui étaient dessus : elles sont sur le terrain, pas dans un coffre. Une zone coupée en deux partage les siennes au prorata des cases.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">On clique une zone</span> pour choisir d'où l'on tire et où l'on construit. Un clic qui tombe sur le terrain d'un autre prend la vôtre la plus proche.</p>
-<p style="margin-bottom:6px;">Un panneau <span style="color:#FFD700;">NAISSANCE</span> s'ouvre alors en haut à gauche, au-dessus d'Évolution : la courbe de production en entier, et un point qui dit où en est la zone choisie. On voit d'un coup d'œil si elle monte vers le pic, si elle stagne dans le creux, ou si elle s'étouffe en approchant du plafond. Sans zone choisie, le panneau se retire.</p>
+<p style="margin-bottom:6px;">Le panneau <span style="color:#FFD700;">NAISSANCE</span>, en haut à gauche au-dessus d'Évolution, montre la courbe de production en entier et un point qui dit où vous en êtes dessus. On voit d'un coup d'œil si ça monte vers le pic, si ça stagne dans le creux, ou si ça s'étouffe en approchant du plafond. Il suit la <b>zone choisie</b> quand une bataille est en cours, et sinon l'<b>astre sélectionné</b> — il n'y a pas besoin de se battre pour avoir besoin de la courbe.</p>
 <p style="margin-bottom:16px;">Sous <span style="color:#EF4444;">dix cases</span>, une zone ne peut plus ni attaquer ni bâtir — l'écran vibre si vous essayez — et une fois son élan retombé elle s'effrite case par case jusqu'à disparaître.</p>
 <!-- TIR DE SURFACE -->
 <p id="h-surface" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🎯 TIR DE SURFACE</p>
@@ -10651,20 +10660,40 @@ function majPanneauNaissance() {
     const E = _naiEls;
     if (!E.panneau) return;
 
+    /* LA COURBE NE DOIT PAS DEPENDRE D'UNE BATAILLE. Les zones n'existent que
+       pendant un conflit : tant qu'il n'y en a pas - c'est-a-dire la plupart
+       du temps - il n'y avait aucune zone a selectionner, donc pas de
+       panneau, alors qu'un astre tranquille suit exactement la meme courbe.
+       On prend donc la zone choisie quand il y en a une, et a defaut l'astre
+       selectionne, avec sa reserve et sa capacite. */
+    let titre = null, part = 0;
     const sel = gameState._zoneSel;
-    const body = sel && sel.body;
-    const z = (body && body.lutte && body.lutte.zones) ? body.lutte.zones[sel.id] : null;
-    if (gameState.phase !== 'game' || !z) {
+    const zb = sel && sel.body;
+    const z = (zb && zb.lutte && zb.lutte.zones) ? zb.lutte.zones[sel.id] : null;
+    if (z) {
+        titre = zb.name + ' \u00b7 ' + z.n + ' cases';
+        part = (z.spores || 0) / Math.max(1, z.plafond || 1);
+    } else {
+        const a = (typeof followingBody !== 'undefined' && followingBody)
+                ? followingBody : gameState.selectedBody;
+        const moi = localSlot();
+        if (a && a.type !== 'sun' && (a.owner === moi || (a.lutte && zonesDe(a, moi).length))) {
+            titre = a.name;
+            part = (a.spores || 0) / Math.max(1, a.maxSpores || 1);
+        }
+    }
+
+    if (gameState.phase !== 'game' || titre === null) {
         if (E.panneau.classList.contains('actif')) E.panneau.classList.remove('actif');
         return;
     }
     if (!E.panneau.classList.contains('actif')) E.panneau.classList.add('actif');
 
-    const part = Math.max(0, Math.min(1, (z.spores || 0) / Math.max(1, z.plafond || 1)));
+    part = Math.max(0, Math.min(1, part));
     const rend = courbeCroissance(part);
     const teinte = rend >= 0.85 ? '#4ADE80' : rend >= 0.5 ? '#FACC15' : '#F87171';
 
-    E.zone.textContent = body.name + ' \u00b7 ' + z.n + ' cases';
+    E.zone.textContent = titre;
     E.plein.textContent = Math.round(part * 100) + '% plein';
     E.rend.textContent = Math.round(rend * 100) + '%';
     E.rend.style.color = teinte;
