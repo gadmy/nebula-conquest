@@ -620,6 +620,12 @@ v9.7.6 | 2026-09-25 | (en cours)
        proprietaire (sans coeur blanc, l'astre reste lisible). L'effet monte
        en dezoomant : rien au-dessus de 30 px de rayon a l'ecran, plein en
        dessous de 15.
+       Seuil corrige ensuite : les etincelles attendaient 99,5 % alors que le
+       panneau NAISSANCE annonce "sature" des 98,5 % - la production
+       s'eteint si doucement qu'un astre met une minute de plus a franchir
+       le dernier pour cent. Un seul chiffre pour les deux, PART_SATUREE.
+       Verifie sans rien forcer : astre rempli par sa seule production,
+       premieres etincelles a 98,5 %, au bout de 3 min 26.
 
      ── NETTOYAGE ──
      - buildProgress RETIRE. Reste de l'epoque ou construire prenait du
@@ -9607,6 +9613,13 @@ const TAUX_PROD = 0.006;
    La courbe multiplie le reste - flore, growth, symbiose, nids, systeme
    complet, sacrifice - qui continuent donc de compter exactement pareil.
    Le pic vaut 1 : la valeur de crete est divisee pour cela. */
+/* Le seuil ou l'on considere un astre SATURE. La courbe ne tombe a zero
+   qu'au plafond exact, mais elle s'eteint si doucement a l'approche qu'un
+   astre n'y arrive pratiquement jamais : a 98,5 % il ne produit deja plus
+   rien d'utile. Un seul chiffre pour le panneau NAISSANCE et pour les
+   etincelles, sinon l'un dirait "sature" quand l'autre ne montre rien. */
+const PART_SATUREE = 0.985;
+
 function courbeCroissance(part) {
     if (!(part > 0)) part = 0;
     if (part >= 1) return 0;
@@ -11028,9 +11041,9 @@ function majPanneauNaissance() {
     if (E.quand) {
         const pic = picNaissance();
         const avant = part < pic - 0.005;
-        const t = (part < 0.985) ? tempsJusqua(part, avant ? pic : 0.985, debitPlein, plafond) : null;
+        const t = (part < PART_SATUREE) ? tempsJusqua(part, avant ? pic : PART_SATUREE, debitPlein, plafond) : null;
         let txt;
-        if (part >= 0.985)      txt = '\u26A0 saturé — ne produit plus';
+        if (part >= PART_SATUREE) txt = '\u26A0 saturé — ne produit plus';
         else if (t === 'arret') txt = 'production à l\'arrêt';
         else if (t === 'long')  txt = (avant ? 'pic' : 'saturation') + ' dans plus d\'une heure';
         else txt = (avant ? 'pic dans ' : '\u26A0 saturation dans ') + _duree(t);
@@ -14914,7 +14927,7 @@ function majEtincelles(dt) {
     for (let bi = 0; bi < bodies.length; bi++) {
         const b = bodies[bi];
         if (b.type === 'sun' || b.owner === null || b.owner === undefined || b.owner < 0) continue;
-        if (!(b.maxSpores > 0) || b.spores < b.maxSpores * 0.995) { b._etinT = 0; continue; }
+        if (!(b.maxSpores > 0) || b.spores < b.maxSpores * PART_SATUREE) { b._etinT = 0; continue; }
         if (!aLEcran(b.x, b.y, b.radius * 3)) continue;
         pleins.push(b);
         /* Premier paquet sans attendre : le signal doit tomber des que
