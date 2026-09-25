@@ -528,6 +528,19 @@ v9.7.6 | 2026-09-25 | (en cours)
        un soleil. L'image n'a pas bouge : ecart moyen de 0,02 a 0,33 sur 255,
        et en dezoomant la copie est meme plus fidele qu'avant. Cout au
        chargement : environ 0,1 s de plus pour 9 soleils.
+     - LES HALOS DES SOLEILS SORTENT DU CANEVAS. Un halo est un grand carre
+       transparent, trois fois le rayon du soleil, que le canevas remplissait
+       a chaque image. Comme le fond, il ne depend que de la camera : chaque
+       halo devient une couche de la page, entre le fond et le canevas, que
+       le compositeur deplace et agrandit. Il passe donc sous les frontieres,
+       les cometes et le trou noir, dessines avant lui jusqu'ici - sans
+       difference visible, le halo est tres pale.
+       Mesure, meme carte : drawSuns passe de 0,26 ms a presque rien en vue
+       normale, de 0,60 a 0,27 ms a zoom 1 et de 0,88 a 0,35 ms a zoom 2 ; a
+       zoom 2 l'image complete passe de 1,40 a 0,96 ms. Cache au menu,
+       remplace proprement au changement de carte. Si le fond n'a pas pu
+       passer en CSS, le halo reste peint dans le canevas comme avant.
+       Sur les deux passes, drawSuns en zoom 2 : de 1,91 a 0,35 ms.
 
      ── CORRECTIONS ──
      - LA COURBE DE VISEE MENTAIT DEPUIS UNE TETE DE PONT. Sur un astre qu'on
@@ -548,10 +561,6 @@ v9.7.6 | 2026-09-25 | (en cours)
        Verifie : plus aucune occurrence, aucune lecture n'existait.
 
    À FAIRE
-  🎯 Halo des soleils : reste l'essentiel de drawSuns en zoom fort (un grand
-     carre transparent a remplir, ~0,6 ms). Seule piste : le sortir du
-     canevas comme le fond, mais il passerait alors sous les frontieres et
-     les cometes.
   🎯 Sons (à faire à la maison)
   🎯 Page itch.io avec screenshots
   🎯 Obfuscation Terser/uglify-js
@@ -611,6 +620,24 @@ canvas#gameCanvas {
 }
 #fondDegrade { width: 2048px; height: 2048px; }
 #fondEtoiles { background-repeat: repeat; }
+
+/* ── Halos des soleils : meme principe, une couche par soleil, au-dessus du
+   fond (plus loin dans la page) et sous le canevas de jeu ── */
+#halosSoleils {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+    display: none;
+}
+#halosSoleils canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+}
 
 canvas#gameCanvas.grabbing {
     cursor: grabbing;
@@ -2698,6 +2725,7 @@ input[type="radio"]:checked + .build-icon-btn {
      les repeindre prenait un tiers du temps de rendu. -->
 <canvas id="fondDegrade" width="2048" height="2048"></canvas>
 <div id="fondEtoiles"></div>
+<div id="halosSoleils"></div>
 <canvas id="gameCanvas"></canvas>
 <div id="topRight">
     <div id="fps">-- FPS</div>
@@ -3401,6 +3429,7 @@ function buildSunHaloCache() {
         sun._haloDim = dim;
         sun._haloR = haloR;
     }
+    preparerHalosCss();
 }
 
 
@@ -12202,6 +12231,7 @@ function render() {
            couleur du ciel passe sur la page, sous tout le monde. */
         ctx.clearRect(0, 0, w, h);
         majFondCss();
+        majHalosCss();
         if (document.body.style.backgroundColor === '') {
             document.body.style.backgroundColor = SKY_CFG._hex || '#16264E';
         }
@@ -12432,6 +12462,53 @@ function montrerFondCss(oui) {
     const v = (oui && gameState._fondCss) ? 'block' : 'none';
     _fondEls.deg.style.display = v;
     _fondEls.eto.style.display = v;
+    if (_halosEl) _halosEl.style.display = v;
+}
+
+/* LES HALOS DES SOLEILS SORTENT DU CANEVAS. Un halo est un grand carre
+   transparent - trois fois le rayon du soleil - que le canevas devait
+   remplir a chaque image : le gros de drawSuns en zoom fort. Comme le fond,
+   il ne depend que de la camera : le sprite du halo est pose tel quel dans
+   la page, et le compositeur le deplace et l'agrandit. Il passe donc SOUS
+   le canevas, et avec lui sous les frontieres, les cometes et le trou noir,
+   qui se dessinaient avant lui. Tant que le fond n'est pas en CSS, rien ne
+   change : drawSuns continue de le peindre. */
+let _halosEl = null;
+
+function preparerHalosCss() {
+    _halosEl = _halosEl || document.getElementById('halosSoleils');
+    if (!_halosEl) return;
+    _halosEl.textContent = '';   // les halos d'une carte precedente
+    for (const sun of gameState.suns) {
+        if (sun._haloCache) _halosEl.appendChild(sun._haloCache);
+    }
+}
+
+function halosEnCss(sun) {
+    return gameState._fondCss && _halosEl && sun._haloCache &&
+           sun._haloCache.parentNode === _halosEl;
+}
+
+function majHalosCss() {
+    if (!gameState._fondCss || !_halosEl) return;
+    const cam = gameState.camera, z = cam.zoom;
+    const W = gameState.width, H = gameState.height;
+    for (const sun of gameState.suns) {
+        if (!halosEnCss(sun)) continue;
+        const el = sun._haloCache;
+        const r = sun._haloR;
+        const sx = (sun.x - r - cam.x) * z + W / 2;
+        const sy = (sun.y - r - cam.y) * z + H / 2;
+        const d = 2 * r * z;
+        /* Hors de l'ecran : on le retire, le compositeur n'a pas a s'en
+           occuper. */
+        const vu = sx < W && sy < H && sx + d > 0 && sy + d > 0;
+        const aff = vu ? '' : 'none';
+        if (el.style.display !== aff) el.style.display = aff;
+        if (!vu) continue;
+        el.style.transform = 'translate3d(' + sx.toFixed(1) + 'px,' +
+            sy.toFixed(1) + 'px,0) scale(' + (d / el.width).toFixed(4) + ')';
+    }
 }
 
 function majFondCss() {
@@ -12774,7 +12851,8 @@ function drawSuns(ctx) {
 
         // Halo (depuis cache) — sprite lisse agrandi, donc sans filtrage :
         // c'est la que passait l'essentiel du cout de drawSuns.
-        if (sun._haloCache) {
+        // (sauf s'il est deja en couche CSS, voir majHalosCss)
+        if (sun._haloCache && !halosEnCss(sun)) {
             const drawR = sun._haloR;
             const _liss = ctx.imageSmoothingEnabled;
             ctx.imageSmoothingEnabled = false;
