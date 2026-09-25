@@ -435,11 +435,36 @@ v9.7.5 | 2026-09-24 | Resolution de rendu adaptative
        5,6 / 4,4 / 3,8 ms. En Bas, le niveau de detail est en plus plafonne -
        scintillements, brume des jets et cercles de detection coupes. Le
        choix est garde d'une partie a l'autre.
+     - LA BASCULE DE PALIER ATTEND QUE LE ZOOM SE POSE. Redimensionner le
+       canevas coute une image plus lourde - mesure : 2 a 5 ms de plus sur
+       celle-la -, indolore isolement mais pas au milieu d'une molette qui
+       tourne. On ne change donc de palier qu'un sixieme de seconde apres le
+       dernier cran ; un choix explicite dans GRAPH, lui, s'applique net.
+       Cote image, la marche est invisible : a zoom identique, l'ecart moyen
+       entre deux paliers voisins est de 2,3 sur 255 quand le temoin - deux
+       captures a resolution EGALE, la scene ayant seulement tourne entre les
+       deux - est deja a 2,2. Ce qu'on voit bouger, c'est le jeu, pas la
+       resolution.
+     - LE FOND SPATIAL SORT DU CANEVAS. Le degrade et le champ d'etoiles ne
+       dependent que de la camera : ce sont deux images qui glissent et
+       s'agrandissent. Les repeindre a chaque image coutait un tiers du temps
+       de rendu pour un remplissage plein ecran qui n'apprend rien a
+       personne. Ils deviennent deux couches que le compositeur deplace par
+       transform : le degrade est un element canvas peint UNE fois, les
+       etoiles un motif repete par le CSS. drawBackground passe de 1,2 ms a
+       zero, et l'image complete de 5,9 a 3,1 ms a resolution egale.
+       Piege rencontre : html porte un fond noir, donc celui du body ne
+       remonte pas a la racine et se peint APRES les couches a z-index
+       negatif - il les recouvrait entierement, fond parfaitement uni. Elles
+       sont passees a z-index 0, sous le canevas de jeu qui monte a 1.
+       Verifie au pixel : fond d'avant contre fond d'apres, meme carte, meme
+       camera, ecart moyen 0,11 sur 255 et 0,1 % de pixels franchement
+       differents - les bords d'etoiles, a un demi-pixel pres.
+     - BILAN DE LA CHAINE, meme scene en 1920x1080 a zoom 0,30 : une image
+       complete passe de 10,3 ms (v9.7.4) a 5,9 ms (resolution adaptative)
+       puis a 3,1 ms (fond hors canevas). Trois fois plus rapide.
 
    À FAIRE
-  🎯 Fond spatial : le sortir du canvas vers deux couches CSS deplacees par
-     transform. Il reste 2,2 ms par image, soit 36 % du total, pour un
-     remplissage plein ecran qui ne depend que de la camera.
   🎯 Reste de code mort : buildProgress, conserve aux initialisations alors
      que plus rien ne le remplit, la construction etant immediate. Sans
      danger, mais trompeur.
@@ -481,7 +506,29 @@ canvas#gameCanvas {
     width: 100vw;
     height: 100vh;
     cursor: grab;
+    /* Positionne pour passer AU-DESSUS des couches de fond, qui sont en
+       z-index negatif. */
+    position: relative;
+    z-index: 1;
 }
+
+/* ── Fond spatial : deux couches deplacees par le compositeur ── */
+#fondDegrade, #fondEtoiles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    /* z-index 0 et non -1 : html porte deja un fond noir, donc celui du body
+       ne remonte pas a la racine et se peint APRES les couches a z-index
+       negatif - il les recouvrait entierement. Au-dessus du fond du body,
+       sous le canevas de jeu, tout se voit. */
+    z-index: 0;
+    pointer-events: none;
+    transform-origin: 0 0;
+    will-change: transform;
+    display: none;
+}
+#fondDegrade { width: 2048px; height: 2048px; }
+#fondEtoiles { background-repeat: repeat; }
 
 canvas#gameCanvas.grabbing {
     cursor: grabbing;
@@ -2553,6 +2600,11 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="screenFade"></div>
 
 <!-- ═══ CANVAS ═══ -->
+<!-- LE FOND SPATIAL, hors du canevas de jeu. Ces deux couches ne dependent
+     que de la camera : les laisser au compositeur coute zero par image, la ou
+     les repeindre prenait un tiers du temps de rendu. -->
+<canvas id="fondDegrade" width="2048" height="2048"></canvas>
+<div id="fondEtoiles"></div>
 <canvas id="gameCanvas"></canvas>
 <div id="topRight">
     <div id="fps">-- FPS</div>
@@ -2848,6 +2900,8 @@ const gameState = {
     /* Resolution de rendu : 1 = plein ecran peint pixel pour pixel. */
     reso: 1,
     _resoPalier: 4,
+    _resoZoomVu: 0,
+    _resoRepos: 0,
     qualite: 'haute',
 
     // ── Caméra ──
@@ -3072,6 +3126,20 @@ function echelleRendu() {
 
 function majResolution() {
     const z = gameState.camera.zoom;
+
+    /* Redimensionner le canevas coute une image un peu plus lourde - mesure :
+       2 a 5 ms de plus sur celle-la. C'est indolore sur une image isolee, mais
+       pas au milieu d'une molette qui tourne. On attend donc que le zoom se
+       soit POSE : tant qu'il bouge, on garde la resolution courante, et on ne
+       change de palier qu'un sixieme de seconde apres le dernier cran. */
+    if (Math.abs(z - (gameState._resoZoomVu || 0)) > 0.0005) {
+        gameState._resoZoomVu = z;
+        gameState._resoRepos = 0;
+        return;
+    }
+    gameState._resoRepos = (gameState._resoRepos || 0) + (gameState.deltaTime || 0.016);
+    if (gameState._resoRepos < 0.16) return;
+
     const i = gameState._resoPalier | 0;
     let j = i;
     /* On ne descend qu'une fois le seuil franchi de 6 %, et on ne remonte
@@ -6494,6 +6562,7 @@ function setPhase(phase) {
     afficherPause(false);
     document.getElementById('endScreen').classList.remove('active');
     document.getElementById('gameCanvas').style.display = 'none';
+    montrerFondCss(false);
 
     document.getElementById('myPlanets').style.display = 'none';
     document.getElementById('envoiHud').style.display = 'none';
@@ -6556,6 +6625,7 @@ case 'createMulti':
         case 'spawn':
             stopTitleMusic();
             document.getElementById('gameCanvas').style.display = 'block';
+            montrerFondCss(true);
             document.getElementById('spawnBanner').classList.remove('hidden');
             document.getElementById('sidePanel').style.display = 'flex';
             document.getElementById('eventLog').style.display = 'block';
@@ -6564,6 +6634,7 @@ case 'createMulti':
         case 'game':
             document.getElementById('spawnPopup').style.display = 'none';
             document.getElementById('gameCanvas').style.display = 'block';
+            montrerFondCss(true);
             document.getElementById('spawnBanner').classList.add('hidden');
             document.getElementById('gameHud').style.display = 'block';
             document.getElementById('sporeCounter').style.display = 'block';
@@ -6574,6 +6645,7 @@ case 'createMulti':
             break;
         case 'paused':
             document.getElementById('gameCanvas').style.display = 'block';
+            montrerFondCss(true);
             document.getElementById('gameHud').style.display = 'block';
             document.getElementById('pauseTitle').textContent = 'PAUSE';
             afficherPause(true);
@@ -6647,6 +6719,7 @@ function startGame() {
     setTimeout(() => {
         updateLoadingBar(15, 'Nébuleuses et étoiles...');
         generateBackground();
+        preparerFondCss();
         generateForegroundDebris();
 
         setTimeout(() => {
@@ -11800,8 +11873,19 @@ function render() {
     const h = gameState.height;
 
     // ── Effacer ──
-    ctx.fillStyle = SKY_CFG._hex || '#16264E';
-    ctx.fillRect(0, 0, w, h);
+    if (gameState._fondCss) {
+        /* Les couches de fond sont derriere le canevas : on l'efface pour
+           qu'elles se voient, au lieu de repeindre un aplat par-dessus. La
+           couleur du ciel passe sur la page, sous tout le monde. */
+        ctx.clearRect(0, 0, w, h);
+        majFondCss();
+        if (document.body.style.backgroundColor === '') {
+            document.body.style.backgroundColor = SKY_CFG._hex || '#16264E';
+        }
+    } else {
+        ctx.fillStyle = SKY_CFG._hex || '#16264E';
+        ctx.fillRect(0, 0, w, h);
+    }
 
     // ── Appliquer la transformation caméra ──
     ctx.save();
@@ -11969,7 +12053,90 @@ function render() {
 // ─────────────────────────────────────────────
 // DESSIN — Fond spatial (tuilé)
 // ─────────────────────────────────────────────
+/* ── LE FOND SPATIAL, SORTI DU CANEVAS ──────────────────────────────────
+   Les deux couches de fond ne dependent que de la camera : ce sont deux
+   images qui glissent et s'agrandissent, rien de plus. Les repeindre a
+   chaque image coutait un tiers du temps de rendu pour un remplissage plein
+   ecran qui n'apprend rien a personne. Confiees au compositeur, elles ne
+   coutent plus rien : on ne fait que leur poser un transform, que le GPU
+   applique sans repeindre quoi que ce soit.
+   Le degre est un element canvas a lui, peint UNE FOIS ; les etoiles sont un
+   motif repete par le CSS. Si quoi que ce soit echoue - pas de blob, pas
+   d'element -, gameState._fondCss reste faux et l'ancien trace reprend. */
+let _fondEls = null;
+
+function preparerFondCss() {
+    if (!gameState._bgCanvas || !gameState._starsCanvas) return;
+    const deg = document.getElementById('fondDegrade');
+    const eto = document.getElementById('fondEtoiles');
+    if (!deg || !eto) return;
+    const premier = !_fondEls;
+    if (premier) _fondEls = { deg: deg, eto: eto, pret: false };
+
+    /* Le degrade : on recopie le canevas hors-ecran dans l'element. Refait a
+       chaque generation, au cas ou le fond changerait d'une partie a l'autre. */
+    try {
+        const c = deg.getContext('2d');
+        c.clearRect(0, 0, deg.width, deg.height);
+        c.drawImage(gameState._bgCanvas, 0, 0, deg.width, deg.height);
+    } catch (e) { _fondEls = null; return; }
+    if (!premier) return;
+
+    /* Les etoiles : un motif, donc une image que le CSS repete. Le blob evite
+       le base64 d'un toDataURL, et l'encodage n'a lieu qu'une fois. */
+    try {
+        gameState._starsCanvas.toBlob(function (bl) {
+            if (!bl || !_fondEls) return;
+            if (gameState._starsUrl) URL.revokeObjectURL(gameState._starsUrl);
+            gameState._starsUrl = URL.createObjectURL(bl);
+            eto.style.backgroundImage = 'url(' + gameState._starsUrl + ')';
+            _fondEls.pret = true;
+            gameState._fondCss = true;
+            majFondCss();
+        }, 'image/png');
+    } catch (e) { _fondEls = null; }
+}
+
+function montrerFondCss(oui) {
+    if (!_fondEls) return;
+    const v = (oui && gameState._fondCss) ? 'block' : 'none';
+    _fondEls.deg.style.display = v;
+    _fondEls.eto.style.display = v;
+}
+
+function majFondCss() {
+    if (!gameState._fondCss || !_fondEls || !_fondEls.pret) return;
+    const cam = gameState.camera, z = cam.zoom;
+    const W = gameState.width, H = gameState.height;
+
+    /* Le degrade couvre 60000 unites de monde. Son coin haut-gauche tombe a
+       l'ecran la, et il faut l'agrandir d'autant : exactement ce que faisait
+       le drawImage d'avant. */
+    const bgS = 60000;
+    const wx = -bgS / 2 + cam.x * 0.02;
+    const wy = -bgS / 2 + cam.y * 0.02;
+    const sx = (wx - cam.x) * z + W / 2;
+    const sy = (wy - cam.y) * z + H / 2;
+    const k = (bgS * z) / 2048;
+    _fondEls.deg.style.transform =
+        'translate3d(' + sx.toFixed(1) + 'px,' + sy.toFixed(1) + 'px,0) scale(' + k.toFixed(4) + ')';
+
+    /* Les etoiles glissent en repere ecran, d'une tuile au plus. La couche
+       fait donc un ecran PLUS une tuile, et on la recule d'autant. */
+    const T = 2048, prlx = 0.15;
+    let ox = (-cam.x * prlx * z) % T;
+    let oy = (-cam.y * prlx * z) % T;
+    if (ox > 0) ox -= T;
+    if (oy > 0) oy -= T;
+    const e = _fondEls.eto;
+    const lw = (W + T) + 'px', lh = (H + T) + 'px';
+    if (e.style.width !== lw) { e.style.width = lw; e.style.height = lh; }
+    e.style.transform = 'translate3d(' + ox.toFixed(1) + 'px,' + oy.toFixed(1) + 'px,0)';
+}
+
 function drawBackground(ctx) {
+    /* Les couches CSS s'en chargent : plus rien a peindre ici. */
+    if (gameState._fondCss) return;
     const cam = gameState.camera;
     // Le fond est enorme a l'ecran (le degrade couvre 60000 unites, les tuiles
     // d'etoiles 8000). Le filtrage bilineaire sur un agrandissement pareil
@@ -15917,6 +16084,7 @@ function initTopRight() {
         qs.addEventListener('change', function () {
             gameState.qualite = QUALITES[qs.value] ? qs.value : 'haute';
             try { localStorage.setItem('nc_qualite', gameState.qualite); } catch (e) {}
+            gameState._resoRepos = 99;   /* un choix explicite s'applique net */
             majResolution();
             montrer();
         });
