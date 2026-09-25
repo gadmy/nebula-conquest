@@ -560,10 +560,27 @@ v9.7.6 | 2026-09-25 | (en cours)
        code - on croyait a une jauge de construction qui n'existe plus.
        Verifie : plus aucune occurrence, aucune lecture n'existait.
 
+     ── PUBLICATION ──
+     - COPIE BROUILLEE POUR LES JOUEURS. Le navigateur recoit la page entiere :
+       n'importe qui pouvait lire le code, les commentaires et ce journal par
+       "Afficher le code source" - et un depot prive n'y change rien. Nouvel
+       outil, npm run brouiller (outils/brouiller.mjs) : il fabrique dans
+       dist/ la copie a publier. Commentaires HTML et CSS retires (journal
+       compris, droits d'auteur conserves en tete), scripts compactes par
+       Terser, noms locaux remplaces par des lettres. Les noms de premier
+       niveau restent : le HTML les appelle par leur nom (onclick) et les
+       trois scripts se les partagent. assets/, Audio/ et _headers suivent.
+       Ce index.html reste la version de travail : on ne touche jamais a dist/.
+       Mesure : page de 882 a 499 Ko, donc chargement plus rapide aussi.
+       Verifie sur une partie a 5 joueurs : meme deroulement que l'original,
+       60 images/s, aucune erreur. Ca ralentit la copie, ca ne l'empeche
+       pas : le navigateur doit pouvoir lire le code pour le faire tourner.
+
    À FAIRE
   🎯 Sons (à faire à la maison)
   🎯 Page itch.io avec screenshots
-  🎯 Obfuscation Terser/uglify-js
+  🎯 Au moment de publier : faire servir dist/ par l'hebergeur, apres
+     npm install puis npm run brouiller - jamais le index.html du depot.
   🎯 Contacter des YouTubers
 ══════════════════════════════════════════════════════════════════════ -->
 
