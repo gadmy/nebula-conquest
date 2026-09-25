@@ -1768,7 +1768,8 @@ input[type="radio"]:checked + .build-icon-btn {
 #envoiHud {
     position: fixed;
     left: 50%;
-    bottom: 14px;
+    /* Remontee pour laisser la place a la fiche en dessous (84 px + marges). */
+    bottom: 104px;
     transform: translateX(-50%);
     z-index: 24;
     pointer-events: none;
@@ -1824,6 +1825,82 @@ input[type="radio"]:checked + .build-icon-btn {
     color: rgba(200,160,255,0.55);
     text-shadow: 0 1px 3px rgba(0,0,0,0.9);
 }
+
+/* ── Fiche : l'astre choisi, ou le joueur quand rien n'est choisi ──
+   Hauteur FIXE : la jauge d'envoi est posee dessus, elle ne doit pas sauter
+   quand on passe d'un astre a la fiche du joueur. Elle laisse passer les
+   clics : c'est un affichage, pas un panneau. */
+#ficheHud {
+    position: fixed;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    width: 460px;
+    max-width: calc(100vw - 32px);
+    height: 84px;
+    box-sizing: border-box;
+    z-index: 24;
+    pointer-events: none;
+    background: rgba(10, 8, 35, 0.84);
+    border: 1px solid rgba(100, 70, 180, 0.35);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-family: 'Exo 2', sans-serif;
+    color: #D8CCF5;
+    overflow: hidden;
+    user-select: none;
+}
+#ficheHud .fiche-tete {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #E9D5FF;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#ficheHud .fiche-tete i {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: 1px;
+}
+#ficheHud .fiche-tete small { font-size: 9px; opacity: 0.55; margin-left: 6px; letter-spacing: 1px; }
+#ficheHud .fiche-grille {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px 12px;
+    font-size: 11px;
+}
+#ficheHud .fiche-grille div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ficheHud .fiche-grille span {
+    color: rgba(200, 160, 255, 0.55);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-right: 4px;
+}
+#ficheHud .fiche-grille b { font-weight: 600; color: #F0E8FF; }
+#ficheHud .fiche-grille b.pos { color: #4ADE80; }
+#ficheHud .fiche-grille b.neg { color: #F87171; }
+
+/* Le bouton de la touche Tab, dans le titre de MES ASTRES. */
+#mpTabMode {
+    margin-left: 6px;
+    padding: 1px 6px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: #C8A0FF;
+    background: rgba(100, 70, 180, 0.18);
+    border: 1px solid rgba(140, 90, 240, 0.45);
+    border-radius: 4px;
+    cursor: pointer;
+    vertical-align: 1px;
+}
+#mpTabMode:hover { background: rgba(140, 90, 240, 0.35); color: #F0E8FF; }
 
 /* ── Liste planètes du joueur ── */
 #myPlanets {
@@ -2590,7 +2667,7 @@ input[type="radio"]:checked + .build-icon-btn {
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Z Q S D <span style="color:rgba(200,210,230,0.45)">ou flèches</span></td><td style="padding:3px 0;">Déplacer la caméra</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">P / M</td><td style="padding:3px 0;">Zoom avant / arrière</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;">Passe en mode visée depuis l'astre sélectionné</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans la liste Mes Astres</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans Mes Astres — le bouton ⇄ choisit : de planète en planète, ou d'astre en astre (lunes comprises)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#FFD27A;">R</b></td><td style="padding:3px 0;"><b style="color:#FFD27A;">Riposte</b> au pourcentage d'envoi — sur l'astre survolé, ou sur tous si la souris est dans le vide</td></tr>
@@ -2946,7 +3023,7 @@ input[type="radio"]:checked + .build-icon-btn {
         </div><!-- /tabTech -->
     </div>
 <div id="myPlanets">
-    <div class="mp-title">MES ASTRES</div>
+    <div class="mp-title">MES ASTRES <button id="mpTabMode" type="button" title="Touche Tab : de planète en planète">⇄ <span id="mpTabModeTxt">PLANÈTES</span></button></div>
     <div id="myPlanetsList"></div>
 </div>
 </div>
@@ -2959,6 +3036,12 @@ input[type="radio"]:checked + .build-icon-btn {
     <div class="envoi-jauge"><i id="envoiBar"></i></div>
     <div class="envoi-nb" id="envoiNb"></div>
     <div class="envoi-sub">ENVOI</div>
+</div>
+
+<!-- ═══ FICHE (bas, centre, sous la jauge) : l'astre choisi, ou le joueur ═══ -->
+<div id="ficheHud" style="display:none;">
+    <div class="fiche-tete" id="ficheTete"></div>
+    <div class="fiche-grille" id="ficheGrille"></div>
 </div>
 
 <!-- ═══ PANNEAU BAS-DROITE ═══ -->
@@ -6124,32 +6207,62 @@ function setupUI() {
         gameState._firePhase = 'aiming';
     }
 
-    /* L'ordre suivi est celui des lignes du panneau de gauche, lues
-       directement dans la page : c'est le seul moyen d'etre toujours d'accord
-       avec ce que le joueur voit, y compris quand une planete et ses lunes
-       sont repliees en un seul bloc - le bloc ne compte alors que pour une
-       entree, ce qui fait bien passer d'une frontiere a la suivante. */
-    function _astreSuivant() {
-        const lignes = document.querySelectorAll('#myPlanetsList .mp-body-row');
-        if (!lignes.length) return;
+    /* DEUX FACONS DE PARCOURIR SES ASTRES A LA TOUCHE TAB, au choix du
+       bouton ⇄ de MES ASTRES : de planete en planete (les lunes sont
+       sautees), ou d'astre en astre (chaque planete puis ses lunes). L'ordre
+       est celui du panneau : soleil par soleil, planete par planete. Le choix
+       est garde d'une partie a l'autre. */
+    let _modeTab = 'planetes';
+    try { if (localStorage.getItem('nc_modeTab') === 'astres') _modeTab = 'astres'; } catch (e) {}
+    function _majBoutonTab() {
+        const t = document.getElementById('mpTabModeTxt');
+        const b = document.getElementById('mpTabMode');
+        if (t) t.textContent = _modeTab === 'astres' ? 'ASTRES' : 'PLANÈTES';
+        if (b) b.title = _modeTab === 'astres'
+            ? 'Touche Tab : d\'astre en astre (planètes et lunes) — cliquer pour changer'
+            : 'Touche Tab : de planète en planète — cliquer pour changer';
+    }
+    const _btnTab = document.getElementById('mpTabMode');
+    if (_btnTab) {
+        _majBoutonTab();
+        _btnTab.addEventListener('click', function (e) {
+            e.stopPropagation();
+            _modeTab = _modeTab === 'astres' ? 'planetes' : 'astres';
+            try { localStorage.setItem('nc_modeTab', _modeTab); } catch (err) {}
+            _majBoutonTab();
+            if (typeof playClickSound === 'function') playClickSound();
+        });
+    }
+    function _ordreTab() {
+        const moi = localSlot();
         const noms = [];
-        for (let i = 0; i < lignes.length; i++) {
-            const n = lignes[i].dataset.bodyName;
-            if (n) noms.push(n);
+        for (const s of gameState.suns) {
+            for (const p of (s.planets || [])) {
+                if (p.owner === moi) noms.push(p.name);
+                if (_modeTab !== 'astres') continue;
+                for (const m of (p.moons || [])) if (m.owner === moi) noms.push(m.name);
+            }
         }
+        return noms;
+    }
+
+    function _astreSuivant() {
+        const noms = _ordreTab();
         if (!noms.length) return;
-        const actuel = (typeof followingBody !== 'undefined' && followingBody)
-                     ? followingBody.name : null;
-        let i = noms.indexOf(actuel);
+        const fb = (typeof followingBody !== 'undefined' && followingBody) ? followingBody : null;
+        let i = fb ? noms.indexOf(fb.name) : -1;
+        /* Sur une lune en mode planetes : on repart de sa planete, pour que
+           Tab mene a la SUIVANTE et non a la premiere de la liste. */
+        if (i < 0 && fb && fb.type === 'moon' && fb.parent) i = noms.indexOf(fb.parent.name);
         i = (i + 1) % noms.length;
         const suivant = gameState.allBodies.find(function (b) { return b.name === noms[i]; });
         if (!suivant) return;
         followingBody = suivant;
         gameState.camera.x = suivant.x;
         gameState.camera.y = suivant.y;   /* le zoom ne bouge pas */
-        document.querySelectorAll('#myPlanetsList .mp-body-row.active')
-                .forEach(function (el) { el.classList.remove('active'); });
-        if (lignes[i]) lignes[i].classList.add('active');
+        document.querySelectorAll('#myPlanetsList .mp-body-row').forEach(function (el) {
+            el.classList.toggle('active', el.dataset.bodyName === suivant.name);
+        });
     }
 
     /* ─────────────────────────────────────────────
@@ -6797,6 +6910,7 @@ function setPhase(phase) {
 
     document.getElementById('myPlanets').style.display = 'none';
     document.getElementById('envoiHud').style.display = 'none';
+    document.getElementById('ficheHud').style.display = 'none';
     document.getElementById('surfaceHud').style.display = 'none';
     document.getElementById('sidePanel').style.display = 'none';
     document.getElementById('topRight').style.display = 'none';
@@ -8381,6 +8495,100 @@ document.querySelectorAll('input[name="buildMode"]').forEach(radio => {
    qui s'apprete a tirer. Le pourcentage seul ne dit pas grand-chose quand on
    ne sait pas sur quoi il s'applique. */
 let _jaugePulseT = null;
+/* LA FICHE, sous la jauge d'envoi. Tout ce qu'on sait de l'astre choisi,
+   d'un coup d'oeil, sans ouvrir de panneau ; et quand rien n'est choisi,
+   le bilan du joueur. Rafraichie avec le reste de l'interface, six fois
+   par seconde. Les noms passent par _fEsc : un pseudo vient d'un joueur. */
+function _fEsc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+}
+function _fCase(label, valeur, cls) {
+    return '<div><span>' + label + '</span><b' + (cls ? ' class="' + cls + '"' : '') + '>' + valeur + '</b></div>';
+}
+function _fDuree(s) {
+    s = Math.max(0, Math.floor(s || 0));
+    return Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0');
+}
+
+function majFiche() {
+    const el = document.getElementById('ficheHud');
+    if (!el) return;
+    if (gameState.phase !== 'game') { el.style.display = 'none'; return; }
+    if (el.style.display !== 'block') el.style.display = 'block';
+    const tete = document.getElementById('ficheTete');
+    const grille = document.getElementById('ficheGrille');
+    const moi = localSlot();
+    const b = (typeof followingBody !== 'undefined' && followingBody) ? followingBody : gameState.selectedBody;
+    let h = '', g = '';
+
+    if (b && b.type !== 'sun') {
+        // ── L'ASTRE CHOISI ──
+        const j = (b.owner !== null && b.owner !== undefined && b.owner >= 0) ? gameState.players[b.owner] : null;
+        const couleur = j ? j.color : '#888888';
+        const qui = !j ? 'NEUTRE' : (b.owner === moi ? 'À VOUS' : _fEsc(j.name));
+        h = '<i style="background:' + _fEsc(couleur) + '"></i>' + _fEsc(b.name)
+          + '<small>' + (b.type === 'planet' ? 'PLANÈTE' : 'LUNE') + ' · ' + qui + '</small>';
+
+        const max = Math.max(1, b.maxSpores || 1);
+        const part = Math.max(0, Math.min(1, (b.spores || 0) / max));
+        g += _fCase('Spores', _sp(Math.floor(b.spores || 0)) + ' / ' + _sp(Math.floor(max)));
+        g += _fCase('Rempli', Math.round(part * 100) + ' %', part >= PART_SATUREE ? 'neg' : '');
+        const debit = debitAstre(b);
+        g += _fCase('Production', debit > 0 ? '+' + _sp(debit) + '/s' : '—', debit > 0 ? 'pos' : '');
+        g += _fCase('Rendement', Math.round(courbeCroissance(part) * 100) + ' %');
+        g += _fCase('Flore', Math.round(b.flore || 0));
+        g += _fCase('Faune', Math.round(b.faune || 0));
+        g += _fCase('Symbiose', Math.round(b.symbiosis || 0) + ' %');
+        g += _fCase('Bâtiments', '🏗️' + (b.nids || 0) + ' 🛡️' + (b.biomes || 0) + ' 🍯' + (b.alveoles || 0));
+
+        /* Astre partage : la part du sol qu'on tient, c'est LA donnee qui
+           compte - a qui est vraiment cette planete. */
+        const L = b.lutte;
+        if (L && L.zones) {
+            const v = campDe(b, moi);
+            let tout = 0, mien = 0;
+            for (const id in L.zones) { tout += L.zones[id].n; if (L.zones[id].v === v) mien += L.zones[id].n; }
+            g += _fCase('Terrain', tout ? Math.round(100 * mien / tout) + ' % à vous' : '—', mien ? 'pos' : '');
+        } else if (b.parasite) {
+            g += _fCase('Parasite', 'actif', 'neg');
+        } else if (b.type === 'planet') {
+            g += _fCase('Lunes', (b.moons || []).length);
+        } else {
+            g += _fCase('Planète', _fEsc(b.parent ? b.parent.name : '—'));
+        }
+    } else {
+        // ── LE JOUEUR, quand rien n'est choisi ──
+        const j = gameState.players[moi];
+        if (!j) { el.style.display = 'none'; return; }
+        h = '<i style="background:' + _fEsc(j.color) + '"></i>' + _fEsc(j.name) + '<small>BILAN DU JOUEUR</small>';
+        let pl = 0, lu = 0, debit = 0;
+        for (const x of (j.bodies || [])) {
+            if (x.type === 'planet') pl++; else if (x.type === 'moon') lu++;
+            debit += debitAstre(x);
+        }
+        let sys = 0;
+        for (const s of gameState.suns) if (isSystemComplete(s, moi)) sys++;
+        const st = j.stats || {};
+        const te = j.tech || {};
+        const att = multiEnAttente(j);
+        g += _fCase('Astres', pl + ' pl. · ' + lu + ' lunes');
+        g += _fCase('Spores', _sp(Math.floor(j.totalSpores || 0)));
+        g += _fCase('Production', '+' + _sp(debit) + '/s', 'pos');
+        g += _fCase('Stats', '🌱' + (st.growth || 0) + ' ⚡' + (st.velocity || 0) + ' 💎' + (st.density || 0) + ' ☀' + (st.sensitivity || 0));
+        g += _fCase('Multiplicité', (j.multiTier || 0) + '/10' + (att ? ' (+' + att + ')' : ''), att ? 'pos' : '');
+        g += _fCase('Sacrifice', (j.multiSacrifice || 0) + ' %');
+        g += _fCase('Technos', '🎯' + (te.homing || 0) + ' 💪' + (te.tenacity || 0) + ' 🦎' + (te.mimicry || 0));
+        g += _fCase('Systèmes', sys + ' complet' + (sys > 1 ? 's' : ''));
+        const gs = gameState.gameStats || {};
+        g += _fCase('Jets · prises', (gs.jetsLaunched || 0) + ' · ' + (gs.bodiesConquered || 0));
+    }
+
+    if (tete._h !== h) { tete.innerHTML = h; tete._h = h; }
+    if (grille._h !== g) { grille.innerHTML = g; grille._h = g; }
+}
+
 function majJaugeEnvoi(pulse) {
     const surf = document.getElementById('surfaceHud');
     if (surf) {
@@ -8431,6 +8639,7 @@ function majJaugeEnvoi(pulse) {
 function updateHUD() {
     if (gameState.phase !== 'game') return;
     majJaugeEnvoi(false);
+    majFiche();
 
     // Zoom clavier P/M
     if (_keysDown['p'] || _keysDown['P']) {
@@ -11950,7 +12159,17 @@ if (body && _pied && (e.button === 2)) {
                     cam.x = body.x;
                     cam.y = body.y;
                 }
-                else closeCodex();
+                else {
+                    closeCodex();
+                    /* Un clic dans le vide lache l'astre suivi : la fiche du
+                       bas repasse alors au bilan du joueur. */
+                    if (gameState._firePhase !== 'aiming') {
+                        followingBody = null;
+                        gameState.selectedBody = null;
+                        document.querySelectorAll('#myPlanetsList .mp-body-row.active')
+                                .forEach(function (r) { r.classList.remove('active'); });
+                    }
+                }
             }
         }
     });
