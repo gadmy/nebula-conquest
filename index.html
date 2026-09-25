@@ -514,6 +514,16 @@ v9.7.5 | 2026-09-24 | Rendu adaptatif, fond hors canevas, visee unifiee
        "hors d'atteinte" ne disait pas laquelle des deux.
 
 v9.7.6 | 2026-09-25 | (en cours)
+     ── CORRECTIONS ──
+     - LA COURBE DE VISEE MENTAIT DEPUIS UNE TETE DE PONT. Sur un astre qu'on
+       ne tient qu'en partie, l'apercu du jet prenait la vitesse du
+       PROPRIETAIRE de l'astre, alors que le vrai jet part a la vitesse du
+       tireur : la gravite ne courbe pas pareil un jet lent et un jet rapide,
+       le trait montrait donc une autre trajectoire que celle du tir. Le trait
+       prend desormais la vitesse - et la couleur - du joueur local, comme
+       launchJet (le serveur le faisait deja). Le tir de surface n'etait pas
+       concerne. Verifie : a vitesses differentes, l'ecart au centieme point
+       passe de 3000 unites a zero.
 
    À FAIRE
   🎯 Reste de code mort : buildProgress, conserve aux initialisations alors
@@ -11345,7 +11355,7 @@ function drawLaunchPreview(ctx) {
     ctx.save();
     const zScale = Math.max(1, 2 / gameState.camera.zoom);
     ctx.setLineDash([4 * zScale, 6 * zScale]);
-    const player = gameState.players[src.owner];
+    const player = gameState.players[localSlot()];
     /* Trait rouge quand une etoile ou le trou noir barre la route : le jet y
        serait detruit, et la cible passerait pour invulnerable. */
     const bloque = !surface && gameState._tirBloque;
@@ -12272,7 +12282,10 @@ function render() {
         const dy = gameState.mouseWorldY - src.y;
         const len = Math.sqrt(dx*dx + dy*dy);
         if (len > 1) {
-            const player = gameState.players[src.owner];
+            /* La vitesse est celle du TIREUR, pas du proprietaire : depuis une
+               tete de pont sur l'astre d'un autre, c'est la sienne qui
+               courberait le trait - comme le fait launchJet. */
+            const player = gameState.players[localSlot()];
             const speed = 20 + (player ? player.stats.velocity * 6 : 0);
             gameState.launchPreview = computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 120);
         }
@@ -12294,7 +12307,10 @@ function render() {
         const dy = gameState.mouseWorldY - src.y;
         const len = Math.sqrt(dx*dx + dy*dy);
         if (len > 1) {
-            const player = gameState.players[src.owner];
+            /* La vitesse est celle du TIREUR, pas du proprietaire : depuis une
+               tete de pont sur l'astre d'un autre, c'est la sienne qui
+               courberait le trait - comme le fait launchJet. */
+            const player = gameState.players[localSlot()];
             const speed = 20 + (player ? player.stats.velocity * 6 : 0);
             gameState.launchPreview = computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 200);
         }
