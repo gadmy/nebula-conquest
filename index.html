@@ -553,6 +553,22 @@ v9.7.6 | 2026-09-25 | (en cours)
        concerne. Verifie : a vitesses differentes, l'ecart au centieme point
        passe de 3000 unites a zero.
 
+     ── GAMEPLAY ──
+     - LA RIPOSTE SUIT LE POURCENTAGE D'ENVOI. La touche R engageait "juste
+       la facture" du terrain etranger, quel que soit le reglage : le joueur
+       n'avait aucune prise sur ce qu'il mettait dans la balance. Desormais
+       chaque zone engage le pourcentage regle avec A et E, comme un jet.
+       C'est un budget, pas une depense : chaque case reprise se paie au prix
+       du sol et le reste demeure dans la zone - riposter a 100 % pour trois
+       cases ne vide pas la planete. A 0 %, la riposte refuse et le dit.
+       Verifie, ennemi tenant ~175 cases sur notre planete : a 0 % il
+       continue d'avancer, a 20 % on en reprend la moitie, a 50 et 100 % on
+       reprend tout, pour la meme depense. Livre des regles et aide des
+       touches mis a jour.
+       A FAIRE COTE SERVEUR : en multijoueur c'est le serveur qui applique la
+       riposte, avec l'ancien calcul. Il connait deja le pourcentage de
+       chaque joueur (set_jet_ratio) ; son code n'est pas dans ce depot.
+
      ── NETTOYAGE ──
      - buildProgress RETIRE. Reste de l'epoque ou construire prenait du
        temps : depuis que la construction est immediate, on le remettait a
@@ -2510,7 +2526,7 @@ input[type="radio"]:checked + .build-icon-btn {
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans la liste Mes Astres</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#FFD27A;">R</b></td><td style="padding:3px 0;"><b style="color:#FFD27A;">Riposte</b> — sur l'astre survolé, ou sur tous si la souris est dans le vide</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#FFD27A;">R</b></td><td style="padding:3px 0;"><b style="color:#FFD27A;">Riposte</b> au pourcentage d'envoi — sur l'astre survolé, ou sur tous si la souris est dans le vide</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Échap</td><td style="padding:3px 0;">Pause (le livre des règles s’ouvre)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">F3 puis D</td><td style="padding:3px 0;">Diagnostic de performance, puis détail du rendu</td></tr>
 </table>
@@ -2536,7 +2552,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ON ACHÈTE LE SOL.</span> La planète vaut sa capacité en spores, donc une case coûte cette capacité divisée par le nombre de cases. Attaquer avec X spores rapporte X cases, puis <span style="color:#E9D5FF;">le front s'arrête net</span>. Le sol vierge, lui, ne coûte que 15 % du prix : coloniser n'est pas conquérir.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">LE DEVIS, PENDANT LA VISÉE.</span> Sous le curseur s'affiche ce que votre envoi achètera sur l'astre visé : le nombre de cases, la part du disque que ça représente, et le prix d'une case. Faune et biomes adverses y sont déjà déduits, et la densité ajoutée — c'est le vrai chiffre, pas une estimation optimiste. Sur un astre à vous, il indique simplement le renfort.</p>
 <p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
-<p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Elle engage, sur chaque astre où plusieurs camps se partagent le sol et où vous tenez une zone, exactement la facture du terrain étranger, répartie entre vos zones au prorata de leurs réserves. Chez vous, chez l'autre, ou sur un neutre entamé.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Sur chaque astre où plusieurs camps se partagent le sol et où vous tenez une zone, chacune de vos zones engage <span style="color:#E9D5FF;">le pourcentage d'envoi</span> de sa réserve — celui que vous réglez avec <b>A</b> et <b>E</b>, comme pour un jet. Chez vous, chez l'autre, ou sur un neutre entamé. Chaque case reprise se paie au prix du sol, et <span style="color:#4ADE80;">ce qui n'a rien trouvé à acheter reste dans la zone</span> : riposter à 100 % pour trois cases ne vide pas la planète.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">C'est la souris qui désigne la cible :</span> le curseur sur un astre, la riposte ne touche que <b>ses</b> zones ; le curseur dans le vide, <b>tous</b> vos astres contaminés repartent d'un coup. Rien à nettoyer : l'écran vibre.</p>
 <p style="margin-bottom:16px;">Plusieurs attaques sur la même planète ouvrent <span style="color:#E9D5FF;">chacune leur propre front</span> à l'endroit touché. Des spores ne renforcent une tache que si le tir retombe sur du terrain que vous tenez déjà.</p>
 <!-- ZONES -->
@@ -9909,12 +9925,12 @@ function debarquerSurface(body, slot, spores, wx, wy) {
 }
 
 /* CONTRE-ATTAQUE GENERALE (touche R). Sur chacun de nos astres ou un autre
-   tient du terrain, nos zones engagent JUSTE CE QU'IL FAUT pour le reprendre -
-   le nombre de cases etrangeres multiplie par le prix du sol - et pas une
-   spore de plus : nettoyer trois cases ne doit pas vider une planete. Quand
-   la reserve ne suffit pas, on engage ce qu'on a et le front s'arretera ou il
-   pourra. Les zones de moins de dix cases ne participent pas, elles n'ont
-   deja pas le droit d'attaquer. */
+   tient du terrain, chacune de nos zones engage LE POURCENTAGE D'ENVOI - celui
+   qu'on regle avec A et E, comme pour un jet - de sa reserve. C'est un budget,
+   pas une depense : chaque case prise se paie au prix du sol, et ce qui n'a
+   rien trouve a acheter reste dans la zone. Nettoyer trois cases a 100 % ne
+   vide donc pas une planete. Les zones de moins de dix cases ne participent
+   pas, elles n'ont deja pas le droit d'attaquer. */
 /* L'astre sous le curseur, s'il y en a un : c'est lui qui decide si la
    riposte vise une planete ou toute la galaxie. */
 function astreSousSouris() {
@@ -9933,6 +9949,13 @@ function riposteGenerale(cible) {
     const moi = localSlot();
     if (gameState.isMulti) sendAction('riposte', { bodyName: cible ? cible.name : null });
     let astres = 0, engage = 0;
+    const ratio = gameState.jetRatio;
+    if (!(ratio > 0)) {
+        addEvent('neutral', '⚔', 'Riposte impossible : envoi a 0 % (A / E pour le regler)',
+                 null, '#888888');
+        secouerEcran(5);
+        return 0;
+    }
     const bodies = cible ? [cible] : (gameState.allBodies || []);
     for (let bi = 0; bi < bodies.length; bi++) {
         const body = bodies[bi];
@@ -9959,19 +9982,16 @@ function riposteGenerale(cible) {
             dispo += liste[k].z.spores;
         }
         const cout = coutCase(body, total);
-        if (!miennes.length || dispo < cout) continue;
+        if (!miennes.length || dispo * ratio < cout) continue;
 
-        /* La facture exacte, repartie sur nos zones au prorata de ce qu'elles
-           ont : chacune paie sa part de la reconquete. */
-        const facture = etrangeres * cout;
-        const part = Math.min(1, facture / dispo);
+        /* Chaque zone engage le pourcentage d'envoi de SA reserve. */
         for (let k = 0; k < miennes.length; k++) {
             const z = miennes[k];
-            z.elan = Math.max(z.elan || 0, z.spores * part);
+            z.elan = Math.max(z.elan || 0, z.spores * ratio);
         }
         L.dormante = false;
         astres++;
-        engage += Math.min(facture, dispo);
+        engage += dispo * ratio;
         gameState.conquestEffects.push({
             x: body.x, y: body.y - body.radius - 20, baseX: body.x,
             text: '\u2694 RIPOSTE', color: '#FFD27A', age: 0, maxAge: 2.5 });
