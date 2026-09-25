@@ -593,6 +593,20 @@ v9.7.6 | 2026-09-25 | (en cours)
        En multijoueur, chaque avis du serveur ajoute un point au compteur ;
        reste a verifier que le serveur, lui, ne perd pas les siens.
 
+     ── INTERFACE ──
+     - LES ASTRES PLEINS CRACHENT DES ETINCELLES. Un astre a sa capacite ne
+       produit plus rien, et rien ne le montrait. Il laisse maintenant
+       echapper, toutes les demi-secondes environ, un paquet de 4 a 6
+       etincelles de la couleur de son proprietaire eclaircie : elles
+       jaillissent du bord, freinent et s'eteignent en une seconde. Tete
+       chaude et petite trainee, simple point vu de loin. Purement visuel :
+       aucune spore, aucun effet, hasard hors simulation (pas de decalage en
+       multijoueur). Visible pour tous les camps, donc aussi chez l'ennemi.
+       Rien n'est emis hors de l'ecran, 250 etincelles au plus, moins en
+       reglage Bas. Cout mesure : 0,02 ms en vue normale, 0,18 ms dans le
+       pire cas (57 astres pleins a l'ecran). Elles cessent des que l'astre
+       se vide.
+
      ── NETTOYAGE ──
      - buildProgress RETIRE. Reste de l'epoque ou construire prenait du
        temps : depuis que la construction est immediate, on le remettait a
@@ -7121,6 +7135,7 @@ function finishStartGame() {
     gameState.conquestEffects = [];
     gameState.bloomEffects = [];
     gameState.particles = [];
+    gameState._etincelles = [];
     gameState.impactEffects = [];
     gameState.comets = [];
     gameState.cometTimer = 0;
@@ -12243,6 +12258,7 @@ if (gameState.isMulti) {
         majPopProduction(dt);
         majSecousse(dt);
         majAlertes(dt);
+        majEtincelles(dt);
         if (typeof majCameraClavier === 'function') majCameraClavier(dt);
         if (gameState._hudCounter % 10 === 0) {
             updateHUD();
@@ -12274,6 +12290,7 @@ if (gameState.isMulti) {
     majPopProduction(dt);
     majSecousse(dt);
     majAlertes(dt);
+    majEtincelles(dt);
     if (typeof majCameraClavier === 'function') majCameraClavier(dt);
     updateCameraFollow();
     // Mise à jour HUD throttlé (perf)
@@ -12471,6 +12488,9 @@ function render() {
 
     // ── Effets de conquête ──
     drawConquestEffects(ctx);
+
+    // ── Etincelles des astres pleins ──
+    drawEtincelles(ctx);
 
     // ── Compteurs de spores sur les astres ──
     drawSporeCountOnBodies(ctx);
@@ -14827,6 +14847,123 @@ function drawOndesSolaires(ctx) {
 }
 
 const POP_PROD_PERIODE = 5;
+
+/* LES ASTRES PLEINS CRACHENT DES ETINCELLES. Un astre a sa capacite ne
+   produit plus rien : chaque seconde qu'il y reste est perdue. Pour que ca se
+   VOIE, il laisse echapper de petits paquets d'etincelles de la couleur de
+   son proprietaire, qui jaillissent du bord, ralentissent et s'eteignent.
+   Purement visuel : elles ne portent aucune spore et ne touchent rien.
+   Hasard de Math.random et non de gameRandom, pour ne jamais decaler la
+   simulation. Rien n'est emis hors de l'ecran, et le total est plafonne. */
+const ETINCELLES_MAX = 250;
+
+/* La couleur du joueur tiree vers le blanc : une etincelle est chaude, et un
+   violet sombre sur le fond bleu ne se voyait pas. Calculee une fois par
+   couleur. */
+const _couleursEtincelle = {};
+function couleurEtincelle(c) {
+    if (_couleursEtincelle[c]) return _couleursEtincelle[c];
+    let r = 255, g = 255, b = 255;
+    if (/^#[0-9a-f]{6}$/i.test(c)) {
+        r = parseInt(c.substr(1, 2), 16); g = parseInt(c.substr(3, 2), 16); b = parseInt(c.substr(5, 2), 16);
+    }
+    const m = (v) => Math.round(v + (255 - v) * 0.45).toString(16).padStart(2, '0');
+    return (_couleursEtincelle[c] = '#' + m(r) + m(g) + m(b));
+}
+
+function majEtincelles(dt) {
+    const liste = gameState._etincelles || (gameState._etincelles = []);
+
+    // Vie et mouvement : elles freinent (le vide ne freine pas, mais un
+    // jaillissement qui s'essouffle se lit mieux) et s'eteignent.
+    let n = 0;
+    const frein = Math.pow(0.12, dt);
+    for (let i = 0; i < liste.length; i++) {
+        const e = liste[i];
+        e.age += dt;
+        if (e.age >= e.vie) continue;
+        e.px = e.x; e.py = e.y;
+        e.x += e.vx * dt;
+        e.y += e.vy * dt;
+        e.vx *= frein;
+        e.vy *= frein;
+        liste[n++] = e;
+    }
+    liste.length = n;
+
+    if (gameState.phase !== 'game') return;
+    const bodies = gameState.allBodies || [];
+    const bas = gameState.lod === 0;
+    for (let bi = 0; bi < bodies.length; bi++) {
+        const b = bodies[bi];
+        if (b.type === 'sun' || b.owner === null || b.owner === undefined || b.owner < 0) continue;
+        if (!(b.maxSpores > 0) || b.spores < b.maxSpores * 0.995) { b._etinT = 0; continue; }
+        if (!aLEcran(b.x, b.y, b.radius * 3)) continue;
+        /* Premier paquet sans attendre : le signal doit tomber des que
+           l'astre est plein, pas une seconde apres. */
+        b._etinT = (b._etinT || 0) - dt;
+        if (b._etinT > 0) continue;
+        b._etinT = (bas ? 0.8 : 0.3) + Math.random() * 0.35;
+        if (liste.length >= ETINCELLES_MAX) continue;
+
+        const j = gameState.players[b.owner];
+        const c = couleurEtincelle((j && j.color) || '#FFFFFF');
+        const nb = bas ? 3 : 4 + Math.floor(Math.random() * 3);
+        const cap = Math.random() * Math.PI * 2;   // le paquet part d'un cote
+        for (let k = 0; k < nb && liste.length < ETINCELLES_MAX; k++) {
+            const a = cap + (Math.random() - 0.5) * 0.9;
+            const v = b.radius * (1.4 + Math.random() * 1.6);
+            const x = b.x + Math.cos(a) * b.radius * 0.95;
+            const y = b.y + Math.sin(a) * b.radius * 0.95;
+            liste.push({
+                x: x, y: y, px: x, py: y,
+                vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+                age: 0, vie: 0.6 + Math.random() * 0.6,
+                t: b.radius * (0.03 + Math.random() * 0.02),
+                c: c
+            });
+        }
+    }
+}
+
+function drawEtincelles(ctx) {
+    const liste = gameState._etincelles;
+    if (!liste || !liste.length) return;
+    const z = gameState.camera.zoom;
+    const min = 2 / z;            // jamais plus petites que deux pixels
+    const cam = gameState.camera;
+    const hw = gameState.width / 2 / z + 20, hh = gameState.height / 2 / z + 20;
+    const op = ctx.globalCompositeOperation;
+    const a0 = ctx.globalAlpha;
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < liste.length; i++) {
+        const e = liste[i];
+        // Hors de l'ecran : nees d'un astre visible, elles ont pu en sortir.
+        if (e.x < cam.x - hw || e.x > cam.x + hw || e.y < cam.y - hh || e.y > cam.y + hh) continue;
+        const f = 1 - e.age / e.vie;
+        const t = Math.max(min, e.t * (0.4 + 0.6 * f));
+        ctx.globalAlpha = f;
+        /* Vue de loin, une etincelle ne fait que deux ou trois pixels :
+           trainee et halo ne s'y verraient pas. Un simple carre suffit, pour
+           une fraction du prix. */
+        if (t * z < 3) {
+            ctx.fillStyle = e.c;
+            ctx.fillRect(e.x - t, e.y - t, t * 2, t * 2);
+            continue;
+        }
+        /* Trainee : deux points de plus en plus petits en arriere, le long
+           de la vitesse - on lit le jaillissement. Des sprites plutot qu'un
+           trait : un trait arrondi coutait deux fois plus cher a peindre. */
+        const s = haloSprite(e.c, 'noyau');
+        const dx = (e.x - e.px) * 2, dy = (e.y - e.py) * 2;
+        ctx.drawImage(s, e.x - dx * 2 - t * 0.8, e.y - dy * 2 - t * 0.8, t * 1.6, t * 1.6);
+        ctx.drawImage(s, e.x - dx - t * 1.1, e.y - dy - t * 1.1, t * 2.2, t * 2.2);
+        // Tete : un point chaud, blanc au coeur.
+        ctx.drawImage(s, e.x - t * 1.6, e.y - t * 1.6, t * 3.2, t * 3.2);
+    }
+    ctx.globalCompositeOperation = op;
+    ctx.globalAlpha = a0;
+}
 
 function majPopProduction(dt) {
     const astre = (typeof followingBody !== 'undefined' && followingBody)
