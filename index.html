@@ -626,6 +626,14 @@ v9.7.6 | 2026-09-25 | (en cours)
        le dernier pour cent. Un seul chiffre pour les deux, PART_SATUREE.
        Verifie sans rien forcer : astre rempli par sa seule production,
        premieres etincelles a 98,5 %, au bout de 3 min 26.
+       Puis EN ORBITE : lachees dans le vide, elles restaient sur place
+       pendant que l'astre filait et se perdaient derriere lui. Elles vivent
+       desormais dans le repere de l'astre - elles jaillissent du sol, se
+       posent sur une orbite basse (1,2 a 1,65 rayon) et tournent en arc,
+       tout un paquet dans le meme sens, 1 a 2 s. La trainee suit la
+       rotation, pas le deplacement de l'astre. Plus emises quand l'astre
+       fait moins de 15 px de rayon a l'ecran : le clignotement y suffit.
+       Cout au pire (46 astres pleins, vue d'ensemble) : 0,46 ms.
 
      ── NETTOYAGE ──
      - buildProgress RETIRE. Reste de l'epoque ou construire prenait du
@@ -14901,19 +14909,27 @@ function couleurEtincelle(c) {
 function majEtincelles(dt) {
     const liste = gameState._etincelles || (gameState._etincelles = []);
 
-    // Vie et mouvement : elles freinent (le vide ne freine pas, mais un
-    // jaillissement qui s'essouffle se lit mieux) et s'eteignent.
+    /* EN ORBITE AUTOUR DE LEUR ASTRE. Lachees dans le vide, elles restaient
+       sur place pendant que l'astre filait sur son orbite : on les voyait se
+       perdre derriere lui. Elles vivent donc dans le repere de l'astre, en
+       coordonnees polaires : la hauteur jaillit du sol puis se pose sur une
+       orbite basse, l'angle tourne. Position recalculee a chaque image a
+       partir du centre de l'astre, qui peut bouger autant qu'il veut. */
     let n = 0;
-    const frein = Math.pow(0.12, dt);
     for (let i = 0; i < liste.length; i++) {
         const e = liste[i];
         e.age += dt;
-        if (e.age >= e.vie) continue;
-        e.px = e.x; e.py = e.y;
-        e.x += e.vx * dt;
-        e.y += e.vy * dt;
-        e.vx *= frein;
-        e.vy *= frein;
+        if (e.age >= e.vie || !e.b) continue;
+        const h = e.h0 + (e.h1 - e.h0) * (1 - Math.exp(-e.age * 5));
+        const a = e.a0 + e.w * e.age;
+        const rx = Math.cos(a) * h, ry = Math.sin(a) * h;
+        e.x = e.b.x + rx;
+        e.y = e.b.y + ry;
+        /* La trainee suit le mouvement AUTOUR de l'astre, pas celui de
+           l'astre lui-meme : sinon elle s'etirerait dans son sillage. */
+        e.px = e.x - (rx - e.rx);
+        e.py = e.y - (ry - e.ry);
+        e.rx = rx; e.ry = ry;
         liste[n++] = e;
     }
     liste.length = n;
@@ -14930,6 +14946,10 @@ function majEtincelles(dt) {
         if (!(b.maxSpores > 0) || b.spores < b.maxSpores * PART_SATUREE) { b._etinT = 0; continue; }
         if (!aLEcran(b.x, b.y, b.radius * 3)) continue;
         pleins.push(b);
+        /* Trop petit a l'ecran, c'est le clignotement qui prend le relais :
+           des etincelles de deux pixels n'y ajouteraient rien, et une vue
+           d'ensemble en compterait des centaines. */
+        if (b.radius * gameState.camera.zoom < 15) continue;
         /* Premier paquet sans attendre : le signal doit tomber des que
            l'astre est plein, pas une seconde apres. */
         b._etinT = (b._etinT || 0) - dt;
@@ -14941,15 +14961,20 @@ function majEtincelles(dt) {
         const c = couleurEtincelle((j && j.color) || '#FFFFFF');
         const nb = bas ? 3 : 4 + Math.floor(Math.random() * 3);
         const cap = Math.random() * Math.PI * 2;   // le paquet part d'un cote
+        /* Tout un paquet tourne dans le meme sens, sur des orbites un peu
+           differentes : il s'etire en arc au lieu de rester en boule. */
+        const sens = Math.random() < 0.5 ? -1 : 1;
         for (let k = 0; k < nb && liste.length < ETINCELLES_MAX; k++) {
-            const a = cap + (Math.random() - 0.5) * 0.9;
-            const v = b.radius * (1.4 + Math.random() * 1.6);
-            const x = b.x + Math.cos(a) * b.radius * 0.95;
-            const y = b.y + Math.sin(a) * b.radius * 0.95;
+            const a0 = cap + (Math.random() - 0.5) * 0.9;
+            const h0 = b.radius * 0.95;
             liste.push({
-                x: x, y: y, px: x, py: y,
-                vx: Math.cos(a) * v, vy: Math.sin(a) * v,
-                age: 0, vie: 0.6 + Math.random() * 0.6,
+                b: b, a0: a0, h0: h0,
+                h1: b.radius * (1.2 + Math.random() * 0.45),
+                w: sens * (1.2 + Math.random() * 1.2),
+                rx: Math.cos(a0) * h0, ry: Math.sin(a0) * h0,
+                x: b.x + Math.cos(a0) * h0, y: b.y + Math.sin(a0) * h0,
+                px: b.x + Math.cos(a0) * h0, py: b.y + Math.sin(a0) * h0,
+                age: 0, vie: 1.1 + Math.random() * 0.9,
                 t: b.radius * (0.03 + Math.random() * 0.02),
                 c: c
             });
