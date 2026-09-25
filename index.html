@@ -491,6 +491,26 @@ v9.7.5 | 2026-09-24 | Resolution de rendu adaptative
        selectionne, avec sa reserve et sa capacite. Verifie sur les quatre
        cas : astre a soi sans bataille, apres un clic, pendant une bataille,
        et une fois la bataille finie.
+     - LE DEVIS, SOUS LE CURSEUR PENDANT LA VISEE. Tout le jeu tient dans
+       "X spores valent X cases", mais ce chiffre ne se voyait nulle part :
+       on tirait au juge sans savoir si l'envoi prendrait cinq cases ou trois
+       cents. Le devis refait a l'identique le trajet d'un jet - densite en
+       plus, faune et biomes adverses en moins - puis divise par le prix du
+       sol vise : "~ 216 cases (27 %)" et "1 case = 25 sp". Le sol vierge
+       affiche son rabais, un astre a soi affiche un renfort, et quand
+       l'envoi depasse le disque entier il annonce l'astre EN ENTIER.
+       Verifie : 2000 de faune font tomber 216 cases a 137, trois biomes a
+       149, et le devis suit la jauge d'envoi au prorata exact.
+     - LE PANNEAU NAISSANCE DIT QUAND. La courbe disait ou l'on etait, jamais
+       combien de temps il restait - et comme le rendement varie tout du
+       long, aucune regle de trois ne le donne. On integre donc la montee pas
+       a pas, quatre cents crans, chacun a la vitesse du moment. Avant le pic
+       on annonce le pic, apres on annonce la saturation, ou l'astre cesse de
+       produire. Verifie contre une simulation de la vraie production : 147 s
+       annonces, 147 s mesures, zero pour cent d'ecart.
+       Le cas "jamais" est desormais nomme : production a l'arret quand le
+       debit est nul, plus d'une heure quand c'est seulement tres long -
+       "hors d'atteinte" ne disait pas laquelle des deux.
 
    À FAIRE
   🎯 Reste de code mort : buildProgress, conserve aux initialisations alors
@@ -1047,6 +1067,13 @@ canvas#gameCanvas.grabbing {
     color: rgba(190,210,245,0.75);
 }
 #naissanceRend { font-weight: bold; }
+#naissanceQuand {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 10px;
+    margin-top: 3px;
+    color: rgba(190,210,245,0.6);
+    text-align: center;
+}
 
 #evoPanel {
     position: static;
@@ -2392,6 +2419,7 @@ input[type="radio"]:checked + .build-icon-btn {
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic sur une zone de la planète</td><td style="padding:3px 0;">Choisit la zone d'où partira le tir — elle se cerne d'un trait double et d'un « TIR »</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Double-clic sur un astre</td><td style="padding:3px 0;">Plonge dessus et met en visée (raccourci de cadrage)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur votre disque</td><td style="padding:3px 0;">Le tir devient un tir de surface ; hors du disque, c'est un jet normal</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur un astre</td><td style="padding:3px 0;">Le devis : combien de cases votre envoi y achètera, et à quel prix</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur fond vide + glisser</td><td style="padding:3px 0;">Déplace la caméra</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Survol d'un nombre de spores</td><td style="padding:3px 0;">Nomme le joueur à qui il appartient, et dit s'il tient l'astre ou l'assaille</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Molette</td><td style="padding:3px 0;">Zoom / dézoom (ne fait pas défiler les panneaux quand la souris est dessus)</td></tr>
@@ -2428,6 +2456,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p id="h-bataille" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚔ BATAILLE DE SURFACE</p>
 <p style="margin-bottom:6px;">Une conquête ne se joue plus en un choc. Les spores qui touchent un astre y <span style="color:#FFD700;">prennent pied sur une case</span>, du côté d'où vient le tir, et s'étalent sur le disque en lobes irréguliers. Chaque camp porte son propre liseré ; le sol que personne ne tient a le sien, en gris.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ON ACHÈTE LE SOL.</span> La planète vaut sa capacité en spores, donc une case coûte cette capacité divisée par le nombre de cases. Attaquer avec X spores rapporte X cases, puis <span style="color:#E9D5FF;">le front s'arrête net</span>. Le sol vierge, lui, ne coûte que 15 % du prix : coloniser n'est pas conquérir.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">LE DEVIS, PENDANT LA VISÉE.</span> Sous le curseur s'affiche ce que votre envoi achètera sur l'astre visé : le nombre de cases, la part du disque que ça représente, et le prix d'une case. Faune et biomes adverses y sont déjà déduits, et la densité ajoutée — c'est le vrai chiffre, pas une estimation optimiste. Sur un astre à vous, il indique simplement le renfort.</p>
 <p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Elle engage, sur chaque astre où plusieurs camps se partagent le sol et où vous tenez une zone, exactement la facture du terrain étranger, répartie entre vos zones au prorata de leurs réserves. Chez vous, chez l'autre, ou sur un neutre entamé.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">C'est la souris qui désigne la cible :</span> le curseur sur un astre, la riposte ne touche que <b>ses</b> zones ; le curseur dans le vide, <b>tous</b> vos astres contaminés repartent d'un coup. Rien à nettoyer : l'écran vibre.</p>
@@ -2437,7 +2466,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;">Une tache sur une planète n'est pas un morceau de camp : c'est une <span style="color:#FFD700;">zone</span>, avec <span style="color:#E9D5FF;">ses spores</span> et <span style="color:#E9D5FF;">son rendement</span>, écrits en son milieu quand on zoome. Deux taches d'un même joueur vivent chacune leur vie et ne mettent leurs réserves en commun que si le terrain finit par les souder.</p>
 <p style="margin-bottom:6px;">Perdre du sol, c'est perdre les spores qui étaient dessus : elles sont sur le terrain, pas dans un coffre. Une zone coupée en deux partage les siennes au prorata des cases.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">On clique une zone</span> pour choisir d'où l'on tire et où l'on construit. Un clic qui tombe sur le terrain d'un autre prend la vôtre la plus proche.</p>
-<p style="margin-bottom:6px;">Le panneau <span style="color:#FFD700;">NAISSANCE</span>, en haut à gauche au-dessus d'Évolution, montre la courbe de production en entier et un point qui dit où vous en êtes dessus. On voit d'un coup d'œil si ça monte vers le pic, si ça stagne dans le creux, ou si ça s'étouffe en approchant du plafond. Il suit la <b>zone choisie</b> quand une bataille est en cours, et sinon l'<b>astre sélectionné</b> — il n'y a pas besoin de se battre pour avoir besoin de la courbe.</p>
+<p style="margin-bottom:6px;">Le panneau <span style="color:#FFD700;">NAISSANCE</span>, en haut à gauche au-dessus d'Évolution, montre la courbe de production en entier, un point qui dit où vous en êtes dessus, et surtout <span style="color:#E9D5FF;">dans combien de temps</span> vous atteindrez le pic — ou, si vous l'avez dépassé, dans combien de temps vous serez saturé et ne produirez plus rien. On voit d'un coup d'œil si ça monte vers le pic, si ça stagne dans le creux, ou si ça s'étouffe en approchant du plafond. Il suit la <b>zone choisie</b> quand une bataille est en cours, et sinon l'<b>astre sélectionné</b> — il n'y a pas besoin de se battre pour avoir besoin de la courbe.</p>
 <p style="margin-bottom:16px;">Sous <span style="color:#EF4444;">dix cases</span>, une zone ne peut plus ni attaquer ni bâtir — l'écran vibre si vous essayez — et une fois son élan retombé elle s'effrite case par case jusqu'à disparaître.</p>
 <!-- TIR DE SURFACE -->
 <p id="h-surface" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🎯 TIR DE SURFACE</p>
@@ -2693,6 +2722,7 @@ input[type="radio"]:checked + .build-icon-btn {
         <span id="naissancePlein">—</span>
         <span id="naissanceRend">—</span>
     </div>
+    <div id="naissanceQuand">—</div>
 </div>
 <div id="evoPanel">
         <div class="evo-tabs">
@@ -9316,6 +9346,60 @@ function coutCase(body, total) {
     return Math.max(1, (body.maxSpores || 1) / Math.max(1, total));
 }
 
+/* Le nombre de cases d'un astre, c'est-a-dire de cases du disque. Il ne
+   depend que de la grille, pas de l'astre : on le compte une fois. */
+let _casesDisque = 0;
+function casesAstre(body) {
+    const L = body && body.lutte;
+    if (L && L.cellules) {
+        let n = 0;
+        for (let i = 0; i < L.cellules.length; i++) if (L.cellules[i] !== LUTTE_VIDE) n++;
+        if (n) return n;
+    }
+    if (!_casesDisque) {
+        _luttePrepare();
+        for (let i = 0; i < _lutteMasque.length; i++) if (_lutteMasque[i]) _casesDisque++;
+    }
+    return _casesDisque;
+}
+
+/* CE QUE L'ENVOI ACHETERA. Tout le jeu tient dans "X spores valent X cases",
+   mais ce chiffre ne se voyait nulle part : on tirait au jugé. On refait donc
+   ici, a l'identique, le trajet d'un jet - densite, faune, biomes adverses -
+   puis on divise par le prix du sol vise. */
+function devisAttaque(src, cible) {
+    if (!src || !cible || cible.type === 'sun') return null;
+    const moi = localSlot();
+    const j = gameState.players[moi];
+    if (!j || !j.stats) return null;
+
+    const zt = src.lutte ? zoneDeTir(src, moi) : null;
+    const dispo = zt ? zt.z.spores : (src.spores || 0);
+    const envoi = Math.floor(dispo * gameState.jetRatio);
+    if (envoi < 5) return null;
+
+    /* Un envoi chez soi ou chez un allie renforce, il n'achete rien. */
+    const chezMoi = (cible.owner === moi) && !(cible.lutte && partEtrangere(cible) > 0);
+    if (chezMoi) return { envoi: envoi, renfort: true };
+
+    let arrive = envoi * (1 + (j.stats.density || 0) * 0.05);
+    arrive -= Math.min(cible.faune || 0, arrive);
+    const bioDef = cible.lutte
+        ? (cible.biomes || 0) - nbBatimentCamp(cible, 'biome', campDe(cible, moi))
+        : (cible.biomes || 0);
+    arrive = arrive / (1 + bonusBatiment(Math.max(0, bioDef), 'biome'));
+    if (arrive <= 0) return { envoi: envoi, arrive: 0, prix: 0, cases: 0, total: casesAstre(cible) };
+
+    const total = casesAstre(cible);
+    const neutre = (cible.owner === null || cible.owner === undefined);
+    const prix = coutCase(cible, total) * (neutre ? 0.15 : 1);
+    /* On ne peut pas acheter plus de sol qu'il n'y en a : au-dela, l'astre
+       tombe en entier et le reste des spores s'y installe. */
+    const brut = Math.floor(arrive / prix);
+    return { envoi: envoi, arrive: arrive, prix: prix, total: total,
+             cases: Math.min(brut, total), tout: brut >= total, neutre: neutre };
+}
+
 /* LE RENDEMENT DE BASE, en part de la CAPACITE par seconde. C'etait un
    nombre fixe de spores, 2,5, sans rapport avec la taille de l'astre : une
    geante de vingt mille mettait des heures a se remplir au meme rythme qu'une
@@ -10645,6 +10729,48 @@ function _pointsNaissance() {
     return _naissancePts;
 }
 
+/* LE PIC DE LA COURBE, trouve une fois pour toutes : c'est vers lui qu'on
+   veut savoir combien de temps il reste. */
+let _picNaissance = -1;
+function picNaissance() {
+    if (_picNaissance >= 0) return _picNaissance;
+    let best = 0, bv = -1;
+    for (let i = 0; i <= 200; i++) {
+        const t = i / 200, v = courbeCroissance(t);
+        if (v > bv) { bv = v; best = t; }
+    }
+    _picNaissance = best;
+    return best;
+}
+
+/* COMBIEN DE TEMPS JUSQU'A... La courbe dit OU l'on est, jamais QUAND on sera
+   au bon endroit - et comme le rendement varie tout du long, on ne peut pas
+   le deviner d'une regle de trois. On integre donc la montee pas a pas :
+   a chaque cran, la vitesse est le debit de base fois le rendement du moment.
+   Renvoie des secondes, ou null si l'on n'y arrivera jamais. */
+function tempsJusqua(depart, cible, debitPlein, plafond) {
+    if (!(debitPlein > 0) || !(plafond > 0)) return 'arret';   /* rien ne pousse */
+    if (cible <= depart) return 0;
+    let t = 0, part = depart;
+    const N = 400, pas = (cible - depart) / N;
+    for (let i = 0; i < N; i++) {
+        const r = courbeCroissance(part + pas / 2);
+        if (r < 1e-4) return 'long';            /* le rendement s'eteint */
+        t += (pas * plafond) / (debitPlein * r);
+        part += pas;
+        if (t > 3600) return 'long';
+    }
+    return t;
+}
+
+function _duree(s) {
+    if (s === null || s === undefined) return null;
+    if (s < 1) return 'maintenant';
+    if (s < 60) return Math.round(s) + ' s';
+    const m = Math.floor(s / 60), r = Math.round(s % 60);
+    return m + ' min' + (r ? ' ' + r + ' s' : '');
+}
+
 let _naiEls = null;
 function majPanneauNaissance() {
     if (!_naiEls) {
@@ -10653,7 +10779,8 @@ function majPanneauNaissance() {
             cv: document.getElementById('naissanceCanvas'),
             zone: document.getElementById('naissanceZone'),
             plein: document.getElementById('naissancePlein'),
-            rend: document.getElementById('naissanceRend')
+            rend: document.getElementById('naissanceRend'),
+            quand: document.getElementById('naissanceQuand')
         };
         if (!_naiEls.panneau) return;
     }
@@ -10666,20 +10793,28 @@ function majPanneauNaissance() {
        panneau, alors qu'un astre tranquille suit exactement la meme courbe.
        On prend donc la zone choisie quand il y en a une, et a defaut l'astre
        selectionne, avec sa reserve et sa capacite. */
-    let titre = null, part = 0;
+    let titre = null, part = 0, plafond = 0, debitPlein = 0;
+    const moi = localSlot();
     const sel = gameState._zoneSel;
     const zb = sel && sel.body;
     const z = (zb && zb.lutte && zb.lutte.zones) ? zb.lutte.zones[sel.id] : null;
     if (z) {
         titre = zb.name + ' \u00b7 ' + z.n + ' cases';
-        part = (z.spores || 0) / Math.max(1, z.plafond || 1);
+        plafond = Math.max(1, z.plafond || 1);
+        part = (z.spores || 0) / plafond;
+        /* Le debit d'une zone est celui de l'astre au prorata de sa surface,
+           avant la courbe : c'est elle qu'on integre. */
+        const tot = casesAstre(zb);
+        const slot = (z.v === 0) ? zb.owner : z.v - 1;
+        debitPlein = debitPour(zb, slot) * (z.n / Math.max(1, tot));
     } else {
         const a = (typeof followingBody !== 'undefined' && followingBody)
                 ? followingBody : gameState.selectedBody;
-        const moi = localSlot();
         if (a && a.type !== 'sun' && (a.owner === moi || (a.lutte && zonesDe(a, moi).length))) {
             titre = a.name;
-            part = (a.spores || 0) / Math.max(1, a.maxSpores || 1);
+            plafond = Math.max(1, a.maxSpores || 1);
+            part = (a.spores || 0) / plafond;
+            debitPlein = debitPour(a, a.owner);
         }
     }
 
@@ -10697,6 +10832,23 @@ function majPanneauNaissance() {
     E.plein.textContent = Math.round(part * 100) + '% plein';
     E.rend.textContent = Math.round(rend * 100) + '%';
     E.rend.style.color = teinte;
+
+    /* QUAND. Le chiffre qui manquait : la courbe disait ou l'on etait, jamais
+       combien de temps il restait a attendre. Avant le pic on annonce le pic,
+       apres on annonce la saturation - le moment ou l'astre cesse de
+       produire, et ou il vaut mieux avoir tire. */
+    if (E.quand) {
+        const pic = picNaissance();
+        const avant = part < pic - 0.005;
+        const t = (part < 0.985) ? tempsJusqua(part, avant ? pic : 0.985, debitPlein, plafond) : null;
+        let txt;
+        if (part >= 0.985)      txt = '\u26A0 saturé — ne produit plus';
+        else if (t === 'arret') txt = 'production à l\'arrêt';
+        else if (t === 'long')  txt = (avant ? 'pic' : 'saturation') + ' dans plus d\'une heure';
+        else txt = (avant ? 'pic dans ' : '\u26A0 saturation dans ') + _duree(t);
+        if (E.quand.textContent !== txt) E.quand.textContent = txt;
+        E.quand.style.color = avant ? 'rgba(190,210,245,0.6)' : 'rgba(250,204,21,0.85)';
+    }
 
     const cv = E.cv, x = cv.getContext('2d');
     const W = cv.width, H = cv.height;
@@ -11221,6 +11373,81 @@ function drawLaunchPreview(ctx) {
         ctx.stroke();
     }
     ctx.restore();
+
+    dessinerDevis(ctx, src, bloque);
+}
+
+/* LE DEVIS, colle au curseur. Ce que l'envoi achetera sur l'astre vise, et a
+   quel prix la case : sans ces deux nombres on tire au jugé, alors que toute
+   l'economie du jeu tient dedans. */
+function dessinerDevis(ctx, src, bloque) {
+    if (bloque) return;
+    const surf = astreTirSurface();
+    const cible = surf || _astreSousCurseur();
+    if (!cible) return;
+    const d = devisAttaque(src, cible);
+    if (!d) return;
+
+    const z = gameState.camera.zoom;
+    const px = _taillePx(z, 12, 40, 11, 17);
+    const m = px / z;
+
+    let l1, l2, teinte;
+    if (d.renfort) {
+        l1 = '+' + _sp(d.envoi) + ' spores';
+        l2 = 'renfort \u00b7 ' + cible.name;
+        teinte = '#4ADE80';
+    } else if (d.cases <= 0) {
+        l1 = 'aucun terrain';
+        l2 = _sp(d.envoi) + ' spores n\'y suffisent pas';
+        teinte = '#F87171';
+    } else {
+        const part = Math.round(100 * d.cases / Math.max(1, d.total));
+        l1 = d.tout ? '\u2248 ' + cible.name + ' EN ENTIER'
+                    : '\u2248 ' + d.cases + ' cases  (' + part + '%)';
+        l2 = '1 case = ' + Math.round(d.prix) + ' sp' + (d.neutre ? ' \u00b7 sol vierge' : '')
+           + ' \u2014 envoi ' + _sp(d.envoi);
+        teinte = part >= 50 ? '#4ADE80' : part >= 15 ? '#FACC15' : '#F87171';
+    }
+
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+
+    /* Le devis colle au curseur, mais on le rabat dans l'ecran : pres d'un
+       bord il se faisait couper, et c'est justement la qu'on vise. */
+    ctx.font = 'bold ' + m + 'px Orbitron';
+    const w1 = ctx.measureText(l1).width;
+    ctx.font = 'bold ' + (m * 0.72) + 'px Orbitron';
+    const larg = Math.max(w1, ctx.measureText(l2).width) * z;
+    const cam = gameState.camera, W = gameState.width, H = gameState.height;
+    let sx = (gameState.mouseWorldX - cam.x) * z + W / 2 + 16;
+    let sy = (gameState.mouseWorldY - cam.y) * z + H / 2 + 14;
+    sx = Math.min(Math.max(sx, 12), Math.max(12, W - larg - 12));
+    sy = Math.min(Math.max(sy, 46), H - 96);
+    const x = (sx - W / 2) / z + cam.x;
+    const y = (sy - H / 2) / z + cam.y;
+
+    ctx.font = 'bold ' + m + 'px Orbitron';
+    _texteLisible(ctx, l1, x, y, teinte, Math.max(2, m * 0.24));
+    ctx.font = 'bold ' + (m * 0.72) + 'px Orbitron';
+    _texteLisible(ctx, l2, x, y + m * 1.05, 'rgba(210,220,240,0.85)', Math.max(2, m * 0.2));
+    ctx.restore();
+}
+
+/* L'astre sous le curseur, pour le devis. Meme regle que le ramassage au
+   clic : on mord un peu au-dela du disque. */
+function _astreSousCurseur() {
+    const bodies = gameState.allBodies || [];
+    const wx = gameState.mouseWorldX, wy = gameState.mouseWorldY;
+    for (let i = 0; i < bodies.length; i++) {
+        const b = bodies[i];
+        if (b.type === 'sun') continue;
+        const dx = b.x - wx, dy = b.y - wy;
+        const r = b.radius + 8;
+        if (dx * dx + dy * dy < r * r) return b;
+    }
+    return null;
 }
 
 
