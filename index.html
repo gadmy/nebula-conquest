@@ -552,6 +552,20 @@ v9.7.6 | 2026-09-25 | (en cours)
        launchJet (le serveur le faisait deja). Le tir de surface n'etait pas
        concerne. Verifie : a vitesses differentes, l'ecart au centieme point
        passe de 3000 unites a zero.
+     - LE JEU NE DEMARRAIT PAS SANS LES SERVICES EN LIGNE. Supabase et
+       socket.io viennent de CDN : bloqueur de publicite, reseau d'ecole ou
+       d'entreprise, panne - et la creation du client Supabase plantait tout
+       le second script. L'ecran de connexion s'affichait, mais ses boutons
+       etaient morts : impossible d'aller plus loin, solo compris.
+       Desormais un client factice repond "indisponible" a tout, l'ecran de
+       connexion l'explique et propose JOUER EN SOLO HORS LIGNE : menu avec
+       Multi, Local et Competition grises, mention HORS LIGNE sous le menu,
+       joueur nomme Commandant. Meme bouton quand la bibliotheque est la
+       mais que le serveur ne repond pas : on ne dit plus "mot de passe
+       incorrect" pour une panne reseau. connectSocket ne plante plus si
+       socket.io manque.
+       Verifie, les deux CDN bloques : message, bouton, menu, partie a 4
+       lancee et jouee, aucune erreur. Le parcours normal est inchange.
 
      ── GAMEPLAY ──
      - LA RIPOSTE SUIT LE POURCENTAGE D'ENVOI. La touche R engageait "juste
@@ -2280,6 +2294,7 @@ input[type="radio"]:checked + .build-icon-btn {
             <button class="btn" id="btnAuthLogin" style="width:100%; margin-top:4px;">CONNEXION</button>
             <button class="btn" id="btnAuthSignup" style="width:100%; margin-top:8px; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4);">CRÉER UN COMPTE</button>
             <p id="authMsg" style="color:#8B5CF6; margin-top:12px; font-size:13px; min-height:20px;"></p>
+            <button class="btn" id="btnHorsLigne" style="width:100%; margin-top:6px; display:none; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">▶ JOUER EN SOLO HORS LIGNE</button>
         </div>
         <div id="authStep2" style="display:none;">
             <p style="color:#94A3B8; margin-bottom:16px; font-size:14px;">Choisissez votre pseudo de commandant</p>
@@ -6760,7 +6775,8 @@ case 'title':
             if (_titleAnimPlayed) document.getElementById('titleScreen').classList.add('no-intro');
             gameState.running = false;
             const _pEl = document.getElementById('titlePseudo');
-            if (_pEl) _pEl.textContent = currentProfile ? '⬡ ' + currentProfile.pseudo : '';
+            if (_pEl) _pEl.textContent = currentProfile ? '⬡ ' + currentProfile.pseudo
+                : (horsLigne ? '⬡ HORS LIGNE — SOLO UNIQUEMENT' : '');
             gameState.isMulti = false;
             gameState.multiSeed = null;
             currentRoom = null; isHost = false;
@@ -16761,7 +16777,80 @@ document.getElementById('evoDensity').addEventListener('click', () => {
 // ═══════════════════════════════════════════════
 const SUPABASE_URL = 'https://hcjajtpbzusqgxkyzbgc.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjamFqdHBienVzcWd4a3l6YmdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTIwNjgsImV4cCI6MjA4NzY4ODA2OH0.UXiZvC3kQmQzZ4BSWp6X19ISPjlac87YZlLonUqzvic';
-const _supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+/* SANS LES SERVICES EN LIGNE, LE SOLO DOIT RESTER JOUABLE. La bibliotheque
+   Supabase vient d'un CDN : un bloqueur de publicite, un reseau d'ecole ou
+   d'entreprise, ou une panne, et elle manque. Avant, la ligne ci-dessous
+   plantait tout ce script - boutons de connexion morts, jeu inaccessible,
+   solo compris. On la remplace alors par un client factice qui repond
+   "indisponible" a tout, et l'ecran de connexion propose le solo hors
+   ligne (voir entrerHorsLigne). */
+const SERVICES_HORS_LIGNE = !(window.supabase && window.supabase.createClient);
+
+function _supaHorsLigne() {
+    const reponse = { data: null, error: { message: 'Service en ligne indisponible', status: 0 } };
+    /* Une requete s'ecrit en chaine - from().select().eq()... - puis
+       s'attend : chaque maillon rend la chaine, et l'attendre donne la
+       reponse "indisponible". */
+    const chaine = new Proxy(function () {}, {
+        get: function (t, k) {
+            if (k === 'then') return function (ok, ko) { return Promise.resolve(reponse).then(ok, ko); };
+            return chaine;
+        },
+        apply: function () { return chaine; }
+    });
+    return {
+        from: function () { return chaine; },
+        storage: { from: function () { return chaine; } },
+        auth: {
+            getSession: function () { return Promise.resolve({ data: { session: null }, error: null }); },
+            onAuthStateChange: function () { return { data: { subscription: { unsubscribe: function () {} } } }; },
+            signOut: function () { return Promise.resolve({ error: null }); },
+            signInWithPassword: function () { return Promise.resolve(reponse); },
+            signUp: function () { return Promise.resolve(reponse); }
+        }
+    };
+}
+
+const _supa = SERVICES_HORS_LIGNE
+    ? _supaHorsLigne()
+    : window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* Vrai si une erreur de connexion vient du reseau et non du joueur : on ne
+   lui dit pas "mot de passe incorrect" quand le serveur est injoignable. */
+function erreurReseau(e) {
+    return SERVICES_HORS_LIGNE || !e || e.status === 0
+        || /fetch|network|r[ée]seau|indisponible/i.test(e.message || '');
+}
+
+function proposerHorsLigne(texte) {
+    const msg = document.getElementById('authMsg');
+    if (msg) { msg.textContent = texte; msg.style.color = '#FBBF24'; }
+    const b = document.getElementById('btnHorsLigne');
+    if (b) b.style.display = 'block';
+}
+
+/* Le menu sans compte : le solo contre l'IA marche, les modes en ligne sont
+   grises. Le nom du joueur retombe sur "Commandant". */
+let horsLigne = false;
+function entrerHorsLigne() {
+    horsLigne = true;
+    document.getElementById('authScreen').classList.add('hidden');
+    ['btnMulti', 'btnLocal', 'btnCompetition'].forEach(function (id) {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.disabled = true;
+        b.style.opacity = '0.35';
+        b.style.cursor = 'not-allowed';
+        b.title = 'Indisponible hors ligne';
+    });
+    const out = document.getElementById('btnLogout');
+    if (out) out.style.display = 'none';
+    setPhase('title');   // affiche aussi la mention HORS LIGNE sous le menu
+}
+document.getElementById('btnHorsLigne').addEventListener('click', function () {
+    playClickSound();
+    entrerHorsLigne();
+});
 
 let currentUser = null;
 let currentProfile = null;
@@ -16775,6 +16864,9 @@ const SERVER_URL = 'https://nebula-conquest-server2-production.up.railway.app';
 // ── Connexion socket ──────────────────────────────────────────
 
 function connectSocket() {
+    /* socket.io vient lui aussi d'un CDN : absent, on reste sans connexion
+       plutot que de planter. */
+    if (typeof io !== 'function') { console.warn('[socket] socket.io non charge'); return; }
     if (_socket && _socket.connected) return;
     if (_socket) { _socket.removeAllListeners(); _socket.disconnect(); }
     const auth = {
@@ -17317,6 +17409,11 @@ function handleGameEvent(ev) {
 }
 
 async function initAuth() {
+    if (SERVICES_HORS_LIGNE) {
+        showAuthScreen();
+        proposerHorsLigne('Services en ligne injoignables (bloqueur de publicité, réseau filtré ?). Le solo reste jouable.');
+        return;
+    }
     try {
         const { data: { session }, error } = await _supa.auth.getSession();
         if (error) {
@@ -17450,7 +17547,9 @@ document.getElementById('btnAuthLogin').addEventListener('click', async () => {
     msg.textContent = 'Connexion...';
     msg.style.color = '#8B5CF6';
     const { data, error } = await _supa.auth.signInWithPassword({ email, password });
-    if (error) {
+    if (error && erreurReseau(error)) {
+        proposerHorsLigne('Serveur injoignable pour l\'instant. Le solo reste jouable.');
+    } else if (error) {
         msg.textContent = 'Email ou mot de passe incorrect.';
         msg.style.color = '#EF4444';
     } else if (data && data.user) {
@@ -17477,7 +17576,9 @@ document.getElementById('btnAuthSignup').addEventListener('click', async () => {
     msg.textContent = 'Création du compte...';
     msg.style.color = '#8B5CF6';
     const { data, error } = await _supa.auth.signUp({ email, password });
-    if (error) {
+    if (error && erreurReseau(error)) {
+        proposerHorsLigne('Serveur injoignable pour l\'instant. Le solo reste jouable.');
+    } else if (error) {
         msg.textContent = 'Erreur : ' + error.message;
         msg.style.color = '#EF4444';
     } else if (data && data.user) {
