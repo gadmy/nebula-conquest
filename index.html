@@ -674,6 +674,30 @@ v9.7.6 | 2026-09-25 | (en cours)
        main de nebula-conquest-server2 (redeploiement Railway automatique,
        non verifiable depuis l'environnement de travail). Le fichier
        outils/correctifs-serveur.patch en garde la trace.
+     - SECURITE ANTI-TRICHE DU MULTI (serveur, nouveau fichier securite.js).
+       Audit de chaque message qu'un joueur peut envoyer, puis attaques
+       reelles contre le serveur lance en local : 13 sur 13 bloquees, le
+       serveur reste debout. Avec l'ancien, UNE invitation mal formee
+       faisait tomber tout le serveur - toutes les parties avec.
+       - Identite : le jeu envoie son jeton de session Supabase, le serveur
+         le fait verifier et lit le pseudo dans la base. Avant, pseudo et
+         identifiant etaient crus sur parole : on jouait sous le nom d'un
+         autre et on faisait bouger SON classement. Sans jeton : invite,
+         ni classe ni tournoi.
+       - Univers de depart (envoye par l'hote) : statistiques, technologies,
+         proprietaires, spores et batiments remis a zero, tailles et trou
+         noir bornes, nombre d'astres plafonne. L'hote ne se donne plus
+         growth 8 ni une planete geante pleine.
+       - Lancement reserve a l'hote de SA salle, une seule fois ; faux etat
+         et fausse fin de partie ne sont plus relayes a l'adversaire ;
+         vainqueur de tournoi constate par le serveur ; match classe
+         seulement sur invitation reelle ; salle privee sur invitation ;
+         plus d'usurpation de pseudo pour detourner une invitation ;
+         pseudos limites aux caracteres surs (et echappes a l'affichage).
+       - Classe : la victoire au temps et l'abandon comptent enfin.
+       - Tous les messages : debit limite, charges controlees, exclusion en
+         cas d'inondation ; une exception n'abat plus le serveur.
+       Partie a deux rejouee ensuite sur le serveur renforce : tout marche.
      - COTE JEU : la fiche affichait 0 spore en multi (l'instantane ecrase
        totalSpores) - recompte depuis les astres ; un jet recu du serveur
        n'ecrase plus un autre jet si sa creation locale echoue, et prend le
@@ -17365,7 +17389,24 @@ function connectSocket() {
         color:  currentProfile?.color  || '#C084FC',
         userId: currentUser?.id        || null
     };
-    _socket = io(SERVER_URL, { auth });
+    /* LE JETON DE SESSION. Le serveur ne croit plus le pseudo annonce : il
+       fait verifier ce jeton par Supabase et lit le pseudo dans la base.
+       Sans jeton valide on joue en invite - ni classe, ni tournoi. Donne
+       sous forme de fonction : socket.io la rappelle a chaque reconnexion,
+       avec un jeton toujours frais. */
+    const _authAvecJeton = function (cb) {
+        /* Quoi qu'il arrive, on rappelle cb : sans cela la connexion
+           attendrait indefiniment. */
+        try {
+            Promise.resolve(_supa.auth.getSession())
+                .then(function (r) {
+                    const jeton = r && r.data && r.data.session ? r.data.session.access_token : null;
+                    cb(Object.assign({}, auth, { token: jeton }));
+                })
+                .catch(function () { cb(auth); });
+        } catch (e) { cb(auth); }
+    };
+    _socket = io(SERVER_URL, { auth: _authAvecJeton });
 
     _socket.on('connect', () => { console.log('[socket] connecté'); _initRankedListeners(); });
     _socket.on('disconnect', () => console.log('[socket] déconnecté'));
@@ -17459,7 +17500,7 @@ function connectSocket() {
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;';
         overlay.innerHTML = `<div style="background:rgba(10,15,35,0.98);border:1px solid rgba(100,180,255,0.4);border-radius:14px;padding:28px 32px;text-align:center;font-family:'Exo 2',sans-serif;max-width:320px;">
-            <div style="font-size:15px;color:#E0E7FF;margin-bottom:20px;"><b>${fromPseudo}</b> vous invite à jouer</div>
+            <div style="font-size:15px;color:#E0E7FF;margin-bottom:20px;"><b>${_fEsc(fromPseudo)}</b> vous invite à jouer</div>
             <div style="display:flex;gap:12px;justify-content:center;">
                 <button id="btnAcceptInvite" style="padding:10px 24px;background:rgba(34,197,94,0.25);border:1px solid rgba(34,197,94,0.6);border-radius:8px;color:#4ADE80;font-family:'Exo 2',sans-serif;font-size:13px;cursor:pointer;">LANCER</button>
                 <button id="btnDeclineInvite" style="padding:10px 24px;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.5);border-radius:8px;color:#F87171;font-family:'Exo 2',sans-serif;font-size:13px;cursor:pointer;">DÉCLINER</button>
@@ -18958,7 +18999,7 @@ function _renderBracket(matches) {
             const isWinner = isDone && match.winner === p.pseudo;
             return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
                 <span style="width:8px;height:8px;border-radius:50%;background:${p.color || '#94A3B8'};display:inline-block;flex-shrink:0;"></span>
-                <span style="font-family:'Exo 2',sans-serif;font-size:${isMe ? '13px' : '12px'};color:${isWinner ? '#4ADE80' : isMe ? '#FFD700' : '#E0E7FF'};font-weight:${isMe || isWinner ? 'bold' : 'normal'};">${p.pseudo}</span>
+                <span style="font-family:'Exo 2',sans-serif;font-size:${isMe ? '13px' : '12px'};color:${isWinner ? '#4ADE80' : isMe ? '#FFD700' : '#E0E7FF'};font-weight:${isMe || isWinner ? 'bold' : 'normal'};">${_fEsc(p.pseudo)}</span>
                 ${isWinner ? '<span style="font-size:9px;color:#4ADE80;">✓</span>' : ''}
                 ${isMe && !isDone ? '<span style="font-size:9px;color:rgba(255,215,0,0.6);margin-left:2px;">(vous)</span>' : ''}
                </div>`;
