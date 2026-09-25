@@ -411,7 +411,7 @@ v9.7.4 | 2026-09-23 | Bataille de surface, zones, production, livre des regles
        production par dix.
      - Ratio de tir enfin transmis au serveur, et par joueur.
 
-v9.7.5 | 2026-09-24 | Resolution de rendu adaptative
+v9.7.5 | 2026-09-24 | Rendu adaptatif, fond hors canevas, visee unifiee
      ── PERFORMANCE ──
      - LA RESOLUTION DE RENDU SUIT LE ZOOM. Le canevas est affiche en plein
        ecran par le CSS, mais rien n'oblige a le PEINDRE a cette taille : on
@@ -482,6 +482,7 @@ v9.7.5 | 2026-09-24 | Resolution de rendu adaptative
        gameState._modeSurface, entrerModeSurface et sortirModeSurface
        disparaissent - l'etat n'existe plus, il se deduit de la position de la
        souris a chaque image.
+     ── INTERFACE ──
      - LA COURBE NE DEPEND PLUS D'UNE BATAILLE. Les zones n'existent que
        pendant un conflit : sans bataille il n'y avait aucune zone a choisir,
        donc pas de panneau - c'est-a-dire la plupart du temps, et il
@@ -511,6 +512,8 @@ v9.7.5 | 2026-09-24 | Resolution de rendu adaptative
        Le cas "jamais" est desormais nomme : production a l'arret quand le
        debit est nul, plus d'une heure quand c'est seulement tres long -
        "hors d'atteinte" ne disait pas laquelle des deux.
+
+v9.7.6 | 2026-09-25 | (en cours)
 
    À FAIRE
   🎯 Reste de code mort : buildProgress, conserve aux initialisations alors
@@ -2189,7 +2192,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.5) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.6) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
@@ -2560,7 +2563,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">F3</span> affiche les images par seconde, puis <span style="color:#E9D5FF;">D</span> détaille ce qui coûte cher à dessiner — utile si le jeu rame.</p>
 <p style="margin-bottom:16px;"><span style="color:#FFD700;">Si ça rame</span>, le réglage <span style="color:#E9D5FF;">GRAPH</span> en haut à droite fait peindre le jeu plus petit avant de l'agrandir : la carte y perd un peu de netteté, jamais les panneaux ni le texte. La finesse baisse déjà toute seule quand vous dézoomez — mesuré, une image complète passe de 9,1 à 5,6 ms — et ce réglage décale toute l'échelle vers le bas. En <span style="color:#E9D5FF;">Bas</span>, les scintillements et la brume des jets sont coupés en prime.</p>
 
-<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.5</p>
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.6</p>
     </div>
     <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
 </div>
