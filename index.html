@@ -603,6 +603,11 @@ v9.7.6 | 2026-09-25 | (en cours)
        desormais que les points s'empilent.
 
      ── INTERFACE ──
+     - PLUS DE LISERE BLANC AUTOUR DES ZONES. Les cases de bord etaient
+       tirees a 60 % vers le blanc : un anneau de pixels clairs autour de
+       chaque zone et du sol du defenseur. La frontiere se lit par la
+       difference de couleur ; le bord d'une zone attaquante est juste un
+       peu plus opaque que son interieur. Livre des regles ajuste.
      - LA FICHE, SOUS LA JAUGE D'ENVOI. Tout ce qu'on sait de l'astre choisi,
        d'un coup d'oeil : spores et plafond, remplissage (rouge une fois
        sature), production, rendement de la courbe, flore, faune, symbiose,
@@ -665,10 +670,10 @@ v9.7.6 | 2026-09-25 | (en cours)
        paliers atteints sans choisir = deux points, places ensuite un par
        un), tireur annonce depuis une tete de pont (c'etait le proprietaire
        de l'astre), plafond et symbiose des lunes dans l'instantane.
-       CES CORRECTIONS SERVEUR NE SONT PAS EN LIGNE : l'acces en ecriture au
-       depot du serveur a ete refuse a Claude. Elles sont gardees dans
-       outils/correctifs-serveur.patch, a appliquer sur
-       nebula-conquest-server2 puis a redeployer sur Railway.
+       Acces au depot du serveur obtenu ensuite : corrections poussees sur
+       main de nebula-conquest-server2 (redeploiement Railway automatique,
+       non verifiable depuis l'environnement de travail). Le fichier
+       outils/correctifs-serveur.patch en garde la trace.
      - COTE JEU : la fiche affichait 0 spore en multi (l'instantane ecrase
        totalSpores) - recompte depuis les astres ; un jet recu du serveur
        n'ecrase plus un autre jet si sa creation locale echoue, et prend le
@@ -2734,7 +2739,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:16px;">Deux types de jets partent du menu radial : <span style="color:#E9D5FF;">⚪ Spores</span>, qui colonisent et attaquent, et <span style="color:#E9D5FF;">🦠 Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent).</p>
 <!-- BATAILLE -->
 <p id="h-bataille" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚔ BATAILLE DE SURFACE</p>
-<p style="margin-bottom:6px;">Une conquête ne se joue plus en un choc. Les spores qui touchent un astre y <span style="color:#FFD700;">prennent pied sur une case</span>, du côté d'où vient le tir, et s'étalent sur le disque en lobes irréguliers. Chaque camp porte son propre liseré ; le sol que personne ne tient a le sien, en gris.</p>
+<p style="margin-bottom:6px;">Une conquête ne se joue plus en un choc. Les spores qui touchent un astre y <span style="color:#FFD700;">prennent pied sur une case</span>, du côté d'où vient le tir, et s'étalent sur le disque en lobes irréguliers. Chaque camp a sa couleur ; le sol que personne ne tient est gris.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ON ACHÈTE LE SOL.</span> La planète vaut sa capacité en spores, donc une case coûte cette capacité divisée par le nombre de cases. Attaquer avec X spores rapporte X cases, puis <span style="color:#E9D5FF;">le front s'arrête net</span>. Le sol vierge, lui, ne coûte que 15 % du prix : coloniser n'est pas conquérir.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">LE DEVIS, PENDANT LA VISÉE.</span> Sous le curseur s'affiche ce que votre envoi achètera sur l'astre visé : le nombre de cases, la part du disque que ça représente, et le prix d'une case. Faune et biomes adverses y sont déjà déduits, et la densité ajoutée — c'est le vrai chiffre, pas une estimation optimiste. Sur un astre à vous, il indique simplement le renfort.</p>
 <p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
@@ -10943,24 +10948,22 @@ function _peindreLutte(body, L) {
         const v = cel[i];
         if (v === LUTTE_VIDE) continue;
 
-        /* Chaque camp porte son propre lisere : a une couture on voit les
-           deux, cote a cote, comme dans un jeu de territoires. On separe le
-           bord qui donne sur un AUTRE CAMP - la frontiere, celle qui bouge et
-           qu'on doit lire d'un coup d'oeil - de celui qui donne sur le vide
-           hors du disque, simple trait de cote qu'on garde discret. */
-        let front = false, cote = false;
+        /* PAS DE LISERE BLANC. Les cases de bord etaient tirees a 60 % vers
+           le blanc : un anneau de pixels clairs autour de chaque zone, et
+           autour du sol du defenseur, qui brouillait plus qu'il n'aidait.
+           La frontiere se lit par la difference de couleur entre les camps ;
+           le bord d'une zone attaquante est seulement un peu plus opaque que
+           son interieur, et le sol du defenseur ne change pas a la couture. */
+        let front = false;
         for (let k = 0; k < 4; k++) {
             const j2 = _lutteVoisins[i * 4 + k];
-            if (j2 < 0) cote = true;
-            else if (cel[j2] !== v) front = true;
+            if (j2 >= 0 && cel[j2] !== v) front = true;
         }
         const c = _teinteCamp(body, v);
         const sol = (v === 0);      /* le camp du defenseur, ou le sol neutre */
-        if (front || cote) {
-            d[i * 4]     = c[0] + (255 - c[0]) * 0.6;
-            d[i * 4 + 1] = c[1] + (255 - c[1]) * 0.6;
-            d[i * 4 + 2] = c[2] + (255 - c[2]) * 0.6;
-            d[i * 4 + 3] = front ? (sol ? 235 : 255) : (sol ? 55 : 150);
+        if (front && !sol) {
+            d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2];
+            d[i * 4 + 3] = 235;
         } else {
             d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2];
             /* L'interieur du defenseur reste discret : c'est sa planete, on
