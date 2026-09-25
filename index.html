@@ -651,6 +651,30 @@ v9.7.6 | 2026-09-25 | (en cours)
        fait moins de 15 px de rayon a l'ecran : le clignotement y suffit.
        Cout au pire (46 astres pleins, vue d'ensemble) : 0,46 ms.
 
+     ── MULTIJOUEUR ──
+     - VERIFICATION COMPLETE DU MULTI. Le serveur de production n'est pas
+       joignable depuis l'environnement de travail : le serveur
+       (gadmy/nebula-conquest-server2) a ete lance en local et deux joueurs
+       y ont joue une partie reelle. File d'attente, salle, univers partage,
+       apparitions vues des deux cotes, jets relayes : tout fonctionne. Le
+       trait de visee colle au jet calcule par le serveur (0 d'ecart).
+     - CE QUI N'ETAIT PAS PASSE COTE SERVEUR, corrige et teste en local :
+       riposte au pourcentage d'envoi (avant : 1846 spores engagees quel que
+       soit le reglage, meme a 0 % ; apres : 0 / 800 / 2000 / 4000 a
+       0 / 20 / 50 / 100 %), points de multiplicite qui s'empilent (deux
+       paliers atteints sans choisir = deux points, places ensuite un par
+       un), tireur annonce depuis une tete de pont (c'etait le proprietaire
+       de l'astre), plafond et symbiose des lunes dans l'instantane.
+       CES CORRECTIONS SERVEUR NE SONT PAS EN LIGNE : l'acces en ecriture au
+       depot du serveur a ete refuse a Claude. Elles sont gardees dans
+       outils/correctifs-serveur.patch, a appliquer sur
+       nebula-conquest-server2 puis a redeployer sur Railway.
+     - COTE JEU : la fiche affichait 0 spore en multi (l'instantane ecrase
+       totalSpores) - recompte depuis les astres ; un jet recu du serveur
+       n'ecrase plus un autre jet si sa creation locale echoue, et prend le
+       tireur annonce ; les lunes lisent plafond et symbiose quand le
+       serveur les envoie.
+
      ── NETTOYAGE ──
      - buildProgress RETIRE. Reste de l'epoque ou construire prenait du
        temps : depuis que la construction est immediate, on le remettait a
@@ -8592,7 +8616,11 @@ function majFiche() {
         const te = j.tech || {};
         const att = multiEnAttente(j);
         g += _fCase('Astres', pl + ' pl. · ' + lu + ' lunes');
-        g += _fCase('Spores', _sp(Math.floor(j.totalSpores || 0)));
+        /* Recompte ici : en multijoueur, l'instantane du serveur ecrase
+           totalSpores par un zero entre deux mises a jour de l'interface. */
+        let tot = 0;
+        for (const x of (j.bodies || [])) tot += x.spores || 0;
+        g += _fCase('Spores', _sp(Math.floor(tot)));
         g += _fCase('Production', '+' + _sp(debit) + '/s', 'pos');
         g += _fCase('Stats', '🌱' + (st.growth || 0) + ' ⚡' + (st.velocity || 0) + ' 💎' + (st.density || 0) + ' ☀' + (st.sensitivity || 0));
         g += _fCase('Multiplicité', (j.multiTier || 0) + '/10' + (att ? ' (+' + att + ')' : ''), att ? 'pos' : '');
@@ -17392,11 +17420,17 @@ function connectSocket() {
         // Sauvegarder et restaurer les spores (le serveur est autoritaire)
         const savedSpores = src.spores;
         src.spores = ev.spores * 2;
+        const n0 = gameState.jets.length;
         launchJet(src, ev.dirX, ev.dirY, ev.sporeType);
         src.spores = savedSpores;
-        // Utiliser la trajectoire serveur + forcer id, spores, color
-        const j = gameState.jets[gameState.jets.length - 1];
+        /* Le jet qu'on vient de creer, et pas "le dernier de la liste" : si
+           launchJet a refuse, c'etait un autre jet qu'on ecrasait. */
+        const j = gameState.jets.length > n0 ? gameState.jets[n0] : null;
         if (j) {
+            /* Le TIREUR, annonce par le serveur - depuis une tete de pont,
+               ce n'est pas le proprietaire de l'astre. Les serveurs d'avant
+               n'envoyaient que le proprietaire : on s'en contente alors. */
+            if (ev.slot !== undefined && ev.slot !== null) j.owner = ev.slot;
             j.id         = ev.id;
             j.spores     = ev.spores;
             j.color      = ev.color;
@@ -17758,6 +17792,10 @@ function applySnapshot(snap) {
         m.nids      = sm.nids      ?? m.nids;
         m.biomes    = sm.biomes    ?? m.biomes;
         m.alveoles  = sm.alveoles  ?? m.alveoles;
+        /* Envoyes par les serveurs recents : le plafond bouge avec les
+           alveoles, et la fiche montre la symbiose. */
+        if (sm.maxSpores !== undefined) m.maxSpores = sm.maxSpores;
+        if (sm.symbiosis !== undefined) m.symbiosis = sm.symbiosis;
         if (ownerChanged) {
             for (const player of gameState.players) {
                 player.bodies = gameState.planets.filter(b => b.owner === player.id)
