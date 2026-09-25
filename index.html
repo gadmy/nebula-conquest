@@ -540,10 +540,14 @@ v9.7.6 | 2026-09-25 | (en cours)
        concerne. Verifie : a vitesses differentes, l'ecart au centieme point
        passe de 3000 unites a zero.
 
+     ── NETTOYAGE ──
+     - buildProgress RETIRE. Reste de l'epoque ou construire prenait du
+       temps : depuis que la construction est immediate, on le remettait a
+       zero a 15 endroits sans jamais le lire. Trompeur pour qui relit le
+       code - on croyait a une jauge de construction qui n'existe plus.
+       Verifie : plus aucune occurrence, aucune lecture n'existait.
+
    À FAIRE
-  🎯 Reste de code mort : buildProgress, conserve aux initialisations alors
-     que plus rien ne le remplit, la construction etant immediate. Sans
-     danger, mais trompeur.
   🎯 Halo des soleils : reste l'essentiel de drawSuns en zoom fort (un grand
      carre transparent a remplir, ~0,6 ms). Seule piste : le sortir du
      canevas comme le fond, mais il passerait alors sous les frontieres et
@@ -5354,7 +5358,7 @@ function loadMapFromJSON(mapData) {
                 type: 'planet', name: pd.name, radius: pd.radius,
                 flore: pd.flore, faune: pd.faune, _baseFaune: pd.faune,
                 symbiosis: 0, symOwnerTime: 0,
-                buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0, alveoles: 0, parasiteSpore: 0, parasiteProgress: 0, parasite: null, droneCount: 0,
+                buildMode: 'off', nids: 0, biomes: 0, alveoles: 0, parasiteSpore: 0, parasiteProgress: 0, parasite: null, droneCount: 0,
                 orbitRadius: pd.orbitRadius, orbitSpeed: pd.orbitSpeed,
                 angle: pd.angle, parent: sun,
                 x: sun.x + Math.cos(pd.angle) * pd.orbitRadius,
@@ -5369,7 +5373,7 @@ function loadMapFromJSON(mapData) {
                     type: 'moon', name: md.name, radius: md.radius,
                     flore: md.flore, faune: md.faune,
                     symbiosis: 0, symOwnerTime: 0,
-                    buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0, alveoles: 0, parasiteSpore: 0, parasiteProgress: 0, parasite: null, droneCount: 0,
+                    buildMode: 'off', nids: 0, biomes: 0, alveoles: 0, parasiteSpore: 0, parasiteProgress: 0, parasite: null, droneCount: 0,
                     orbitRadius: md.orbitRadius, orbitSpeed: md.orbitSpeed,
                     angle: md.angle, parent: planet,
                     x: planet.x + Math.cos(md.angle) * md.orbitRadius,
@@ -5531,7 +5535,6 @@ function generateUniverse() {
                 symbiosis: 0,
                 symOwnerTime: 0,
                 buildMode: 'off',
-                buildProgress: 0,
                 nids: 0,
                 biomes: 0,
                 alveoles: 0,
@@ -5569,7 +5572,6 @@ function generateUniverse() {
                         symbiosis: 0,
                         symOwnerTime: 0,
                         buildMode: 'off',
-                        buildProgress: 0,
                         nids: 0,
                         biomes: 0,
                         orbitRadius: mOrbitR,
@@ -6423,7 +6425,7 @@ function setupUI() {
                         flore: Math.floor(Math.random() * 101),
                         faune: Math.floor(Math.random() * 101), _baseFaune: 0,
                         symbiosis: 0, symOwnerTime: 0,
-                        buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0, alveoles: 0,
+                        buildMode: 'off', nids: 0, biomes: 0, alveoles: 0,
                         orbitRadius: orbitR, orbitSpeed: speed, angle: angle,
                         parent: selectedSun, x: selectedSun.x + Math.cos(angle) * orbitR, y: selectedSun.y + Math.sin(angle) * orbitR,
                         owner: null, spores: 0, maxSpores: Math.floor(r * 50),
@@ -6451,7 +6453,7 @@ function setupUI() {
                         flore: Math.floor(Math.random() * 51),
                         faune: Math.floor(Math.random() * 61),
                         symbiosis: 0, symOwnerTime: 0,
-                        buildMode: 'off', buildProgress: 0, nids: 0, biomes: 0, alveoles: 0,
+                        buildMode: 'off', nids: 0, biomes: 0, alveoles: 0,
                         orbitRadius: orbitR, orbitSpeed: speed, angle: angle,
                         parent: selectedPlanet, x: selectedPlanet.x + Math.cos(angle) * orbitR, y: selectedPlanet.y + Math.sin(angle) * orbitR,
                         owner: null, spores: 0, maxSpores: Math.floor(r * 50)
@@ -8888,7 +8890,6 @@ function updateSporeGeneration(dt) {
                 const _buildCost = coutBatiment(body, _buildType);
                 if (body.spores >= _buildCost) {
                     body.spores -= _buildCost;
-                    body.buildProgress = 0;
                     body.buildMode = 'off';
                     if (body.owner === localSlot()) playBuildSound();
                     /* Le gain du batiment qui vient de sortir monte au-dessus
@@ -10332,7 +10333,6 @@ function majLutte(body, pas) {
                 if (genre === 'alveole') body.baseMaxSpores = body.baseMaxSpores || body.maxSpores;
                 poserEdifice(body, genre, zb.z.v);
                 body.buildMode = 'off';
-                body.buildProgress = 0;
                 L.sale = true;
                 if (bs === localSlot()) {
                     playBuildSound();
@@ -10975,7 +10975,6 @@ function conquerir(body, nouveauProprio, sporesArrivees) {
     body.symbiosis = 0; // Reset symbiose
     body.symOwnerTime = 0;
     body.buildMode = 'off';
-    body.buildProgress = 0;
     /* Les batiments restent : ils sont poses sur le sol, et qui prend le sol
        prend ce qui est dessus. On ne detruit plus rien a la conquete - un
        batiment construit ne peut plus qu'etre recupere. */
@@ -14504,7 +14503,6 @@ function demanderConstruction(body, mode) {
     if (mode === 'off' || mode === 'parasite') {
         body.buildMode = mode;
         body.buildSlot = moi;
-        body.buildProgress = 0;
         if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: mode });
         return true;
     }
@@ -14517,7 +14515,6 @@ function demanderConstruction(body, mode) {
     }
     body.buildMode = mode;
     body.buildSlot = moi;
-    body.buildProgress = 0;
     if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: mode });
     return true;
 }
@@ -18156,7 +18153,7 @@ function generateTournamentUniverse(mapData, mySlot, opponent) {
             planet.maxSpores = Math.floor(planet.radius * 8);
             planet.baseMaxSpores = planet.maxSpores;
             planet.symbiosis = 0; planet.symOwnerTime = 0;
-            planet.buildMode = 'off'; planet.buildProgress = 0;
+            planet.buildMode = 'off';
             planet.nids = 0; planet.biomes = 0; planet.alveoles = 0;
             planet.parent = sun;
             universe.planets.push(planet);
@@ -18168,7 +18165,7 @@ function generateTournamentUniverse(mapData, mySlot, opponent) {
                 moon.maxSpores = Math.floor(moon.radius * 6);
                 moon.baseMaxSpores = moon.maxSpores;
                 moon.symbiosis = 0; moon.symOwnerTime = 0;
-                moon.buildMode = 'off'; moon.buildProgress = 0;
+                moon.buildMode = 'off';
                 moon.nids = 0; moon.biomes = 0; moon.alveoles = 0;
                 moon.parent = planet;
                 universe.moons.push(moon);
