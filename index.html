@@ -514,6 +514,21 @@ v9.7.5 | 2026-09-24 | Rendu adaptatif, fond hors canevas, visee unifiee
        "hors d'atteinte" ne disait pas laquelle des deux.
 
 v9.7.6 | 2026-09-25 | (en cours)
+     ── PERFORMANCE ──
+     - LES SOLEILS COUTENT DEUX FOIS MOINS. Le coupable n'etait pas le halo,
+       mais la texture : 1000 a 1500 px, posee avec lissage sur un soleil qui
+       en fait quelques centaines a l'ecran. Reduire autant a chaque image
+       coutait jusqu'a 3 ms a elle seule en zoom fort.
+       On fabrique au chargement des copies de plus en plus petites (moitie,
+       quart...) et on pose la plus petite encore plus grande que le soleil a
+       l'ecran, sans lissage. Le lissage revient seulement au-dela de la
+       grande texture, en zoom tres fort, ou il faut agrandir.
+       Mesure, carte a 9 soleils : drawSuns passe de 0,49 a 0,25 ms en vue
+       normale, de 0,96 a 0,62 ms a zoom 1 et de 1,91 a 0,84 ms a zoom 2 sur
+       un soleil. L'image n'a pas bouge : ecart moyen de 0,02 a 0,33 sur 255,
+       et en dezoomant la copie est meme plus fidele qu'avant. Cout au
+       chargement : environ 0,1 s de plus pour 9 soleils.
+
      ── CORRECTIONS ──
      - LA COURBE DE VISEE MENTAIT DEPUIS UNE TETE DE PONT. Sur un astre qu'on
        ne tient qu'en partie, l'apercu du jet prenait la vitesse du
@@ -529,8 +544,10 @@ v9.7.6 | 2026-09-25 | (en cours)
   🎯 Reste de code mort : buildProgress, conserve aux initialisations alors
      que plus rien ne le remplit, la construction etant immediate. Sans
      danger, mais trompeur.
-  🎯 drawSuns est devenu le poste le plus cher (1 a 5,8 ms selon le nombre de
-     soleils a l'ecran) — probablement le meme motif de halo redimensionne
+  🎯 Halo des soleils : reste l'essentiel de drawSuns en zoom fort (un grand
+     carre transparent a remplir, ~0,6 ms). Seule piste : le sortir du
+     canevas comme le fond, mais il passerait alors sous les frontieres et
+     les cometes.
   🎯 Sons (à faire à la maison)
   🎯 Page itch.io avec screenshots
   🎯 Obfuscation Terser/uglify-js
@@ -3643,6 +3660,26 @@ function createSunTexture(sun) {
     }
 
     sun._texture = c;
+
+    /* Copies de plus en plus petites (moitie, quart...), faites une fois ici.
+       Poser la grande texture de 1000 a 1500 px sur un soleil qui en fait
+       quelques centaines a l'ecran, avec lissage, coutait jusqu'a 3 ms par
+       image : c'etait le gros de drawSuns. drawSuns prend la plus petite
+       copie encore plus grande que le soleil a l'ecran et la pose sans
+       lissage - 4 a 8 fois moins cher, et plus fidele en dezoomant, chaque
+       copie etant reduite proprement depuis la precedente. */
+    const niveaux = [c];
+    while (niveaux[niveaux.length - 1].width >= 32) {
+        const src = niveaux[niveaux.length - 1];
+        const d = document.createElement('canvas');
+        d.width = d.height = src.width >> 1;
+        /* Reduire pile de moitie moyenne chaque carre de 4 pixels : le
+           lissage ordinaire suffit, la qualite 'high' coutait le double au
+           chargement pour un ecart de 0,15 sur 255. */
+        d.getContext('2d').drawImage(src, 0, 0, d.width, d.height);
+        niveaux.push(d);
+    }
+    sun._niveaux = niveaux;
 }
 
 // PRNG global pour génération déterministe
@@ -12726,6 +12763,7 @@ function drawSuns(ctx) {
     const cam = gameState.camera;
     const halfW = gameState.width / 2 / cam.zoom;
     const halfH = gameState.height / 2 / cam.zoom;
+    const pxParUnite = cam.zoom * echelleRendu();   // pixels reels du canevas
 
     for (let i = 0; i < gameState.suns.length; i++) {
         const sun = gameState.suns[i];
@@ -12745,9 +12783,18 @@ function drawSuns(ctx) {
             ctx.imageSmoothingEnabled = _liss;
         }
 
-        // Texture cachée
+        // Texture cachée - la copie a la bonne taille (voir createSunTexture)
         if (sun._texture) {
-            ctx.drawImage(sun._texture, sun.x - sun.radius, sun.y - sun.radius, sun.radius * 2, sun.radius * 2);
+            const px = sun.radius * 2 * pxParUnite;
+            const niv = sun._niveaux || [sun._texture];
+            let k = 0;
+            while (k + 1 < niv.length && niv[k + 1].width >= px) k++;
+            /* Plus grand que la grande texture (zoom tres fort) : il faut
+               agrandir, et la le lissage reste necessaire. */
+            const _liss = ctx.imageSmoothingEnabled;
+            ctx.imageSmoothingEnabled = px > niv[0].width;
+            ctx.drawImage(niv[k], sun.x - sun.radius, sun.y - sun.radius, sun.radius * 2, sun.radius * 2);
+            ctx.imageSmoothingEnabled = _liss;
         }
         // Anneau de sélection
         if (gameState.selectedBody === sun) {
