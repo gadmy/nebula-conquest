@@ -610,6 +610,11 @@ v9.7.6 | 2026-09-25 | (en cours)
        reglage Bas. Cout mesure : 0,02 ms en vue normale, 0,18 ms dans le
        pire cas (57 astres pleins a l'ecran). Elles cessent des que l'astre
        se vide.
+       Vue de loin, les etincelles se perdent : les astres pleins y
+       CLIGNOTENT doucement, tous ensemble, d'une lueur de la couleur de leur
+       proprietaire (sans coeur blanc, l'astre reste lisible). L'effet monte
+       en dezoomant : rien au-dessus de 30 px de rayon a l'ecran, plein en
+       dessous de 15.
 
      ── NETTOYAGE ──
      - buildProgress RETIRE. Reste de l'epoque ou construire prenait du
@@ -14895,6 +14900,9 @@ function majEtincelles(dt) {
     }
     liste.length = n;
 
+    // Les astres pleins a l'ecran, pour le clignotement vu de loin.
+    const pleins = gameState._astresPleins || (gameState._astresPleins = []);
+    pleins.length = 0;
     if (gameState.phase !== 'game') return;
     const bodies = gameState.allBodies || [];
     const bas = gameState.lod === 0;
@@ -14903,6 +14911,7 @@ function majEtincelles(dt) {
         if (b.type === 'sun' || b.owner === null || b.owner === undefined || b.owner < 0) continue;
         if (!(b.maxSpores > 0) || b.spores < b.maxSpores * 0.995) { b._etinT = 0; continue; }
         if (!aLEcran(b.x, b.y, b.radius * 3)) continue;
+        pleins.push(b);
         /* Premier paquet sans attendre : le signal doit tomber des que
            l'astre est plein, pas une seconde apres. */
         b._etinT = (b._etinT || 0) - dt;
@@ -14930,10 +14939,40 @@ function majEtincelles(dt) {
     }
 }
 
+/* VU DE LOIN, LES ASTRES PLEINS CLIGNOTENT. Quand un astre ne fait plus que
+   quelques pixels, ses etincelles se perdent. Il pulse alors doucement d'une
+   lueur de la couleur de son proprietaire - tous ensemble, pour qu'on les
+   repere d'un coup d'oeil. L'effet s'installe progressivement en
+   dezoomant : rien au-dessus de 30 px de rayon a l'ecran, plein en dessous
+   de 15. */
+function drawClignotementPleins(ctx, z) {
+    const pleins = gameState._astresPleins;
+    if (!pleins || !pleins.length) return;
+    const puls = 0.5 + 0.5 * Math.sin(gameState.time * 4);
+    const op = ctx.globalCompositeOperation;
+    const a0 = ctx.globalAlpha;
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < pleins.length; i++) {
+        const b = pleins[i];
+        const rEc = b.radius * z;                 // rayon a l'ecran, en pixels
+        if (rEc >= 30) continue;
+        const k = Math.min(1, (30 - rEc) / 15);
+        const j = gameState.players[b.owner];
+        // Lueur coloree sans coeur blanc : l'astre reste lisible dessous.
+        const s = haloSprite(couleurEtincelle((j && j.color) || '#FFFFFF'), 'brume');
+        const R = Math.max(b.radius * 1.8, 7 / z);
+        ctx.globalAlpha = k * (0.08 + 0.42 * puls);
+        ctx.drawImage(s, b.x - R, b.y - R, R * 2, R * 2);
+    }
+    ctx.globalCompositeOperation = op;
+    ctx.globalAlpha = a0;
+}
+
 function drawEtincelles(ctx) {
+    const z = gameState.camera.zoom;
+    drawClignotementPleins(ctx, z);
     const liste = gameState._etincelles;
     if (!liste || !liste.length) return;
-    const z = gameState.camera.zoom;
     const min = 2 / z;            // jamais plus petites que deux pixels
     const cam = gameState.camera;
     const hw = gameState.width / 2 / z + 20, hh = gameState.height / 2 / z + 20;
