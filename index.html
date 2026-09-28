@@ -817,6 +817,20 @@ v9.7.6 | 2026-09-25 | (en cours)
        cout de dessin, 60 images/s mesurees. Repli canevas sans le
        grossissement. Tirage a part (graine 4242), le reste du decor ne
        change pas.
+     - DUELS DE VAISSEAUX. Deux vaisseaux de couleurs differentes qui
+       passent a moins de 380 se prennent en chasse : ils se contournent en
+       tournant l'un autour de l'autre et se tirent dessus (lasers a leur
+       couleur, 70 % au but, 7 a 15 degats, 100 points de vie, barre de vie
+       au-dessus). Le perdant explose (eclats, deux ondes) ; un vaisseau de
+       sa couleur reapparait ailleurs 6 a 12 s plus tard. Le vainqueur se
+       repare de 2 pv/s. Au-dela de 950, le duel est rompu. Solo : majDuels ;
+       serveur : majDuels dans updateCleaners, et l'instantane transmet vie,
+       mort et adversaire - le client dessine les lasers (montrerDuels) et
+       fait exploser le vaisseau qui tombe.
+     - LES AMAS NE TOUCHENT PLUS UN TIR A SON DEPART. Un amas de meteorites
+       qui passe devant ou derriere l'astre de depart n'agit pas sur le tir
+       tant que celui-ci est a moins de 1,6 rayon + 40 de sa planete. Client
+       et serveur.
      - LES ETOILES NE SONT PLUS VOILEES. Leur degrade finissait a 53 %
        d'opacite au bord : tout le disque paraissait semi-transparent. Disque
        opaque, et seul un fin fondu sur les 12 derniers % du rayon (jusqu'a
@@ -959,7 +973,7 @@ canvas#gameCanvas {
 }
 
 /* ── Fond spatial : deux couches deplacees par le compositeur ── */
-#fondDegrade, #fondEtoiles, #fondEtoiles2 {
+#fondDegrade, #fondEtoiles, #fondEtoiles2, #fondEtoiles3 {
     position: fixed;
     top: 0;
     left: 0;
@@ -974,7 +988,7 @@ canvas#gameCanvas {
     display: none;
 }
 #fondDegrade { width: 2048px; height: 2048px; }
-#fondEtoiles, #fondEtoiles2 { background-repeat: repeat; }
+#fondEtoiles, #fondEtoiles2, #fondEtoiles3 { background-repeat: repeat; }
 
 /* ── Halos des soleils : meme principe, une couche par soleil, au-dessus du
    fond (plus loin dans la page) et sous le canevas de jeu ── */
@@ -3042,7 +3056,8 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
   <tr><td style="padding:3px 0;color:#EF4444;">Vaisseau rouge</td><td style="padding:3px 0;">Attaque et détruit vos jets</td></tr>
   <tr><td style="padding:3px 0;color:#4ADE80;">Vaisseau vert</td><td style="padding:3px 0;">×2 les spores d'un jet au contact (une seule fois par jet)</td></tr>
   <tr><td style="padding:3px 0;color:#888;">Vaisseau noir</td><td style="padding:3px 0;">Renvoie vos jets vers leurs astres d'origine</td></tr>
-  <tr><td style="padding:3px 0;color:#888;">Astéroïde noir</td><td style="padding:3px 0;">÷2 spores au contact</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Duels</td><td style="padding:3px 0;">Deux vaisseaux de couleurs différentes qui se croisent se battent : le perdant explose, un autre de sa couleur réapparaît ailleurs peu après</td></tr>
+  <tr><td style="padding:3px 0;color:#888;">Astéroïde noir</td><td style="padding:3px 0;">÷2 spores au contact (un amas qui passe devant ou derrière votre planète ne touche pas le tir qui en part)</td></tr>
   <tr><td style="padding:3px 0;color:#EF4444;">Astéroïde rouge</td><td style="padding:3px 0;">Dévie la trajectoire du jet</td></tr>
   <tr><td style="padding:3px 0;color:#4ADE80;">Astéroïde vert</td><td style="padding:3px 0;">Éclate le jet en 5 mini-jets partant dans des directions aléatoires (Ténacité améliore leur direction et leur charge)</td></tr>
   <tr><td style="padding:3px 0;color:#60A5FA;">Comète</td><td style="padding:3px 0;">Détruit les spores au contact — trajectoire imprévisible</td></tr>
@@ -3174,6 +3189,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <canvas id="fondDegrade" width="2048" height="2048"></canvas>
 <div id="fondEtoiles"></div>
 <div id="fondEtoiles2"></div>
+<div id="fondEtoiles3"></div>
 <div id="halosSoleils"></div>
 <canvas id="gameCanvas"></canvas>
 <div id="topRight">
@@ -3863,6 +3879,46 @@ function generateBackground() {
         }
     }
     gameState._starsCanvas2 = stC2;
+
+    /* ══ Troisieme couche : le tout premier plan du fond ══
+       Rare et doux : une quarantaine de grosses etoiles floues et quelques
+       voiles de poussiere a peine colores. Elle file vite et grossit
+       franchement au zoom : c'est elle qui fait sentir la profondeur. */
+    const rng3 = mulberry32(777);
+    const st3 = 1024;
+    const stC3 = document.createElement('canvas');
+    stC3.width = st3; stC3.height = st3;
+    const st3Ctx = stC3.getContext('2d');
+    const voiles = ['150,110,255', '90,150,255', '255,140,200'];
+    for (let i = 0; i < 6; i++) {
+        const vx = rng3() * st3, vy = rng3() * st3, vr = 60 + rng3() * 90;
+        const vc = voiles[Math.floor(rng3() * voiles.length)];
+        const gv = st3Ctx.createRadialGradient(vx, vy, 0, vx, vy, vr);
+        gv.addColorStop(0, `rgba(${vc}, ${0.035 + rng3() * 0.025})`);
+        gv.addColorStop(1, 'rgba(0,0,0,0)');
+        st3Ctx.fillStyle = gv;
+        st3Ctx.beginPath();
+        st3Ctx.arc(vx, vy, vr, 0, Math.PI * 2);
+        st3Ctx.fill();
+    }
+    for (let i = 0; i < 42; i++) {
+        const sx = rng3() * st3, sy = rng3() * st3;
+        const sr = 1.6 + rng3() * 1.8;
+        const sa = 0.5 + rng3() * 0.4;
+        const sc = starColors[Math.floor(rng3() * starColors.length)];
+        const gh = st3Ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 5);
+        gh.addColorStop(0, `rgba(${sc}, ${sa * 0.4})`);
+        gh.addColorStop(1, 'rgba(0,0,0,0)');
+        st3Ctx.fillStyle = gh;
+        st3Ctx.beginPath();
+        st3Ctx.arc(sx, sy, sr * 5, 0, Math.PI * 2);
+        st3Ctx.fill();
+        st3Ctx.fillStyle = `rgba(${sc}, ${sa})`;
+        st3Ctx.beginPath();
+        st3Ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+        st3Ctx.fill();
+    }
+    gameState._starsCanvas3 = stC3;
 
     // ══ Particules ambiantes (poussière cosmique) — on garde ══
     gameState.cosmicDust = [];
@@ -10427,6 +10483,32 @@ function brulureEtoile(jet, suns) {
     return taux;
 }
 
+/* LA FRONDE DU TROU NOIR. Un tir qui frole le trou noir en ressort plus
+   rapide - et le garde. Le gain depend de la distance la plus courte
+   atteinte : rien a FRONDE_PORTEE fois la zone de danger, jusqu'a +80 % au
+   ras de la zone qui detruit. Le trajet ne change pas, le tir le parcourt
+   plus vite. Au plus pres, des que le tir recommence a s'eloigner, le gain
+   saute en chiffre bleu. */
+const FRONDE_PORTEE = 2.5, FRONDE_MAX = 0.8;
+function frondeTrouNoir(jet, bh, d) {
+    if (jet._surface || !bh) return;
+    const portee = bh.dangerZone * FRONDE_PORTEE, mini = bh.dangerZone * 0.4;
+    if (d < portee) {
+        if (jet._vBase === undefined) jet._vBase = jet.speed;
+        const f = 1 + FRONDE_MAX * Math.min(1, (portee - d) / (portee - mini));
+        if (f > (jet._fronde || 1)) { jet._fronde = f; jet.speed = jet._vBase * f; }
+        if (jet._dMin === undefined || d < jet._dMin) { jet._dMin = d; return; }
+        if (d < jet._dMin + 5) return;          /* pas encore vraiment reparti */
+        const pct = Math.round(((jet._fronde || 1) - 1) * 100);
+        if (!jet._frondeVue && pct >= 5) {
+            jet._frondeVue = true;
+            const z = gameState.camera.zoom || 1;
+            gameState.conquestEffects.push({ x: jet.x, y: jet.y - 14 / z, baseX: jet.x,
+                text: '\u26A1 +' + pct + ' % vitesse', color: '#93C5FD', age: 0, maxAge: 1.6, petit: true });
+        }
+    }
+}
+
 function updateJets(dt) {
     const bh = gameState.blackHole;
     const jets = gameState.jets;
@@ -10537,7 +10619,12 @@ function updateJets(dt) {
 
         // Traversée amas de météorites
         if (!jet._hitBelt) jet._hitBelt = {};
-        for (let bi = 0; bi < gameState.asteroidBelts.length; bi++) {
+        /* Un amas qui passe devant ou derriere l'astre de depart ne touche
+           pas le tir tant qu'il en sort : on n'examine les amas qu'une fois
+           le tir degage de sa planete. */
+        const _srcB = jet.source;
+        const _pres = _srcB && Math.hypot(jet.x - _srcB.x, jet.y - _srcB.y) < _srcB.radius * 1.6 + 40;
+        for (let bi = 0; !_pres && bi < gameState.asteroidBelts.length; bi++) {
             if (jet._hitBelt[bi]) continue;
             const belt = gameState.asteroidBelts[bi];
             const sun = belt.sun;
@@ -10633,6 +10720,7 @@ function updateJets(dt) {
             jet.alive = false;
             continue;
         }
+        frondeTrouNoir(jet, bh, Math.sqrt(bhDx*bhDx + bhDy*bhDy));
 
         // Collision avec astres
         checkJetCollision(jet);
@@ -13761,11 +13849,12 @@ if (gameState.isMulti) {
         updateJets(dt);
         // Interpoler les cleaners localement entre snapshots
         for (const cl of gameState.cleaners) {
-            if (cl.vx !== undefined) {
+            if (cl.vx !== undefined && !cl.mort) {
                 cl.x += cl.vx * dt;
                 cl.y += cl.vy * dt;
             }
         }
+        montrerDuels(dt);
         updateCosmicEffects(dt);
         updateConquestEffects(dt);
         updateImpacts(dt);
@@ -13799,6 +13888,7 @@ if (gameState.isMulti) {
     updateSporeGeneration(dt);
     updateComets(dt);
     if ((gameState._hudCounter & 1) === 0) updateAI(dt);
+    majDuels(dt);
     updateCleaners(dt);
     updateJets(dt);
     updateImpacts(dt);
@@ -14070,9 +14160,10 @@ function preparerFondCss() {
     const deg = document.getElementById('fondDegrade');
     const eto = document.getElementById('fondEtoiles');
     const eto2 = document.getElementById('fondEtoiles2');
+    const eto3 = document.getElementById('fondEtoiles3');
     if (!deg || !eto) return;
     const premier = !_fondEls;
-    if (premier) _fondEls = { deg: deg, eto: eto, eto2: eto2, pret: false, pret2: false };
+    if (premier) _fondEls = { deg: deg, eto: eto, eto2: eto2, eto3: eto3, pret: false, pret2: false, pret3: false };
 
     /* Le degrade : on recopie le canevas hors-ecran dans l'element. Refait a
        chaque generation, au cas ou le fond changerait d'une partie a l'autre. */
@@ -14107,6 +14198,16 @@ function preparerFondCss() {
                 majFondCss();
             }, 'image/png');
         }
+        if (eto3 && gameState._starsCanvas3) {
+            gameState._starsCanvas3.toBlob(function (bl) {
+                if (!bl || !_fondEls) return;
+                if (gameState._starsUrl3) URL.revokeObjectURL(gameState._starsUrl3);
+                gameState._starsUrl3 = URL.createObjectURL(bl);
+                eto3.style.backgroundImage = 'url(' + gameState._starsUrl3 + ')';
+                _fondEls.pret3 = true;
+                majFondCss();
+            }, 'image/png');
+        }
     } catch (e) { _fondEls = null; }
 }
 
@@ -14116,6 +14217,7 @@ function montrerFondCss(oui) {
     _fondEls.deg.style.display = v;
     _fondEls.eto.style.display = v;
     if (_fondEls.eto2) _fondEls.eto2.style.display = v;
+    if (_fondEls.eto3) _fondEls.eto3.style.display = v;
     if (_halosEl) _halosEl.style.display = v;
 }
 
@@ -14197,20 +14299,27 @@ function majFondCss() {
     /* Les etoiles proches : presque trois fois plus rapides (0,4 contre
        0,15), et un leger grossissement qui suit le zoom (de 0,75 a 1,5) -
        c'est l'ecart entre les deux couches qui donne la profondeur. */
-    const e2 = _fondEls.eto2;
-    if (e2 && _fondEls.pret2) {
-        const T2 = 1536, prlx2 = 0.4;
-        const s = Math.max(0.75, Math.min(1.5, Math.pow(z, 0.3)));
-        const Ts = T2 * s;
-        let ox2 = (-cam.x * prlx2 * z) % Ts;
-        let oy2 = (-cam.y * prlx2 * z) % Ts;
-        if (ox2 > 0) ox2 -= Ts;
-        if (oy2 > 0) oy2 -= Ts;
-        const lw2 = Math.ceil((W + Ts) / s) + 'px', lh2 = Math.ceil((H + Ts) / s) + 'px';
-        if (e2.style.width !== lw2) e2.style.width = lw2;
-        if (e2.style.height !== lh2) e2.style.height = lh2;
-        e2.style.transform = 'translate3d(' + ox2.toFixed(1) + 'px,' + oy2.toFixed(1) + 'px,0) scale(' + s.toFixed(4) + ')';
-    }
+    if (_fondEls.pret2) _placerCoucheEtoiles(_fondEls.eto2, 1536, 0.4, Math.max(0.75, Math.min(1.5, Math.pow(z, 0.3))));
+    /* La troisieme, la plus proche : 0,85 et un grossissement franc (0,6 a
+       2,2). */
+    if (_fondEls.pret3) _placerCoucheEtoiles(_fondEls.eto3, 1024, 0.85, Math.max(0.6, Math.min(2.2, Math.pow(z, 0.5))));
+}
+
+/* Pose une couche d'etoiles repetee : tuile de T px, defilement prlx x
+   camera x zoom, agrandie de s. La couche couvre un ecran plus une tuile. */
+function _placerCoucheEtoiles(el, T, prlx, s) {
+    if (!el) return;
+    const cam = gameState.camera, z = cam.zoom;
+    const W = gameState.width, H = gameState.height;
+    const Ts = T * s;
+    let ox = (-cam.x * prlx * z) % Ts;
+    let oy = (-cam.y * prlx * z) % Ts;
+    if (ox > 0) ox -= Ts;
+    if (oy > 0) oy -= Ts;
+    const lw = Math.ceil((W + Ts) / s) + 'px', lh = Math.ceil((H + Ts) / s) + 'px';
+    if (el.style.width !== lw) el.style.width = lw;
+    if (el.style.height !== lh) el.style.height = lh;
+    el.style.transform = 'translate3d(' + ox.toFixed(1) + 'px,' + oy.toFixed(1) + 'px,0) scale(' + s.toFixed(4) + ')';
 }
 
 function drawBackground(ctx) {
@@ -14258,15 +14367,15 @@ function drawBackground(ctx) {
                 ctx.drawImage(st, x, y);
             }
         }
-        /* Repli : les etoiles proches, sans le grossissement (voir majFondCss). */
-        const st2 = gameState._starsCanvas2;
-        if (st2) {
-            let ox2 = (-cam.x * 0.4 * cam.zoom) % st2.width;
-            let oy2 = (-cam.y * 0.4 * cam.zoom) % st2.height;
-            if (ox2 > 0) ox2 -= st2.width;
-            if (oy2 > 0) oy2 -= st2.height;
-            for (let x = ox2; x < W; x += st2.width) {
-                for (let y = oy2; y < H; y += st2.height) ctx.drawImage(st2, x, y);
+        /* Repli : les couches proches, sans le grossissement (voir majFondCss). */
+        for (const [stk, pk] of [[gameState._starsCanvas2, 0.4], [gameState._starsCanvas3, 0.85]]) {
+            if (!stk) continue;
+            let ox2 = (-cam.x * pk * cam.zoom) % stk.width;
+            let oy2 = (-cam.y * pk * cam.zoom) % stk.height;
+            if (ox2 > 0) ox2 -= stk.width;
+            if (oy2 > 0) oy2 -= stk.height;
+            for (let x = ox2; x < W; x += stk.width) {
+                for (let y = oy2; y < H; y += stk.height) ctx.drawImage(stk, x, y);
             }
         }
         ctx.restore();
@@ -15451,7 +15560,10 @@ function updateCleaners(dt) {
     const bh = gameState.blackHole;
 
     for (const cl of gameState.cleaners) {
+        if (cl.mort) continue;                 /* abattu en duel, en attente */
         // Mouvement : naviguer vers une planète cible
+        /* En duel, c'est majDuels qui pilote. */
+        if (!cl._duel) {
         cl.turnTimer -= dt;
         if (cl.turnTimer <= 0) {
             cl.turnTimer = CLN_CFG.turnInterval + gameRandom() * 5;
@@ -15492,6 +15604,7 @@ function updateCleaners(dt) {
                     cl.vy = (cl.vy / newSpeed) * currentSpeed;
                 }
             }
+        }
         }
 
         cl.x += cl.vx * dt;
@@ -15601,6 +15714,7 @@ function drawCleaners(ctx) {
     const scale = Math.max(1, 1 / z);
 
     for (const cl of gameState.cleaners) {
+        if (cl.mort) continue;                 /* abattu en duel, en attente */
         if (!aLEcran(cl.x, cl.y, cl.size * scale * 3)) continue;
         // Direction de mouvement
         const moveAngle = Math.atan2(cl.vy, cl.vx);
@@ -15747,7 +15861,165 @@ function drawCleaners(ctx) {
             ctx.fill();
         }
         ctx.restore();
+
+        /* En duel, ou blesse : une petite barre de vie au-dessus. */
+        if (cl._duel || (cl.pv !== undefined && cl.pv < DUEL_CFG.pv)) {
+            const w = s * 2.4, h = Math.max(1.5 / z, s * 0.22);
+            const f = Math.max(0, (cl.pv || 0) / DUEL_CFG.pv);
+            ctx.fillStyle = 'rgba(8,6,20,0.75)';
+            ctx.fillRect(cl.x - w / 2, cl.y - s * 1.9, w, h);
+            ctx.fillStyle = f > 0.5 ? '#4ADE80' : f > 0.25 ? '#FACC15' : '#F87171';
+            ctx.fillRect(cl.x - w / 2, cl.y - s * 1.9, w * f, h);
+        }
     }
+    drawDuels(ctx);
+}
+
+/* ─────────────────────────────────────────────
+   LES DUELS DE VAISSEAUX. Deux vaisseaux de couleurs differentes qui se
+   croisent se prennent en chasse : ils tournent l'un autour de l'autre en
+   se tirant dessus (lasers a leur couleur). Le perdant explose ; un vaisseau
+   de sa couleur reapparait ailleurs quelques instants plus tard. Le
+   vainqueur repart avec ce qu'il lui reste de vie, et se repare lentement.
+   Solo : simule ici. Multijoueur : le serveur decide, le client montre
+   (lasers dessines d'apres les duels de l'instantane, explosion quand un
+   vaisseau disparait).
+   ───────────────────────────────────────────── */
+const DUEL_CFG = { detect: 380, rupture: 950, cadence: 0.45, dmgMin: 7, dmgMax: 15,
+                   precision: 0.7, pv: 100, reparation: 2, retourMin: 6, retourMax: 12 };
+const DUEL_COULEURS = { red: '#FF5A4A', green: '#5CFF7A', dark: '#B8B8FF' };
+
+function _tirLaser(a, b, touche) {
+    if (!gameState._lasers) gameState._lasers = [];
+    /* Un tir rate passe a cote de sa cible. */
+    const ec = touche ? 0 : 18 + Math.random() * 20;
+    const ang = Math.random() * Math.PI * 2;
+    gameState._lasers.push({ x1: a.x, y1: a.y, x2: b.x + Math.cos(ang) * ec, y2: b.y + Math.sin(ang) * ec,
+                             couleur: DUEL_COULEURS[a.type] || '#FFFFFF', t0: gameState.time, touche: touche });
+}
+
+function exploserVaisseau(cl) {
+    const c = DUEL_COULEURS[cl.type] || '#FFFFFF';
+    spawnImpact(cl.x, cl.y, c);
+    spawnImpact(cl.x, cl.y, '#FFB347');
+    spawnImpact(cl.x, cl.y, '#FFFFFF');
+    if (!gameState._ondes) gameState._ondes = [];
+    gameState._ondes.push({ x: cl.x, y: cl.y, r0: 4, r1: 90, age: 0, maxAge: 0.7, couleur: '255,170,80', ep: 3 });
+    gameState._ondes.push({ x: cl.x, y: cl.y, r0: 2, r1: 50, age: 0, maxAge: 0.4, couleur: '255,255,255', ep: 2 });
+    if (typeof playCleanerSound === 'function') playCleanerSound(cl.x, cl.y);
+}
+
+/* Solo : detection, poursuite, tirs, mort, reapparition. */
+function majDuels(dt) {
+    const L = gameState.cleaners;
+    if (!L || !L.length) return;
+    const t = gameState.time;
+    for (const cl of L) {
+        if (cl.pv === undefined) cl.pv = DUEL_CFG.pv;
+        if (cl.mort) {
+            if (t >= cl.retour) reapparaitreVaisseau(cl);
+            continue;
+        }
+        if (!cl._duel && cl.pv < DUEL_CFG.pv) cl.pv = Math.min(DUEL_CFG.pv, cl.pv + DUEL_CFG.reparation * dt);
+    }
+    /* Qui croise qui. */
+    for (let i = 0; i < L.length; i++) {
+        const a = L[i];
+        if (a.mort || a._duel) continue;
+        for (let j = i + 1; j < L.length; j++) {
+            const b = L[j];
+            if (b.mort || b._duel || b.type === a.type) continue;
+            if (Math.hypot(a.x - b.x, a.y - b.y) < DUEL_CFG.detect) {
+                a._duel = b; b._duel = a;
+                a._tirT = DUEL_CFG.cadence * gameRandom();
+                b._tirT = DUEL_CFG.cadence * gameRandom();
+                break;
+            }
+        }
+    }
+    for (const cl of L) {
+        const o = cl._duel;
+        if (!o || cl.mort) continue;
+        const dx = o.x - cl.x, dy = o.y - cl.y, d = Math.hypot(dx, dy) || 1;
+        if (o.mort || d > DUEL_CFG.rupture) { cl._duel = null; if (!o.mort && o._duel === cl) o._duel = null; continue; }
+        /* La chasse : on fonce vers l'autre en le contournant, ce qui fait
+           tourner les deux vaisseaux l'un autour de l'autre. */
+        const ang = Math.atan2(dy, dx) + (d < 160 ? 1.1 : 0.45);
+        const v = CLN_CFG.speedMax * 1.15;
+        cl.vx += (Math.cos(ang) * v - cl.vx) * Math.min(1, dt * 2.5);
+        cl.vy += (Math.sin(ang) * v - cl.vy) * Math.min(1, dt * 2.5);
+        cl._tirT -= dt;
+        if (cl._tirT <= 0 && d < DUEL_CFG.rupture * 0.6) {
+            cl._tirT = DUEL_CFG.cadence * (0.8 + gameRandom() * 0.4);
+            const touche = gameRandom() < DUEL_CFG.precision;
+            _tirLaser(cl, o, touche);
+            if (touche) {
+                o.pv -= DUEL_CFG.dmgMin + gameRandom() * (DUEL_CFG.dmgMax - DUEL_CFG.dmgMin);
+                if (o.pv <= 0) {
+                    o.pv = 0; o.mort = true; o._duel = null; cl._duel = null;
+                    o.retour = t + DUEL_CFG.retourMin + gameRandom() * (DUEL_CFG.retourMax - DUEL_CFG.retourMin);
+                    exploserVaisseau(o);
+                }
+            }
+        }
+    }
+}
+
+/* Le remplacant : meme couleur, ailleurs dans la zone de jeu. */
+function reapparaitreVaisseau(cl) {
+    const R = (gameState._maxRangeCache || 3000) * (0.45 + gameRandom() * 0.45);
+    const a = gameRandom() * Math.PI * 2;
+    cl.x = Math.cos(a) * R; cl.y = Math.sin(a) * R;
+    cl.vx = 0; cl.vy = 0; cl.turnTimer = 0; cl._target = null;
+    cl.pv = DUEL_CFG.pv; cl.mort = false; cl._duel = null;
+    cl._apparu = gameState.time;
+    if (!gameState._ondes) gameState._ondes = [];
+    gameState._ondes.push({ x: cl.x, y: cl.y, r0: 30, r1: 2, age: 0, maxAge: 0.6,
+                            couleur: _rgbDe(DUEL_COULEURS[cl.type] || '#FFFFFF'), ep: 2 });
+}
+
+/* Multijoueur : le client ne simule pas les duels, il les montre. Lasers
+   tires a la cadence du duel, explosion quand un vaisseau meurt. */
+function montrerDuels(dt) {
+    const L = gameState.cleaners;
+    if (!L) return;
+    for (const cl of L) {
+        if (cl.mort || !cl._duel || cl._duel.mort) continue;
+        cl._tirT = (cl._tirT === undefined ? Math.random() * DUEL_CFG.cadence : cl._tirT) - dt;
+        if (cl._tirT <= 0) {
+            cl._tirT = DUEL_CFG.cadence * (0.8 + Math.random() * 0.4);
+            _tirLaser(cl, cl._duel, Math.random() < DUEL_CFG.precision);
+        }
+    }
+}
+
+function drawDuels(ctx) {
+    const L = gameState._lasers;
+    if (!L || !L.length) return;
+    const t = gameState.time;
+    const z = gameState.camera.zoom;
+    const op = ctx.globalCompositeOperation, a0 = ctx.globalAlpha;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    for (let i = L.length - 1; i >= 0; i--) {
+        const l = L[i];
+        const age = t - l.t0;
+        if (age > 0.18 || age < 0) { L.splice(i, 1); continue; }
+        /* Un trait qui file de l'un a l'autre, en 0,1 s, puis s'efface. */
+        const f = Math.min(1, age / 0.1);
+        const x2 = l.x1 + (l.x2 - l.x1) * f, y2 = l.y1 + (l.y2 - l.y1) * f;
+        const x1 = l.x1 + (l.x2 - l.x1) * Math.max(0, f - 0.35), y1 = l.y1 + (l.y2 - l.y1) * Math.max(0, f - 0.35);
+        ctx.globalAlpha = 1 - age / 0.18;
+        ctx.strokeStyle = l.couleur;
+        ctx.lineWidth = Math.max(1.2 / z, 2.2);
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = Math.max(0.5 / z, 0.8);
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        if (l.touche && f >= 1 && !l._eclat) { l._eclat = true; spawnImpact(l.x2, l.y2, l.couleur); }
+    }
+    ctx.globalAlpha = a0;
+    ctx.globalCompositeOperation = op;
 }
 
 
@@ -19446,6 +19718,20 @@ function applySnapshot(snap) {
         snap.cleaners.forEach((sc, i) => {
             const cl = gameState.cleaners[i];
             if (cl) {
+                /* Duels : vie, mort (explosion quand il tombe, onde quand il
+                   revient ailleurs) et adversaire, envoyes par le serveur. */
+                if (sc.m !== undefined) {
+                    const mort = !!sc.m;
+                    if (mort && !cl.mort) exploserVaisseau(cl);
+                    if (!mort && cl.mort) {
+                        if (!gameState._ondes) gameState._ondes = [];
+                        gameState._ondes.push({ x: sc.x, y: sc.y, r0: 30, r1: 2, age: 0, maxAge: 0.6,
+                                                couleur: _rgbDe(DUEL_COULEURS[cl.type] || '#FFFFFF'), ep: 2 });
+                    }
+                    cl.mort = mort;
+                    cl.pv = sc.pv;
+                    cl._duel = (sc.d !== undefined && sc.d >= 0) ? (gameState.cleaners[sc.d] || null) : null;
+                }
                 cl.x     = sc.x;
                 cl.y     = sc.y;
                 cl.vx    = sc.vx;
