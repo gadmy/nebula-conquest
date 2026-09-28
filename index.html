@@ -695,6 +695,13 @@ v9.7.6 | 2026-09-25 | (en cours)
        filets de spores aspires du sol en spirale, halo qui s'etend avec la
        charge, deux anneaux contrarotatifs, coeur blanc qui bat, eclair
        regulier et MAX une fois pleine ; bandeau de tir de surface masque.
+     - TROIS TIRS, TROIS ALLURES EN VOL. Les paquets de rafale sont des
+       balles tracantes (trait court et net, petit coeur vif, sans brume ni
+       scintillements - elles sont nombreuses) ; la boule est une comete
+       (gros coeur blanc a sa taille, traine epaisse qui s'effile, ses deux
+       anneaux qui tournent encore). Le jet normal ne change pas. Valable
+       pour les tirs de l'adversaire en multijoueur (marques rafale et
+       boule transmis par le serveur).
 
      ── MULTIJOUEUR ──
      - VERIFICATION COMPLETE DU MULTI. Le serveur de production n'est pas
@@ -7621,6 +7628,7 @@ function majRafale(dt) {
             arreterRafale();
             return;
         }
+        gameState.jets[n0].rafale = true;          /* dessine en balle tracante */
         /* Un son de lancer sur trois : huit par seconde saturaient l'oreille. */
         if (R.n % 3 === 0) _playBuffer('launch', 0.25);
         R.n++;
@@ -12099,12 +12107,91 @@ function lumiereSprite() {
     return c;
 }
 
+/* TROIS TIRS, TROIS ALLURES. La rafale et la boule doivent se reconnaitre
+   d'un coup d'oeil, les siennes comme celles de l'adversaire. */
+
+/* Paquet de RAFALE : une balle tracante. Petite, vive, un trait court et
+   net derriere elle, sans brume ni scintillements - elles sont nombreuses. */
+function dessinerTracante(ctx, jet) {
+    const z = gameState.camera.zoom;
+    const sc = Math.max(1, 1.2 / z);
+    const c = couleurEtincelle(jet.color);
+    const tr = jet.trail;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    if (tr.length > 1) {
+        const k0 = Math.max(0, tr.length - 7);
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = c;
+        ctx.globalAlpha = 0.85;
+        ctx.lineWidth = 2.2 * sc;
+        ctx.beginPath();
+        ctx.moveTo(tr[k0].x, tr[k0].y);
+        ctx.lineTo(jet.x, jet.y);
+        ctx.stroke();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.globalAlpha = 0.9;
+        ctx.lineWidth = 0.9 * sc;
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    poserHalo(ctx, jet.color, 'halo', jet.x, jet.y, 11 * sc);
+    poserHalo(ctx, c, 'noyau', jet.x, jet.y, 4 * sc);
+    ctx.restore();
+}
+
+/* La BOULE en vol : une comete. Coeur blanc large, halo a sa mesure, une
+   traine epaisse qui s'effile, et ses deux anneaux qui tournent encore. */
+function dessinerBouleEnVol(ctx, jet) {
+    const z = gameState.camera.zoom;
+    const t = gameState.time;
+    const c = couleurEtincelle(jet.color);
+    const r = _rayonBoule(jet.spores) * Math.max(1, 0.8 / z);
+    const tr = jet.trail;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    /* La traine : des halos de plus en plus petits et pales vers l'arriere. */
+    for (let i = 0; i < tr.length; i++) {
+        const f = (i + 1) / tr.length;                 /* 0 a l'arriere, 1 contre la boule */
+        const rr = r * (0.35 + 0.95 * f);
+        ctx.globalAlpha = 0.08 + 0.5 * f * f;
+        ctx.drawImage(haloSprite(c, 'brume'), tr[i].x - rr, tr[i].y - rr, rr * 2, rr * 2);
+    }
+    ctx.globalAlpha = 0.9;
+    const rh = r * 3;
+    ctx.drawImage(haloSprite(c, 'brume'), jet.x - rh, jet.y - rh, rh * 2, rh * 2);
+    /* Les anneaux, comme pendant la charge. */
+    ctx.globalAlpha = 0.85;
+    ctx.strokeStyle = c;
+    ctx.lineWidth = Math.max(1 / z, r * 0.1);
+    ctx.lineCap = 'round';
+    for (let k = 0; k < 2; k++) {
+        const sens = k ? -1 : 1;
+        const rr = r * (1.45 + 0.35 * k);
+        const deb = t * (3 + k) * sens + k;
+        ctx.beginPath(); ctx.arc(jet.x, jet.y, rr, deb, deb + Math.PI * 0.7); ctx.stroke();
+        ctx.beginPath(); ctx.arc(jet.x, jet.y, rr, deb + Math.PI, deb + Math.PI * 1.7); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.drawImage(haloSprite(c, 'noyau'), jet.x - r, jet.y - r, r * 2, r * 2);
+    ctx.drawImage(haloSprite('#FFFFFF', 'noyau'), jet.x - r * 0.55, jet.y - r * 0.55, r * 1.1, r * 1.1);
+    ctx.restore();
+    if (jet.selected) {
+        ctx.font = '10px Orbitron';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.fillText(Math.floor(jet.spores), jet.x, jet.y - r * 2);
+    }
+}
+
 function drawJets(ctx) {
     const t = gameState.time;
     const jLod = gameState.lod;
 
     for (const jet of gameState.jets) {
         if (!jet.alive) continue;
+        if (jet.rafale) { dessinerTracante(ctx, jet); continue; }
+        if (jet.boule) { dessinerBouleEnVol(ctx, jet); continue; }
 
         /* Un jet n'est que de la lumiere : brume, trainee, halo, noyau et
            scintillements s'AJOUTENT au fond. En transparence simple ils
@@ -17893,6 +17980,7 @@ function connectSocket() {
                n'envoyaient que le proprietaire : on s'en contente alors. */
             if (ev.slot !== undefined && ev.slot !== null) j.owner = ev.slot;
             if (ev.boule) { j.boule = true; j._groupe = _groupeBoule(src); }
+            if (ev.rafale) j.rafale = true;
             /* La vitesse du serveur : celle de la boule n'est pas celle d'un jet. */
             if (ev.speed > 0) j.speed = ev.speed;
             j.id         = ev.id;
