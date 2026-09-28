@@ -6825,6 +6825,7 @@ function setupUI() {
         const lbl = document.getElementById('jetRatioVal');
         if (lbl) lbl.textContent = v + '%';
         if (gameState.isMulti) sendAction('set_jet_ratio', { value: gameState.jetRatio });
+        else donnerOrdre('part', { v: gameState.jetRatio });
         majJaugeEnvoi(true);
     };
 
@@ -7808,6 +7809,8 @@ function finishStartGame() {
     gameState.time = 0;
     gameState.tour = 0;
     _accSim = 0;
+    _ordresEnAttente = [];
+    gameState.journalOrdres = [];
     gameState._maxRangeCache = null;
     _lastScoreHash = '';
     if (typeof _floatingBubbles !== 'undefined') _floatingBubbles.length = 0;
@@ -7833,6 +7836,8 @@ function finishStartGame() {
 
     // Créer les joueurs
     createPlayers();
+    /* La part d'envoi reglee avant la partie vaut des le premier tour. */
+    if (!gameState.isMulti) donnerOrdre('part', { v: gameState.jetRatio });
     if (gameState.isMulti && gameState._pendingRoomId && isHost) {
         const _universe = _buildMultiUniverse();
         _socket.emit('game_start', { roomId: gameState._pendingRoomId, universe: _universe });
@@ -8291,8 +8296,7 @@ function tirDemolisseur() {
                                     zx: zc ? zc.x : undefined, zy: zc ? zc.y : undefined });
         return true;
     }
-    launchJet(src, dx / len, dy / len, 'normal', moi,
-              { nombre: DEMOL_SPORES, vitesse: DEMOL_VITESSE, pas: DEMOL_PAS, demol: genre });
+    donnerOrdre('demol', { src: src.name, dx: dx / len, dy: dy / len, genre: genre });
     return true;
 }
 
@@ -9983,16 +9987,25 @@ if (gameState.isMulti) {
         return;
     }
 
-    _spawnTarget.owner = slot;
-    _spawnTarget.spores = _spawnTarget.maxSpores * 0.5;
-    marquerTerritoiresSales();
-    human.bodies = [_spawnTarget];
-    human.spawnPlanet = _spawnTarget;
-    addEvent('mine', '🌍', `Vous colonisez ${_spawnTarget.name} !`, _spawnTarget, human.color);
-    if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
-    gameState._spawnFlashes.push({ body: _spawnTarget, age: 0, maxAge: 2.5, color: human.color });
+    /* En solo, la colonisation est un ordre : elle se fait au tour suivant. */
+    donnerOrdre('colonie', { astre: _spawnTarget.name });
     document.getElementById('spawnPopup').style.display = 'none';
     _spawnTarget = null;
+}
+
+/* L'ordre 'colonie' : le joueur prend son astre de depart, puis les IA
+   prennent les leurs et la partie commence. */
+function coloniser(slot, astre) {
+    const human = gameState.players[slot];
+    if (!human || human.spawnPlanet || !astre || astre.owner !== null) return;
+    astre.owner = slot;
+    astre.spores = astre.maxSpores * 0.5;
+    marquerTerritoiresSales();
+    human.bodies = [astre];
+    human.spawnPlanet = astre;
+    if (slot === localSlot()) addEvent('mine', '🌍', `Vous colonisez ${astre.name} !`, astre, human.color);
+    if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
+    gameState._spawnFlashes.push({ body: astre, age: 0, maxAge: 2.5, color: human.color });
     autoSpawnAIs();
     setPhase('game');
 }
@@ -10518,6 +10531,16 @@ function computeTrajectory(startX, startY, dirX, dirY, speed, steps, gravite) {
     return points;
 }
 
+/* LA PART ENVOYEE A CHAQUE TIR, propre a chaque joueur. Celle du joueur
+   humain arrive par l'ordre 'part' (curseur, touches A / E). Les IA gardent
+   50 % : jusqu'ici elles lisaient le curseur de l'ecran - monter le sien
+   faisait tirer l'IA plus gros, et en lockstep chaque ecran aurait eu une
+   IA differente. */
+function partEnvoi(slot) {
+    const j = gameState.players[slot];
+    return (j && j.jetRatio != null) ? j.jetRatio : 0.5;
+}
+
 /* Le tireur n'est pas forcement le proprietaire de l'astre : on peut lancer
    depuis la tete de pont qu'on tient sur la planete de quelqu'un d'autre. La
    reserve puisee est alors celle de ce pied-a-terre, pas celle du defenseur. */
@@ -10546,12 +10569,12 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
         const zt = zoneDeTir(source, tireur);
         if (!zt) return;
         if (zt.z.n < ZONE_MIN) { if (tireur === localSlot()) secouerEcran(8); return; }
-        sporeCount = _nb ? (zt.z.spores >= _nb ? _nb : 0) : Math.floor(zt.z.spores * gameState.jetRatio);
+        sporeCount = _nb ? (zt.z.spores >= _nb ? _nb : 0) : Math.floor(zt.z.spores * partEnvoi(tireur));
         if (sporeCount < 5) return;
         zt.z.spores -= sporeCount;
         zonesAgreger(source, source.lutte);
     } else {
-        sporeCount = _nb ? (source.spores >= _nb ? _nb : 0) : Math.floor(source.spores * gameState.jetRatio);
+        sporeCount = _nb ? (source.spores >= _nb ? _nb : 0) : Math.floor(source.spores * partEnvoi(tireur));
         if (sporeCount < 5) return;
         source.spores -= sporeCount;
     }
@@ -11401,15 +11424,18 @@ function apercuTirSurface(body, slot, tx, ty) {
     return { depart: p, points: pts };
 }
 
-function lancerJetSurface(body, slot, tx, ty) {
+/* depuisOrdre : appel par l'ordre 'tir_surface', au tour qui l'execute. Sans
+   lui (le clic du joueur, en solo), on verifie - pour faire vibrer l'ecran
+   tout de suite en cas de refus - puis on donne l'ordre. */
+function lancerJetSurface(body, slot, tx, ty, depuisOrdre) {
     const joueur = gameState.players[slot];
     if (!joueur) return false;
     /* Le tir de surface part lui aussi d'une zone, et de sa reserve. */
     const zt = body.lutte ? zoneDeTir(body, slot) : null;
-    if (body.lutte && (!zt || zt.z.n < ZONE_MIN)) { secouerEcran(8); return false; }
+    if (body.lutte && (!zt || zt.z.n < ZONE_MIN)) { if (!depuisOrdre) secouerEcran(8); return false; }
     const dispo = zt ? zt.z.spores : body.spores;
-    const nb = Math.floor(dispo * gameState.jetRatio);
-    if (nb < 5) { secouerEcran(6); return false; }
+    const nb = Math.floor(dispo * partEnvoi(slot));
+    if (nb < 5) { if (!depuisOrdre) secouerEcran(6); return false; }
 
     const p = pointTirSurface(body, slot, tx, ty);
     const dx = tx - p.x, dy = ty - p.y;
@@ -11421,6 +11447,10 @@ function lancerJetSurface(body, slot, tx, ty) {
         const _zc = zt ? zoneCentre(body, zt.z) : null;
         sendAction('jet_surface', { srcName: body.name, tx: tx, ty: ty,
                                     zx: _zc ? _zc.x : undefined, zy: _zc ? _zc.y : undefined });
+        return true;
+    }
+    if (!depuisOrdre) {
+        donnerOrdre('tir_surface', { src: body.name, tx: tx, ty: ty });
         return true;
     }
 
@@ -11516,16 +11546,25 @@ function astreSousSouris() {
     return null;
 }
 
-function riposteGenerale(cible) {
+/* slot : le joueur de l'ordre 'riposte'. Sans lui, c'est la touche R : en
+   solo elle donne l'ordre, en multijoueur elle previent le serveur. */
+function riposteGenerale(cible, slot) {
     if (gameState.phase !== 'game') return 0;
-    const moi = localSlot();
+    if (slot === undefined && !gameState.isMulti) {
+        donnerOrdre('riposte', { cible: cible ? cible.name : null });
+        return 0;
+    }
+    const moi = slot === undefined ? localSlot() : slot;
+    const aMoi = (moi === localSlot());      /* messages et sons : pour son propre ecran */
     if (gameState.isMulti) sendAction('riposte', { bodyName: cible ? cible.name : null });
     let astres = 0, engage = 0;
-    const ratio = gameState.jetRatio;
+    const ratio = gameState.isMulti ? gameState.jetRatio : partEnvoi(moi);
     if (!(ratio > 0)) {
-        addEvent('neutral', '⚔', 'Riposte impossible : envoi a 0 % (A / E pour le regler)',
-                 null, '#888888');
-        secouerEcran(5);
+        if (aMoi) {
+            addEvent('neutral', '⚔', 'Riposte impossible : envoi a 0 % (A / E pour le regler)',
+                     null, '#888888');
+            secouerEcran(5);
+        }
         return 0;
     }
     const bodies = cible ? [cible] : (gameState.allBodies || []);
@@ -11569,6 +11608,7 @@ function riposteGenerale(cible) {
             text: '\u2694 RIPOSTE', color: '#FFD27A', age: 0, maxAge: 2.5 });
     }
     const j = gameState.players[moi];
+    if (!aMoi) return astres;
     if (astres) {
         const ou = cible ? `sur ${cible.name}` : `sur ${astres} astre${astres > 1 ? 's' : ''}`;
         addEvent('mine', '\u2694', `Riposte ${ou} — ${Math.round(engage)} spores engagées`, null, j && j.color);
@@ -11585,9 +11625,14 @@ function riposteGenerale(cible) {
    curseur, ou partout si le curseur est dans le vide, nos zones perdent leur
    elan : elles cessent de pousser. Rien n'est perdu - l'elan n'est qu'un
    budget, les spores restent dans la zone. */
-function arreterAttaques(cible) {
+/* slot : le joueur de l'ordre 'arret' ; sans lui, la touche T (comme R). */
+function arreterAttaques(cible, slot) {
     if (gameState.phase !== 'game') return 0;
-    const moi = localSlot();
+    if (slot === undefined && !gameState.isMulti) {
+        donnerOrdre('arret', { cible: cible ? cible.name : null });
+        return 0;
+    }
+    const moi = slot === undefined ? localSlot() : slot;
     if (gameState.isMulti) sendAction('arret', { bodyName: cible ? cible.name : null });
     const bodies = cible ? [cible] : (gameState.allBodies || []);
     let astres = 0;
@@ -11608,6 +11653,7 @@ function arreterAttaques(cible) {
             text: '\u270B ARRÊT', color: '#93C5FD', age: 0, maxAge: 2.2 });
     }
     const j = gameState.players[moi];
+    if (moi !== localSlot()) return astres;
     if (astres) {
         const ou = cible ? `sur ${cible.name}` : `sur ${astres} astre${astres > 1 ? 's' : ''}`;
         addEvent('mine', '\u270B', `Attaques arrêtées ${ou}`, null, j && j.color);
@@ -11900,12 +11946,28 @@ function zoneCentre(body, z) {
     return { x: body.x - r + (z.cx + 0.5) * pas, y: body.y - r + (z.cy + 0.5) * pas };
 }
 
+/* LA ZONE CHOISIE PAR UN JOUEUR ({ body, id } ou null). En solo, chacun a la
+   sienne, posee par l'ordre 'zone' : le calcul ne lit plus la selection de
+   l'ecran, que l'ordinateur d'en face n'a pas. En multijoueur actuel, la
+   selection reste celle de l'ecran : le serveur recoit le point vise. */
+function zoneChoisie(slot) {
+    if (gameState.isMulti) return slot === localSlot() ? gameState._zoneSel : null;
+    const j = gameState.players[slot];
+    return j ? j.zoneSel || null : null;
+}
+
+/* Le clic designe une zone : ordre en solo, selection locale en multi. */
+function choisirZone(body, id) {
+    if (gameState.isMulti) { gameState._zoneSel = { body: body, id: id }; return; }
+    donnerOrdre('zone', { astre: body.name, id: id });
+}
+
 /* La zone d'ou l'on tire : celle qu'on a choisie si elle tient toujours, sinon
    la plus grande qu'on ait sur cet astre. */
 function zoneDeTir(body, slot) {
     const L = body.lutte;
     if (!L || !L.zones) return null;
-    const sel = gameState._zoneSel;
+    const sel = zoneChoisie(slot);
     if (sel && sel.body === body) {
         const z = L.zones[sel.id];
         if (z && z.v === campDe(body, slot)) return { id: sel.id, z: z };
@@ -12335,7 +12397,7 @@ function drawLuttes(ctx) {
         ctx.drawImage(L.canvas, body.x - r, body.y - r, r * 2, r * 2);
         /* LA ZONE CHOISIE, cernee d'un trait clair qui bat : c'est d'elle
            que partira le prochain tir, et il faut le voir sans hesiter. */
-        const sel = gameState._zoneSel;
+        const sel = zoneChoisie(localSlot());
         if (sel && sel.body === body && L.zones && L.zones[sel.id] && gameState.isMulti) {
             /* La grille locale n'etant pas celle du serveur, on cerne la zone
                d'un anneau pose sur son centre plutot que de suivre ses cases. */
@@ -12423,7 +12485,7 @@ function drawLuttes(ctx) {
                               Math.max(2, monde * 0.2));
                 /* La zone choisie se nomme : sans cela on ne sait pas d'ou
                    partira le tir, et le trait seul ne suffit pas a le dire. */
-                const selz = gameState._zoneSel;
+                const selz = zoneChoisie(localSlot());
                 if (selz && selz.body === body && selz.id === +id) {
                     ctx.font = 'bold ' + (monde * 0.62) + 'px Orbitron';
                     _texteLisible(ctx, '\u2316 TIR', c.x, c.y - monde * 0.85,
@@ -12544,7 +12606,7 @@ function majPanneauNaissance() {
        selectionne, avec sa reserve et sa capacite. */
     let titre = null, part = 0, plafond = 0, debitPlein = 0;
     const moi = localSlot();
-    const sel = gameState._zoneSel;
+    const sel = zoneChoisie(moi);
     const zb = sel && sel.body;
     const z = (zb && zb.lutte && zb.lutte.zones) ? zb.lutte.zones[sel.id] : null;
     if (z) {
@@ -12654,6 +12716,7 @@ function majPanneauNaissance() {
 function conquerir(body, nouveauProprio, sporesArrivees) {
     body.lutte = null;
     if (gameState._zoneSel && gameState._zoneSel.body === body) gameState._zoneSel = null;
+    for (const j of gameState.players) if (j.zoneSel && j.zoneSel.body === body) j.zoneSel = null;
     const attacking = sporesArrivees;
     const jet = { owner: nouveauProprio };
     const attackerColor = gameState.players[nouveauProprio]?.color || '#FFF';
@@ -13463,7 +13526,7 @@ function setupInput() {
                 const id = zoneA(body, wp.x, wp.y);
                 const z = id ? body.lutte.zones[id] : null;
                 if (z && z.v === mien) {
-                    gameState._zoneSel = { body: body, id: id };
+                    choisirZone(body, id);
                 } else {
                     let best = 0, bd = Infinity;
                     for (const k in body.lutte.zones) {
@@ -13473,7 +13536,7 @@ function setupInput() {
                         const d = (c.x - wp.x) * (c.x - wp.x) + (c.y - wp.y) * (c.y - wp.y);
                         if (d < bd) { bd = d; best = +k; }
                     }
-                    if (best) gameState._zoneSel = { body: body, id: best };
+                    if (best) choisirZone(body, best);
                 }
             }
         }
@@ -13548,7 +13611,7 @@ function setupInput() {
                                             sporeType: gameState._fireType,
                                             zx: _zc ? _zc.x : undefined, zy: _zc ? _zc.y : undefined });
                     } else {
-                        launchJet(src, dX, dY, gameState._fireType, localSlot());
+                        donnerOrdre('tir', { src: src.name, dx: dX, dy: dY, t: gameState._fireType });
                     }
                 }
             }
@@ -13793,7 +13856,7 @@ if (body && _pied && (e.button === 2)) {
                     if (gameState.isMulti) {
                         sendAction('jet', { srcName: src.name, dirX: dx/len, dirY: dy/len, sporeType: gameState._fireType });
                     } else {
-                        launchJet(src, dx/len, dy/len, gameState._fireType, localSlot());
+                        donnerOrdre('tir', { src: src.name, dx: dx/len, dy: dy/len, t: gameState._fireType });
                     }
                 }
             }
@@ -13901,8 +13964,138 @@ function tourSimulation() {
     noterPositionsAvant();
     gameState.tour = (gameState.tour || 0) + 1;
     if (typeof gameState.avantChaqueTour === 'function') gameState.avantChaqueTour(gameState.tour);
+    appliquerOrdres(gameState.tour);
     update(TOUR_SIM);
 }
+
+/* ─────────────────────────────────────────────
+   ORDRES DES JOUEURS
+   Un geste du joueur (tirer, construire, choisir une techno...) n'agit plus
+   sur la partie au moment du clic : il devient un ORDRE, date du tour qui
+   suit, et c'est ce tour qui l'applique. Un ordre ne contient que des
+   donnees (noms d'astres, directions, nombres), jamais l'etat de l'ecran :
+   ni la souris, ni la camera, ni un reglage local. Deux navigateurs qui
+   recoivent les memes ordres aux memes tours calculent donc la meme partie
+   - en lockstep, le serveur n'aura qu'a faire circuler ces ordres.
+   En solo l'ordre part pour le tour suivant (1/60 s : imperceptible). En
+   multijoueur actuel, c'est toujours le serveur qui decide (sendAction).
+   Tout ordre applique est garde dans le journal : de quoi rejouer une
+   partie, ou remettre a niveau un joueur qui se reconnecte.
+   ───────────────────────────────────────────── */
+let _ordresEnAttente = [];
+
+function donnerOrdre(type, d) {
+    programmerOrdre({ tour: (gameState.tour || 0) + 1, slot: localSlot(), type: type, d: d || {} });
+}
+
+function programmerOrdre(o) {
+    _ordresEnAttente.push(o);
+}
+
+/* Les ordres dus a ce tour (ou en retard), dans l'ordre ou ils sont
+   arrives. On les sort de la file avant de les executer. */
+function appliquerOrdres(tour) {
+    if (!_ordresEnAttente.length) return;
+    const dus = [], reste = [];
+    for (const o of _ordresEnAttente) (o.tour <= tour ? dus : reste).push(o);
+    if (!dus.length) return;
+    _ordresEnAttente = reste;
+    if (!gameState.journalOrdres) gameState.journalOrdres = [];
+    for (const o of dus) {
+        const f = EXECUTER_ORDRE[o.type];
+        if (!f || !gameState.players[o.slot]) continue;
+        f(o.slot, o.d);
+        gameState.journalOrdres.push(o);
+    }
+}
+
+function astreNomme(nom) {
+    if (!nom) return null;
+    return (gameState.allBodies || []).find(b => b.name === nom) || null;
+}
+
+/* Ce que fait chaque ordre. slot : le joueur qui l'a donne. */
+const EXECUTER_ORDRE = {
+    /* La part de spores envoyee a chaque tir, de 0 a 1. */
+    part: function (slot, d) {
+        const v = Number(d.v);
+        if (v >= 0 && v <= 1) gameState.players[slot].jetRatio = v;
+    },
+    /* La zone d'ou partiront les tirs et les batiments sur un astre partage.
+       Refusee si la zone n'existe plus ou n'est pas a ce joueur. */
+    zone: function (slot, d) {
+        const b = astreNomme(d.astre);
+        const z = b && b.lutte && b.lutte.zones ? b.lutte.zones[d.id] : null;
+        if (z && z.v === campDe(b, slot)) gameState.players[slot].zoneSel = { body: b, id: d.id };
+    },
+    /* Un tir depuis un astre, dans une direction (vecteur unitaire). */
+    tir: function (slot, d) {
+        const src = astreNomme(d.src);
+        const dx = Number(d.dx), dy = Number(d.dy);
+        if (!src || !isFinite(dx) || !isFinite(dy)) return;
+        const t = ['normal', 'attaque', 'defense', 'parasite'].includes(d.t) ? d.t : 'normal';
+        launchJet(src, dx, dy, t, slot);
+    },
+    /* Un tir de surface vers un point du monde. */
+    tir_surface: function (slot, d) {
+        const b = astreNomme(d.src);
+        const tx = Number(d.tx), ty = Number(d.ty);
+        if (b && isFinite(tx) && isFinite(ty)) lancerJetSurface(b, slot, tx, ty, true);
+    },
+    /* R : nos zones repartent a l'assaut, sur un astre ou partout (null). */
+    riposte: function (slot, d) {
+        const b = d.cible ? astreNomme(d.cible) : null;
+        if (d.cible && !b) return;
+        riposteGenerale(b, slot);
+    },
+    /* T : nos zones cessent de pousser, sur un astre ou partout (null). */
+    arret: function (slot, d) {
+        const b = d.cible ? astreNomme(d.cible) : null;
+        if (d.cible && !b) return;
+        arreterAttaques(b, slot);
+    },
+    /* Ce que l'astre produit : off, alveole, nid, biome ou parasite. */
+    batiment: function (slot, d) {
+        const b = astreNomme(d.astre);
+        if (!b || !['off', 'alveole', 'nid', 'biome', 'parasite'].includes(d.mode)) return;
+        if (demanderConstruction(b, d.mode, slot) && slot === localSlot()
+            && gameState.selectedBody === b && typeof updateCodexBuild === 'function') {
+            updateCodexBuild(b);
+        }
+    },
+    /* Le pourcentage de production sacrifie a la multiplicite (0 a 50, les
+       bornes du curseur). */
+    sacrifice: function (slot, d) {
+        const v = Math.round(Number(d.v));
+        if (v >= 0 && v <= 50) gameState.players[slot].multiSacrifice = v;
+    },
+    /* Un palier de multiplicite atteint, place sur une statistique. */
+    stat: function (slot, d) {
+        const p = gameState.players[slot];
+        if (!['growth', 'velocity', 'sensitivity', 'density'].includes(d.stat)) return;
+        if (p._multiPending) applyMultiChoice(p, d.stat);
+    },
+    /* Un niveau de technologie achete. */
+    techno: function (slot, d) {
+        if (!['homing', 'tenacity', 'mimicry'].includes(d.branche)) return;
+        if (buyTech(gameState.players[slot], d.branche) && slot === localSlot()) updateTechPanel();
+    },
+    /* L'astre de depart, pendant la phase de choix. */
+    colonie: function (slot, d) {
+        if (gameState.phase !== 'spawn') return;
+        coloniser(slot, astreNomme(d.astre));
+    },
+    /* Le demolisseur : un tir lent de DEMOL_SPORES qui casse un batiment
+       du genre choisi la ou il tombe. */
+    demol: function (slot, d) {
+        const src = astreNomme(d.src);
+        const dx = Number(d.dx), dy = Number(d.dy);
+        if (!src || !isFinite(dx) || !isFinite(dy) || !DEMOL_GENRES.includes(d.genre)) return;
+        if (!peutTirerSurface(src, slot)) return;
+        launchJet(src, dx, dy, 'normal', slot,
+                  { nombre: DEMOL_SPORES, vitesse: DEMOL_VITESSE, pas: DEMOL_PAS, demol: d.genre });
+    },
+};
 
 function _mobilesInterpoles() {
     return [gameState.suns, gameState.allBodies, gameState.jets, gameState.cleaners, gameState.comets];
@@ -17164,9 +17357,14 @@ function campDe(body, slot) {
     return (body.owner === slot) ? 0 : slot + 1;
 }
 
-function demanderConstruction(body, mode) {
+/* slot : le joueur de l'ordre 'batiment', au tour qui l'execute. Sans lui,
+   c'est le clic : on verifie (la vibration d'un refus doit etre immediate),
+   puis en solo on donne l'ordre, en multijoueur on previent le serveur. */
+function demanderConstruction(body, mode, slot) {
     if (!body) return false;
-    const moi = localSlot();
+    const depuisOrdre = (slot !== undefined);
+    const donner = !depuisOrdre && !gameState.isMulti;
+    const moi = depuisOrdre ? slot : localSlot();
     /* On batit chez soi, mais aussi sur le bout de sol qu'on tient chez
        l'autre : une tete de pont est un territoire comme un autre. */
     const v = campDe(body, moi);
@@ -17174,18 +17372,20 @@ function demanderConstruction(body, mode) {
     if (!chezMoi && !(body.lutte && zonesDe(body, moi).length)) return false;
 
     if (mode === 'off' || mode === 'parasite') {
+        if (donner) { donnerOrdre('batiment', { astre: body.name, mode: mode }); return true; }
         body.buildMode = mode;
         body.buildSlot = moi;
         if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: mode });
         return true;
     }
     const zb = body.lutte ? zoneDeTir(body, moi) : null;
-    if (body.lutte && (!zb || zb.z.n < ZONE_MIN)) { secouerEcran(8); return false; }
+    if (body.lutte && (!zb || zb.z.n < ZONE_MIN)) { if (!depuisOrdre) secouerEcran(8); return false; }
     const reserve = zb ? zb.z.spores : body.spores;
     if (reserve < coutBatiment(body, mode)) {
-        secouerEcran(8);
+        if (!depuisOrdre) secouerEcran(8);
         return false;
     }
+    if (donner) { donnerOrdre('batiment', { astre: body.name, mode: mode }); return true; }
     body.buildMode = mode;
     body.buildSlot = moi;
     if (gameState.isMulti) sendAction('build_mode', { bodyName: body.name, mode: mode });
@@ -19387,6 +19587,7 @@ document.getElementById('jetRatioSlider').addEventListener('input', (e) => {
     /* En multijoueur c'est le serveur qui tire : sans cet envoi il gardait
        50 % quoi que le curseur affiche. */
     if (gameState.isMulti) sendAction('set_jet_ratio', { value: gameState.jetRatio });
+    else donnerOrdre('part', { v: gameState.jetRatio });
     majJaugeEnvoi(true);
 });
 
@@ -19423,9 +19624,19 @@ document.querySelectorAll('#evoPanel .evo-tab').forEach(tab => {
     });
 });
 // ═══ Listeners Tech Tree ═══
-document.getElementById('techHomingBuy').addEventListener('click', () => { const p=gameState.players?.[localSlot()]; if(p&&buyTech(p,'homing')){playClickSound();updateTechPanel();} });
-document.getElementById('techTenacityBuy').addEventListener('click', () => { const p=gameState.players?.[localSlot()]; if(p&&buyTech(p,'tenacity')){playClickSound();updateTechPanel();} });
-document.getElementById('techMimicryBuy').addEventListener('click', () => { const p=gameState.players?.[localSlot()]; if(p&&buyTech(p,'mimicry')){playClickSound();updateTechPanel();} });
+/* En solo, l'achat est un ordre ('techno') : on verifie seulement qu'il est
+   payable, pour ne pas faire cliqueter un bouton qui ne fera rien. */
+function acheterTechno(branche) {
+    const p = gameState.players?.[localSlot()];
+    if (!p) return;
+    if (gameState.isMulti) { if (buyTech(p, branche)) { playClickSound(); updateTechPanel(); } return; }
+    if (p.totalSpores < getTechCost(p, branche) || p.tech[branche] >= 10) return;
+    playClickSound();
+    donnerOrdre('techno', { branche: branche });
+}
+document.getElementById('techHomingBuy').addEventListener('click', () => acheterTechno('homing'));
+document.getElementById('techTenacityBuy').addEventListener('click', () => acheterTechno('tenacity'));
+document.getElementById('techMimicryBuy').addEventListener('click', () => acheterTechno('mimicry'));
 
 // ═══ Listeners MULTIPLICITÉ ═══
 document.body.appendChild(document.getElementById('spawnPopup'));
@@ -19434,26 +19645,26 @@ document.getElementById('spawnPopupClose').addEventListener('click', () => { pla
 document.getElementById('evoSacrifice').addEventListener('input', (e) => {
     const human = gameState.players[localSlot()];
     if (human) {
-        human.multiSacrifice = parseInt(e.target.value);
-        if (gameState.isMulti) sendAction('set_sacrifice', { value: human.multiSacrifice });
+        const v = parseInt(e.target.value);
+        if (gameState.isMulti) {
+            human.multiSacrifice = v;
+            sendAction('set_sacrifice', { value: v });
+        } else {
+            donnerOrdre('sacrifice', { v: v });
+        }
     }
 });
-document.getElementById('evoGrowth').addEventListener('click', () => {
+/* Un palier de multiplicite place sur une statistique : ordre 'stat' en solo. */
+function choisirStat(stat) {
     const human = gameState.players[localSlot()];
-    if (human && human._multiPending) { applyMultiChoice(human, 'growth'); if (gameState.isMulti) sendAction('multi', { stat: 'growth' }); }
-});
-document.getElementById('evoVelocity').addEventListener('click', () => {
-    const human = gameState.players[localSlot()];
-    if (human && human._multiPending) { applyMultiChoice(human, 'velocity'); if (gameState.isMulti) sendAction('multi', { stat: 'velocity' }); }
-});
-document.getElementById('evoSensitivity').addEventListener('click', () => {
-    const human = gameState.players[localSlot()];
-    if (human && human._multiPending) { applyMultiChoice(human, 'sensitivity'); if (gameState.isMulti) sendAction('multi', { stat: 'sensitivity' }); }
-});
-document.getElementById('evoDensity').addEventListener('click', () => {
-    const human = gameState.players[localSlot()];
-    if (human && human._multiPending) { applyMultiChoice(human, 'density'); if (gameState.isMulti) sendAction('multi', { stat: 'density' }); }
-});
+    if (!human || !human._multiPending) return;
+    if (gameState.isMulti) { applyMultiChoice(human, stat); sendAction('multi', { stat: stat }); return; }
+    donnerOrdre('stat', { stat: stat });
+}
+document.getElementById('evoGrowth').addEventListener('click', () => choisirStat('growth'));
+document.getElementById('evoVelocity').addEventListener('click', () => choisirStat('velocity'));
+document.getElementById('evoSensitivity').addEventListener('click', () => choisirStat('sensitivity'));
+document.getElementById('evoDensity').addEventListener('click', () => choisirStat('density'));
 
 // ═══════════════════════════════════════════════
 // AUTH SUPABASE — Login + Pseudo

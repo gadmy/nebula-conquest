@@ -123,18 +123,20 @@ async function jouer(navigateur, variante, ordres) {
         _spawnTarget = gameState.planets.filter(b => b.owner === null)[0];
         confirmSpawn();
         const B = window.__banc = { ordres, k: 0, tirs: 0 };
-        /* Les ordres du tour s'appliquent au debut du tour, par le crochet
-           que le jeu appelle avant chaque tour - y compris quand l'onglet B
-           enchaine plusieurs tours dans une seule image. */
+        /* Les ordres du tour passent par la file d'ordres du jeu, comme ceux
+           d'un vrai joueur. Le crochet avantChaqueTour est appele au debut
+           de chaque tour, juste avant que le jeu applique les ordres dus -
+           y compris quand l'onglet B enchaine plusieurs tours par image.
+           L'astre de depart se choisit ici, a partir de l'etat du tour :
+           c'est la partie du banc qui joue le role du joueur. */
         gameState.avantChaqueTour = function (tour) {
             while (B.k < ordres.length && ordres[B.k].tour === tour) {
                 const o = ordres[B.k++];
                 const miens = gameState.allBodies.filter(b => b.owner === 0 && b.spores >= 10);
                 if (miens.length) {
                     const src = miens[o.rang % miens.length];
-                    const n0 = gameState.jets.length;
-                    launchJet(src, Math.cos(o.angle), Math.sin(o.angle), 'normal', 0);
-                    if (gameState.jets.length > n0) B.tirs++;
+                    programmerOrdre({ tour: tour, slot: 0, type: 'tir',
+                                      d: { src: src.name, dx: Math.cos(o.angle), dy: Math.sin(o.angle), t: 'normal' } });
                 }
             }
         };
@@ -196,7 +198,7 @@ async function jouer(navigateur, variante, ordres) {
         const st = gameState.gameStats;
         return {
             bilan: {
-                'tirs du joueur 0': window.__banc.tirs,
+                'ordres appliques (journal)': (gameState.journalOrdres || []).length,
                 'tirs en tout': st.jetsLaunched,
                 'conquetes': st.bodiesConquered,
                 'tirs neutralises': st.jetsNeutralized,
