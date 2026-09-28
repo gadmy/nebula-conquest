@@ -798,6 +798,10 @@ v9.7.6 | 2026-09-25 | (en cours)
      - ZQSD PENDANT LE CHOIX DE LA PLANETE. Les touches de camera n'etaient
        ecoutees qu'en partie : au choix du depart, seules les fleches
        marchaient. Verifie : D, S, fleches, ~1 800 unites en 0,6 s.
+     - LES ETOILES NE SONT PLUS VOILEES. Leur degrade finissait a 53 %
+       d'opacite au bord : tout le disque paraissait semi-transparent. Disque
+       opaque, et seul un fin fondu sur les 12 derniers % du rayon (jusqu'a
+       15 % d'opacite au bord) le fond dans son halo.
      - ERUPTIONS SOLAIRES (decor). Toutes les 2 a 8 s, une etoile a l'ecran
        crache une gerbe de feu d'un point de sa surface : 40 a 65 grains a
        depart echelonne, en eventail qui peut pencher, montent en parabole
@@ -4099,9 +4103,12 @@ function createSunTexture(sun) {
     // Gradient de base
     const sunCol = sun.color || '#FFB830';
     const g = cx.createRadialGradient(half * 0.8, half * 0.8, 0, half, half, r);
+    /* Disque OPAQUE : la couleur finissait a 53 % d'opacite au bord, et tout
+       l'astre paraissait voile. La transparence est reservee au pourtour
+       (voir le fondu plus bas). */
     g.addColorStop(0, '#FFFFFF');
     g.addColorStop(0.2, sunCol);
-    g.addColorStop(1, sunCol + '88');
+    g.addColorStop(1, sunCol);
     cx.fillStyle = g;
     cx.fillRect(0, 0, size, size);
 
@@ -4120,6 +4127,16 @@ function createSunTexture(sun) {
         cx.arc(sx, sy, sr, 0, Math.PI * 2);
         cx.fill();
     }
+
+    /* Le bord : un fin fondu vers l'exterieur, sur les 12 derniers % du
+       rayon - opaque dedans, le liseré se perd dans le halo. */
+    cx.globalCompositeOperation = 'destination-in';
+    const bord = cx.createRadialGradient(half, half, r * 0.88, half, half, r);
+    bord.addColorStop(0, 'rgba(0,0,0,1)');
+    bord.addColorStop(1, 'rgba(0,0,0,0.15)');
+    cx.fillStyle = bord;
+    cx.fillRect(0, 0, size, size);
+    cx.globalCompositeOperation = 'source-over';
 
     sun._texture = c;
 
