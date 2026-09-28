@@ -1079,6 +1079,28 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
        Aucune erreur. Au banc lockstep, le joueur 0 donne maintenant de
        vrais ordres (tirs, rafales, boules, visees) : identique d'un onglet
        a l'autre, sur 5 cartes et 400 s de jeu chacune.
+       Mis en ligne sur main et teste a la main : bon, sauf le demolisseur.
+
+     ── CORRECTIFS ──
+     - LE DEMOLISSEUR N'ATTEIGNAIT JAMAIS SA CIBLE (signale en jeu : il
+       "explose en cours de route"). Deux causes, deja la avant cette
+       version. 1) Un astre laisse partir son tir pendant 0,5 s ; le
+       demolisseur, a 60 % de la vitesse d'un jet, survolait encore sa
+       planete au bout de ce temps (ou elle le rattrapait sur son orbite)
+       et s'y ecrasait. L'astre ignore desormais son tir tant qu'il n'en
+       est pas nettement degage (1,6 rayon + 40, la marge deja prise pour
+       les amas). 2) DEUX ASTRES PORTAIENT LE MEME NOM sur 4 cartes sur 15
+       ("Synenra" deux fois sur la carte 6), et parfois avec le generateur
+       : l'astre de depart etait reconnu a son nom, donc confondu avec
+       l'autre. Or le nom sert d'identifiant partout - ordres des joueurs,
+       serveur. Nouvelle fonction nomsUniques, au chargement de toute
+       carte : le second devient "Synenra II". Verifie : plus aucun
+       doublon sur les 15 cartes ni sur 30 graines du generateur.
+       Mesure sur 32 tirs de demolisseur dont le trait de visee passait
+       sur une cible : avant, 31 s'ecrasaient sur leur propre planete et
+       aucun ne touchait ; apres, aucun sur sa planete, les autres
+       touchent, ratent une cible qui a bouge ou finissent dans un soleil
+       comme n'importe quel tir. Les IA en profitent aussi.
 
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
@@ -6242,6 +6264,26 @@ function loadMapFromJSON(mapData) {
     // Comètes
     gameState.comets = [];
     gameState.cometTimer = 0;
+    nomsUniques();
+}
+
+/* UN NOM PAR ASTRE. Quatre cartes de la bibliotheque (et parfois le
+   generateur) donnaient le meme nom a deux astres - "Synenra" sur la carte
+   6. Or un nom sert d'identifiant : les ordres des joueurs designent leurs
+   astres par leur nom, le serveur aussi, et le tir reconnait ainsi l'astre
+   d'ou il part. Avec un doublon, le demolisseur s'ecrasait sur sa propre
+   planete, et un ordre pouvait viser le mauvais astre. Le second devient
+   "Synenra II", le troisieme "Synenra III". Toujours dans le meme ordre
+   (soleils, planetes, lunes) : tous les joueurs obtiennent les memes noms. */
+function nomsUniques() {
+    const vus = new Set();
+    const chiffres = ['', ' II', ' III', ' IV', ' V', ' VI', ' VII', ' VIII', ' IX', ' X'];
+    for (const b of [...gameState.suns, ...gameState.planets, ...gameState.moons]) {
+        let nom = b.name, k = 1;
+        while (vus.has(nom)) { nom = b.name + (chiffres[k] || ' ' + (k + 1)); k++; }
+        b.name = nom;
+        vus.add(nom);
+    }
 }
 
 function generateUniverse() {
@@ -6586,6 +6628,7 @@ function generateUniverse() {
             }
         }
     } // fin else if useAsteroids
+    nomsUniques();
 }
 
 
@@ -11079,7 +11122,20 @@ function checkJetCollision(jet) {
 
     const bodies = gameState.allBodies;
     for (const body of bodies) {
-        if (jet.age < 0.5 && jet.sourceName && body.name === jet.sourceName) continue;
+        /* L'astre de depart laisse partir son tir : pendant une demi-seconde,
+           ET tant que le tir n'est pas nettement degage de lui (la marge des
+           amas, plus bas). Le demi-seconde seul ne suffisait pas au
+           demolisseur, a 60 % de la vitesse d'un jet : au bout de 0,5 s il
+           survolait encore sa planete, ou elle le rattrapait sur son orbite,
+           et il "explosait" sans jamais atteindre sa cible. On reconnait
+           l'astre a l'objet lui-meme quand on l'a : deux astres pouvaient
+           porter le meme nom (voir nomsUniques). */
+        const estSource = jet.source ? body === jet.source : (jet.sourceName && body.name === jet.sourceName);
+        if (estSource && (jet.age < 0.5 || !jet.sorti)) {
+            const sx = body.x - jet.x, sy = body.y - jet.y, sr = body.radius * 1.6 + 40;
+            if (sx * sx + sy * sy > sr * sr) jet.sorti = true;
+            continue;
+        }
         /* La boule part de l'atmosphere, la ou passent les lunes : pendant sa
            premiere seconde, elle traverse sa planete et les lunes de celle-ci
            au lieu de s'ecraser dans l'une d'elles. */
