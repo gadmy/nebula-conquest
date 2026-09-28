@@ -688,6 +688,13 @@ v9.7.6 | 2026-09-25 | (en cours)
        Verifie : solo, 25/s, depart dans l'axe (0 degre d'ecart), vitesse
        x1,4, portee 6950 contre 3110 ; multi sur serveur local, boule vue en
        charge par l'adversaire, jet de 75 spores recu avec sa portee.
+       Retouches : rotation ramenee a 0,25 rad/s (un demi-tour en 12 s) ;
+       la boule REMPLACE le tir normal - un clic relache pendant ou apres la
+       charge ne tire plus de jet en plus, quel que soit l'ordre des gestes
+       (un clic normal apres coup tire toujours) ; charge spectaculaire :
+       filets de spores aspires du sol en spirale, halo qui s'etend avec la
+       charge, deux anneaux contrarotatifs, coeur blanc qui bat, eclair
+       regulier et MAX une fois pleine ; bandeau de tir de surface masque.
 
      ── MULTIJOUEUR ──
      - VERIFICATION COMPLETE DU MULTI. Le serveur de production n'est pas
@@ -7633,7 +7640,7 @@ function majRafale(dt) {
 const BOULE_DEBIT = 25;                  /* spores chargees par seconde */
 const BOULE_MAX = 500;
 const BOULE_COUT = 2;                    /* spores prises a l'astre par spore chargee */
-const BOULE_ROTATION = 0.6;              /* radians par seconde vers la souris */
+const BOULE_ROTATION = 0.25;             /* radians par seconde vers la souris : un demi-tour en 12 s */
 const BOULE_VITESSE = 1.4;               /* par rapport a un jet */
 const BOULE_PAS = Math.round(200 * 2 / BOULE_VITESSE);   /* deux fois la portee d'un jet */
 const BOULE_GRAVITE = 0.25;
@@ -7647,7 +7654,7 @@ function _angleVers(a, cible, pasMax) {
 }
 
 /* Rayon a l'ecran de la boule : grossit avec la racine de son contenu. */
-function _rayonBoule(n) { return 5 + Math.sqrt(Math.max(0, n)) * 1.1; }
+function _rayonBoule(n) { return 7 + Math.sqrt(Math.max(0, n)) * 1.5; }
 
 function demarrerBoule() {
     if (gameState._boule || gameState._rafale) return;
@@ -7657,6 +7664,9 @@ function demarrerBoule() {
     if (src.owner !== moi && !(src.lutte && zonesDe(src, moi).length)) return;
     const a = Math.atan2(gameState.mouseWorldY - src.y, gameState.mouseWorldX - src.x);
     gameState._boule = { src: src, angle: a, n: 0, envoi: 0 };
+    /* La boule REMPLACE le tir normal : le clic qu'on relachera pendant ou
+       apres la charge ne doit pas tirer un jet en plus. */
+    gameState._bouleUtilisee = true;
     if (gameState.isMulti) {
         const zt = src.lutte ? zoneDeTir(src, moi) : null;
         const zc = zt ? zoneCentre(src, zt.z) : null;
@@ -7721,6 +7731,8 @@ function lancerBoule() {
     const B = gameState._boule;
     if (!B) return;
     gameState._boule = null;
+    /* Pas de clic en cours : rien a neutraliser, le prochain tir normal passe. */
+    if (!gameState._aimHolding) gameState._bouleUtilisee = false;
     if (gameState.isMulti) { sendAction('boule_lancer', {}); return; }
     const n = Math.floor(B.n);
     if (n < 5) return;                          /* trop peu : dispersee, perdue */
@@ -7763,22 +7775,82 @@ function drawBoules(ctx) {
     }
     if (!liste.length) return;
     const z = gameState.camera.zoom;
+    const t = gameState.time;
     const op = ctx.globalCompositeOperation;
+    const a0 = ctx.globalAlpha;
     for (const b of liste) {
-        const h = b.src.radius * BOULE_HAUTEUR;
-        const x = b.src.x + Math.cos(b.angle) * h, y = b.src.y + Math.sin(b.angle) * h;
+        const src = b.src;
+        const h = src.radius * BOULE_HAUTEUR;
+        const x = src.x + Math.cos(b.angle) * h, y = src.y + Math.sin(b.angle) * h;
         const j = gameState.players[b.owner];
         const c = couleurEtincelle((j && j.color) || '#FFFFFF');
+        const plein = b.n >= BOULE_MAX - 0.5;
+        const f = Math.min(1, b.n / BOULE_MAX);           /* 0 -> 1 avec la charge */
         const r = _rayonBoule(b.n) * Math.max(1, 0.8 / z);
-        const puls = 1 + 0.08 * Math.sin(gameState.time * 9);
         ctx.globalCompositeOperation = 'lighter';
-        ctx.drawImage(haloSprite(c, 'brume'), x - r * 2.2, y - r * 2.2, r * 4.4, r * 4.4);
-        ctx.drawImage(haloSprite(c, 'noyau'), x - r * puls, y - r * puls, r * 2 * puls, r * 2 * puls);
+
+        /* 1. L'ASPIRATION : des filets de spores montent du sol et
+           s'engouffrent dans la boule, tant qu'elle se remplit. Aucun etat a
+           garder : chaque grain suit une phase tiree du temps. */
+        if (!plein) {
+            const N = 22;
+            const spS = haloSprite(c, 'noyau');
+            for (let k = 0; k < N; k++) {
+                const ph = (t * 1.6 + k / N + (k * 0.37) % 1) % 1;
+                const ecart = ((k * 0.618) % 1 - 0.5) * 1.6;         /* d'ou il part, sur le sol */
+                const aSol = b.angle + ecart;
+                const sx = src.x + Math.cos(aSol) * src.radius * 0.98;
+                const sy = src.y + Math.sin(aSol) * src.radius * 0.98;
+                const e = ph * ph;                                   /* il accelere en montant */
+                /* une legere spirale : le filet s'enroule autour de la boule */
+                const tour = (1 - e) * 0.9 * (k % 2 ? 1 : -1);
+                const mx = sx + (x - sx) * e + Math.cos(b.angle + Math.PI / 2) * tour * r;
+                const my = sy + (y - sy) * e + Math.sin(b.angle + Math.PI / 2) * tour * r;
+                const tg = Math.max(1.5 / z, r * 0.12) * (0.6 + 0.6 * (1 - e));
+                ctx.globalAlpha = 0.25 + 0.75 * Math.sin(ph * Math.PI);
+                ctx.drawImage(spS, mx - tg, my - tg, tg * 2, tg * 2);
+            }
+        }
+
+        /* 2. LE HALO, qui s'etend et s'intensifie avec la charge. */
+        const puls = 1 + (plein ? 0.18 : 0.08) * Math.sin(t * (plein ? 14 : 8));
+        ctx.globalAlpha = 0.45 + 0.55 * f;
+        const rh = r * (2.4 + 1.6 * f) * puls;
+        ctx.drawImage(haloSprite(c, 'brume'), x - rh, y - rh, rh * 2, rh * 2);
+
+        /* 3. LES ANNEAUX : deux arcs qui tournent en sens contraire. */
+        ctx.globalAlpha = 0.5 + 0.5 * f;
+        ctx.strokeStyle = plein ? '#FFFFFF' : c;
+        ctx.lineWidth = Math.max(1 / z, r * 0.1);
+        ctx.lineCap = 'round';
+        for (let k = 0; k < 2; k++) {
+            const sens = k ? -1 : 1;
+            const rr = r * (1.45 + 0.35 * k);
+            const deb = t * (2.2 + k) * sens + k;
+            ctx.beginPath(); ctx.arc(x, y, rr, deb, deb + Math.PI * 0.7); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y, rr, deb + Math.PI, deb + Math.PI * 1.7); ctx.stroke();
+        }
+
+        /* 4. LE COEUR, blanc et chaud, qui bat. */
+        ctx.globalAlpha = 1;
+        const rc = r * puls;
+        ctx.drawImage(haloSprite(c, 'noyau'), x - rc, y - rc, rc * 2, rc * 2);
+        ctx.drawImage(haloSprite('#FFFFFF', 'noyau'), x - rc * 0.55, y - rc * 0.55, rc * 1.1, rc * 1.1);
+
+        /* 5. PLEINE : un eclair regulier, pour dire "c'est pret". */
+        if (plein) {
+            const flash = Math.max(0, Math.sin(t * 5));
+            ctx.globalAlpha = flash * 0.6;
+            const rf = r * 3.2;
+            ctx.drawImage(haloSprite('#FFFFFF', 'brume'), x - rf, y - rf, rf * 2, rf * 2);
+        }
+
         ctx.globalCompositeOperation = op;
-        ctx.font = 'bold ' + Math.max(9, 11 / z) + 'px Orbitron, sans-serif';
+        ctx.globalAlpha = a0;
+        ctx.font = 'bold ' + Math.max(10, 12 / z) + 'px Orbitron, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillText(Math.floor(b.n), x, y - r - 4 / z);
+        ctx.fillStyle = plein ? '#FFD27A' : '#FFFFFF';
+        ctx.fillText(plein ? 'MAX' : String(Math.floor(b.n)), x, y - r * 2.1 - 4 / z);
     }
 }
 
@@ -8957,7 +9029,7 @@ function majJaugeEnvoi(pulse) {
            surface est possible. */
         const src = gameState._fireSource;
         const vise = gameState.phase === 'game' && gameState._firePhase === 'aiming';
-        const dispo = vise && src && src.type !== 'sun'
+        const dispo = vise && src && src.type !== 'sun' && !gameState._boule
                    && src.radius * gameState.camera.zoom >= SURFACE_MIN_PX
                    && peutTirerSurface(src, localSlot());
         const veut = dispo ? 'block' : 'none';
@@ -12381,6 +12453,18 @@ function setupInput() {
         if (e.button !== 0 || gameState.phase !== 'game') return;
         /* Fin de rafale : on reste en visee, pret a recommencer. */
         if (gameState._rafale) { arreterRafale(); return; }
+        /* Clic relache pendant ou apres une boule : la boule a remplace le
+           tir, on ne tire pas un jet de plus. */
+        if (gameState._boule || gameState._bouleUtilisee) {
+            gameState._bouleUtilisee = false;
+            if (gameState._aimHolding) {
+                gameState._aimHolding = false;
+                if (gameState._fireCamZoom !== null && gameState._fireCamZoom !== undefined) {
+                    cam.zoom = gameState._fireCamZoom; gameState._fireCamZoom = null;
+                }
+            }
+            return;
+        }
 
         // Phase aiming : relâche → tir
         const _surf = (gameState._firePhase === 'aiming' && gameState._aimHolding)
