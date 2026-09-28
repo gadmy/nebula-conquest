@@ -803,6 +803,20 @@ v9.7.6 | 2026-09-25 | (en cours)
      - ZQSD PENDANT LE CHOIX DE LA PLANETE. Les touches de camera n'etaient
        ecoutees qu'en partie : au choix du depart, seules les fleches
        marchaient. Verifie : D, S, fleches, ~1 800 unites en 0,6 s.
+     - TOUCHE T : ARRET DES ATTAQUES, le pendant de R. Sur l'astre sous le
+       curseur, ou partout si le curseur est dans le vide, nos zones perdent
+       leur elan et cessent de pousser (riposte, jet ou tir de surface).
+       Rien n'est perdu : l'elan n'est qu'un budget, les spores restent dans
+       la zone. Serveur : action « arret » (arreterAttaques). Aide : ligne
+       des touches et paragraphe. Verifie : elan 999 -> 0, « ✋ ARRET ».
+     - PARALLAXE : UNE SECONDE COUCHE D'ETOILES. Etoiles proches (tuile de
+       1 536 px, 260 etoiles plus grosses et plus vives, halo doux, une sur
+       huit avec un eclat en croix) qui defilent a 0,4 contre 0,15 pour les
+       lointaines, et grossissent un peu avec le zoom (0,75 a 1,5). Couche
+       CSS confiee au compositeur comme la premiere (#fondEtoiles2) : zero
+       cout de dessin, 60 images/s mesurees. Repli canevas sans le
+       grossissement. Tirage a part (graine 4242), le reste du decor ne
+       change pas.
      - LES ETOILES NE SONT PLUS VOILEES. Leur degrade finissait a 53 %
        d'opacite au bord : tout le disque paraissait semi-transparent. Disque
        opaque, et seul un fin fondu sur les 12 derniers % du rayon (jusqu'a
@@ -945,7 +959,7 @@ canvas#gameCanvas {
 }
 
 /* ── Fond spatial : deux couches deplacees par le compositeur ── */
-#fondDegrade, #fondEtoiles {
+#fondDegrade, #fondEtoiles, #fondEtoiles2 {
     position: fixed;
     top: 0;
     left: 0;
@@ -960,7 +974,7 @@ canvas#gameCanvas {
     display: none;
 }
 #fondDegrade { width: 2048px; height: 2048px; }
-#fondEtoiles { background-repeat: repeat; }
+#fondEtoiles, #fondEtoiles2 { background-repeat: repeat; }
 
 /* ── Halos des soleils : meme principe, une couche par soleil, au-dessus du
    fond (plus loin dans la page) et sous le canevas de jeu ── */
@@ -2920,6 +2934,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#FFD27A;">R</b></td><td style="padding:3px 0;"><b style="color:#FFD27A;">Riposte</b> au pourcentage d'envoi — sur l'astre survolé, ou sur tous si la souris est dans le vide</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#93C5FD;">T</b></td><td style="padding:3px 0;"><b style="color:#93C5FD;">Arrêt</b> — vos zones cessent d'attaquer, sur l'astre survolé ou partout ; les spores engagées restent dans la zone</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Échap</td><td style="padding:3px 0;">Pause (le livre des règles s’ouvre)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">F3 puis D</td><td style="padding:3px 0;">Diagnostic de performance, puis détail du rendu</td></tr>
 </table>
@@ -2950,6 +2965,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <p style="margin-bottom:6px;"><span style="color:#FF8A3D;">LE DÉMOLISSEUR — F.</span> Pendant la visée, F <span style="color:#E9D5FF;">arme</span> le démolisseur : le trait de visée rougeoie et trois icônes suivent le curseur — <i class="ic-bat" data-g="alveole"></i> alvéole, <i class="ic-bat" data-g="nid"></i> nid, <i class="ic-bat" data-g="biome"></i> biome. <span style="color:#E9D5FF;">La molette</span> choisit le bâtiment visé ; sous les icônes, le nombre que l'astre pointé en possède. Le clic tire alors <span style="color:#E9D5FF;">250 spores</span>, <b>moins vite</b> qu'un jet pour la même portée. À l'impact, <span style="color:#4ADE80;">un bâtiment de ce type</span>, pris au hasard parmi ceux qui ne sont pas à vous, explose ; si l'astre n'en a pas, rien ne casse. Ses spores attaquent ensuite comme un jet ordinaire. Sans 250 spores sur l'astre (ou la zone), l'écran vibre et rien ne part. F à nouveau désarme.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Sur chaque astre où plusieurs camps se partagent le sol et où vous tenez une zone, chacune de vos zones engage <span style="color:#E9D5FF;">le pourcentage d'envoi</span> de sa réserve — celui que vous réglez avec <b>A</b> et <b>E</b>, comme pour un jet. Chez vous, chez l'autre, ou sur un neutre entamé. Chaque case reprise se paie au prix du sol, et <span style="color:#4ADE80;">ce qui n'a rien trouvé à acheter reste dans la zone</span> : riposter à 100 % pour trois cases ne vide pas la planète.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">C'est la souris qui désigne la cible :</span> le curseur sur un astre, la riposte ne touche que <b>ses</b> zones ; le curseur dans le vide, <b>tous</b> vos astres contaminés repartent d'un coup. Rien à nettoyer : l'écran vibre.</p>
+<p style="margin-bottom:6px;"><span style="color:#93C5FD;">LA TOUCHE T — ARRÊT.</span> Le contraire de R : vos zones <span style="color:#E9D5FF;">cessent de pousser</span>, que l'attaque vienne d'une riposte, d'un jet ou d'un tir de surface. Même ciblage à la souris : un astre, ou tous. Rien n'est perdu — les spores engagées restent dans la zone, prêtes pour la prochaine riposte.</p>
 <p style="margin-bottom:16px;">Plusieurs attaques sur la même planète ouvrent <span style="color:#E9D5FF;">chacune leur propre front</span> à l'endroit touché. Des spores ne renforcent une tache que si le tir retombe sur du terrain que vous tenez déjà.</p>
 <!-- ZONES -->
 <p id="h-zones" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🗺 LES ZONES</p>
@@ -3157,6 +3173,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
      les repeindre prenait un tiers du temps de rendu. -->
 <canvas id="fondDegrade" width="2048" height="2048"></canvas>
 <div id="fondEtoiles"></div>
+<div id="fondEtoiles2"></div>
 <div id="halosSoleils"></div>
 <canvas id="gameCanvas"></canvas>
 <div id="topRight">
@@ -3807,6 +3824,45 @@ function generateBackground() {
         }
     }
     gameState._starsCanvas = stC;
+
+    /* ══ Etoiles proches : la seconde couche de la parallaxe ══
+       Moins nombreuses, plus grosses et plus vives, quelques-unes avec un
+       eclat en croix. Elles defilent plus vite que les lointaines et
+       grossissent un peu au zoom : le fond prend de la profondeur. Un tirage
+       a part, pour ne rien changer au reste du decor. */
+    const rng2 = mulberry32(4242);
+    const st2 = 1536;
+    const stC2 = document.createElement('canvas');
+    stC2.width = st2; stC2.height = st2;
+    const st2Ctx = stC2.getContext('2d');
+    for (let i = 0; i < 260; i++) {
+        const sx = rng2() * st2, sy = rng2() * st2;
+        const sr = rng2() * 1.4 + 0.9;
+        const sa = rng2() * 0.45 + 0.45;
+        const sc = starColors[Math.floor(rng2() * starColors.length)];
+        const gh = st2Ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 3);
+        gh.addColorStop(0, `rgba(${sc}, ${sa * 0.35})`);
+        gh.addColorStop(1, 'rgba(0,0,0,0)');
+        st2Ctx.fillStyle = gh;
+        st2Ctx.beginPath();
+        st2Ctx.arc(sx, sy, sr * 3, 0, Math.PI * 2);
+        st2Ctx.fill();
+        st2Ctx.fillStyle = `rgba(${sc}, ${sa})`;
+        st2Ctx.beginPath();
+        st2Ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+        st2Ctx.fill();
+        if (rng2() > 0.88) {
+            /* Eclat en croix, fin et pale. */
+            const l = sr * (5 + rng2() * 5);
+            st2Ctx.strokeStyle = `rgba(${sc}, ${sa * 0.45})`;
+            st2Ctx.lineWidth = 0.7;
+            st2Ctx.beginPath();
+            st2Ctx.moveTo(sx - l, sy); st2Ctx.lineTo(sx + l, sy);
+            st2Ctx.moveTo(sx, sy - l); st2Ctx.lineTo(sx, sy + l);
+            st2Ctx.stroke();
+        }
+    }
+    gameState._starsCanvas2 = stC2;
 
     // ══ Particules ambiantes (poussière cosmique) — on garde ══
     gameState.cosmicDust = [];
@@ -6592,6 +6648,8 @@ function setupUI() {
             /* La souris designe la cible : sur un astre, la riposte s'y
                limite ; dans le vide, toute la galaxie repart. */
             if (e.code === 'KeyR')  { e.preventDefault(); riposteGenerale(astreSousSouris()); return; }
+            /* T : le contraire, nos zones cessent de pousser (meme ciblage). */
+            if (e.code === 'KeyT')  { e.preventDefault(); arreterAttaques(astreSousSouris()); return; }
             if (e.code === 'KeyQ')  { e.preventDefault(); reglerEnvoi(-5); return; }
             if (e.code === 'KeyE')  { e.preventDefault(); reglerEnvoi(+5); return; }
         }
@@ -11271,6 +11329,42 @@ function riposteGenerale(cible) {
     return astres;
 }
 
+/* ARRET DES ATTAQUES (touche T), le pendant de R. Sur l'astre sous le
+   curseur, ou partout si le curseur est dans le vide, nos zones perdent leur
+   elan : elles cessent de pousser. Rien n'est perdu - l'elan n'est qu'un
+   budget, les spores restent dans la zone. */
+function arreterAttaques(cible) {
+    if (gameState.phase !== 'game') return 0;
+    const moi = localSlot();
+    if (gameState.isMulti) sendAction('arret', { bodyName: cible ? cible.name : null });
+    const bodies = cible ? [cible] : (gameState.allBodies || []);
+    let astres = 0;
+    for (const body of bodies) {
+        if (!body.lutte || !body.lutte.zones) continue;
+        let arretees = 0;
+        const liste = zonesDe(body, moi);
+        for (const m of liste) {
+            if (m.z.elan > 0) { m.z.elan = 0; arretees++; }
+        }
+        /* En multijoueur l'elan est chez le serveur, pas ici : on signale
+           l'arret partout ou l'on tient une zone dans une bataille. */
+        if (gameState.isMulti) arretees = liste.length;
+        if (!arretees) continue;
+        astres++;
+        gameState.conquestEffects.push({
+            x: body.x, y: body.y - body.radius - 20, baseX: body.x,
+            text: '\u270B ARRÊT', color: '#93C5FD', age: 0, maxAge: 2.2 });
+    }
+    const j = gameState.players[moi];
+    if (astres) {
+        const ou = cible ? `sur ${cible.name}` : `sur ${astres} astre${astres > 1 ? 's' : ''}`;
+        addEvent('mine', '\u270B', `Attaques arrêtées ${ou}`, null, j && j.color);
+    } else {
+        secouerEcran(5);
+    }
+    return astres;
+}
+
 function majLuttes(dt) {
     const bodies = gameState.allBodies;
     const multi = gameState.isMulti;
@@ -13975,9 +14069,10 @@ function preparerFondCss() {
     if (!gameState._bgCanvas || !gameState._starsCanvas) return;
     const deg = document.getElementById('fondDegrade');
     const eto = document.getElementById('fondEtoiles');
+    const eto2 = document.getElementById('fondEtoiles2');
     if (!deg || !eto) return;
     const premier = !_fondEls;
-    if (premier) _fondEls = { deg: deg, eto: eto, pret: false };
+    if (premier) _fondEls = { deg: deg, eto: eto, eto2: eto2, pret: false, pret2: false };
 
     /* Le degrade : on recopie le canevas hors-ecran dans l'element. Refait a
        chaque generation, au cas ou le fond changerait d'une partie a l'autre. */
@@ -14000,6 +14095,18 @@ function preparerFondCss() {
             gameState._fondCss = true;
             majFondCss();
         }, 'image/png');
+        /* La couche proche : meme chemin. Si elle manque, la lointaine
+           suffit - le fond reste juste, sans parallaxe. */
+        if (eto2 && gameState._starsCanvas2) {
+            gameState._starsCanvas2.toBlob(function (bl) {
+                if (!bl || !_fondEls) return;
+                if (gameState._starsUrl2) URL.revokeObjectURL(gameState._starsUrl2);
+                gameState._starsUrl2 = URL.createObjectURL(bl);
+                eto2.style.backgroundImage = 'url(' + gameState._starsUrl2 + ')';
+                _fondEls.pret2 = true;
+                majFondCss();
+            }, 'image/png');
+        }
     } catch (e) { _fondEls = null; }
 }
 
@@ -14008,6 +14115,7 @@ function montrerFondCss(oui) {
     const v = (oui && gameState._fondCss) ? 'block' : 'none';
     _fondEls.deg.style.display = v;
     _fondEls.eto.style.display = v;
+    if (_fondEls.eto2) _fondEls.eto2.style.display = v;
     if (_halosEl) _halosEl.style.display = v;
 }
 
@@ -14085,6 +14193,24 @@ function majFondCss() {
     const lw = (W + T) + 'px', lh = (H + T) + 'px';
     if (e.style.width !== lw) { e.style.width = lw; e.style.height = lh; }
     e.style.transform = 'translate3d(' + ox.toFixed(1) + 'px,' + oy.toFixed(1) + 'px,0)';
+
+    /* Les etoiles proches : presque trois fois plus rapides (0,4 contre
+       0,15), et un leger grossissement qui suit le zoom (de 0,75 a 1,5) -
+       c'est l'ecart entre les deux couches qui donne la profondeur. */
+    const e2 = _fondEls.eto2;
+    if (e2 && _fondEls.pret2) {
+        const T2 = 1536, prlx2 = 0.4;
+        const s = Math.max(0.75, Math.min(1.5, Math.pow(z, 0.3)));
+        const Ts = T2 * s;
+        let ox2 = (-cam.x * prlx2 * z) % Ts;
+        let oy2 = (-cam.y * prlx2 * z) % Ts;
+        if (ox2 > 0) ox2 -= Ts;
+        if (oy2 > 0) oy2 -= Ts;
+        const lw2 = Math.ceil((W + Ts) / s) + 'px', lh2 = Math.ceil((H + Ts) / s) + 'px';
+        if (e2.style.width !== lw2) e2.style.width = lw2;
+        if (e2.style.height !== lh2) e2.style.height = lh2;
+        e2.style.transform = 'translate3d(' + ox2.toFixed(1) + 'px,' + oy2.toFixed(1) + 'px,0) scale(' + s.toFixed(4) + ')';
+    }
 }
 
 function drawBackground(ctx) {
@@ -14130,6 +14256,17 @@ function drawBackground(ctx) {
         for (let x = ox; x < W; x += st.width) {
             for (let y = oy; y < H; y += st.height) {
                 ctx.drawImage(st, x, y);
+            }
+        }
+        /* Repli : les etoiles proches, sans le grossissement (voir majFondCss). */
+        const st2 = gameState._starsCanvas2;
+        if (st2) {
+            let ox2 = (-cam.x * 0.4 * cam.zoom) % st2.width;
+            let oy2 = (-cam.y * 0.4 * cam.zoom) % st2.height;
+            if (ox2 > 0) ox2 -= st2.width;
+            if (oy2 > 0) oy2 -= st2.height;
+            for (let x = ox2; x < W; x += st2.width) {
+                for (let y = oy2; y < H; y += st2.height) ctx.drawImage(st2, x, y);
             }
         }
         ctx.restore();
