@@ -656,6 +656,22 @@ v9.7.6 | 2026-09-25 | (en cours)
        fait moins de 15 px de rayon a l'ecran : le clignotement y suffit.
        Cout au pire (46 astres pleins, vue d'ensemble) : 0,46 ms.
 
+     ── GAMEPLAY (suite) ──
+     - LA RAFALE : CTRL + CLIC GAUCHE EN VISEE. L'astre crache des paquets
+       de 10 spores, 8 par seconde, vers le curseur a plus ou moins 20
+       degres - une mitrailleuse imprecise. Il se vide tant qu'on maintient,
+       s'arrete au relacher (Ctrl ou clic), en quittant la fenetre, ou quand
+       il n'a plus de quoi faire un paquet ; on reste en visee. Un son de
+       lancer sur trois, la jauge ENVOI affiche RAFALE 10 x 8/s. launchJet
+       accepte un nombre fixe de spores.
+       En multijoueur, le SERVEUR cadence et tire (dispersion tiree de son
+       cote) : le client annonce debut, cible et fin - impossible
+       d'accelerer la mitrailleuse. Sans nouvelles du client 2 s, arret.
+       Verifie : solo, 18 paquets de 10 en 2 s, tous dans le cone, arret
+       seul a vide ; multi sur serveur local, l'adversaire voit 16 paquets
+       de 10 et plus rien apres le relacher. Aide des touches et livre des
+       regles mis a jour.
+
      ── MULTIJOUEUR ──
      - VERIFICATION COMPLETE DU MULTI. Le serveur de production n'est pas
        joignable depuis l'environnement de travail : le serveur
@@ -2736,6 +2752,7 @@ input[type="radio"]:checked + .build-icon-btn {
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic sur une zone de la planète</td><td style="padding:3px 0;">Choisit la zone d'où partira le tir — elle se cerne d'un trait double et d'un « TIR »</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Double-clic sur un astre</td><td style="padding:3px 0;">Plonge dessus et met en visée (raccourci de cadrage)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur votre disque</td><td style="padding:3px 0;">Le tir devient un tir de surface ; hors du disque, c'est un jet normal</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Ctrl + clic gauche maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Rafale</b> — paquets de 10 spores, 8 par seconde, arrosés autour du curseur ; lâcher pour arrêter</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur un astre</td><td style="padding:3px 0;">Le devis : combien de cases votre envoi y achètera, et à quel prix</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur fond vide + glisser</td><td style="padding:3px 0;">Déplace la caméra</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Survol d'un nombre de spores</td><td style="padding:3px 0;">Nomme le joueur à qui il appartient, et dit s'il tient l'astre ou l'assaille</td></tr>
@@ -2775,6 +2792,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ON ACHÈTE LE SOL.</span> La planète vaut sa capacité en spores, donc une case coûte cette capacité divisée par le nombre de cases. Attaquer avec X spores rapporte X cases, puis <span style="color:#E9D5FF;">le front s'arrête net</span>. Le sol vierge, lui, ne coûte que 15 % du prix : coloniser n'est pas conquérir.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">LE DEVIS, PENDANT LA VISÉE.</span> Sous le curseur s'affiche ce que votre envoi achètera sur l'astre visé : le nombre de cases, la part du disque que ça représente, et le prix d'une case. Faune et biomes adverses y sont déjà déduits, et la densité ajoutée — c'est le vrai chiffre, pas une estimation optimiste. Sur un astre à vous, il indique simplement le renfort.</p>
 <p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA RAFALE — CTRL + CLIC GAUCHE.</span> Pendant la visée, maintenez Ctrl et le clic gauche : votre astre crache des <span style="color:#E9D5FF;">paquets de 10 spores, 8 par seconde</span>, dans la direction du curseur à plus ou moins 20° près — une mitrailleuse, pas un fusil. Il se vide tant que vous tenez, et s'arrête quand vous lâchez ou quand il n'a plus de quoi faire un paquet. Le pourcentage d'envoi n'y compte pas.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Sur chaque astre où plusieurs camps se partagent le sol et où vous tenez une zone, chacune de vos zones engage <span style="color:#E9D5FF;">le pourcentage d'envoi</span> de sa réserve — celui que vous réglez avec <b>A</b> et <b>E</b>, comme pour un jet. Chez vous, chez l'autre, ou sur un neutre entamé. Chaque case reprise se paie au prix du sol, et <span style="color:#4ADE80;">ce qui n'a rien trouvé à acheter reste dans la zone</span> : riposter à 100 % pour trois cases ne vide pas la planète.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">C'est la souris qui désigne la cible :</span> le curseur sur un astre, la riposte ne touche que <b>ses</b> zones ; le curseur dans le vide, <b>tous</b> vos astres contaminés repartent d'un coup. Rien à nettoyer : l'écran vibre.</p>
 <p style="margin-bottom:16px;">Plusieurs attaques sur la même planète ouvrent <span style="color:#E9D5FF;">chacune leur propre front</span> à l'endroit touché. Des spores ne renforcent une tache que si le tir retombe sur du terrain que vous tenez déjà.</p>
@@ -7515,6 +7533,78 @@ function _viseeInterne(groupe, x, y) {
     return dx * dx + dy * dy <= r * r;
 }
 
+/* ─────────────────────────────────────────────
+   LA RAFALE : Ctrl + clic gauche maintenu pendant la visee. L'astre crache
+   des paquets de 10 spores, 8 par seconde, dans la direction du curseur a
+   plus ou moins 20 degres pres - une mitrailleuse, pas un fusil. Tant qu'on
+   tient, il se vide ; il s'arrete au relacher, ou quand il n'a plus de quoi
+   faire un paquet. En multijoueur, c'est le SERVEUR qui cadence et tire :
+   le client ne fait qu'annoncer le debut, la cible et la fin.
+   ───────────────────────────────────────────── */
+const RAFALE_CADENCE = 8;                      /* paquets par seconde */
+const RAFALE_PAQUET = 10;                      /* spores par paquet */
+const RAFALE_ECART = 20 * Math.PI / 180;       /* dispersion, de part et d'autre */
+
+function demarrerRafale() {
+    if (gameState._firePhase !== 'aiming' || !gameState._fireSource) return;
+    /* Premier paquet sans attendre : le doigt appuie, ca part. */
+    gameState._rafale = { acc: 1 / RAFALE_CADENCE, n: 0, envoi: 0 };
+    if (gameState.isMulti) {
+        const src = gameState._fireSource;
+        const zt = src.lutte ? zoneDeTir(src, localSlot()) : null;
+        const zc = zt ? zoneCentre(src, zt.z) : null;
+        sendAction('rafale_debut', { srcName: src.name,
+            tx: gameState.mouseWorldX, ty: gameState.mouseWorldY,
+            zx: zc ? zc.x : undefined, zy: zc ? zc.y : undefined });
+    }
+}
+
+function arreterRafale() {
+    if (!gameState._rafale) return;
+    gameState._rafale = null;
+    if (gameState.isMulti) sendAction('rafale_fin', {});
+}
+
+function majRafale(dt) {
+    const R = gameState._rafale;
+    if (!R) return;
+    if (gameState.phase !== 'game' || gameState._firePhase !== 'aiming' || !gameState._fireSource) {
+        arreterRafale();
+        return;
+    }
+    if (gameState.isMulti) {
+        /* Le serveur tire ; on lui dit seulement ou l'on vise. */
+        R.envoi += dt;
+        if (R.envoi >= 0.12) {
+            R.envoi = 0;
+            sendAction('rafale_cible', { tx: gameState.mouseWorldX, ty: gameState.mouseWorldY });
+        }
+        return;
+    }
+    R.acc += dt;
+    while (R.acc >= 1 / RAFALE_CADENCE) {
+        R.acc -= 1 / RAFALE_CADENCE;
+        const src = gameState._fireLanceur || gameState._fireSource;
+        const dx = gameState.mouseWorldX - src.x, dy = gameState.mouseWorldY - src.y;
+        if (dx * dx + dy * dy < 100) continue;     /* curseur sur le lanceur : pas de direction */
+        const a = Math.atan2(dy, dx) + (Math.random() * 2 - 1) * RAFALE_ECART;
+        const n0 = gameState.jets.length;
+        launchJet(src, Math.cos(a), Math.sin(a), 'normal', localSlot(),
+                  { nombre: RAFALE_PAQUET, muet: true });
+        if (gameState.jets.length === n0) {        /* plus de quoi faire un paquet */
+            arreterRafale();
+            return;
+        }
+        /* Un son de lancer sur trois : huit par seconde saturaient l'oreille. */
+        if (R.n % 3 === 0) _playBuffer('launch', 0.25);
+        R.n++;
+    }
+}
+
+/* Lacher Ctrl, ou quitter la fenetre, arrete la rafale comme lacher le clic. */
+window.addEventListener('keyup', function (e) { if (e.key === 'Control') arreterRafale(); });
+window.addEventListener('blur', function () { arreterRafale(); });
+
 function majChargementTir(dt) {
     if (gameState._firePhase !== 'aiming' || !gameState._fireSource) {
         if (gameState._fireLanceur && gameState.isMulti) sendAction('aim_end', {});
@@ -8707,7 +8797,10 @@ function majJaugeEnvoi(pulse) {
              || ((typeof followingBody !== 'undefined' && followingBody) ? followingBody : null)
              || gameState.selectedBody;
     const nb = document.getElementById('envoiNb');
-    if (nb) {
+    if (nb && gameState._rafale) {
+        /* Pendant la rafale, le pourcentage ne compte plus : on tire par paquets. */
+        nb.innerHTML = 'RAFALE<em>' + RAFALE_PAQUET + ' × ' + RAFALE_CADENCE + '/s</em>';
+    } else if (nb) {
         nb.innerHTML = (src && src.owner === localSlot() && src.spores !== undefined)
             ? Math.floor(src.spores * gameState.jetRatio) + '<em>SPORES</em>'
             : '';
@@ -9452,7 +9545,11 @@ function computeTrajectory(startX, startY, dirX, dirY, speed, steps) {
 /* Le tireur n'est pas forcement le proprietaire de l'astre : on peut lancer
    depuis la tete de pont qu'on tient sur la planete de quelqu'un d'autre. La
    reserve puisee est alors celle de ce pied-a-terre, pas celle du defenseur. */
-function launchJet(source, dirX, dirY, sporeType, slot) {
+/* opts, facultatif : { nombre } pour tirer un nombre FIXE de spores au lieu
+   du pourcentage d'envoi (la rafale tire par paquets de 10), { muet } pour
+   ne pas jouer le son de lancer (la rafale ne le joue qu'un coup sur trois). */
+function launchJet(source, dirX, dirY, sporeType, slot, opts) {
+    const _nb = opts && opts.nombre > 0 ? Math.floor(opts.nombre) : 0;
     const tireur = (slot === undefined || slot === null) ? source.owner : slot;
     const player = gameState.players[tireur];
     if (!player) return;
@@ -9473,12 +9570,12 @@ function launchJet(source, dirX, dirY, sporeType, slot) {
         const zt = zoneDeTir(source, tireur);
         if (!zt) return;
         if (zt.z.n < ZONE_MIN) { if (tireur === localSlot()) secouerEcran(8); return; }
-        sporeCount = Math.floor(zt.z.spores * gameState.jetRatio);
+        sporeCount = _nb ? (zt.z.spores >= _nb ? _nb : 0) : Math.floor(zt.z.spores * gameState.jetRatio);
         if (sporeCount < 5) return;
         zt.z.spores -= sporeCount;
         zonesAgreger(source, source.lutte);
     } else {
-        sporeCount = Math.floor(source.spores * gameState.jetRatio);
+        sporeCount = _nb ? (source.spores >= _nb ? _nb : 0) : Math.floor(source.spores * gameState.jetRatio);
         if (sporeCount < 5) return;
         source.spores -= sporeCount;
     }
@@ -9499,7 +9596,7 @@ function launchJet(source, dirX, dirY, sporeType, slot) {
     }
 
     gameState.gameStats.jetsLaunched++;
-    playLaunchSound();
+    if (!(opts && opts.muet)) playLaunchSound();
     const jetColor = sporeType === 'attaque' ? '#EF4444' : sporeType === 'defense' ? '#38BDF8' : sporeType === 'parasite' ? '#22C55E' : player.color;
     gameState.jets.push({
         owner: tireur,
@@ -12040,6 +12137,8 @@ function setupInput() {
 
         // Phase aiming : maintien gauche → dézoom progressif, relâche → tir
         if (gameState._firePhase === 'aiming') {
+            /* Ctrl + clic : la rafale, pas le tir unique (voir demarrerRafale). */
+            if (e.ctrlKey) { demarrerRafale(); return; }
             gameState._aimHolding = true;
             gameState._fireCamZoom = cam.zoom;
             return;
@@ -12077,6 +12176,8 @@ function setupInput() {
 
     window.addEventListener('mouseup', (e) => {
         if (e.button !== 0 || gameState.phase !== 'game') return;
+        /* Fin de rafale : on reste en visee, pret a recommencer. */
+        if (gameState._rafale) { arreterRafale(); return; }
 
         // Phase aiming : relâche → tir
         const _surf = (gameState._firePhase === 'aiming' && gameState._aimHolding)
@@ -12589,6 +12690,7 @@ if (gameState.isMulti) {
         majOndesSolaires(dt);
         majModeSurface(dt);
         majChargementTir(dt);
+        majRafale(dt);
         majFiletsCharge(dt);
         majPopProduction(dt);
         majSecousse(dt);
@@ -12621,6 +12723,7 @@ if (gameState.isMulti) {
     majOndesSolaires(dt);
     majModeSurface(dt);
     majChargementTir(dt);
+    majRafale(dt);
     majFiletsCharge(dt);
     majPopProduction(dt);
     majSecousse(dt);
@@ -17473,7 +17576,8 @@ function connectSocket() {
         const savedSpores = src.spores;
         src.spores = ev.spores * 2;
         const n0 = gameState.jets.length;
-        launchJet(src, ev.dirX, ev.dirY, ev.sporeType);
+        launchJet(src, ev.dirX, ev.dirY, ev.sporeType, undefined,
+                  { nombre: ev.spores, muet: !!ev.rafale && Math.random() > 0.33 });
         src.spores = savedSpores;
         /* Le jet qu'on vient de creer, et pas "le dernier de la liste" : si
            launchJet a refuse, c'etait un autre jet qu'on ecrasait. */
