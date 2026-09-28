@@ -672,6 +672,23 @@ v9.7.6 | 2026-09-25 | (en cours)
        de 10 et plus rien apres le relacher. Aide des touches et livre des
        regles mis a jour.
 
+     - LA BOULE : SHIFT EN VISEE. L'astre agglutine des spores dans son
+       atmosphere, 25/s jusqu'a 500, chaque spore chargee lui en coutant
+       deux, sans remboursement. La boule flotte a 1,35 rayon et tourne
+       lentement vers la souris (0,6 rad/s) ; au lacher de Shift elle part
+       dans l'axe centre -> boule. Vitesse x1,4, deux fois la portee d'un
+       jet, un quart de la gravite (computeTrajectory accepte desormais une
+       part de gravite), insensible aux vaisseaux et amas rouges et noirs ;
+       a l'arrivee, un jet ordinaire. Sa premiere seconde, elle traverse sa
+       planete et les lunes de celle-ci - elle partait de l'atmosphere et
+       s'ecrasait sur une lune proche. Aperçu de trajectoire propre a la
+       boule pendant la charge, jauge ENVOI : BOULE n / 500.
+       En multijoueur, le serveur charge (et fait payer), tourne et tire ;
+       l'instantane transmet les boules en charge pour que tous les voient.
+       Verifie : solo, 25/s, depart dans l'axe (0 degre d'ecart), vitesse
+       x1,4, portee 6950 contre 3110 ; multi sur serveur local, boule vue en
+       charge par l'adversaire, jet de 75 spores recu avec sa portee.
+
      ── MULTIJOUEUR ──
      - VERIFICATION COMPLETE DU MULTI. Le serveur de production n'est pas
        joignable depuis l'environnement de travail : le serveur
@@ -2753,6 +2770,7 @@ input[type="radio"]:checked + .build-icon-btn {
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Double-clic sur un astre</td><td style="padding:3px 0;">Plonge dessus et met en visée (raccourci de cadrage)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur votre disque</td><td style="padding:3px 0;">Le tir devient un tir de surface ; hors du disque, c'est un jet normal</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Ctrl + clic gauche maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Rafale</b> — paquets de 10 spores, 8 par seconde, arrosés autour du curseur ; lâcher pour arrêter</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Shift maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Boule</b> — charge 25 spores/s (jusqu'à 500, coût double) qui tournent lentement vers la souris ; lâcher Shift la lance</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur un astre</td><td style="padding:3px 0;">Le devis : combien de cases votre envoi y achètera, et à quel prix</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur fond vide + glisser</td><td style="padding:3px 0;">Déplace la caméra</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Survol d'un nombre de spores</td><td style="padding:3px 0;">Nomme le joueur à qui il appartient, et dit s'il tient l'astre ou l'assaille</td></tr>
@@ -2793,6 +2811,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">LE DEVIS, PENDANT LA VISÉE.</span> Sous le curseur s'affiche ce que votre envoi achètera sur l'astre visé : le nombre de cases, la part du disque que ça représente, et le prix d'une case. Faune et biomes adverses y sont déjà déduits, et la densité ajoutée — c'est le vrai chiffre, pas une estimation optimiste. Sur un astre à vous, il indique simplement le renfort.</p>
 <p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA RAFALE — CTRL + CLIC GAUCHE.</span> Pendant la visée, maintenez Ctrl et le clic gauche : votre astre crache des <span style="color:#E9D5FF;">paquets de 10 spores, 8 par seconde</span>, dans la direction du curseur à plus ou moins 20° près — une mitrailleuse, pas un fusil. Il se vide tant que vous tenez, et s'arrête quand vous lâchez ou quand il n'a plus de quoi faire un paquet. Le pourcentage d'envoi n'y compte pas.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA BOULE — SHIFT.</span> Pendant la visée, maintenez Shift : votre astre agglutine des spores dans son atmosphère, <span style="color:#E9D5FF;">25 par seconde jusqu'à 500</span>. Chaque spore chargée lui en coûte <b>deux</b>, et rien n'est rendu. La boule tourne lentement vers la souris ; en lâchant Shift elle part <span style="color:#E9D5FF;">dans l'axe centre de l'astre → boule</span>, pas selon la visée habituelle. Elle va plus vite qu'un jet, <span style="color:#4ADE80;">deux fois plus loin</span>, subit quatre fois moins la gravité, et <span style="color:#4ADE80;">les vaisseaux et amas rouges et noirs ne lui font rien</span>. À l'arrivée, c'est un jet comme un autre.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Sur chaque astre où plusieurs camps se partagent le sol et où vous tenez une zone, chacune de vos zones engage <span style="color:#E9D5FF;">le pourcentage d'envoi</span> de sa réserve — celui que vous réglez avec <b>A</b> et <b>E</b>, comme pour un jet. Chez vous, chez l'autre, ou sur un neutre entamé. Chaque case reprise se paie au prix du sol, et <span style="color:#4ADE80;">ce qui n'a rien trouvé à acheter reste dans la zone</span> : riposter à 100 % pour trois cases ne vide pas la planète.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">C'est la souris qui désigne la cible :</span> le curseur sur un astre, la riposte ne touche que <b>ses</b> zones ; le curseur dans le vide, <b>tous</b> vos astres contaminés repartent d'un coup. Rien à nettoyer : l'écran vibre.</p>
 <p style="margin-bottom:16px;">Plusieurs attaques sur la même planète ouvrent <span style="color:#E9D5FF;">chacune leur propre front</span> à l'endroit touché. Des spores ne renforcent une tache que si le tir retombe sur du terrain que vous tenez déjà.</p>
@@ -7546,7 +7565,7 @@ const RAFALE_PAQUET = 10;                      /* spores par paquet */
 const RAFALE_ECART = 20 * Math.PI / 180;       /* dispersion, de part et d'autre */
 
 function demarrerRafale() {
-    if (gameState._firePhase !== 'aiming' || !gameState._fireSource) return;
+    if (gameState._firePhase !== 'aiming' || !gameState._fireSource || gameState._boule) return;
     /* Premier paquet sans attendre : le doigt appuie, ca part. */
     gameState._rafale = { acc: 1 / RAFALE_CADENCE, n: 0, envoi: 0 };
     if (gameState.isMulti) {
@@ -7600,6 +7619,173 @@ function majRafale(dt) {
         R.n++;
     }
 }
+
+/* ─────────────────────────────────────────────
+   LA BOULE : Shift maintenu pendant la visee. L'astre agglutine des spores
+   dans son atmosphere, 25 par seconde jusqu'a 500 ; chaque spore chargee lui
+   en coute 2, et rien n'est rendu. La boule flotte au bord de l'astre et
+   tourne LENTEMENT vers la souris ; au relacher de Shift elle part dans
+   l'axe centre -> boule, pas selon la visee habituelle. Plus rapide qu'un
+   jet, deux fois plus de portee, un quart de la gravite, et les vaisseaux
+   et amas rouges ou noirs ne lui font rien. A l'arrivee, c'est un jet comme
+   un autre. En multijoueur, le serveur charge, tourne et tire.
+   ───────────────────────────────────────────── */
+const BOULE_DEBIT = 25;                  /* spores chargees par seconde */
+const BOULE_MAX = 500;
+const BOULE_COUT = 2;                    /* spores prises a l'astre par spore chargee */
+const BOULE_ROTATION = 0.6;              /* radians par seconde vers la souris */
+const BOULE_VITESSE = 1.4;               /* par rapport a un jet */
+const BOULE_PAS = Math.round(200 * 2 / BOULE_VITESSE);   /* deux fois la portee d'un jet */
+const BOULE_GRAVITE = 0.25;
+const BOULE_HAUTEUR = 1.35;              /* rayon de l'orbite, en rayons d'astre */
+
+function _angleVers(a, cible, pasMax) {
+    let d = cible - a;
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    return a + Math.max(-pasMax, Math.min(pasMax, d));
+}
+
+/* Rayon a l'ecran de la boule : grossit avec la racine de son contenu. */
+function _rayonBoule(n) { return 5 + Math.sqrt(Math.max(0, n)) * 1.1; }
+
+function demarrerBoule() {
+    if (gameState._boule || gameState._rafale) return;
+    if (gameState._firePhase !== 'aiming' || !gameState._fireSource) return;
+    const src = gameState._fireSource;
+    const moi = localSlot();
+    if (src.owner !== moi && !(src.lutte && zonesDe(src, moi).length)) return;
+    const a = Math.atan2(gameState.mouseWorldY - src.y, gameState.mouseWorldX - src.x);
+    gameState._boule = { src: src, angle: a, n: 0, envoi: 0 };
+    if (gameState.isMulti) {
+        const zt = src.lutte ? zoneDeTir(src, moi) : null;
+        const zc = zt ? zoneCentre(src, zt.z) : null;
+        sendAction('boule_debut', { srcName: src.name,
+            tx: gameState.mouseWorldX, ty: gameState.mouseWorldY,
+            zx: zc ? zc.x : undefined, zy: zc ? zc.y : undefined });
+    }
+}
+
+function majBoule(dt) {
+    const B = gameState._boule;
+    if (!B) return;
+    const src = B.src;
+    const moi = localSlot();
+    if (gameState.phase !== 'game' || gameState._firePhase !== 'aiming'
+        || (src.owner !== moi && !(src.lutte && zonesDe(src, moi).length))) {
+        /* Visee abandonnee ou astre perdu : la boule se disperse, perdue. */
+        if (gameState.isMulti) sendAction('boule_fin', {});
+        gameState._boule = null;
+        return;
+    }
+    const cible = Math.atan2(gameState.mouseWorldY - src.y, gameState.mouseWorldX - src.x);
+    if (gameState.isMulti) {
+        /* Le serveur charge et tourne ; on lui dit ou est la souris, et on
+           suit sa boule a lui (instantanes) pour l'affichage. */
+        B.envoi += dt;
+        if (B.envoi >= 0.12) {
+            B.envoi = 0;
+            sendAction('boule_cible', { tx: gameState.mouseWorldX, ty: gameState.mouseWorldY });
+        }
+        return;
+    }
+    B.angle = _angleVers(B.angle, cible, BOULE_ROTATION * dt);
+    /* Charger : on ne prend que ce que l'astre (ou la zone) peut payer. */
+    let voulu = Math.min(BOULE_DEBIT * dt, BOULE_MAX - B.n);
+    if (voulu <= 0) return;
+    const zt = src.lutte ? zoneDeTir(src, moi) : null;
+    const dispo = zt ? zt.z.spores : (src.spores || 0);
+    voulu = Math.min(voulu, dispo / BOULE_COUT);
+    if (voulu <= 0) return;
+    if (zt) { zt.z.spores -= voulu * BOULE_COUT; zonesAgreger(src, src.lutte); }
+    else src.spores -= voulu * BOULE_COUT;
+    B.n += voulu;
+}
+
+/* La planete et ses lunes : ce que la boule traverse au depart. */
+function _groupeBoule(src) {
+    const pl = src.type === 'moon' ? src.parent : src;
+    if (!pl) return [src.name];
+    return [pl.name].concat((pl.moons || []).map(m => m.name));
+}
+
+/* Le depart : du bord de l'astre, dans l'axe centre -> boule. */
+function _trajetBoule(src, angle, vitesseJoueur) {
+    const h = src.radius * BOULE_HAUTEUR;
+    const bx = src.x + Math.cos(angle) * h, by = src.y + Math.sin(angle) * h;
+    return computeTrajectory(bx, by, Math.cos(angle), Math.sin(angle),
+                             vitesseJoueur * BOULE_VITESSE, BOULE_PAS, BOULE_GRAVITE);
+}
+
+function lancerBoule() {
+    const B = gameState._boule;
+    if (!B) return;
+    gameState._boule = null;
+    if (gameState.isMulti) { sendAction('boule_lancer', {}); return; }
+    const n = Math.floor(B.n);
+    if (n < 5) return;                          /* trop peu : dispersee, perdue */
+    const moi = localSlot();
+    const j = gameState.players[moi];
+    if (!j) return;
+    const vitesse = 20 + j.stats.velocity * 6;
+    const traj = _trajetBoule(B.src, B.angle, vitesse);
+    const sparkles = [];
+    for (let i = 0; i < 12; i++) {
+        sparkles.push({ offX: 0, offY: 0, angle: Math.random() * Math.PI * 2,
+                        speed: 0.3 + Math.random() * 0.8, radius: 1 + Math.random() * 2,
+                        phase: Math.random() * Math.PI * 2 });
+    }
+    gameState.gameStats.jetsLaunched++;
+    _playBuffer('launch', 0.6);
+    gameState.jets.push({
+        owner: moi, color: j.color, spores: n, sporeType: 'normal',
+        trajectory: traj, posIndex: 0,
+        x: traj[0] ? traj[0].x : B.src.x, y: traj[0] ? traj[0].y : B.src.y,
+        speed: vitesse * BOULE_VITESSE, alive: true, trail: [], sparkles: sparkles,
+        age: 0, selected: false, source: B.src, sourceName: B.src.name,
+        boule: true, _groupe: _groupeBoule(B.src)
+    });
+}
+
+/* Les boules en charge : la notre en solo, celles de tous (serveur) en
+   multijoueur. Une lueur qui grossit avec son contenu, et son nombre. */
+function drawBoules(ctx) {
+    const liste = [];
+    if (!gameState.isMulti && gameState._boule) {
+        const B = gameState._boule;
+        liste.push({ src: B.src, angle: B.angle, n: B.n, owner: localSlot() });
+    }
+    if (gameState.isMulti && gameState._boulesServeur) {
+        for (const b of gameState._boulesServeur) {
+            const src = gameState.planets.find(p => p.name === b.src) || gameState.moons.find(m => m.name === b.src);
+            if (src) liste.push({ src: src, angle: b.a, n: b.n, owner: b.owner });
+        }
+    }
+    if (!liste.length) return;
+    const z = gameState.camera.zoom;
+    const op = ctx.globalCompositeOperation;
+    for (const b of liste) {
+        const h = b.src.radius * BOULE_HAUTEUR;
+        const x = b.src.x + Math.cos(b.angle) * h, y = b.src.y + Math.sin(b.angle) * h;
+        const j = gameState.players[b.owner];
+        const c = couleurEtincelle((j && j.color) || '#FFFFFF');
+        const r = _rayonBoule(b.n) * Math.max(1, 0.8 / z);
+        const puls = 1 + 0.08 * Math.sin(gameState.time * 9);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(haloSprite(c, 'brume'), x - r * 2.2, y - r * 2.2, r * 4.4, r * 4.4);
+        ctx.drawImage(haloSprite(c, 'noyau'), x - r * puls, y - r * puls, r * 2 * puls, r * 2 * puls);
+        ctx.globalCompositeOperation = op;
+        ctx.font = 'bold ' + Math.max(9, 11 / z) + 'px Orbitron, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(Math.floor(b.n), x, y - r - 4 / z);
+    }
+}
+
+window.addEventListener('keydown', function (e) {
+    if (e.key === 'Shift' && !e.repeat && gameState.phase === 'game') demarrerBoule();
+});
+window.addEventListener('keyup', function (e) { if (e.key === 'Shift') lancerBoule(); });
 
 /* Lacher Ctrl, ou quitter la fenetre, arrete la rafale comme lacher le clic. */
 window.addEventListener('keyup', function (e) { if (e.key === 'Control') arreterRafale(); });
@@ -8797,7 +8983,15 @@ function majJaugeEnvoi(pulse) {
              || ((typeof followingBody !== 'undefined' && followingBody) ? followingBody : null)
              || gameState.selectedBody;
     const nb = document.getElementById('envoiNb');
-    if (nb && gameState._rafale) {
+    if (nb && gameState._boule) {
+        /* Pendant la charge : le contenu de la boule, sur son maximum. */
+        let n = gameState._boule.n;
+        if (gameState.isMulti) {
+            const mienne = (gameState._boulesServeur || []).find(x => x.owner === localSlot());
+            n = mienne ? mienne.n : 0;
+        }
+        nb.innerHTML = 'BOULE ' + Math.floor(n) + '<em>/ ' + BOULE_MAX + '</em>';
+    } else if (nb && gameState._rafale) {
         /* Pendant la rafale, le pourcentage ne compte plus : on tire par paquets. */
         nb.innerHTML = 'RAFALE<em>' + RAFALE_PAQUET + ' × ' + RAFALE_CADENCE + '/s</em>';
     } else if (nb) {
@@ -9490,8 +9684,11 @@ function updateSporeGeneration(dt) {
 // ─────────────────────────────────────────────
 // JETS DE SPORES — Physique
 // ─────────────────────────────────────────────
-function computeTrajectory(startX, startY, dirX, dirY, speed, steps) {
+/* gravite, facultatif : part de la gravite subie (1 par defaut). La boule
+   chargee au Shift n'en subit qu'un quart. */
+function computeTrajectory(startX, startY, dirX, dirY, speed, steps, gravite) {
     const bh = gameState.blackHole;
+    const gFacteur = (gravite === undefined) ? 1 : gravite;
     const points = [];
     let x = startX, y = startY;
     let vx = dirX * speed, vy = dirY * speed;
@@ -9513,7 +9710,7 @@ function computeTrajectory(startX, startY, dirX, dirY, speed, steps) {
             // Falloff progressif vers le bord de portée
             const edgeFade = 1 - Math.pow(dist / gRange, 2);
             const gravity = G / (dist + 50) * edgeFade;
-            const factor = gravity * dt;
+            const factor = gravity * dt * gFacteur;
             vx += (dx / dist) * factor;
             vy += (dy / dist) * factor;
         }
@@ -9528,8 +9725,8 @@ function computeTrajectory(startX, startY, dirX, dirY, speed, steps) {
                 const sG = sun.radius * 2;
                 const sEdgeFade = 1 - Math.pow(sdist / sRange, 2);
                 const sGravity = sG / (sdist + 30) * sEdgeFade;
-                vx += (sdx / sdist) * sGravity * dt;
-                vy += (sdy / sdist) * sGravity * dt;
+                vx += (sdx / sdist) * sGravity * dt * gFacteur;
+                vy += (sdy / sdist) * sGravity * dt * gFacteur;
             }
         }
 
@@ -9730,6 +9927,8 @@ function updateJets(dt) {
             // Seulement si le jet est à moins de 40px d'un amas réel
             if (closestDist > 1600) continue; // 40 * 40
             jet._hitBelt[bi] = true;
+            /* La boule traverse les amas rouges et noirs sans broncher. */
+            if (jet.boule && (closestType === 'red' || closestType === 'dark')) continue;
             if (closestType === 'dark') {
                 // Noir : divise les spores (Ténacité réduit la perte)
                 const _tl1 = gameState.players[jet.owner]?.tech?.tenacity || 0;
@@ -9829,6 +10028,10 @@ function checkJetCollision(jet) {
     const bodies = gameState.allBodies;
     for (const body of bodies) {
         if (jet.age < 0.5 && jet.sourceName && body.name === jet.sourceName) continue;
+        /* La boule part de l'atmosphere, la ou passent les lunes : pendant sa
+           premiere seconde, elle traverse sa planete et les lunes de celle-ci
+           au lieu de s'ecraser dans l'une d'elles. */
+        if (jet.boule && jet.age < 1 && jet._groupe && jet._groupe.indexOf(body.name) >= 0) continue;
         const dx = body.x - jet.x;
         const dy = body.y - jet.y;
         const _br = body.radius + 8;
@@ -11940,7 +12143,7 @@ function drawLaunchPreview(ctx) {
     const player = gameState.players[localSlot()];
     /* Trait rouge quand une etoile ou le trou noir barre la route : le jet y
        serait detruit, et la cible passerait pour invulnerable. */
-    const bloque = !surface && gameState._tirBloque;
+    const bloque = !surface && !gameState._boule && gameState._tirBloque;
     const col = bloque ? '#FF3B30' : (player ? player.color : '#C8A0FF');
     if (surface && gameState._departSurface) {
         const d0 = gameState._departSurface;
@@ -11969,7 +12172,7 @@ function drawLaunchPreview(ctx) {
     }
     ctx.restore();
 
-    dessinerDevis(ctx, src, bloque);
+    if (!gameState._boule) dessinerDevis(ctx, src, bloque);
 }
 
 /* LE DEVIS, colle au curseur. Ce que l'envoi achetera sur l'astre vise, et a
@@ -12691,6 +12894,7 @@ if (gameState.isMulti) {
         majModeSurface(dt);
         majChargementTir(dt);
         majRafale(dt);
+        majBoule(dt);
         majFiletsCharge(dt);
         majPopProduction(dt);
         majSecousse(dt);
@@ -12724,6 +12928,7 @@ if (gameState.isMulti) {
     majModeSurface(dt);
     majChargementTir(dt);
     majRafale(dt);
+    majBoule(dt);
     majFiletsCharge(dt);
     majPopProduction(dt);
     majSecousse(dt);
@@ -12874,6 +13079,7 @@ function render() {
 
     // ── Jets de spores ──
     drawJets(ctx);
+    drawBoules(ctx);
 
     // ── Prévisualisation de lancement ──
     // Recalculer la preview à chaque frame (la planète orbite même si la souris ne bouge pas)
@@ -12919,6 +13125,19 @@ function render() {
     drawOndesSolaires(ctx);
     drawFiletsCharge(ctx);
     drawOndes(ctx);
+    /* Pendant la charge d'une boule, le trait montre SON depart a elle :
+       du bord de l'astre, dans l'axe centre -> boule, sa physique a elle. */
+    if (gameState._boule) {
+        const Bo = gameState._boule;
+        let ang = Bo.angle;
+        if (gameState.isMulti) {
+            const mienne = (gameState._boulesServeur || []).find(b => b.owner === localSlot());
+            if (mienne) ang = mienne.a;
+        }
+        const jo = gameState.players[localSlot()];
+        gameState.launchPreview = _trajetBoule(Bo.src, ang, 20 + (jo ? jo.stats.velocity * 6 : 0));
+        gameState._fireSurface = false;
+    }
     drawLaunchPreview(ctx);
 
     // ── Impacts (LOD mid+) ──
@@ -14247,6 +14466,8 @@ function updateCleaners(dt) {
             cl.fireTimer = CLN_CFG.fireRate;
             for (const jet of gameState.jets) {
                 if (!jet.alive) continue;
+                /* Les vaisseaux rouges et noirs ne peuvent rien contre la boule. */
+                if (jet.boule && (cl.type === 'red' || cl.type === 'dark')) continue;
                 const dx = jet.x - cl.x;
                 const dy = jet.y - cl.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -17587,6 +17808,9 @@ function connectSocket() {
                ce n'est pas le proprietaire de l'astre. Les serveurs d'avant
                n'envoyaient que le proprietaire : on s'en contente alors. */
             if (ev.slot !== undefined && ev.slot !== null) j.owner = ev.slot;
+            if (ev.boule) { j.boule = true; j._groupe = _groupeBoule(src); }
+            /* La vitesse du serveur : celle de la boule n'est pas celle d'un jet. */
+            if (ev.speed > 0) j.speed = ev.speed;
             j.id         = ev.id;
             j.spores     = ev.spores;
             j.color      = ev.color;
@@ -18020,6 +18244,7 @@ function applySnapshot(snap) {
             for (const rock of belt.rocks) rock.angle += baseAngle;
         });
     }
+    gameState._boulesServeur = Array.isArray(snap.boules) ? snap.boules : [];
     if (snap.players) snap.players.forEach(sp => {
         const p = gameState.players.find(p => p.id === sp.id);
         if (!p) return;
