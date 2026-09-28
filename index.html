@@ -655,6 +655,25 @@ v9.7.6 | 2026-09-25 | (en cours)
        rotation, pas le deplacement de l'astre. Plus emises quand l'astre
        fait moins de 15 px de rayon a l'ecran : le clignotement y suffit.
        Cout au pire (46 astres pleins, vue d'ensemble) : 0,46 ms.
+     - ICONES DES BATIMENTS UNIFIEES (famille « organique »). Les astres
+       montraient hexagone / triangle / rond, les menus 🍯 🏗️ 🛡️ 🦠 : on ne
+       s'y retrouvait pas. Un seul dessin SVG par genre (_dessinBat) :
+       alveole = rayon de miel, nid = oeuf dans son nid, biome = dome de vie,
+       parasite = spore infectee a tentacules (nouvelle). iconeBat() pour le
+       HTML, dessinerIconeBat() pour le canevas (image de 192 px faite au
+       chargement), remplirIconesBat() pour les <i class="ic-bat"> poses dans
+       l'aide et l'onglet du codex. Remplaces partout : astres, compteurs
+       sous les astres, menu radial, codex, barre de construction et liste
+       de gauche, compteur du haut, fiche, journal (y compris les avis
+       build_complete du serveur, traduits), selecteur et jauge du
+       demolisseur, marque du parasite sur les astres, didacticiel, aide.
+     - LES NIDS CRACHENT LEURS SPORES. Tout pres (icone de 18 px et plus a
+       l'ecran), un nid d'un astre qui produit lance de petits jets : douze
+       grains a la couleur du proprietaire qui jaillissent du nid, s'ecartent,
+       retombent et s'eteignent, chacun laissant un court trait. Sans etat
+       (angle tire d'un hachage du cycle), rien a stocker par nid.
+     - Aide : paragraphe des icones, et la conquete « ne detruit rien, sauf
+       le demolisseur ».
 
      ── GAMEPLAY (suite) ──
      - LA RAFALE : CTRL + CLIC GAUCHE EN VISEE. L'astre crache des paquets
@@ -2558,6 +2577,10 @@ input[type="radio"]:checked + .build-icon-btn {
 }
 #authScreen .btn { font-size: 14px; padding: 10px 20px; }
 
+/* Icones des batiments (voir iconeBat) : posees sur la ligne du texte. */
+svg.ic-bat { display: inline-block; vertical-align: -0.22em; flex-shrink: 0; }
+i.ic-bat { display: inline-block; width: 1em; height: 1em; }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -2797,7 +2820,7 @@ input[type="radio"]:checked + .build-icon-btn {
   <a href="#h-bataille" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚔ Bataille</a>
   <a href="#h-zones" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🗺 Zones</a>
   <a href="#h-surface" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🎯 Tir de surface</a>
-  <a href="#h-batiments" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🏗 Bâtiments</a>
+  <a href="#h-batiments" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;"><i class="ic-bat" data-g="alveole" data-px="12"></i><i class="ic-bat" data-g="nid" data-px="12"></i><i class="ic-bat" data-g="biome" data-px="12"></i> Bâtiments</a>
   <a href="#h-territoires" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🛰 Territoires</a>
   <a href="#h-evolution" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">✦ Évolution</a>
   <a href="#h-alertes" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🔔 Alertes</a>
@@ -2815,7 +2838,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;color:rgba(200,210,230,0.55);font-size:11px;letter-spacing:1px;">SOURIS</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche sur un astre</td><td style="padding:3px 0;">Le sélectionne et centre la caméra dessus ; si vous pouvez tirer depuis lui, il passe aussitôt en visée</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un astre possédé</td><td style="padding:3px 0;">Menu radial : ⚪ Spores · 🦠 Parasite · 🍯 Alvéole · 🏗 Nid · 🛡 Biome · 📖 Codex</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un astre possédé</td><td style="padding:3px 0;">Menu radial : ⚪ Spores · <i class="ic-bat" data-g="parasite"></i> Parasite · <i class="ic-bat" data-g="alveole"></i> Alvéole · <i class="ic-bat" data-g="nid"></i> Nid · <i class="ic-bat" data-g="biome"></i> Biome · 📖 Codex</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche maintenu → relâcher</td><td style="padding:3px 0;">En mode visée : tire un jet de spores dans la direction pointée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic sur une zone de la planète</td><td style="padding:3px 0;">Choisit la zone d'où partira le tir — elle se cerne d'un trait double et d'un « TIR »</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Double-clic sur un astre</td><td style="padding:3px 0;">Plonge dessus et met en visée (raccourci de cadrage)</td></tr>
@@ -2831,7 +2854,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Z Q S D <span style="color:rgba(200,210,230,0.45)">ou flèches</span></td><td style="padding:3px 0;">Déplacer la caméra</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">P / M</td><td style="padding:3px 0;">Zoom avant / arrière</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;"><b style="color:#FF8A3D;">Démolisseur</b> — arme le tir (le trait rougeoie) ; la molette choisit le bâtiment 🍯 🏗️ 🛡️ ; le clic tire 250 spores, plus lentes, qui en détruisent un de ce type. Espace à nouveau : désarme</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;"><b style="color:#FF8A3D;">Démolisseur</b> — arme le tir (le trait rougeoie) ; la molette choisit le bâtiment <i class="ic-bat" data-g="alveole"></i> <i class="ic-bat" data-g="nid"></i> <i class="ic-bat" data-g="biome"></i> ; le clic tire 250 spores, plus lentes, qui en détruisent un de ce type. Espace à nouveau : désarme</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans Mes Astres — le bouton ⇄ choisit : de planète en planète, ou d'astre en astre (lunes comprises)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
@@ -2854,7 +2877,7 @@ input[type="radio"]:checked + .build-icon-btn {
 </table>
 <p style="margin-bottom:6px;">Le rendement du moment s'affiche au-dessus de l'astre sélectionné, en vert, jaune ou rouge. Tout le reste <span style="color:#E9D5FF;">multiplie</span> cette courbe : la <span style="color:#4ADE80;">Flore</span> de l'astre, la <span style="color:#22C55E;">Symbiose</span> qui monte avec le temps (jusqu'à +20 % sur une planète, +10 % sur une lune), vos <span style="color:#E9D5FF;">nids</span> et votre stat <span style="color:#4ADE80;">Growth</span>.</p>
 <p style="margin-bottom:16px;">Une <span style="color:#EAB308;">alvéole</span> augmente la capacité, donc aussi la production : un plus grand silo nourrit plus de monde. Attention, elle décale aussi le pic.</p>
-<p style="margin-bottom:16px;">Deux types de jets partent du menu radial : <span style="color:#E9D5FF;">⚪ Spores</span>, qui colonisent et attaquent, et <span style="color:#E9D5FF;">🦠 Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent).</p>
+<p style="margin-bottom:16px;">Deux types de jets partent du menu radial : <span style="color:#E9D5FF;">⚪ Spores</span>, qui colonisent et attaquent, et <span style="color:#E9D5FF;"><i class="ic-bat" data-g="parasite"></i> Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent).</p>
 <!-- BATAILLE -->
 <p id="h-bataille" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚔ BATAILLE DE SURFACE</p>
 <p style="margin-bottom:6px;">Une conquête ne se joue plus en un choc. Les spores qui touchent un astre y <span style="color:#FFD700;">prennent pied sur une case</span>, du côté d'où vient le tir, et s'étalent sur le disque en lobes irréguliers. Chaque camp a sa couleur ; le sol que personne ne tient est gris.</p>
@@ -2863,7 +2886,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA RAFALE — CTRL + CLIC GAUCHE.</span> Pendant la visée, maintenez Ctrl et le clic gauche : votre astre crache des <span style="color:#E9D5FF;">paquets de 10 spores, 8 par seconde</span>, dans la direction du curseur à plus ou moins 20° près — une mitrailleuse, pas un fusil. Il se vide tant que vous tenez, et s'arrête quand vous lâchez ou quand il n'a plus de quoi faire un paquet. Le pourcentage d'envoi n'y compte pas.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA BOULE — SHIFT.</span> Pendant la visée, maintenez Shift : votre astre agglutine des spores dans son atmosphère, <span style="color:#E9D5FF;">25 par seconde jusqu'à 500</span>. Chaque spore chargée lui en coûte <b>deux</b>, et rien n'est rendu. La boule tourne lentement vers la souris ; en lâchant Shift elle part <span style="color:#E9D5FF;">dans l'axe centre de l'astre → boule</span>, pas selon la visée habituelle. Elle va plus vite qu'un jet, <span style="color:#4ADE80;">deux fois plus loin</span>, subit quatre fois moins la gravité, et <span style="color:#4ADE80;">les vaisseaux et amas rouges et noirs ne lui font rien</span>. À l'arrivée, c'est un jet comme un autre.</p>
-<p style="margin-bottom:6px;"><span style="color:#FF8A3D;">LE DÉMOLISSEUR — ESPACE.</span> Pendant la visée, Espace <span style="color:#E9D5FF;">arme</span> le démolisseur : le trait de visée rougeoie et trois icônes suivent le curseur — 🍯 alvéole, 🏗️ nid, 🛡️ biome. <span style="color:#E9D5FF;">La molette</span> choisit le bâtiment visé ; sous les icônes, le nombre que l'astre pointé en possède. Le clic tire alors <span style="color:#E9D5FF;">250 spores</span>, <b>moins vite</b> qu'un jet pour la même portée. À l'impact, <span style="color:#4ADE80;">un bâtiment de ce type</span>, pris au hasard parmi ceux qui ne sont pas à vous, explose ; si l'astre n'en a pas, rien ne casse. Ses spores attaquent ensuite comme un jet ordinaire. Sans 250 spores sur l'astre (ou la zone), l'écran vibre et rien ne part. Espace à nouveau désarme.</p>
+<p style="margin-bottom:6px;"><span style="color:#FF8A3D;">LE DÉMOLISSEUR — ESPACE.</span> Pendant la visée, Espace <span style="color:#E9D5FF;">arme</span> le démolisseur : le trait de visée rougeoie et trois icônes suivent le curseur — <i class="ic-bat" data-g="alveole"></i> alvéole, <i class="ic-bat" data-g="nid"></i> nid, <i class="ic-bat" data-g="biome"></i> biome. <span style="color:#E9D5FF;">La molette</span> choisit le bâtiment visé ; sous les icônes, le nombre que l'astre pointé en possède. Le clic tire alors <span style="color:#E9D5FF;">250 spores</span>, <b>moins vite</b> qu'un jet pour la même portée. À l'impact, <span style="color:#4ADE80;">un bâtiment de ce type</span>, pris au hasard parmi ceux qui ne sont pas à vous, explose ; si l'astre n'en a pas, rien ne casse. Ses spores attaquent ensuite comme un jet ordinaire. Sans 250 spores sur l'astre (ou la zone), l'écran vibre et rien ne part. Espace à nouveau désarme.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Sur chaque astre où plusieurs camps se partagent le sol et où vous tenez une zone, chacune de vos zones engage <span style="color:#E9D5FF;">le pourcentage d'envoi</span> de sa réserve — celui que vous réglez avec <b>A</b> et <b>E</b>, comme pour un jet. Chez vous, chez l'autre, ou sur un neutre entamé. Chaque case reprise se paie au prix du sol, et <span style="color:#4ADE80;">ce qui n'a rien trouvé à acheter reste dans la zone</span> : riposter à 100 % pour trois cases ne vide pas la planète.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">C'est la souris qui désigne la cible :</span> le curseur sur un astre, la riposte ne touche que <b>ses</b> zones ; le curseur dans le vide, <b>tous</b> vos astres contaminés repartent d'un coup. Rien à nettoyer : l'écran vibre.</p>
 <p style="margin-bottom:16px;">Plusieurs attaques sur la même planète ouvrent <span style="color:#E9D5FF;">chacune leur propre front</span> à l'endroit touché. Des spores ne renforcent une tache que si le tir retombe sur du terrain que vous tenez déjà.</p>
@@ -2882,17 +2905,18 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:16px;">L'astre doit garder <span style="color:#E9D5FF;">70 pixels de rayon</span> à l'écran : en dessous, on ne distingue plus ses cases, donc le viser signifie le prendre pour cible et non le bombarder. Une géante se bombarde de loin, une petite lune demande qu'on s'approche.</p>
 
 <!-- BÂTIMENTS -->
-<p id="h-batiments" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🏗 BÂTIMENTS</p>
+<p id="h-batiments" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;"><i class="ic-bat" data-g="alveole"></i><i class="ic-bat" data-g="nid"></i><i class="ic-bat" data-g="biome"></i> BÂTIMENTS</p>
 <p style="margin-bottom:6px;">Par la couronne extérieure du menu radial, ou aux touches <span style="color:#E9D5FF;">1 2 3</span>. La construction est <span style="color:#4ADE80;">immédiate</span> : si l'astre ne peut pas payer, elle est refusée sur-le-champ et l'écran vibre.</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
   <tr style="color:rgba(200,210,230,0.5);"><td style="padding:3px 0;width:26%;">Bâtiment</td><td style="padding:3px 0;width:22%;">Coût</td><td style="padding:3px 0;">Gains successifs</td></tr>
-  <tr><td style="padding:3px 0;">🍯 Alvéole</td><td style="padding:3px 0;color:#FFD700;">10 % du stock max</td><td style="padding:3px 0;">capacité : +20 %, +15 %, +10 %, puis +5 %</td></tr>
-  <tr><td style="padding:3px 0;">🏗️ Nid</td><td style="padding:3px 0;color:#FFD700;">15 % du stock max</td><td style="padding:3px 0;">production : +30 %, +22,5 %, +15 %, puis +7,5 %</td></tr>
-  <tr><td style="padding:3px 0;">🛡️ Biome</td><td style="padding:3px 0;color:#FFD700;">20 % du stock max</td><td style="padding:3px 0;">défense : +20 %, +15 %, +10 %, puis +5 %</td></tr>
+  <tr><td style="padding:3px 0;"><i class="ic-bat" data-g="alveole"></i> Alvéole</td><td style="padding:3px 0;color:#FFD700;">10 % du stock max</td><td style="padding:3px 0;">capacité : +20 %, +15 %, +10 %, puis +5 %</td></tr>
+  <tr><td style="padding:3px 0;"><i class="ic-bat" data-g="nid"></i> Nid</td><td style="padding:3px 0;color:#FFD700;">15 % du stock max</td><td style="padding:3px 0;">production : +30 %, +22,5 %, +15 %, puis +7,5 %</td></tr>
+  <tr><td style="padding:3px 0;"><i class="ic-bat" data-g="biome"></i> Biome</td><td style="padding:3px 0;color:#FFD700;">20 % du stock max</td><td style="padding:3px 0;">défense : +20 %, +15 %, +10 %, puis +5 %</td></tr>
   <tr><td colspan="3" style="padding:6px 0;color:rgba(200,210,230,0.6);font-size:11px;">À partir du quatrième d'un même genre, le coût monte de <b>10 %</b> à chaque fois. Le nid rapporte une fois et demie plus que les autres, à coût égal.</td></tr>
 </table>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">UNE ICÔNE PAR BÂTIMENT, PARTOUT LA MÊME.</span> <i class="ic-bat" data-g="alveole"></i> le rayon de miel pour l'alvéole, <i class="ic-bat" data-g="nid"></i> l'œuf dans son nid pour le nid, <i class="ic-bat" data-g="biome"></i> le dôme de vie pour le biome, et <i class="ic-bat" data-g="parasite"></i> la spore infectée pour le parasite. Ce sont les mêmes sur les astres, dans le menu radial, la barre de construction, la liste de gauche, la fiche et le journal. De très près, un <span style="color:#4ADE80;">nid qui produit crache ses spores</span> en petits jets.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">LES BÂTIMENTS SONT POSÉS SUR LE SOL.</span> Chacun occupe une case de la surface : on le voit là où il est. Vous pouvez bâtir sur une simple tête de pont chez l'ennemi, payée par la réserve que vous avez sur place.</p>
-<p style="margin-bottom:16px;">Quand la frontière passe dessus, le bâtiment <span style="color:#4ADE80;">change de mains avec le terrain</span> : la conquête ne détruit plus rien, elle récupère. Seuls comptent les nids que vous tenez, et les biomes qui défendent sont ceux que l'assaillant ne tient pas.</p>
+<p style="margin-bottom:16px;">Quand la frontière passe dessus, le bâtiment <span style="color:#4ADE80;">change de mains avec le terrain</span> : la conquête ne détruit rien, elle récupère — seul le <span style="color:#FF8A3D;">démolisseur</span> (Espace) fait exploser un bâtiment. Seuls comptent les nids que vous tenez, et les biomes qui défendent sont ceux que l'assaillant ne tient pas.</p>
 <p style="margin-bottom:16px;"><span style="color:#FFD700;">Système solaire entier conquis</span> → +3 % de production sur tous ses astres, et les ondes solaires se déclenchent (voir Territoires).</p>
 
 <!-- TERRITOIRES -->
@@ -3268,7 +3292,7 @@ input[type="radio"]:checked + .build-icon-btn {
 
     <div class="codex-tabs">
         <div class="codex-tab active" data-ctab="ctabInfos">📊 INFOS</div>
-        <div class="codex-tab" data-ctab="ctabBuild">🏗️ BÂTIMENTS</div>
+        <div class="codex-tab" data-ctab="ctabBuild"><i class="ic-bat" data-g="alveole" data-px="13"></i><i class="ic-bat" data-g="nid" data-px="13"></i><i class="ic-bat" data-g="biome" data-px="13"></i> BÂTIMENTS</div>
     </div>
 
     <!-- Onglet INFOS -->
@@ -7355,7 +7379,7 @@ function _stmInit() {
                 const body = _stmLiveBody;
                 if (!demanderConstruction(body, b.mode)) return;
                 _closeSporMenu();
-                addEvent('build', b.icon, `${b.name} activé sur ${body.name}`, body, gameState.players[localSlot()]?.color);
+                addEvent('build', BATI_GENRES.indexOf(b.mode) >= 0 ? iconeBat(b.mode, 12) : (b.icon || ''), `${b.name} activé sur ${body.name}`, body, gameState.players[localSlot()]?.color);
             }
         }
     });
@@ -7852,7 +7876,6 @@ const DEMOL_SPORES = 250;
 const DEMOL_VITESSE = 0.6;                            /* par rapport a un jet */
 const DEMOL_PAS = Math.round(200 / DEMOL_VITESSE);    /* meme portee qu'un jet */
 const DEMOL_GENRES = ['alveole', 'nid', 'biome'];
-const DEMOL_ICONES = { alveole: '🍯', nid: '🏗️', biome: '🛡️' };
 const DEMOL_NOMS = { alveole: 'Alvéole', nid: 'Nid', biome: 'Biome' };
 
 /* Espace : armer ou desarmer. Sans visee en cours, on vise d'abord depuis
@@ -8413,7 +8436,8 @@ function _stmDraw() {
         const lx = cx+Math.cos(midA)*lr, ly = cy+Math.sin(midA)*lr;
         ctx.save();
         ctx.font='18px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(s.icon, lx, ly-7);
+        if (s.type === 'parasite') dessinerIconeBat(ctx, 'parasite', lx, ly-7, 22);
+        else ctx.fillText(s.icon, lx, ly-7);
         ctx.font=`bold 8px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.9)';
         ctx.fillText(s.label, lx, ly+8);
         if (s.count) { ctx.font=`7px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillText(s.count, lx, ly+18); }
@@ -8440,7 +8464,8 @@ function _stmDraw() {
             ctx.save();
             ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
             ctx.globalAlpha = b.disabled ? 0.35 : 1;
-            ctx.fillText(b.icon, lx, ly-4);
+            if (BATI_GENRES.indexOf(b.mode) >= 0) dessinerIconeBat(ctx, b.mode, lx, ly-4, 18);
+            else if (b.icon) ctx.fillText(b.icon, lx, ly-4);
             ctx.font=`bold 7px 'Exo 2',sans-serif`; ctx.fillStyle='rgba(255,255,255,0.85)';
             ctx.fillText(b.name.split(' ')[0], lx, ly+7);
             ctx.restore();
@@ -8498,17 +8523,17 @@ function _stmOpen(body, clientX, clientY) {
     const paraCount = (body.parasiteSpore || 0);
     _stmSectors = [
         { type:'normal',      icon:'⚪', label:'Spores',  count: norm + ' sp',         color:'rgba(60,40,120,0.85)',  colorHover:'rgba(100,70,180,0.95)', disabled: norm < 5 },
-        { type:'parasite',    icon:'🦠', label:'Parasite',count: paraCount + ' prête', color:'rgba(10,60,25,0.85)',  colorHover:'rgba(20,120,50,0.95)',  disabled: paraCount < 1 },
+        { type:'parasite',    icon:null,   label:'Parasite',count: paraCount + ' prête', color:'rgba(10,60,25,0.85)',  colorHover:'rgba(20,120,50,0.95)',  disabled: paraCount < 1 },
     ];
     const _base = body.baseMaxSpores || body.maxSpores || 0;
     const _BLD_ALL = [
         { mode:'off',     icon:'⬛', name:'OFF',     color:'rgba(100,70,180,0.3)',  tip:'Production normale.',                              disabled:false },
         /* Le gain et le cout affiches sont ceux du PROCHAIN batiment : ils
            changent a chaque construction, c'est tout l'interet de la courbe. */
-        { mode:'alveole', icon:'🍯', name:'ALVÉOLE', color:'rgba(234,179,8,0.3)',   tip:`+${pct(bonusProchain(body.alveoles, 'alveole'))}% stock max · Coût: ${coutBatiment(body,'alveole')} sp`, disabled: body.spores < coutBatiment(body,'alveole') },
-        { mode:'nid',     icon:'🏗️', name:'NID',     color:'rgba(34,197,94,0.3)',   tip:`+${pct(bonusProchain(body.nids, 'nid'))}% prod · Coût: ${coutBatiment(body,'nid')} sp`,   disabled: body.spores < coutBatiment(body,'nid') },
-        { mode:'biome',   icon:'🛡️', name:'BIOME',   color:'rgba(59,130,246,0.3)',  tip:`+${pct(bonusProchain(body.biomes, 'biome'))}% défense · Coût: ${coutBatiment(body,'biome')} sp`,  disabled: body.spores < coutBatiment(body,'biome') },
-        { mode:'parasite',icon:'🦠', name:'FOYER PUTRIDE',color:'rgba(10,80,30,0.3)',    tip:'2 min → 1 spore parasitaire.',                      disabled:(body.parasiteSpore||0)>=1 },
+        { mode:'alveole', icon:null, name:'ALVÉOLE', color:'rgba(234,179,8,0.3)',   tip:`+${pct(bonusProchain(body.alveoles, 'alveole'))}% stock max · Coût: ${coutBatiment(body,'alveole')} sp`, disabled: body.spores < coutBatiment(body,'alveole') },
+        { mode:'nid',     icon:null, name:'NID',     color:'rgba(34,197,94,0.3)',   tip:`+${pct(bonusProchain(body.nids, 'nid'))}% prod · Coût: ${coutBatiment(body,'nid')} sp`,   disabled: body.spores < coutBatiment(body,'nid') },
+        { mode:'biome',   icon:null, name:'BIOME',   color:'rgba(59,130,246,0.3)',  tip:`+${pct(bonusProchain(body.biomes, 'biome'))}% défense · Coût: ${coutBatiment(body,'biome')} sp`,  disabled: body.spores < coutBatiment(body,'biome') },
+        { mode:'parasite',icon:null, name:'FOYER PUTRIDE',color:'rgba(10,80,30,0.3)',    tip:'2 min → 1 spore parasitaire.',                      disabled:(body.parasiteSpore||0)>=1 },
     ];
     _stmBldSectors = _BLD_ALL.map(b => ({ ...b, active: body.buildMode===b.mode }));
     _stmLiveBody = body;
@@ -9121,10 +9146,10 @@ function updateCodexBuild(body) {
     const _base = body.baseMaxSpores || body.maxSpores || 0;
     const BLD = [
         { mode:'off',     icon:'⬛', name:'OFF',      desc:'Production normale', color:'rgba(100,70,180,0.3)' },
-        { mode:'alveole', icon:'🍯', name:'ALVÉOLE',  desc:`+${pct(bonusProchain(body.alveoles, 'alveole'))}% stock max · Coût: ${coutBatiment(body,'alveole')} sp`, color:'rgba(234,179,8,0.3)',   tip:'Agrandit la capacité de stockage. Les gains diminuent : +20 %, +15 %, +10 %, puis +5 % par alvéole. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.alveoles||0, 'alveole'))+' %.' },
-        { mode:'nid',     icon:'🏗️', name:'NID',      desc:`+${pct(bonusProchain(body.nids, 'nid'))}% prod · Coût: ${coutBatiment(body,'nid')} sp`,    color:'rgba(34,197,94,0.3)',   tip:'Accélère la production locale. Les gains diminuent : +30 %, +22,5 %, +15 %, puis +7,5 % par nid - il est une fois et demie plus fort que les autres, a cout egal. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.nids||0, 'nid'))+' %.' },
-        { mode:'biome',   icon:'🛡️', name:'BIOME',    desc:`+${pct(bonusProchain(body.biomes, 'biome'))}% défense · Coût: ${coutBatiment(body,'biome')} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Renforce la défense à l\'impact. Les gains diminuent : +20 %, +15 %, +10 %, puis +5 % par biome. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.biomes||0, 'biome'))+' %.' },
-        { mode:'parasite',  icon:'🦠', name:'FOYER PUTRIDE',    desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
+        { mode:'alveole', icon:iconeBat('alveole', 22), name:'ALVÉOLE',  desc:`+${pct(bonusProchain(body.alveoles, 'alveole'))}% stock max · Coût: ${coutBatiment(body,'alveole')} sp`, color:'rgba(234,179,8,0.3)',   tip:'Agrandit la capacité de stockage. Les gains diminuent : +20 %, +15 %, +10 %, puis +5 % par alvéole. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.alveoles||0, 'alveole'))+' %.' },
+        { mode:'nid',     icon:iconeBat('nid', 22), name:'NID',      desc:`+${pct(bonusProchain(body.nids, 'nid'))}% prod · Coût: ${coutBatiment(body,'nid')} sp`,    color:'rgba(34,197,94,0.3)',   tip:'Accélère la production locale. Les gains diminuent : +30 %, +22,5 %, +15 %, puis +7,5 % par nid - il est une fois et demie plus fort que les autres, a cout egal. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.nids||0, 'nid'))+' %.' },
+        { mode:'biome',   icon:iconeBat('biome', 22), name:'BIOME',    desc:`+${pct(bonusProchain(body.biomes, 'biome'))}% défense · Coût: ${coutBatiment(body,'biome')} sp`,   color:'rgba(59,130,246,0.3)',  tip:'Renforce la défense à l\'impact. Les gains diminuent : +20 %, +15 %, +10 %, puis +5 % par biome. Au-delà de trois, le coût monte de 10 % à chaque fois. Total actuel : +'+pct(bonusBatiment(body.biomes||0, 'biome'))+' %.' },
+        { mode:'parasite',  icon:iconeBat('parasite', 22), name:'FOYER PUTRIDE',    desc:'2min → 1 spore parasitaire', color:'rgba(10,80,30,0.3)' },
 
     ];
 
@@ -9274,7 +9299,7 @@ function majFiche() {
         g += _fCase('Flore', Math.round(b.flore || 0));
         g += _fCase('Faune', Math.round(b.faune || 0));
         g += _fCase('Symbiose', Math.round(b.symbiosis || 0) + ' %');
-        g += _fCase('Bâtiments', '🏗️' + (b.nids || 0) + ' 🛡️' + (b.biomes || 0) + ' 🍯' + (b.alveoles || 0));
+        g += _fCase('Bâtiments', iconeBat('alveole', 13) + (b.alveoles || 0) + ' ' + iconeBat('nid', 13) + (b.nids || 0) + ' ' + iconeBat('biome', 13) + (b.biomes || 0));
 
         /* Astre partage : la part du sol qu'on tient, c'est LA donnee qui
            compte - a qui est vraiment cette planete. */
@@ -9363,7 +9388,7 @@ function majJaugeEnvoi(pulse) {
     const nb = document.getElementById('envoiNb');
     if (nb && gameState._demol) {
         const g = gameState._demolGenre || 'nid';
-        nb.innerHTML = 'DÉMOLISSEUR<em>' + DEMOL_SPORES + ' · ' + DEMOL_ICONES[g] + ' ' + DEMOL_NOMS[g] + '</em>';
+        nb.innerHTML = 'DÉMOLISSEUR<em>' + DEMOL_SPORES + ' · ' + iconeBat(g, 14) + ' ' + DEMOL_NOMS[g] + '</em>';
     } else if (nb && gameState._boule) {
         /* Pendant la charge : le contenu de la boule, sur son maximum. */
         let n = gameState._boule.n;
@@ -9450,10 +9475,10 @@ function updateHUD() {
                 par += body.parasiteSpore || 0;
             }
             const bats = [
-                { icone: '\u{1F36F}', n: alv, tip: 'Alveoles : stockage. Gains decroissants, 20 puis 15, 10 et 5 % par astre.' },
-                { icone: '\u{1F3D7}\uFE0F', n: nid, tip: 'Nids : production. Gains decroissants, 20 puis 15, 10 et 5 % par astre.' },
-                { icone: '\u{1F6E1}\uFE0F', n: bio, tip: 'Biomes : defense. Gains decroissants, 20 puis 15, 10 et 5 % par astre.' },
-                { icone: '\u{1F9A0}', n: par, tip: 'Spores parasitaires pretes' },
+                { icone: iconeBat('alveole', 14), n: alv, tip: 'Alveoles : stockage. Gains decroissants, 20 puis 15, 10 et 5 % par astre.' },
+                { icone: iconeBat('nid', 14), n: nid, tip: 'Nids : production. Gains decroissants, 20 puis 15, 10 et 5 % par astre.' },
+                { icone: iconeBat('biome', 14), n: bio, tip: 'Biomes : defense. Gains decroissants, 20 puis 15, 10 et 5 % par astre.' },
+                { icone: iconeBat('parasite', 14), n: par, tip: 'Spores parasitaires pretes' },
             ].filter(b => b.n > 0);
             batsEl.innerHTML = bats.map(b =>
                 `<span class="spore-bat" title="${b.tip}">${b.icone} <b>${b.n}</b></span>`
@@ -9951,7 +9976,7 @@ function updateSporeGeneration(dt) {
                     body.parasiteSpore = 1;
                     body.parasiteProgress = 0;
                     body.buildMode = 'off';
-                    if (body.owner === localSlot()) addEvent('build', '🦠', `Spore parasitaire prête sur ${body.name}`, body, gameState.players[localSlot()]?.color);
+                    if (body.owner === localSlot()) addEvent('build', iconeBat('parasite', 12), `Spore parasitaire prête sur ${body.name}`, body, gameState.players[localSlot()]?.color);
                 }
             } else {
                 body.buildMode = 'off';
@@ -10017,9 +10042,9 @@ function updateSporeGeneration(dt) {
                     if (_buildType === 'alveole') body.baseMaxSpores = body.baseMaxSpores || body.maxSpores;
                     poserEdifice(body, _buildType, 0);
                     if (body.owner === localSlot()) {
-                        const _sg = { nid: ['🏗️', 'Nid construit', body.nids],
-                                      alveole: ['🍯', 'Alvéole construite', body.alveoles],
-                                      biome: ['🛡️', 'Biome construit', body.biomes] }[_buildType];
+                        const _sg = { nid: [iconeBat('nid', 12), 'Nid construit', body.nids],
+                                      alveole: [iconeBat('alveole', 12), 'Alvéole construite', body.alveoles],
+                                      biome: [iconeBat('biome', 12), 'Biome construit', body.biomes] }[_buildType];
                         addEvent('build', _sg[0], `${_sg[1]} sur ${body.name} (×${_sg[2]})`, body, gameState.players[localSlot()]?.color);
                     }
                 }
@@ -11703,9 +11728,8 @@ function _peindreLutte(body, L) {
    l'ecran : on la laisse volontairement s'etaler au filtrage, ce qui donne
    des taches molles plutot qu'un damier. Une seule image par astre et par
    frame, repeinte seulement quand le front a bouge. */
-/* Les batiments, poses la ou ils sont : un petit signe par edifice, a la
-   couleur de son genre, cercle d'un liseré sombre pour tenir sur n'importe
-   quelle surface. On ne les montre qu'a partir d'un certain grossissement -
+/* Les batiments, poses la ou ils sont : l'icone de son genre par edifice,
+   cerclee de sombre pour tenir sur n'importe quelle surface. On ne les montre qu'a partir d'un certain grossissement -
    en dessous ils ne seraient qu'un grain de bruit. */
 function drawEdifices(ctx) {
     const z = gameState.camera.zoom;
@@ -11721,38 +11745,66 @@ function drawEdifices(ctx) {
         if (!liste.length) continue;
         const pas = (2 * r) / LUTTE_N;
         const x0 = body.x - r, y0 = body.y - r;
-        const taille = Math.max(pas * 0.42, 2.5 / z);
-        ctx.save();
-        ctx.lineWidth = Math.max(0.6 / z, taille * 0.32);
-        ctx.strokeStyle = 'rgba(8,6,20,0.8)';
+        /* L'icone du genre (voir iconeBat), la meme que dans les menus. */
+        const cote = Math.max(pas * 1.05, 6 / z);
+        /* Tout pres, un nid qui produit crache ses spores : de petits jets
+           qui jaillissent et retombent. Seulement si l'astre produit, et
+           seulement quand l'icone est assez grande pour qu'on les voie. */
+        let jets = false, couleur = '#4ADE80';
+        if (cote * z >= 18 && (body.nids || 0) > 0 && debitAstre(body) > 0) {
+            jets = true;
+            const j = body.owner !== null && body.owner !== undefined ? gameState.players[body.owner] : null;
+            if (j) couleur = couleurEtincelle(j.color);
+        }
         for (let k = 0; k < liste.length; k++) {
             const e = liste[k];
             const cx = x0 + ((e.i % LUTTE_N) + 0.5) * pas;
             const cy = y0 + (((e.i / LUTTE_N) | 0) + 0.5) * pas;
-            ctx.fillStyle = BATI_TEINTES[e.g] || '#FFFFFF';
-            ctx.beginPath();
-            if (e.g === 'nid') {
-                /* Triangle, rond, hexagone : les memes formes que la barre de
-                   construction, pour qu'on les reconnaisse sans legende. */
-                ctx.moveTo(cx, cy - taille);
-                ctx.lineTo(cx + taille * 0.9, cy + taille * 0.7);
-                ctx.lineTo(cx - taille * 0.9, cy + taille * 0.7);
-                ctx.closePath();
-            } else if (e.g === 'biome') {
-                ctx.arc(cx, cy, taille * 0.85, 0, Math.PI * 2);
-            } else {
-                for (let a = 0; a < 6; a++) {
-                    const ang = a * Math.PI / 3 - Math.PI / 6;
-                    const px = cx + Math.cos(ang) * taille, py = cy + Math.sin(ang) * taille;
-                    if (a) ctx.lineTo(px, py); else ctx.moveTo(px, py);
-                }
-                ctx.closePath();
-            }
-            ctx.fill();
-            ctx.stroke();
+            dessinerIconeBat(ctx, e.g, cx, cy, cote);
+            if (jets && e.g === 'nid') jetsDuNid(ctx, cx, cy, cote, e.i, couleur);
         }
-        ctx.restore();
     }
+}
+
+/* Les jets d'un nid : des grains qui partent du bord du nid vers le haut,
+   s'ecartent un peu, ralentissent et retombent en s'eteignant. Chaque grain
+   suit un cycle ; a chaque cycle il repart sous un autre angle (tire d'un
+   hachage du numero de cycle), ce qui evite de garder un etat par nid. */
+function jetsDuNid(ctx, cx, cy, cote, graine, couleur) {
+    const t = gameState.time;
+    const a0 = ctx.globalAlpha, op = ctx.globalCompositeOperation;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = couleur;
+    ctx.strokeStyle = couleur;
+    ctx.lineCap = 'round';
+    for (let j = 0; j < 12; j++) {
+        const decal = ((graine * 0.618 + j * 0.377) % 1);
+        const u = t * 1.1 + decal;
+        const cycle = Math.floor(u);
+        const ph = u - cycle;
+        const h = Math.sin(cycle * 12.9898 + j * 78.233 + graine * 3.1) * 43758.5453;
+        const alea = h - Math.floor(h);
+        const ang = -Math.PI / 2 + (alea - 0.5) * 1.3;
+        const v = cote * (0.8 + alea * 0.7);
+        /* Position a l'instant, et un peu avant : le trait entre les deux
+           fait le jet. */
+        const pos = (q) => [cx + Math.cos(ang) * v * q,
+                            cy - cote * 0.18 + Math.sin(ang) * v * q + cote * 0.9 * q * q];
+        const [px, py] = pos(ph);
+        const [qx, qy] = pos(Math.max(0, ph - 0.12));
+        const r = cote * 0.055 * (1 - ph * 0.5);
+        ctx.globalAlpha = 0.9 * (1 - ph);
+        ctx.lineWidth = r * 1.6;
+        ctx.beginPath();
+        ctx.moveTo(qx, qy);
+        ctx.lineTo(px, py);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(px, py, r * 1.2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = a0;
+    ctx.globalCompositeOperation = op;
 }
 
 function drawLuttes(ctx) {
@@ -12207,10 +12259,10 @@ function applyConquest(body, jet) {
                 body.droneCount = 0;
                 const attackerName = gameState.players[jet.owner]?.name || '?';
                 if (body.owner === localSlot()) {
-                    addEvent('war', '🦠', `${body.name} infectée par ${attackerName} !`, body, gameState.players[jet.owner]?.color);
+                    addEvent('war', iconeBat('parasite', 12), `${body.name} infectée par ${attackerName} !`, body, gameState.players[jet.owner]?.color);
                     ajouterAlerte('attaque', body, gameState.players[jet.owner]?.color);
                 }
-                if (jet.owner === localSlot()) addEvent('war', '🦠', `Parasite installé sur ${body.name}`, body, gameState.players[jet.owner]?.color);
+                if (jet.owner === localSlot()) addEvent('war', iconeBat('parasite', 12), `Parasite installé sur ${body.name}`, body, gameState.players[jet.owner]?.color);
             }
         }
         return;
@@ -12683,8 +12735,7 @@ function dessinerChoixDemolisseur(ctx) {
             ctx.stroke();
             ctx.shadowBlur = 0;
         }
-        ctx.font = Math.round(m * (choisi ? 1.15 : 0.85)) + 'px sans-serif';
-        ctx.fillText(DEMOL_ICONES[g], cx, cy + m * 0.05);
+        dessinerIconeBat(ctx, g, cx, cy, m * (choisi ? 1.55 : 1.15));
     }
     ctx.globalAlpha = 1;
     const cible = _astreSousCurseur();
@@ -14445,9 +14496,7 @@ function drawPlanets(ctx) {
                 ctx.strokeStyle = `rgba(34,197,94,${_osc * 0.4})`;
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
-                ctx.font = (p.radius * 0.7) + 'px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText('🦠', p.x, p.y - p.radius - 4);
+                dessinerIconeBat(ctx, 'parasite', p.x, p.y - p.radius - p.radius * 0.35, p.radius * 0.7);
                 ctx.restore();
             }
 
@@ -14466,9 +14515,8 @@ function drawPlanets(ctx) {
                     const _pulse = 1 + 0.18 * Math.sin(_t * 3.5);
                     const _alpha = 0.6 + 0.4 * Math.abs(Math.sin(_t * 2.2));
                     const _fs = Math.max(10, p.radius * 0.6);
-                    ctx.font = (_fs * _pulse) + 'px sans-serif';
                     ctx.globalAlpha = _alpha;
-                    ctx.fillText('🦠', p.x, p.y + p.radius + 18);
+                    dessinerIconeBat(ctx, 'parasite', p.x, p.y + p.radius + 14, _fs * 1.2 * _pulse);
                     ctx.globalAlpha = 1;
                     ctx.restore();
                 }
@@ -14523,9 +14571,8 @@ function drawPlanets(ctx) {
                     const _pulse = 1 + 0.15 * Math.sin(_t * 3.5);
                     const _alpha = 0.6 + 0.4 * Math.abs(Math.sin(_t * 2.2));
                     const _fs = Math.max(8, m.radius * 0.8);
-                    ctx.font = (_fs * _pulse) + 'px sans-serif';
                     ctx.globalAlpha = _alpha;
-                    ctx.fillText('🦠', m.x, m.y + m.radius + 12);
+                    dessinerIconeBat(ctx, 'parasite', m.x, m.y + m.radius + 9, _fs * 1.2 * _pulse);
                     ctx.globalAlpha = 1;
                     ctx.restore();
                 }
@@ -15618,6 +15665,72 @@ function drawImpacts(ctx) {
    astres : une seule definition pour que le pop soit de la bonne couleur. */
 const BATI_TEINTES = { alveole: '#F5B93B', nid: '#4ADE80', biome: '#60A5FA' };
 
+/* ─────────────────────────────────────────────
+   LES ICONES DES BATIMENTS, une seule famille partout : menus, barre de
+   construction, liste de gauche, fiche, journal, aide, et sur les astres.
+   Style organique : alveole = rayon de miel, nid = oeuf dans son nid,
+   biome = dome de vie, parasite = spore infectee a tentacules. Un seul
+   dessin (SVG, 32 x 32) : le HTML l'insere tel quel, le canevas en tire
+   une image faite une fois pour toutes.
+   ───────────────────────────────────────────── */
+const BATI_GENRES = ['alveole', 'nid', 'biome', 'parasite'];
+function _dessinBat(g) {
+    if (g === 'alveole')  return '<polygon points="9.9,3.0 16.0,6.5 16.0,13.5 9.9,17.0 3.8,13.5 3.8,6.5" fill="#F5B93B" stroke="#080614" stroke-width="1.8"/><polygon points="22.1,3.0 28.2,6.5 28.2,13.5 22.1,17.0 16.0,13.5 16.0,6.5" fill="#F5B93B" stroke="#080614" stroke-width="1.8"/><polygon points="16.0,13.5 22.1,17.0 22.1,24.0 16.0,27.5 9.9,24.0 9.9,17.0" fill="#F5B93B" stroke="#080614" stroke-width="1.8"/><circle cx="16" cy="20.5" r="2.4" fill="#7A4B00"/>';
+    if (g === 'nid')      return '<ellipse cx="16" cy="12" rx="6" ry="7.5" fill="#E8FFF0" stroke="#080614" stroke-width="2"/><path d="M3 15 Q16 36 29 15 Z" fill="#4ADE80" stroke="#080614" stroke-width="2.2" stroke-linejoin="round"/><path d="M7 19 Q16 24 25 19 M10 23 Q16 26 22 23" stroke="#0E5A2A" stroke-width="1.6" fill="none"/>';
+    if (g === 'biome')    return '<path d="M3 25 A13 13 0 0 1 29 25 Z" fill="#60A5FA" stroke="#080614" stroke-width="2.2"/><rect x="2" y="25" width="28" height="4" rx="1.5" fill="#2B5E9E" stroke="#080614" stroke-width="1.8"/><path d="M16 24 C11 22 11 16 16 12 C21 16 21 22 16 24 Z" fill="#BFE3FF"/><path d="M8 18 A9 9 0 0 1 13 13" stroke="#E6F3FF" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+    if (g === 'parasite') return '<path d="M23.7 18.1 L28.1 19.2 M18.1 23.7 L19.2 28.1 M10.3 21.7 L7.2 24.8 M8.3 13.9 L3.9 12.8 M13.9 8.3 L12.8 3.9 M21.7 10.3 L24.8 7.2" stroke="#080614" stroke-width="4.4" stroke-linecap="round"/><path d="M23.7 18.1 L28.1 19.2 M18.1 23.7 L19.2 28.1 M10.3 21.7 L7.2 24.8 M8.3 13.9 L3.9 12.8 M13.9 8.3 L12.8 3.9 M21.7 10.3 L24.8 7.2" stroke="#A3E635" stroke-width="2.2" stroke-linecap="round"/><circle cx="28.1" cy="19.2" r="2.1" fill="#A3E635" stroke="#080614" stroke-width="1.4"/><circle cx="19.2" cy="28.1" r="2.1" fill="#A3E635" stroke="#080614" stroke-width="1.4"/><circle cx="7.2" cy="24.8" r="2.1" fill="#A3E635" stroke="#080614" stroke-width="1.4"/><circle cx="3.9" cy="12.8" r="2.1" fill="#A3E635" stroke="#080614" stroke-width="1.4"/><circle cx="12.8" cy="3.9" r="2.1" fill="#A3E635" stroke="#080614" stroke-width="1.4"/><circle cx="24.8" cy="7.2" r="2.1" fill="#A3E635" stroke="#080614" stroke-width="1.4"/><circle cx="16" cy="16" r="9.5" fill="#A3E635" stroke="#080614" stroke-width="2.2"/><circle cx="13" cy="13.5" r="2.7" fill="#6B21A8"/><circle cx="19.8" cy="17.2" r="2.1" fill="#6B21A8"/><circle cx="14.2" cy="20.2" r="1.5" fill="#6B21A8"/><path d="M10.5 18 A6 6 0 0 1 12 10.8" stroke="#ECFCCB" stroke-width="1.4" fill="none" stroke-linecap="round"/>';
+    return '';
+}
+
+/* Pour le HTML : l'icone a la taille voulue, alignee sur le texte. */
+function iconeBat(g, px) {
+    px = px || 16;
+    return '<svg class="ic-bat" width="' + px + '" height="' + px + '" viewBox="0 0 32 32" aria-hidden="true">'
+         + _dessinBat(g) + '</svg>';
+}
+
+/* Remplace les <i class="ic-bat" data-g="nid"></i> poses dans le HTML
+   (aide, onglets) par l'icone du genre. */
+function remplirIconesBat(racine) {
+    const liste = (racine || document).querySelectorAll('i.ic-bat[data-g]');
+    for (let k = 0; k < liste.length; k++) {
+        const el = liste[k];
+        el.outerHTML = iconeBat(el.dataset.g, +(el.dataset.px || 15));
+    }
+}
+
+/* Pour le canevas : une image de 192 px par genre, faite au chargement
+   (assez pour rester nette au plus fort zoom). */
+const _imgBat = {};
+function _prepareImagesBat() {
+    for (const g of BATI_GENRES) {
+        if (_imgBat[g] !== undefined) continue;
+        _imgBat[g] = null;
+        const im = new Image();
+        im.onload = function () {
+            const c = document.createElement('canvas');
+            c.width = c.height = 192;
+            c.getContext('2d').drawImage(im, 0, 0, 192, 192);
+            _imgBat[g] = c;
+        };
+        im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 32 32">' + _dessinBat(g) + '</svg>');
+    }
+}
+_prepareImagesBat();
+remplirIconesBat();
+
+/* Dessine l'icone centree en (x, y), cote 'taille' en unites du canevas.
+   Tant que l'image n'est pas prete, une pastille de la bonne couleur. */
+function dessinerIconeBat(ctx, g, x, y, taille) {
+    const im = _imgBat[g];
+    if (im) { ctx.drawImage(im, x - taille / 2, y - taille / 2, taille, taille); return; }
+    ctx.fillStyle = BATI_TEINTES[g] || '#A3E635';
+    ctx.beginPath();
+    ctx.arc(x, y, taille * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+}
+
 const PALIERS_BATIMENT = [0.20, 0.15, 0.10];
 const PALIER_SUIVANT   = 0.05;
 
@@ -16476,13 +16589,12 @@ function _texteLisible(ctx, txt, x, y, remplissage, epaisseur) {
     ctx.fillText(txt, x, y);
 }
 
-/* Un signe par genre de batiment, dans sa couleur : hexagone pour l'alveole,
-   triangle pour le nid, rond pour le biome. Les memes formes que la barre de
-   construction, pour qu'on les reconnaisse sans legende. */
+/* Un genre de batiment par morceau : son icone (la meme que partout, voir
+   iconeBat) puis son nombre, dans sa couleur. */
 const BATI_SIGNES = [
-    { cle: 'alveoles', signe: '⬢', couleur: BATI_TEINTES.alveole },
-    { cle: 'nids',     signe: '▲', couleur: BATI_TEINTES.nid },
-    { cle: 'biomes',   signe: '●', couleur: BATI_TEINTES.biome },
+    { cle: 'alveoles', genre: 'alveole', couleur: BATI_TEINTES.alveole },
+    { cle: 'nids',     genre: 'nid',     couleur: BATI_TEINTES.nid },
+    { cle: 'biomes',   genre: 'biome',   couleur: BATI_TEINTES.biome },
 ];
 
 /* LES CHIFFRES POSES SOUS LES ASTRES. Plusieurs couleurs se cotoient la -
@@ -16557,9 +16669,9 @@ function drawSporeCountOnBodies(ctx) {
             const d = BATI_SIGNES[i];
             const n = body[d.cle] || 0;
             if (n <= 0) continue;
-            const txt = d.signe + n;
-            const w = ctx.measureText(txt).width;
-            morceaux.push({ txt: txt, couleur: d.couleur, w: w });
+            const txt = String(n);
+            const w = mb * 1.15 + ctx.measureText(txt).width;
+            morceaux.push({ txt: txt, genre: d.genre, couleur: d.couleur, w: w });
             largeur += w + mb * 0.45;
         }
         if (!morceaux.length) continue;
@@ -16567,7 +16679,8 @@ function drawSporeCountOnBodies(ctx) {
         ctx.textAlign = 'left';
         let x = body.x - largeur / 2;
         for (let i = 0; i < morceaux.length; i++) {
-            _texteLisible(ctx, morceaux[i].txt, x, ligne, morceaux[i].couleur, Math.max(2, mb * 0.24));
+            dessinerIconeBat(ctx, morceaux[i].genre, x + mb * 0.5, ligne - mb * 0.36, mb * 1.1);
+            _texteLisible(ctx, morceaux[i].txt, x + mb * 1.15, ligne, morceaux[i].couleur, Math.max(2, mb * 0.24));
             x += morceaux[i].w + mb * 0.45;
         }
         ctx.textAlign = 'center';
@@ -16838,17 +16951,16 @@ function updateMyPlanets() {
         nameEl.textContent = body.name;
         row.appendChild(nameEl);
 
-        const buildIcons = { nid:'🏗️', biome:'🛡️', alveole:'🍯', parasite:'🦠' };
-        if (body.buildMode && buildIcons[body.buildMode]) {
+        if (body.buildMode && BATI_GENRES.indexOf(body.buildMode) >= 0) {
             const bi = document.createElement('span');
             bi.className = 'mp-build-icon';
-            bi.textContent = buildIcons[body.buildMode];
+            bi.innerHTML = iconeBat(body.buildMode, 12);
             row.appendChild(bi);
         }
         if ((body.parasiteSpore || 0) >= 1) {
             const pi = document.createElement('span');
             pi.className = 'mp-build-icon';
-            pi.textContent = '🦠';
+            pi.innerHTML = iconeBat('parasite', 12);
             pi.title = 'Spore parasitaire prête';
             row.appendChild(pi);
         }
@@ -16986,9 +17098,9 @@ function updateMyPlanets() {
             buildBar.className = 'mp-build-bar';
             const modeDefs = [
                 { mode: 'off',     icon: '⬛', title: 'Désactivé — production normale' },
-                { mode: 'alveole', icon: '🍯', title: 'Alvéole — stock max (+20, 15, 10 puis 5 %)' },
-                { mode: 'nid',     icon: '🏗️', title: 'Nid — production (+30, 22,5, 15 puis 7,5 %)' },
-                { mode: 'biome',   icon: '🛡️', title: 'Biome — défense (+20, 15, 10 puis 5 %)' },
+                { mode: 'alveole', icon: iconeBat('alveole', 16), title: 'Alvéole — stock max (+20, 15, 10 puis 5 %)' },
+                { mode: 'nid',     icon: iconeBat('nid', 16), title: 'Nid — production (+30, 22,5, 15 puis 7,5 %)' },
+                { mode: 'biome',   icon: iconeBat('biome', 16), title: 'Biome — défense (+20, 15, 10 puis 5 %)' },
             ];
             const bodies = groups[sunName];
 
@@ -17004,7 +17116,7 @@ function updateMyPlanets() {
             modeDefs.forEach(({ mode, icon, title }) => {
                 const btn = document.createElement('span');
                 btn.className = 'mp-bbtn' + (mode === 'off' ? ' active' : '');
-                btn.textContent = icon;
+                btn.innerHTML = icon;
                 btn.dataset.mode = mode;
                 btn.addEventListener('mouseenter', (e) => {
                     clearTimeout(_ttTimer);
@@ -17096,9 +17208,8 @@ function updateMyPlanets() {
             if (followingBody === body || _selectedBodies.has(body)) row.classList.add('active');
             else row.classList.remove('active');
             // Mettre à jour l'icône build
-            const buildIcons = { nid:'🏗️', biome:'🛡️', alveole:'🍯', parasite:'🦠' };
             let biEl = row.querySelector('.mp-build-icon');
-            const newIcon = buildIcons[body.buildMode] || '';
+            const newIcon = BATI_GENRES.indexOf(body.buildMode) >= 0 ? body.buildMode : '';
             if (newIcon) {
                 if (!biEl) {
                     biEl = document.createElement('span');
@@ -17107,7 +17218,9 @@ function updateMyPlanets() {
                     if (spEl2) row.insertBefore(biEl, spEl2);
                     else row.appendChild(biEl);
                 }
-                biEl.textContent = newIcon;
+                /* Redessinee seulement quand le genre change : cette mise a
+                   jour tourne en continu. */
+                if (biEl.dataset.g !== newIcon) { biEl.dataset.g = newIcon; biEl.innerHTML = iconeBat(newIcon, 12); }
             } else if (biEl) {
                 biEl.remove();
             }
@@ -18448,7 +18561,9 @@ function connectSocket() {
    _socket.on('build_complete', ({ slot, icon, msg, bodyName }) => {
         const body = gameState.planets.find(p => p.name === bodyName) || gameState.moons.find(m => m.name === bodyName);
         const player = gameState.players.find(p => p.id === slot);
-        if (player) addEvent('build', icon, msg, body, player.color);
+        /* Le serveur envoie un emoji : on le remplace par l'icone du jeu. */
+        const _g = { '🏗️': 'nid', '🍯': 'alveole', '🛡️': 'biome', '🦠': 'parasite' }[icon];
+        if (player) addEvent('build', _g ? iconeBat(_g, 12) : _fEsc(icon || ''), _fEsc(msg || ''), body, player.color);
     });
 
     _socket.on('multi_pending', ({ slot }) => {
@@ -19299,7 +19414,7 @@ const TUTORIAL_STEPS = [
         target: 'playerPlanet', popup: 'bottom-right', waitFor: 'radialOpen'
     },
     {
-        text: "Le menu radial est ouvert !\n• <b>Centre</b> : tir Normal\n• <b>Couronne</b> : Parasite 🦠, et les constructions Nid 🏗️, Biome 🛡️, Alvéole 🍯\nCliquez sur le <b>centre ⚪</b> pour activer le mode visée. Raccourci : un <b>clic gauche</b> sur votre astre.",
+        text: "Le menu radial est ouvert !\n• <b>Centre</b> : tir Normal\n• <b>Couronne</b> : Parasite " + iconeBat('parasite', 14) + ", et les constructions Nid " + iconeBat('nid', 14) + ", Biome " + iconeBat('biome', 14) + ", Alvéole " + iconeBat('alveole', 14) + "\nCliquez sur le <b>centre ⚪</b> pour activer le mode visée. Raccourci : un <b>clic gauche</b> sur votre astre.",
         target: 'canvas', popup: 'top-right', waitFor: 'aimMode'
     },
     {
@@ -19315,7 +19430,7 @@ const TUTORIAL_STEPS = [
         target: 'playerPlanet', popup: 'bottom-right'
     },
     {
-        text: "Lancez une <b>construction</b> : faites un clic droit sur une planète possédée, puis choisissez <b>🏗️ Nid</b> dans la couronne du menu radial, ou utilisez la barre de boutons dans Mes Astres.\n• 🏗️ <b>Nid</b> : +2.5% production\n• 🛡️ <b>Biome</b> : +5% défense\n• 🍯 <b>Alvéole</b> : +5% stock max",
+        text: "Lancez une <b>construction</b> : faites un clic droit sur une planète possédée, puis choisissez <b>" + iconeBat('nid', 14) + " Nid</b> dans la couronne du menu radial, ou utilisez la barre de boutons dans Mes Astres.\n• " + iconeBat('nid', 14) + " <b>Nid</b> : +2.5% production\n• " + iconeBat('biome', 14) + " <b>Biome</b> : +5% défense\n• " + iconeBat('alveole', 14) + " <b>Alvéole</b> : +5% stock max",
         target: 'playerPlanet', popup: 'bottom-right', waitFor: 'buildStarted'
     },
     {
