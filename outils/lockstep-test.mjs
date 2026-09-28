@@ -8,21 +8,20 @@
    - meme graine, meme carte, memes IA ;
    - memes ordres pour le joueur 0 (des tirs fixes a l'avance, tour par tour,
      comme les enverrait le serveur) ;
-   - tours fixes de 1/20 s, sans la boucle d'affichage du navigateur ;
+   - les tours fixes du jeu (TOUR_SIM, 1/60 s). L'onglet A les enchaine un
+     par un (tourSimulation), sans jamais dessiner. L'onglet B passe par la
+     vraie boucle d'images (avancerImage) avec des images irregulieres, de
+     1/240 s a 1/15 s : plusieurs tours par image ou aucun, interpolation
+     et dessin a chaque image ;
    - et tout ce qui a le droit d'etre different, different : le vrai hasard
      (Math.random, reserve au decor) n'a pas la meme graine, la fenetre n'a
-     pas la meme taille, la camera du second onglet se promene et il dessine
-     chaque image, le premier jamais.
-   A chaque tour les deux onglets calculent empreinteEtat() ; le premier
-   tour ou elles different est signale, avec la famille en cause (astres,
-   tirs, joueurs, vaisseaux, cometes).
+     pas la meme taille, la camera de l'onglet B se promene.
+   Les deux onglets calculent empreinteEtat() ; le premier tour ou elles
+   different est signale, avec la famille en cause (astres, tirs, joueurs,
+   vaisseaux, cometes).
 
-   Usage : node outils/lockstep-test.mjs [--tours 4000] [--graine 1234]
-           [--ia 3] [--carte 6] [--pas-variable]
-   --pas-variable : le second onglet avance par pas de 1/60 s au lieu de
-   1/20 s (trois fois plus de pas pour le meme temps) - pour voir ce que
-   donnerait le pas variable d'aujourd'hui. On compare alors toutes les
-   0,05 s de jeu.
+   Usage : node outils/lockstep-test.mjs [--tours 12000] [--graine 1234]
+           [--ia 3] [--carte 6]
 
    Il faut Playwright et Chromium (npm install -D playwright, ou celui deja
    installe sur la machine). */
@@ -38,12 +37,11 @@ const opt = (nom, def) => {
     const i = args.indexOf('--' + nom);
     return i >= 0 && args[i + 1] !== undefined ? Number(args[i + 1]) : def;
 };
-const TOURS = opt('tours', 4000);
+const TOURS = opt('tours', 12000);
 const GRAINE = opt('graine', 1234);
 const IA = opt('ia', 3);
 const CARTE = opt('carte', 6);
-const PAS_VARIABLE = args.includes('--pas-variable');
-const TOUR = 1 / 20;
+const TOUR = 1 / 60;               /* TOUR_SIM du jeu, relu dans la page plus bas */
 
 /* Playwright : celui du projet s'il est installe, sinon celui de la machine. */
 async function chargerPlaywright() {
@@ -81,7 +79,7 @@ function listeOrdres() {
         return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
     const ordres = [];
-    for (let tour = 40; tour < TOURS; tour += 40) {
+    for (let tour = 120; tour < TOURS; tour += 120) {
         ordres.push({ tour, rang: Math.floor(alea() * 8), angle: alea() * Math.PI * 2 });
     }
     return ordres;
@@ -124,9 +122,29 @@ async function jouer(navigateur, variante, ordres) {
         /* Le joueur 0 prend la premiere planete libre, les IA suivent. */
         _spawnTarget = gameState.planets.filter(b => b.owner === null)[0];
         confirmSpawn();
-        window.__banc = { ordres, k: 0, tirs: 0, tour: 0 };
+        const B = window.__banc = { ordres, k: 0, tirs: 0 };
+        /* Les ordres du tour s'appliquent au debut du tour, par le crochet
+           que le jeu appelle avant chaque tour - y compris quand l'onglet B
+           enchaine plusieurs tours dans une seule image. */
+        gameState.avantChaqueTour = function (tour) {
+            while (B.k < ordres.length && ordres[B.k].tour === tour) {
+                const o = ordres[B.k++];
+                const miens = gameState.allBodies.filter(b => b.owner === 0 && b.spores >= 10);
+                if (miens.length) {
+                    const src = miens[o.rang % miens.length];
+                    const n0 = gameState.jets.length;
+                    launchJet(src, Math.cos(o.angle), Math.sin(o.angle), 'normal', 0);
+                    if (gameState.jets.length > n0) B.tirs++;
+                }
+            }
+        };
     }, ordres);
-    const empreintes = [await page.evaluate(() => empreinteEtat(true))];
+    const [empreinte0, tourJeu] = await page.evaluate(() => [empreinteEtat(true), TOUR_SIM]);
+    if (tourJeu !== TOUR) throw new Error('Le jeu tourne a ' + tourJeu + ' s par tour, ce banc attend ' + TOUR);
+    /* empreintes[t] : l'empreinte apres le tour t. L'onglet B, qui avance par
+       images, ne voit que le dernier tour de chaque image : ses trous restent
+       vides et ne sont pas compares. */
+    const empreintes = [empreinte0];
 
     /* Par tranches de 250 tours, chacune limitee dans le temps : si le jeu
        se fige (une boucle qui ne finit plus, des milliers de tirs), on le
@@ -137,38 +155,36 @@ async function jouer(navigateur, variante, ordres) {
         const n = Math.min(TRANCHE, TOURS - fait);
         let minuteur;
         const tranche = await Promise.race([
-            page.evaluate(([n, dt, sousPas, variante]) => {
-                const B = window.__banc, ordres = B.ordres, empreintes = [];
-                for (let fin = B.tour + n; B.tour < fin;) {
-                    const tour = ++B.tour;
-                    /* Les ordres du tour s'appliquent avant le calcul du tour. */
-                    while (B.k < ordres.length && ordres[B.k].tour === tour) {
-                        const o = ordres[B.k++];
-                        const miens = gameState.allBodies.filter(b => b.owner === 0 && b.spores >= 10);
-                        if (miens.length) {
-                            const src = miens[o.rang % miens.length];
-                            const n0 = gameState.jets.length;
-                            launchJet(src, Math.cos(o.angle), Math.sin(o.angle), 'normal', 0);
-                            if (gameState.jets.length > n0) B.tirs++;
-                        }
+            page.evaluate(([n, variante]) => {
+                const vus = [];        /* paires [tour, empreinte] */
+                const fin = gameState.tour + n;
+                if (!variante) {
+                    while (gameState.tour < fin) {
+                        tourSimulation();
+                        vus.push([gameState.tour, empreinteEtat(true)]);
                     }
-                    for (let s = 0; s < sousPas; s++) {
-                        if (variante) {
-                            gameState.camera.zoom = 0.3 + (tour % 50) / 25;
-                            gameState.camera.x = Math.sin(tour / 40) * 2000;
-                            gameState.camera.y = Math.cos(tour / 55) * 2000;
-                        }
-                        update(dt);
-                        if (variante) render();
-                    }
-                    empreintes.push(empreinteEtat(true));
+                    return vus;
                 }
-                return empreintes;
-            }, [n, variante && PAS_VARIABLE ? TOUR / 3 : TOUR, variante && PAS_VARIABLE ? 3 : 1, variante]),
+                /* Onglet B : des images de duree irreguliere (1/240 a 1/15 s),
+                   tirees d'une suite fixe pour que l'essai se rejoue. */
+                const B = window.__banc;
+                if (B.img === undefined) B.img = 12345;
+                while (gameState.tour < fin) {
+                    B.img = (Math.imul(B.img, 1103515245) + 12345) >>> 0;
+                    const dt = 1 / 240 + (B.img / 4294967296) * (1 / 15 - 1 / 240);
+                    const t = gameState.tour;
+                    gameState.camera.zoom = 0.3 + (t % 50) / 25;
+                    gameState.camera.x = Math.sin(t / 40) * 2000;
+                    gameState.camera.y = Math.cos(t / 55) * 2000;
+                    avancerImage(dt);
+                    if (gameState.tour !== t) vus.push([gameState.tour, empreinteEtat(true)]);
+                }
+                return vus;
+            }, [n, variante]),
             new Promise(ok => { minuteur = setTimeout(() => ok(null), DELAI); }),
         ]);
         clearTimeout(minuteur);
-        if (tranche) { empreintes.push(...tranche); continue; }
+        if (tranche) { for (const [t, e] of tranche) empreintes[t] = e; continue; }
         gel = 'le jeu ne repond plus entre les tours ' + fait + ' et ' + (fait + n);
     }
     if (gel) {
@@ -200,8 +216,7 @@ const { chromium } = await chargerPlaywright();
 const navigateur = await chromium.launch();
 const ordres = listeOrdres();
 console.log('Lockstep : graine ' + GRAINE + ', carte ' + CARTE + ', ' + IA + ' IA, ' + TOURS +
-            ' tours de 1/20 s (' + (TOURS * TOUR) + ' s de jeu), ' + ordres.length + ' ordres du joueur 0' +
-            (PAS_VARIABLE ? ', second onglet en pas de 1/60 s' : ''));
+            ' tours de 1/60 s (' + Math.round(TOURS * TOUR) + ' s de jeu), ' + ordres.length + ' ordres du joueur 0');
 const t0 = Date.now();
 const [A, B] = await Promise.all([jouer(navigateur, false, ordres), jouer(navigateur, true, ordres)]);
 if (!A.gel && !B.gel) await navigateur.close();
@@ -216,15 +231,19 @@ if (A.gel || B.gel) {
     process.exit(2);
 }
 console.log('Onglet A (petite fenetre, sans dessin) :', A.bilan);
-console.log('Onglet B (grande fenetre, camera mobile, dessin) :', B.bilan);
+console.log('Onglet B (images irregulieres, interpolation, camera mobile, dessin) :', B.bilan);
 
-let ecart = -1;
+let ecart = -1, compares = 0, dernier = 0;
 for (let i = 0; i < A.empreintes.length; i++) {
+    if (!A.empreintes[i] || !B.empreintes[i]) continue;
+    compares++; dernier = i;
     if (A.empreintes[i].empreinte !== B.empreintes[i].empreinte) { ecart = i; break; }
 }
 if (ecart < 0) {
-    console.log('\nIDENTIQUE : ' + (A.empreintes.length - 1) + ' tours, meme empreinte a chaque tour (derniere : ' +
-                A.empreintes[A.empreintes.length - 1].empreinte + '). ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s.');
+    console.log('\nIDENTIQUE : ' + compares + ' tours compares sur ' + (A.empreintes.length - 1) +
+                ' (l\'onglet B ne voit que le dernier tour de chaque image), meme empreinte a chaque fois ' +
+                '(tour ' + dernier + ' : ' + A.empreintes[dernier].empreinte + '). ' +
+                ((Date.now() - t0) / 1000).toFixed(1) + ' s.');
     process.exit(0);
 }
 const pa = A.empreintes[ecart].parts, pb = B.empreintes[ecart].parts;

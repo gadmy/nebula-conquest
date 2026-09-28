@@ -960,7 +960,7 @@ v9.7.6 | 2026-09-25 | Tirs speciaux, demolisseur, icones, decor spatial, IA, mul
        60 images/s, aucune erreur. Ca ralentit la copie, ca ne l'empeche
        pas : le navigateur doit pouvoir lire le code pour le faire tourner.
 
-v9.7.7 | 2026-09-28 | Prototype lockstep (en cours)
+v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
      ── LOCKSTEP : PREMIER PROTOTYPE ──
      - BANC D'ESSAI : npm run lockstep (outils/lockstep-test.mjs). Il ouvre
        le jeu dans deux onglets : meme graine, meme carte, memes IA, memes
@@ -1002,6 +1002,35 @@ v9.7.7 | 2026-09-28 | Prototype lockstep (en cours)
      - LE BANC SIGNALE UN GEL au lieu d'attendre sans fin : la partie avance
        par tranches de 250 tours, chacune limitee a 60 s.
 
+     ── TOURS FIXES ──
+     - LA PARTIE AVANCE PAR TOURS DE 1/60 s, quel que soit l'ecran. Avant,
+       chaque image faisait un pas de sa propre duree : un ecran a 144 Hz
+       faisait 144 petits pas par seconde, une machine lente a 30 images/s
+       des pas deux fois plus grands - deux joueurs ne calculaient jamais
+       la meme partie. Desormais chaque image fait les tours dus depuis la
+       precedente (0, 1 ou plusieurs ; 6 au plus, au-dela le jeu ralentit
+       au lieu de s'emballer). Nouvelles fonctions : tourSimulation (un
+       tour) et avancerImage (une image). Un crochet, avantChaqueTour,
+       recoit le numero de chaque tour : c'est la que s'appliqueront les
+       ordres des joueurs.
+       Pourquoi 60 et pas 20 : c'est la cadence pour laquelle le jeu a ete
+       regle (traines, rythme de l'IA, collisions des tirs rapides). A 20,
+       tout cela aurait change. Le reseau pourra grouper les ordres par
+       paquets de 3 tours.
+     - IMAGE INTERPOLEE ENTRE DEUX TOURS. Sur un ecran plus rapide que 60 Hz,
+       certaines images tombent entre deux tours : astres, tirs, vaisseaux
+       et cometes y sont dessines a mi-chemin, puis remis a leur vraie place
+       aussitot le dessin fini. La camera (fleches, ZQSD, suivi d'un astre)
+       et le niveau de detail suivent chaque image, hors des tours.
+       Mesure a 144 Hz simule : sans interpolation, 258 images figees sur
+       580 (saccades) ; avec, aucune.
+     - VERIFIE DANS LE JEU REEL : 60 tours/s tenus a 22, 32 et 107 images/s,
+       horloge jamais en recul, camera qui suit, aucune erreur.
+       Et au banc lockstep, l'onglet B passe maintenant par la vraie boucle
+       d'images (images irregulieres de 1/240 a 1/15 s, interpolation et
+       dessin) : identique a l'onglet A, tour par tour, sur 5 cartes et
+       400 s de jeu chacune.
+
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
      mimetisme - un eclat (tir parti vers une lune) ne doit pas se scinder
@@ -1011,11 +1040,10 @@ v9.7.7 | 2026-09-28 | Prototype lockstep (en cours)
      tours ; chaque navigateur calcule toute la partie. Trafic independant
      du nombre d'objets : vise des parties de 50 joueurs et plus, serveur
      presque gratuit. Fait : hasard du jeu sur graine commune, empreinte de
-     l'etat, banc d'essai a deux onglets (identique sur 10 min). Reste :
+     l'etat, banc d'essai a deux onglets (identique sur 10 min), tours
+     fixes de 1/60 s avec image interpolee. Reste :
      - tester Firefox et Safari : sin, cos, atan2... peuvent differer d'un
        navigateur a l'autre - sinon fonctions maison ou calcul en entiers ;
-     - une vraie boucle a tours fixes (20 par seconde) dans le jeu, l'image
-       interpolee entre deux tours ;
      - les gestes du joueur (visee, rafale, charge, boule, batiments...)
        transformes en ordres dates d'un tour, au lieu d'agir tout de suite
        en lisant la souris ;
@@ -7778,6 +7806,8 @@ function finishStartGame() {
     gameState.comets = [];
     gameState.cometTimer = 0;
     gameState.time = 0;
+    gameState.tour = 0;
+    _accSim = 0;
     gameState._maxRangeCache = null;
     _lastScoreHash = '';
     if (typeof _floatingBubbles !== 'undefined') _floatingBubbles.length = 0;
@@ -13840,23 +13870,116 @@ function gameLoop(timestamp) {
        milieu d'une image. */
     majResolution();
 
-    // Update + Render, chronometres quand le diagnostic est ouvert (F3)
-    if (_diagOuvert) {
-        const _t0 = performance.now();
-        update(gameState.deltaTime);
-        const _t1 = performance.now();
+    avancerImage(gameState.deltaTime, timestamp);
+
+    requestAnimationFrame(gameLoop);
+}
+
+/* ─────────────────────────────────────────────
+   TOURS FIXES
+   La partie avance par tours de duree fixe, 60 par seconde, quel que soit
+   l'ecran : un ecran a 144 Hz ne calcule plus 144 petits pas, une machine
+   lente a 30 images/s ne fait plus des pas deux fois plus grands. Deux
+   navigateurs qui recoivent les memes ordres calculent donc exactement la
+   meme partie (condition du lockstep, verifiee par npm run lockstep).
+   60 et pas 20 : c'est la cadence pour laquelle le jeu a ete regle
+   (traines, rythme de l'IA, collisions des tirs rapides). Le reseau pourra
+   regrouper les ordres par paquets de plusieurs tours.
+   Entre deux tours, l'image est interpolee : astres, tirs, vaisseaux et
+   cometes sont dessines entre leur position du tour precedent et celle du
+   tour courant, puis remis a leur vraie place. La camera et le niveau de
+   detail, eux, suivent chaque image.
+   ───────────────────────────────────────────── */
+const TOUR_SIM = 1 / 60;
+const TOURS_MAX_PAR_IMAGE = 6;     /* au-dela (onglet ralenti), le jeu ralentit au lieu de s'emballer */
+let _accSim = 0;
+let _interpoles = [];
+
+/* Un tour de jeu. avantChaqueTour, s'il existe, recoit le numero du tour qui
+   commence : c'est la que s'appliqueront les ordres des joueurs. */
+function tourSimulation() {
+    noterPositionsAvant();
+    gameState.tour = (gameState.tour || 0) + 1;
+    if (typeof gameState.avantChaqueTour === 'function') gameState.avantChaqueTour(gameState.tour);
+    update(TOUR_SIM);
+}
+
+function _mobilesInterpoles() {
+    return [gameState.suns, gameState.allBodies, gameState.jets, gameState.cleaners, gameState.comets];
+}
+
+function noterPositionsAvant() {
+    const listes = _mobilesInterpoles();
+    for (let l = 0; l < listes.length; l++) {
+        const L = listes[l];
+        if (!L) continue;
+        for (let i = 0; i < L.length; i++) { const o = L[i]; o._avX = o.x; o._avY = o.y; }
+    }
+}
+
+/* Place chaque objet a la fraction f du chemin entre les deux derniers
+   tours, et retient ou le remettre. Un objet ne depuis le dernier tour n'a
+   pas de position precedente : il reste ou il est. */
+function interpolerPositions(f) {
+    _interpoles.length = 0;
+    const listes = _mobilesInterpoles();
+    for (let l = 0; l < listes.length; l++) {
+        const L = listes[l];
+        if (!L) continue;
+        for (let i = 0; i < L.length; i++) {
+            const o = L[i];
+            if (o._avX === undefined) continue;
+            o._vraiX = o.x; o._vraiY = o.y;
+            o.x = o._avX + (o.x - o._avX) * f;
+            o.y = o._avY + (o.y - o._avY) * f;
+            _interpoles.push(o);
+        }
+    }
+    gameState._vraiTemps = gameState.time;
+    gameState.time -= (1 - f) * TOUR_SIM;
+}
+
+function restaurerPositions() {
+    for (let i = 0; i < _interpoles.length; i++) {
+        const o = _interpoles[i];
+        o.x = o._vraiX; o.y = o._vraiY;
+    }
+    _interpoles.length = 0;
+    gameState.time = gameState._vraiTemps;
+}
+
+/* Une image : les tours dus depuis la precedente, puis le dessin. */
+function avancerImage(dt, timestamp) {
+    const _t0 = performance.now();
+    _accSim += dt;
+    let n = 0;
+    while (_accSim >= TOUR_SIM && n < TOURS_MAX_PAR_IMAGE) {
+        tourSimulation();
+        _accSim -= TOUR_SIM;
+        n++;
+    }
+    if (_accSim > TOUR_SIM) _accSim = TOUR_SIM;
+    const _t1 = performance.now();
+
+    updateLOD(dt);
+    if (typeof majCameraClavier === 'function') majCameraClavier(dt);
+    gameState.dt = dt;     /* les animations tenues par le dessin avancent a l'image */
+    interpolerPositions(_accSim / TOUR_SIM);
+    try {
+        updateCameraFollow();
         render();
+    } finally {
+        restaurerPositions();
+    }
+
+    // Chronometres quand le diagnostic est ouvert (F3)
+    if (_diagOuvert) {
         const _t2 = performance.now();
         _diagCumul.update += _t1 - _t0;
         _diagCumul.render += _t2 - _t1;
         _diagCumul.images++;
-        if (timestamp - _diagDernier >= 400) { majDiagnostic(timestamp); }
-    } else {
-        update(gameState.deltaTime);
-        render();
+        if (timestamp !== undefined && timestamp - _diagDernier >= 400) { majDiagnostic(timestamp); }
     }
-
-    requestAnimationFrame(gameLoop);
 }
 
 /* ─────────────────────────────────────────────
@@ -13976,7 +14099,8 @@ function detaillerRendu() {
 function update(dt) {
     gameState.time += dt;
     if (gameState.phase === 'paused') return;
-    updateLOD(dt);
+    /* updateLOD, la camera clavier et le suivi d'astre sont passes dans
+       avancerImage : ils suivent chaque image, pas les tours de jeu. */
     // En multi : le serveur simule tout, le client applique les snapshots et affiche
 if (gameState.isMulti) {
         updateOrbits(dt);
@@ -14003,7 +14127,6 @@ if (gameState.isMulti) {
         majSecousse(dt);
         majAlertes(dt);
         majEtincelles(dt);
-        if (typeof majCameraClavier === 'function') majCameraClavier(dt);
         if (gameState._hudCounter % 10 === 0) {
             updateHUD();
             updateMultiPanel();
@@ -14014,7 +14137,6 @@ if (gameState.isMulti) {
         }
         gameState._hudCounter = (gameState._hudCounter || 0) + 1;
         gameState.gameStats.timeElapsed += dt;
-        updateCameraFollow();
         return;
     }
     updateOrbits(dt);
@@ -14038,8 +14160,6 @@ if (gameState.isMulti) {
     majSecousse(dt);
     majAlertes(dt);
     majEtincelles(dt);
-    if (typeof majCameraClavier === 'function') majCameraClavier(dt);
-    updateCameraFollow();
     // Mise à jour HUD throttlé (perf)
     gameState.dt = dt;
     gameState._hudCounter = (gameState._hudCounter || 0) + 1;
