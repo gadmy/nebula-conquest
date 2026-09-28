@@ -771,10 +771,15 @@ v9.7.6 | 2026-09-25 | (en cours)
        5/s ; a zero, il s'eteint. Tirs de surface et jets renvoyes exclus.
        Client (solo) et serveur (multi), memes constantes BRULURE_*.
        Verifie : 3 rayons 0 perte, 1,9 rayon -1/s, 1,3 rayon -5/s.
-     - ESPACE REDEVIENT LA VISEE, LE DEMOLISSEUR PASSE SUR F. Espace remet
-       en visee l'astre choisi (viserDepuisSelection, retabli), le clic
-       aussi ; F arme / desarme le demolisseur, juste a cote de D sous
-       l'index. Aide, didacticiel et commentaires ajustes.
+     - ESPACE REDEVIENT LA VISEE, LE DEMOLISSEUR PASSE SUR F. Espace met
+       en visee l'astre choisi (viserDepuisSelection, retabli) ; F arme /
+       desarme le demolisseur, juste a cote de D sous l'index.
+       Puis, a la demande : SANS ESPACE, AUCUN TIR. Le clic, Tab et le
+       double-clic ne mettent plus en visee - ils choisissent ou cadrent
+       l'astre. Espace ouvre les deux tirs d'un coup : vers un autre astre,
+       et sur son propre sol en pointant son disque. (F reste une touche
+       volontaire : elle ouvre la visee si besoin.) Aide et didacticiel
+       ajustes.
      - LES IA SE SERVENT DE TOUT L'ARSENAL. Batiments : les trois genres
        (biome quand l'astre est dispute, alveole quand il deborde, nids
        d'abord) et des foyers putrides. Tirs : parasite des qu'une spore
@@ -2892,11 +2897,11 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <p id="h-controles" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🕹 CONTRÔLES</p>
 <p style="margin-bottom:6px;color:rgba(200,210,230,0.55);font-size:11px;letter-spacing:1px;">SOURIS</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche sur un astre</td><td style="padding:3px 0;">Le sélectionne et centre la caméra dessus ; si vous pouvez tirer depuis lui, il passe aussitôt en visée</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche sur un astre</td><td style="padding:3px 0;">Le sélectionne et centre la caméra dessus</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un astre possédé</td><td style="padding:3px 0;">Menu radial : ⚪ Spores · <i class="ic-bat" data-g="parasite"></i> Parasite · <i class="ic-bat" data-g="alveole"></i> Alvéole · <i class="ic-bat" data-g="nid"></i> Nid · <i class="ic-bat" data-g="biome"></i> Biome · 📖 Codex</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche maintenu → relâcher</td><td style="padding:3px 0;">En mode visée : tire un jet de spores dans la direction pointée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic sur une zone de la planète</td><td style="padding:3px 0;">Choisit la zone d'où partira le tir — elle se cerne d'un trait double et d'un « TIR »</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Double-clic sur un astre</td><td style="padding:3px 0;">Plonge dessus et met en visée (raccourci de cadrage)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Double-clic sur un astre</td><td style="padding:3px 0;">Plonge dessus (cadrage) ; Espace ensuite pour tirer</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur votre disque</td><td style="padding:3px 0;">Le tir devient un tir de surface ; hors du disque, c'est un jet normal</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Ctrl + clic gauche maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Rafale</b> — paquets de 10 spores, 8 par seconde, arrosés autour du curseur ; lâcher pour arrêter</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Shift maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Boule</b> — charge 25 spores/s (jusqu'à 500, coût double) qui tournent lentement vers la souris ; lâcher Shift la lance</td></tr>
@@ -2909,7 +2914,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Z Q S D <span style="color:rgba(200,210,230,0.45)">ou flèches</span></td><td style="padding:3px 0;">Déplacer la caméra</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">P / M</td><td style="padding:3px 0;">Zoom avant / arrière</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;">Passe en mode visée depuis l'astre sélectionné</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;">Passe en mode tir depuis l'astre sélectionné : vers un autre astre, ou sur son propre sol (curseur sur son disque). Sans Espace, aucun tir</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">F</td><td style="padding:3px 0;"><b style="color:#FF8A3D;">Démolisseur</b> — arme le tir (le trait rougeoie) ; la molette choisit le bâtiment <i class="ic-bat" data-g="alveole"></i> <i class="ic-bat" data-g="nid"></i> <i class="ic-bat" data-g="biome"></i> ; le clic tire 250 spores, plus lentes, qui en détruisent un de ce type. F à nouveau : désarme</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans Mes Astres — le bouton ⇄ choisit : de planète en planète, ou d'astre en astre (lunes comprises)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
@@ -6500,14 +6505,6 @@ function setupUI() {
         followingBody = suivant;
         gameState.camera.x = suivant.x;
         gameState.camera.y = suivant.y;   /* le zoom ne bouge pas */
-        /* Choisir un astre, c'est viser depuis lui : Tab aussi. */
-        if (!gameState._boule && !gameState._rafale) {
-            _closeSporMenu();
-            gameState._fireSource = suivant;
-            gameState._fireLanceur = null;
-            gameState._fireType = 'normal';
-            gameState._firePhase = 'aiming';
-        }
         document.querySelectorAll('#myPlanetsList .mp-body-row').forEach(function (el) {
             el.classList.toggle('active', el.dataset.bodyName === suivant.name);
         });
@@ -10951,19 +10948,12 @@ function zoomSurface(body) {
     return Math.min(gameState.camera.maxZoom, (m * 0.40) / Math.max(6, body.radius));
 }
 
-/* Le double-clic ne fait plus qu'une chose : cadrer l'astre et se mettre en
-   visee. Il n'y a plus de "mode surface" a entrer ni a quitter - voir
-   astreTirSurface(). */
+/* Le double-clic cadre l'astre, rien de plus : la visee (vers un autre
+   astre comme sur le sien) ne s'ouvre qu'a la touche Espace. */
 function cadrerAstre(body) {
     if (!body || body.type === 'sun') return;
     followingBody = body;
     gameState._zoomCible = zoomSurface(body);
-    if (peutTirerSurface(body, localSlot())) {
-        _closeSporMenu();
-        gameState._fireSource = body;
-        gameState._fireType = 'normal';
-        gameState._firePhase = 'aiming';
-    }
 }
 
 function majModeSurface(dt) {
@@ -13108,7 +13098,6 @@ function setupInput() {
         if (gameState._firePhase === 'aiming') {
             /* Ctrl + clic : la rafale, pas le tir unique (voir demarrerRafale). */
             if (e.ctrlKey) { demarrerRafale(); return; }
-            if (performance.now() - (gameState._viseeDepuisClic || 0) < 350) return;
             gameState._aimHolding = true;
             gameState._fireCamZoom = cam.zoom;
             return;
@@ -13140,18 +13129,6 @@ function setupInput() {
                     }
                     if (best) gameState._zoneSel = { body: body, id: best };
                 }
-            }
-            /* CLIQUER, C'EST VISER. Un astre d'ou l'on peut tirer passe
-               aussitot en visee : plus besoin de le choisir puis d'appuyer
-               sur une touche. Ce clic-ci ne tire pas (le tir part au clic
-               suivant), et le second clic d'un double-clic non plus. */
-            if (gameState.phase === 'game' && peutTirerSurface(body, localSlot())) {
-                _closeSporMenu();
-                gameState._fireSource = body;
-                gameState._fireLanceur = null;
-                gameState._fireType = 'normal';
-                gameState._firePhase = 'aiming';
-                gameState._viseeDepuisClic = performance.now();
             }
         }
     });
@@ -13240,8 +13217,8 @@ function setupInput() {
         }
     });
 
-    /* Double-clic : on plonge sur l'astre et l'on se met en visee. Le tir de
-       surface vient tout seul des qu'on pointe son disque. */
+    /* Double-clic : on plonge sur l'astre. Le tir (vers un autre astre, ou
+       de surface en pointant son disque) ne s'ouvre qu'avec Espace. */
     canvas.addEventListener('dblclick', (e) => {
         if (gameState.phase !== 'game') return;
         const wp = _worldPos(e.clientX, e.clientY);
@@ -19853,7 +19830,7 @@ const TUTORIAL_STEPS = [
         target: 'playerPlanet', popup: 'bottom-right', waitFor: 'radialOpen'
     },
     {
-        text: "Le menu radial est ouvert !\n• <b>Centre</b> : tir Normal\n• <b>Couronne</b> : Parasite " + iconeBat('parasite', 14) + ", et les constructions Nid " + iconeBat('nid', 14) + ", Biome " + iconeBat('biome', 14) + ", Alvéole " + iconeBat('alveole', 14) + "\nCliquez sur le <b>centre ⚪</b> pour activer le mode visée. Raccourcis : un <b>clic gauche</b> sur votre astre, ou <b>Espace</b>.",
+        text: "Le menu radial est ouvert !\n• <b>Centre</b> : tir Normal\n• <b>Couronne</b> : Parasite " + iconeBat('parasite', 14) + ", et les constructions Nid " + iconeBat('nid', 14) + ", Biome " + iconeBat('biome', 14) + ", Alvéole " + iconeBat('alveole', 14) + "\nCliquez sur le <b>centre ⚪</b> pour activer le mode visée. Raccourci : <b>Espace</b> sur l'astre sélectionné.",
         target: 'canvas', popup: 'top-right', waitFor: 'aimMode'
     },
     {
