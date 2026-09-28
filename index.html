@@ -513,7 +513,7 @@ v9.7.5 | 2026-09-24 | Rendu adaptatif, fond hors canevas, visee unifiee
        debit est nul, plus d'une heure quand c'est seulement tres long -
        "hors d'atteinte" ne disait pas laquelle des deux.
 
-v9.7.6 | 2026-09-25 | (en cours)
+v9.7.6 | 2026-09-25 | Tirs speciaux, demolisseur, icones, decor spatial, IA, multi
      ── PERFORMANCE ──
      - LES SOLEILS COUTENT DEUX FOIS MOINS. Le coupable n'etait pas le halo,
        mais la texture : 1000 a 1500 px, posee avec lissage sur un soleil qui
@@ -566,8 +566,11 @@ v9.7.6 | 2026-09-25 | (en cours)
        socket.io manque.
        Verifie, les deux CDN bloques : message, bouton, menu, partie a 4
        lancee et jouee, aucune erreur. Le parcours normal est inchange.
+     - ZQSD PENDANT LE CHOIX DE LA PLANETE. Les touches de camera n'etaient
+       ecoutees qu'en partie : au choix du depart, seules les fleches
+       marchaient. Verifie : D, S, fleches, ~1 800 unites en 0,6 s.
 
-     ── GAMEPLAY ──
+     ── GAMEPLAY : ECONOMIE ──
      - LA RIPOSTE SUIT LE POURCENTAGE D'ENVOI. La touche R engageait "juste
        la facture" du terrain etranger, quel que soit le reglage : le joueur
        n'avait aucune prise sur ce qu'il mettait dans la balance. Desormais
@@ -587,6 +590,12 @@ v9.7.6 | 2026-09-25 | (en cours)
        A FAIRE COTE SERVEUR : en multijoueur c'est le serveur qui applique la
        riposte, avec l'ancien calcul. Il connait deja le pourcentage de
        chaque joueur (set_jet_ratio) ; son code n'est pas dans ce depot.
+     - TOUCHE T : ARRET DES ATTAQUES, le pendant de R. Sur l'astre sous le
+       curseur, ou partout si le curseur est dans le vide, nos zones perdent
+       leur elan et cessent de pousser (riposte, jet ou tir de surface).
+       Rien n'est perdu : l'elan n'est qu'un budget, les spores restent dans
+       la zone. Serveur : action « arret » (arreterAttaques). Aide : ligne
+       des touches et paragraphe. Verifie : elan 999 -> 0, « ✋ ARRET ».
      - LES POINTS DE MULTIPLICITE S'EMPILENT. Un palier atteint attendait le
        choix du joueur sous la forme d'un simple oui/non : si un deuxieme
        tombait avant qu'on ait choisi, il etait PERDU. C'est desormais un
@@ -602,87 +611,14 @@ v9.7.6 | 2026-09-25 | (en cours)
        300... jusqu'a 1 000 pour le dixieme. Texte corrige, et il dit
        desormais que les points s'empilent.
 
-     ── INTERFACE ──
-     - PLUS DE LISERE BLANC AUTOUR DES ZONES. Les cases de bord etaient
-       tirees a 60 % vers le blanc : un anneau de pixels clairs autour de
-       chaque zone et du sol du defenseur. La frontiere se lit par la
-       difference de couleur ; le bord d'une zone attaquante est juste un
-       peu plus opaque que son interieur. Livre des regles ajuste.
-     - LA FICHE, SOUS LA JAUGE D'ENVOI. Tout ce qu'on sait de l'astre choisi,
-       d'un coup d'oeil : spores et plafond, remplissage (rouge une fois
-       sature), production, rendement de la courbe, flore, faune, symbiose,
-       batiments, et selon le cas la part du sol qu'on tient sur un astre
-       partage, un parasite, les lunes ou la planete mere. Rien de choisi :
-       le bilan du joueur - astres, spores, production totale, stats,
-       multiplicite (et points en attente), sacrifice, technos, systemes
-       complets, jets lances et prises. Un clic dans le vide lache l'astre
-       suivi et ramene au bilan. Hauteur fixe pour que la jauge posee dessus
-       ne saute pas ; elle laisse passer les clics. Six mises a jour par
-       seconde, reecrites seulement si le texte change.
-     - TAB, DEUX FACONS DE PARCOURIR. Bouton ⇄ dans le titre de MES ASTRES :
-       de planete en planete (lunes sautees), ou d'astre en astre (chaque
-       planete puis ses lunes), soleil par soleil. Depuis une lune en mode
-       planetes, Tab mene a la planete SUIVANTE et non a la premiere. Choix
-       garde d'une partie a l'autre. Aide des touches mise a jour.
-     - LES ASTRES PLEINS CRACHENT DES ETINCELLES. Un astre a sa capacite ne
-       produit plus rien, et rien ne le montrait. Il laisse maintenant
-       echapper, toutes les demi-secondes environ, un paquet de 4 a 6
-       etincelles de la couleur de son proprietaire eclaircie : elles
-       jaillissent du bord, freinent et s'eteignent en une seconde. Tete
-       chaude et petite trainee, simple point vu de loin. Purement visuel :
-       aucune spore, aucun effet, hasard hors simulation (pas de decalage en
-       multijoueur). Visible pour tous les camps, donc aussi chez l'ennemi.
-       Rien n'est emis hors de l'ecran, 250 etincelles au plus, moins en
-       reglage Bas. Cout mesure : 0,02 ms en vue normale, 0,18 ms dans le
-       pire cas (57 astres pleins a l'ecran). Elles cessent des que l'astre
-       se vide.
-       Vue de loin, les etincelles se perdent : les astres pleins y
-       CLIGNOTENT doucement, tous ensemble, d'une lueur de la couleur de leur
-       proprietaire (sans coeur blanc, l'astre reste lisible). L'effet monte
-       en dezoomant : rien au-dessus de 30 px de rayon a l'ecran, plein en
-       dessous de 15.
-       Seuil corrige ensuite : les etincelles attendaient 99,5 % alors que le
-       panneau NAISSANCE annonce "sature" des 98,5 % - la production
-       s'eteint si doucement qu'un astre met une minute de plus a franchir
-       le dernier pour cent. Un seul chiffre pour les deux, PART_SATUREE.
-       Verifie sans rien forcer : astre rempli par sa seule production,
-       premieres etincelles a 98,5 %, au bout de 3 min 26.
-       Puis EN ORBITE : lachees dans le vide, elles restaient sur place
-       pendant que l'astre filait et se perdaient derriere lui. Elles vivent
-       desormais dans le repere de l'astre - elles jaillissent du sol, se
-       posent sur une orbite basse (1,2 a 1,65 rayon) et tournent en arc,
-       tout un paquet dans le meme sens, 1 a 2 s. La trainee suit la
-       rotation, pas le deplacement de l'astre. Plus emises quand l'astre
-       fait moins de 15 px de rayon a l'ecran : le clignotement y suffit.
-       Cout au pire (46 astres pleins, vue d'ensemble) : 0,46 ms.
-     - ICONES DES BATIMENTS UNIFIEES (famille « organique »). Les astres
-       montraient hexagone / triangle / rond, les menus 🍯 🏗️ 🛡️ 🦠 : on ne
-       s'y retrouvait pas. Un seul dessin SVG par genre (_dessinBat) :
-       alveole = rayon de miel, nid = oeuf dans son nid, biome = dome de vie,
-       parasite = spore infectee a tentacules (nouvelle). iconeBat() pour le
-       HTML, dessinerIconeBat() pour le canevas (image de 192 px faite au
-       chargement), remplirIconesBat() pour les <i class="ic-bat"> poses dans
-       l'aide et l'onglet du codex. Remplaces partout : astres, compteurs
-       sous les astres, menu radial, codex, barre de construction et liste
-       de gauche, compteur du haut, fiche, journal (y compris les avis
-       build_complete du serveur, traduits), selecteur et jauge du
-       demolisseur, marque du parasite sur les astres, didacticiel, aide.
-     - LES NIDS CRACHENT LEURS SPORES. Tout pres (icone de 18 px et plus a
-       l'ecran), un nid d'un astre qui produit lance de petits jets : douze
-       grains a la couleur du proprietaire qui jaillissent du nid, s'ecartent,
-       retombent et s'eteignent, chacun laissant un court trait. Sans etat
-       (angle tire d'un hachage du cycle), rien a stocker par nid.
-     - Aide : paragraphe des icones, et la conquete « ne detruit rien, sauf
-       le demolisseur ».
-     - LES GAINS ET PERTES EN VOL SAUTENT EN CHIFFRE. +N vert, -N rouge, a
-       l'endroit du jet (popSpores, noterVariationJet) : amas noir, vaisseau
-       rouge, vaisseau vert (+N au lieu de « x2 »), brulure d'etoile. Les
-       petites pertes continues sont cumulees et affichees une fois par
-       seconde. En multijoueur, le client ne touche plus lui-meme aux spores
-       de ces jets : il fait sauter l'ecart entre deux instantanes du
-       serveur - le chiffre vu est donc celui du serveur.
-
-     ── GAMEPLAY (suite) ──
+     ── GAMEPLAY : TIRS ──
+     - LA VISEE : ESPACE, ET RIEN D'AUTRE. Apres un essai du « clic = visee »,
+       retour a la regle d'avant, durcie : sans Espace, aucun tir. Le clic,
+       Tab et le double-clic choisissent ou cadrent l'astre ; Espace ouvre
+       les deux tirs d'un coup - vers un autre astre, et sur son propre sol
+       en pointant son disque (viserDepuisSelection). F (demolisseur) reste
+       une touche volontaire : elle ouvre la visee si besoin. Aide et
+       didacticiel ajustes.
      - LA RAFALE : CTRL + CLIC GAUCHE EN VISEE. L'astre crache des paquets
        de 10 spores, 8 par seconde, vers le curseur a plus ou moins 20
        degres - une mitrailleuse imprecise. Il se vide tant qu'on maintient,
@@ -697,7 +633,6 @@ v9.7.6 | 2026-09-25 | (en cours)
        seul a vide ; multi sur serveur local, l'adversaire voit 16 paquets
        de 10 et plus rien apres le relacher. Aide des touches et livre des
        regles mis a jour.
-
      - LA BOULE : SHIFT EN VISEE. L'astre agglutine des spores dans son
        atmosphere, 25/s jusqu'a 500, chaque spore chargee lui en coutant
        deux, sans remboursement. La boule flotte a 1,35 rayon et tourne
@@ -740,12 +675,7 @@ v9.7.6 | 2026-09-25 | (en cours)
        le contenu : de 6 a 20 au depart, de 8 a 26 a l'arrivee, une boule
        pleine secoue le plus. Verifie : depart plein 20, frappe chez moi
        18,8, ma boule chez l'ennemi 0 chez moi, trois anneaux a chaque fois.
-     - CLIQUER, C'EST VISER. Un clic gauche sur un astre d'ou l'on peut
-       tirer (a soi, ou ou l'on tient une zone) le met aussitot en visee ;
-       ce clic ne tire pas, le second clic d'un double-clic non plus. Tab
-       met aussi l'astre suivant en visee. L'ancienne visee a la touche
-       Espace (_viserDepuisSelection) est retiree.
-     - LE DEMOLISSEUR : ESPACE. Espace arme le tir (ou le desarme) : le
+     - LE DEMOLISSEUR : TOUCHE F. F arme le tir (ou le desarme) : le
        trait de visee rougeoie et pulse, trois icones suivent le curseur
        (alveole, nid, biome) ; la molette choisit le batiment au lieu de
        zoomer, et le nombre que l'astre pointe en possede s'affiche. Le clic
@@ -766,20 +696,41 @@ v9.7.6 | 2026-09-25 | (en cours)
        absente sans effet / refus sans spores ; multi sur serveur local,
        nid casse (3 -> 2) et vu par la victime.
 
+     ── GAMEPLAY : ESPACE ──
      - LES ETOILES BRULENT LES TIRS QUI LES FROLENT. A moins de 2,2 rayons
        du centre d'une etoile, un tir perd 1 spore/s ; a moins de 1,5 rayon,
        5/s ; a zero, il s'eteint. Tirs de surface et jets renvoyes exclus.
        Client (solo) et serveur (multi), memes constantes BRULURE_*.
        Verifie : 3 rayons 0 perte, 1,9 rayon -1/s, 1,3 rayon -5/s.
-     - ESPACE REDEVIENT LA VISEE, LE DEMOLISSEUR PASSE SUR F. Espace met
-       en visee l'astre choisi (viserDepuisSelection, retabli) ; F arme /
-       desarme le demolisseur, juste a cote de D sous l'index.
-       Puis, a la demande : SANS ESPACE, AUCUN TIR. Le clic, Tab et le
-       double-clic ne mettent plus en visee - ils choisissent ou cadrent
-       l'astre. Espace ouvre les deux tirs d'un coup : vers un autre astre,
-       et sur son propre sol en pointant son disque. (F reste une touche
-       volontaire : elle ouvre la visee si besoin.) Aide et didacticiel
-       ajustes.
+     - LA FRONDE DU TROU NOIR. Un tir qui le frole en ressort plus rapide
+       et le garde : rien a 2,5 fois la zone de danger, jusqu'a +80 % au ras
+       de la zone qui detruit. Le trajet ne change pas, il est parcouru plus
+       vite. Au plus pres, quand le tir repart, « ⚡ +N % vitesse » saute en
+       bleu. Client et serveur (FRONDE_PORTEE, FRONDE_MAX). Verifie : passage
+       a 200 du centre, 44 -> 74,7 des deux cotes, « +70 % ».
+     - LES AMAS NE TOUCHENT PLUS UN TIR A SON DEPART. Un amas de meteorites
+       qui passe devant ou derriere l'astre de depart n'agit pas sur le tir
+       tant que celui-ci est a moins de 1,6 rayon + 40 de sa planete. Client
+       et serveur.
+     - DUELS DE VAISSEAUX. Deux vaisseaux de couleurs differentes qui
+       passent a moins de 380 se prennent en chasse : ils se contournent en
+       tournant l'un autour de l'autre et se tirent dessus (lasers a leur
+       couleur, 70 % au but, 7 a 15 degats, 100 points de vie, barre de vie
+       au-dessus). Le perdant explose (eclats, deux ondes) ; un vaisseau de
+       sa couleur reapparait ailleurs 6 a 12 s plus tard. Le vainqueur se
+       repare de 2 pv/s. Au-dela de 950, le duel est rompu. Solo : majDuels ;
+       serveur : majDuels dans updateCleaners, et l'instantane transmet vie,
+       mort et adversaire - le client dessine les lasers (montrerDuels) et
+       fait exploser le vaisseau qui tombe.
+     - LES GAINS ET PERTES EN VOL SAUTENT EN CHIFFRE. +N vert, -N rouge, a
+       l'endroit du jet (popSpores, noterVariationJet) : amas noir, vaisseau
+       rouge, vaisseau vert (+N au lieu de « x2 »), brulure d'etoile. Les
+       petites pertes continues sont cumulees et affichees une fois par
+       seconde. En multijoueur, le client ne touche plus lui-meme aux spores
+       de ces jets : il fait sauter l'ecart entre deux instantanes du
+       serveur - le chiffre vu est donc celui du serveur.
+
+     ── IA ──
      - LES IA SE SERVENT DE TOUT L'ARSENAL. Batiments : les trois genres
        (biome quand l'astre est dispute, alveole quand il deborde, nids
        d'abord) et des foyers putrides. Tirs : parasite des qu'une spore
@@ -800,64 +751,81 @@ v9.7.6 | 2026-09-25 | (en cours)
        parasite, rafale, boule, demolisseur (visant les biomes, les plus
        nombreux) ; serveur, 3 IA sur 400 s : 35 jets, 176 paquets, 7
        boules, 1 demolisseur, 1 parasite, tous annonces, aucune erreur.
-     - ZQSD PENDANT LE CHOIX DE LA PLANETE. Les touches de camera n'etaient
-       ecoutees qu'en partie : au choix du depart, seules les fleches
-       marchaient. Verifie : D, S, fleches, ~1 800 unites en 0,6 s.
-     - TOUCHE T : ARRET DES ATTAQUES, le pendant de R. Sur l'astre sous le
-       curseur, ou partout si le curseur est dans le vide, nos zones perdent
-       leur elan et cessent de pousser (riposte, jet ou tir de surface).
-       Rien n'est perdu : l'elan n'est qu'un budget, les spores restent dans
-       la zone. Serveur : action « arret » (arreterAttaques). Aide : ligne
-       des touches et paragraphe. Verifie : elan 999 -> 0, « ✋ ARRET ».
-     - PARALLAXE : UNE SECONDE COUCHE D'ETOILES. Etoiles proches (tuile de
-       1 536 px, 260 etoiles plus grosses et plus vives, halo doux, une sur
-       huit avec un eclat en croix) qui defilent a 0,4 contre 0,15 pour les
-       lointaines, et grossissent un peu avec le zoom (0,75 a 1,5). Couche
-       CSS confiee au compositeur comme la premiere (#fondEtoiles2) : zero
-       cout de dessin, 60 images/s mesurees. Repli canevas sans le
-       grossissement. Tirage a part (graine 4242), le reste du decor ne
-       change pas.
-     - SERVEUR : CHARGE MESUREE ET COMPRESSION. Banc de charge (salle de 2 a
-       16 joueurs joues par l'IA, rafales sans arret, jusqu'a 320 tirs en
-       vol) : 1,2 a 4,6 ms de calcul par pas sur 50 (9 % au pire, pire pas
-       12 ms). La limite etait le debit : l'instantane (18 a 58 Ko, 10 fois
-       par seconde et par joueur) partait non compresse. Compression
-       WebSocket activee cote serveur (perMessageDeflate, au-dela de 1 Ko) :
-       2 a 6 Ko mesures, environ huit fois moins. Rien a changer cote jeu,
-       les navigateurs decompressent. Verifie : extension negociee, partie a
-       deux sur serveur local sans ecart.
-     - FIN DU CLIGNOTEMENT EN MULTIJOUEUR. A chaque instantane (dix par
-       seconde) l'horloge et les angles d'orbite etaient remis d'un coup sur
-       ceux du serveur : l'horloge reculait par moments (3 a 5 fois en 180
-       images, mesure) et les astres sautaient d'une dizaine d'unites en
-       arriere avant de repartir - de pres, un effet stroboscopique. Le
-       recalage se fait desormais en douceur (20 % de l'ecart par
-       instantane pour les orbites, 15 % pour l'horloge, qui ne recule
-       jamais de plus de 4 ms) ; un ecart franc se recale d'un coup.
-       Verifie sur serveur local, deux joueurs : 0 recul d'horloge.
-     - NOMBRE DE VAISSEAUX EN PARTIE LOCALE. L'ecran de la partie locale a
-       un curseur « Vaisseaux » (0 a 12, le maximum du serveur) ; c'est
-       celui de l'hote qui compte. Le matchmaking garde 2. Corrige au
-       passage : un reglage a 0 donnait 3 vaisseaux (« || 3 »). Et surtout :
-       l'invite fabriquait ses vaisseaux selon SA config (3 par defaut) au
-       lieu de reprendre ceux de l'hote - avec 2 cote serveur, il voyait un
-       vaisseau fantome que rien ne corrigeait. loadMapFromJSON reprend
-       desormais la liste du serveur en multijoueur. Verifie : hote et invite
-       ont les memes 8 vaisseaux, aux memes places.
-     - DUELS DE VAISSEAUX. Deux vaisseaux de couleurs differentes qui
-       passent a moins de 380 se prennent en chasse : ils se contournent en
-       tournant l'un autour de l'autre et se tirent dessus (lasers a leur
-       couleur, 70 % au but, 7 a 15 degats, 100 points de vie, barre de vie
-       au-dessus). Le perdant explose (eclats, deux ondes) ; un vaisseau de
-       sa couleur reapparait ailleurs 6 a 12 s plus tard. Le vainqueur se
-       repare de 2 pv/s. Au-dela de 950, le duel est rompu. Solo : majDuels ;
-       serveur : majDuels dans updateCleaners, et l'instantane transmet vie,
-       mort et adversaire - le client dessine les lasers (montrerDuels) et
-       fait exploser le vaisseau qui tombe.
-     - LES AMAS NE TOUCHENT PLUS UN TIR A SON DEPART. Un amas de meteorites
-       qui passe devant ou derriere l'astre de depart n'agit pas sur le tir
-       tant que celui-ci est a moins de 1,6 rayon + 40 de sa planete. Client
-       et serveur.
+
+     ── INTERFACE ──
+     - PLUS DE LISERE BLANC AUTOUR DES ZONES. Les cases de bord etaient
+       tirees a 60 % vers le blanc : un anneau de pixels clairs autour de
+       chaque zone et du sol du defenseur. La frontiere se lit par la
+       difference de couleur ; le bord d'une zone attaquante est juste un
+       peu plus opaque que son interieur. Livre des regles ajuste.
+     - LA FICHE, SOUS LA JAUGE D'ENVOI. Tout ce qu'on sait de l'astre choisi,
+       d'un coup d'oeil : spores et plafond, remplissage (rouge une fois
+       sature), production, rendement de la courbe, flore, faune, symbiose,
+       batiments, et selon le cas la part du sol qu'on tient sur un astre
+       partage, un parasite, les lunes ou la planete mere. Rien de choisi :
+       le bilan du joueur - astres, spores, production totale, stats,
+       multiplicite (et points en attente), sacrifice, technos, systemes
+       complets, jets lances et prises. Un clic dans le vide lache l'astre
+       suivi et ramene au bilan. Hauteur fixe pour que la jauge posee dessus
+       ne saute pas ; elle laisse passer les clics. Six mises a jour par
+       seconde, reecrites seulement si le texte change.
+     - TAB, DEUX FACONS DE PARCOURIR. Bouton ⇄ dans le titre de MES ASTRES :
+       de planete en planete (lunes sautees), ou d'astre en astre (chaque
+       planete puis ses lunes), soleil par soleil. Depuis une lune en mode
+       planetes, Tab mene a la planete SUIVANTE et non a la premiere. Choix
+       garde d'une partie a l'autre. Aide des touches mise a jour.
+     - ICONES DES BATIMENTS UNIFIEES (famille « organique »). Les astres
+       montraient hexagone / triangle / rond, les menus 🍯 🏗️ 🛡️ 🦠 : on ne
+       s'y retrouvait pas. Un seul dessin SVG par genre (_dessinBat) :
+       alveole = rayon de miel, nid = oeuf dans son nid, biome = dome de vie,
+       parasite = spore infectee a tentacules (nouvelle). iconeBat() pour le
+       HTML, dessinerIconeBat() pour le canevas (image de 192 px faite au
+       chargement), remplirIconesBat() pour les <i class="ic-bat"> poses dans
+       l'aide et l'onglet du codex. Remplaces partout : astres, compteurs
+       sous les astres, menu radial, codex, barre de construction et liste
+       de gauche, compteur du haut, fiche, journal (y compris les avis
+       build_complete du serveur, traduits), selecteur et jauge du
+       demolisseur, marque du parasite sur les astres, didacticiel, aide.
+     - Aide : paragraphe des icones, et la conquete « ne detruit rien, sauf
+       le demolisseur ».
+
+     ── DECOR ──
+     - LES ASTRES PLEINS CRACHENT DES ETINCELLES. Un astre a sa capacite ne
+       produit plus rien, et rien ne le montrait. Il laisse maintenant
+       echapper, toutes les demi-secondes environ, un paquet de 4 a 6
+       etincelles de la couleur de son proprietaire eclaircie : elles
+       jaillissent du bord, freinent et s'eteignent en une seconde. Tete
+       chaude et petite trainee, simple point vu de loin. Purement visuel :
+       aucune spore, aucun effet, hasard hors simulation (pas de decalage en
+       multijoueur). Visible pour tous les camps, donc aussi chez l'ennemi.
+       Rien n'est emis hors de l'ecran, 250 etincelles au plus, moins en
+       reglage Bas. Cout mesure : 0,02 ms en vue normale, 0,18 ms dans le
+       pire cas (57 astres pleins a l'ecran). Elles cessent des que l'astre
+       se vide.
+       Vue de loin, les etincelles se perdent : les astres pleins y
+       CLIGNOTENT doucement, tous ensemble, d'une lueur de la couleur de leur
+       proprietaire (sans coeur blanc, l'astre reste lisible). L'effet monte
+       en dezoomant : rien au-dessus de 30 px de rayon a l'ecran, plein en
+       dessous de 15.
+       Seuil corrige ensuite : les etincelles attendaient 99,5 % alors que le
+       panneau NAISSANCE annonce "sature" des 98,5 % - la production
+       s'eteint si doucement qu'un astre met une minute de plus a franchir
+       le dernier pour cent. Un seul chiffre pour les deux, PART_SATUREE.
+       Verifie sans rien forcer : astre rempli par sa seule production,
+       premieres etincelles a 98,5 %, au bout de 3 min 26.
+       Puis EN ORBITE : lachees dans le vide, elles restaient sur place
+       pendant que l'astre filait et se perdaient derriere lui. Elles vivent
+       desormais dans le repere de l'astre - elles jaillissent du sol, se
+       posent sur une orbite basse (1,2 a 1,65 rayon) et tournent en arc,
+       tout un paquet dans le meme sens, 1 a 2 s. La trainee suit la
+       rotation, pas le deplacement de l'astre. Plus emises quand l'astre
+       fait moins de 15 px de rayon a l'ecran : le clignotement y suffit.
+       Cout au pire (46 astres pleins, vue d'ensemble) : 0,46 ms.
+     - LES NIDS CRACHENT LEURS SPORES. Tout pres (icone de 18 px et plus a
+       l'ecran), un nid d'un astre qui produit lance de petits jets : douze
+       grains a la couleur du proprietaire qui jaillissent du nid, s'ecartent,
+       retombent et s'eteignent, chacun laissant un court trait. Sans etat
+       (angle tire d'un hachage du cycle), rien a stocker par nid.
      - LES ETOILES NE SONT PLUS VOILEES. Leur degrade finissait a 53 %
        d'opacite au bord : tout le disque paraissait semi-transparent. Disque
        opaque, et seul un fin fondu sur les 12 derniers % du rayon (jusqu'a
@@ -873,6 +841,18 @@ v9.7.6 | 2026-09-25 | (en cours)
        s'echappe lentement (jusqu'a 1,9 rayon) en palissant, bleu pale ou
        mauve ; trois arcs tres pales frissonnent sur l'horizon. Sans etat
        (hachage du cycle). LOD moyen et plus.
+     - PARALLAXE : UNE SECONDE COUCHE D'ETOILES. Etoiles proches (tuile de
+       1 536 px, 260 etoiles plus grosses et plus vives, halo doux, une sur
+       huit avec un eclat en croix) qui defilent a 0,4 contre 0,15 pour les
+       lointaines, et grossissent un peu avec le zoom (0,75 a 1,5). Couche
+       CSS confiee au compositeur comme la premiere (#fondEtoiles2) : zero
+       cout de dessin, 60 images/s mesurees. Repli canevas sans le
+       grossissement. Tirage a part (graine 4242), le reste du decor ne
+       change pas.
+     - PARALLAXE : TROISIEME COUCHE. Le tout premier plan du fond : 42
+       grosses etoiles floues et six voiles de poussiere a peine colores
+       (tuile de 1 024 px), defilement 0,85, grossissement franc au zoom (0,6
+       a 2,2). _placerCoucheEtoiles pose les couches 2 et 3. 58-60 images/s.
 
      ── MULTIJOUEUR ──
      - VERIFICATION COMPLETE DU MULTI. Le serveur de production n'est pas
@@ -929,6 +909,33 @@ v9.7.6 | 2026-09-25 | (en cours)
        n'ecrase plus un autre jet si sa creation locale echoue, et prend le
        tireur annonce ; les lunes lisent plafond et symbiose quand le
        serveur les envoie.
+     - FIN DU CLIGNOTEMENT EN MULTIJOUEUR. A chaque instantane (dix par
+       seconde) l'horloge et les angles d'orbite etaient remis d'un coup sur
+       ceux du serveur : l'horloge reculait par moments (3 a 5 fois en 180
+       images, mesure) et les astres sautaient d'une dizaine d'unites en
+       arriere avant de repartir - de pres, un effet stroboscopique. Le
+       recalage se fait desormais en douceur (20 % de l'ecart par
+       instantane pour les orbites, 15 % pour l'horloge, qui ne recule
+       jamais de plus de 4 ms) ; un ecart franc se recale d'un coup.
+       Verifie sur serveur local, deux joueurs : 0 recul d'horloge.
+     - NOMBRE DE VAISSEAUX EN PARTIE LOCALE. L'ecran de la partie locale a
+       un curseur « Vaisseaux » (0 a 12, le maximum du serveur) ; c'est
+       celui de l'hote qui compte. Le matchmaking garde 2. Corrige au
+       passage : un reglage a 0 donnait 3 vaisseaux (« || 3 »). Et surtout :
+       l'invite fabriquait ses vaisseaux selon SA config (3 par defaut) au
+       lieu de reprendre ceux de l'hote - avec 2 cote serveur, il voyait un
+       vaisseau fantome que rien ne corrigeait. loadMapFromJSON reprend
+       desormais la liste du serveur en multijoueur. Verifie : hote et invite
+       ont les memes 8 vaisseaux, aux memes places.
+     - SERVEUR : CHARGE MESUREE ET COMPRESSION. Banc de charge (salle de 2 a
+       16 joueurs joues par l'IA, rafales sans arret, jusqu'a 320 tirs en
+       vol) : 1,2 a 4,6 ms de calcul par pas sur 50 (9 % au pire, pire pas
+       12 ms). La limite etait le debit : l'instantane (18 a 58 Ko, 10 fois
+       par seconde et par joueur) partait non compresse. Compression
+       WebSocket activee cote serveur (perMessageDeflate, au-dela de 1 Ko) :
+       2 a 6 Ko mesures, environ huit fois moins. Rien a changer cote jeu,
+       les navigateurs decompressent. Verifie : extension negociee, partie a
+       deux sur serveur local sans ecart.
 
      ── NETTOYAGE ──
      - buildProgress RETIRE. Reste de l'epoque ou construire prenait du
@@ -953,7 +960,36 @@ v9.7.6 | 2026-09-25 | (en cours)
        60 images/s, aucune erreur. Ca ralentit la copie, ca ne l'empeche
        pas : le navigateur doit pouvoir lire le code pour le faire tourner.
 
+v9.7.7 | 2026-09-28 | (en cours)
+
    À FAIRE
+  🎯 PROCHAINE CONVERSATION : TESTER LE LOCKSTEP (multi facon OpenFront).
+     Le serveur ne relaie plus que les ORDRES des joueurs, regroupes en
+     tours ; chaque navigateur calcule toute la partie. Trafic independant
+     du nombre d'objets : vise des parties de 50 joueurs et plus, serveur
+     presque gratuit. Ce qu'il faut pour que ca tienne :
+     - des tours fixes (ex. 20 par seconde) au lieu du pas variable ;
+     - tout le hasard du jeu tire d'une graine commune (le decor peut
+       rester libre) ;
+     - des maths identiques sur tous les navigateurs : sin, cos, atan2,
+       sqrt... donnent parfois des resultats differents entre Chrome,
+       Firefox et Safari - fonctions maison ou calcul en entiers ;
+     - un seul moteur de jeu partage (aujourd'hui en double : index.html et
+       gameLoop.js du serveur) ;
+     - une empreinte de l'etat echangee a chaque tour pour detecter une
+       desynchronisation, et la reconnexion par rejeu des ordres.
+     Commencer par un prototype : deux navigateurs, meme graine, memes
+     ordres, et comparer l'empreinte de l'etat a chaque tour.
+  🎯 Parties a plus de 2 joueurs (audit fait) : limites du serveur (2 par
+     salle), ecran de partie locale a 4 places avec bouton LANCER, file de
+     matchmaking 2 a 4 avec compte a rebours, couleurs uniques, carte
+     choisie selon le nombre de joueurs, message « elimine - spectateur »,
+     duree de partie a revoir (10 min pense pour le 1 contre 1).
+     Charge mesuree : le calcul tient 16 a 30 joueurs ; le debit est la
+     limite (compression activee : 2 a 12 Ko par instantane).
+  🎯 Hebergement : Railway facture le trafic (~0,05 $/Go). Un serveur
+     Hetzner (~5,50 €/mois, 20 To inclus en Allemagne/Finlande) couterait
+     bien moins des que le multi aura du monde.
   🎯 Sons (à faire à la maison) : la liste precise est dans
      Audio/SONS_A_CREER.md - 12 sons (noms de fichiers, moments, durees,
      ambiance), plus 7 fichiers deja presents mais jamais joues a attribuer.
@@ -3095,6 +3131,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
   <tr><td style="padding:3px 0;color:#4ADE80;">Astéroïde vert</td><td style="padding:3px 0;">Éclate le jet en 5 mini-jets partant dans des directions aléatoires (Ténacité améliore leur direction et leur charge)</td></tr>
   <tr><td style="padding:3px 0;color:#60A5FA;">Comète</td><td style="padding:3px 0;">Détruit les spores au contact — trajectoire imprévisible</td></tr>
 </table>
+<p style="margin-bottom:6px;"><span style="color:#93C5FD;">LA FRONDE DU TROU NOIR.</span> Un jet qui frôle le trou noir sans y tomber en ressort <span style="color:#4ADE80;">plus rapide</span>, jusqu'à +80 % au ras de la zone qui détruit, et le reste jusqu'à l'impact.</p>
 <p style="margin-bottom:16px;">Chaque gain ou perte en vol <span style="color:#E9D5FF;">saute en chiffre</span> au-dessus du jet, là où il se produit : <span style="color:#4ADE80;">+N</span> en vert, <span style="color:#F87171;">−N</span> en rouge. La brûlure d'une étoile s'affiche une fois par seconde.</p>
 
 <!-- MULTIJOUEUR -->
