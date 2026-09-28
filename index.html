@@ -698,6 +698,14 @@ v9.7.6 | 2026-09-25 | (en cours)
        - Tous les messages : debit limite, charges controlees, exclusion en
          cas d'inondation ; une exception n'abat plus le serveur.
        Partie a deux rejouee ensuite sur le serveur renforce : tout marche.
+     - SUPABASE ENFIN BRANCHE SUR LE SERVEUR. Le journal Railway le montrait :
+       SUPABASE_URL et SUPABASE_SERVICE_KEY n'avaient jamais ete renseignes -
+       l'ELO n'a donc jamais ete mis a jour, et l'identite n'etait pas
+       verifiee. Une fois les deux variables ajoutees, le serveur ne
+       demarrait plus : supabase-js exige un WebSocket que Node 20 n'a pas.
+       Corrige : WebSocket du paquet ws fourni au client, passage a Node 22,
+       et un echec de Supabase ne coupe plus le serveur (ELO desactive
+       seulement). Verifie en local avec et sans WebSocket natif.
      - COTE JEU : la fiche affichait 0 spore en multi (l'instantane ecrase
        totalSpores) - recompte depuis les astres ; un jet recu du serveur
        n'ecrase plus un autre jet si sa creation locale echoue, et prend le
