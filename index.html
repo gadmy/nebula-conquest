@@ -688,7 +688,11 @@ v9.7.6 | 2026-09-25 | (en cours)
        Verifie : solo, 25/s, depart dans l'axe (0 degre d'ecart), vitesse
        x1,4, portee 6950 contre 3110 ; multi sur serveur local, boule vue en
        charge par l'adversaire, jet de 75 spores recu avec sa portee.
-       Retouches : rotation ramenee a 0,25 rad/s (un demi-tour en 12 s) ;
+       Retouches : rotation ramenee a 0,25 rad/s (un demi-tour en 12 s),
+       puis a 0,15 rad/s au zoom 1, ralentie en dezoomant (le quart au zoom
+       0,25) - dezoome, le bout de la longue trajectoire prevue balayait
+       l'ecran et la boule paraissait tourner vite ; le zoom est transmis au
+       serveur, qui borne lui-meme la vitesse ;
        la boule REMPLACE le tir normal - un clic relache pendant ou apres la
        charge ne tire plus de jet en plus, quel que soit l'ordre des gestes
        (un clic normal apres coup tire toujours) ; charge spectaculaire :
@@ -7656,7 +7660,15 @@ function majRafale(dt) {
 const BOULE_DEBIT = 25;                  /* spores chargees par seconde */
 const BOULE_MAX = 500;
 const BOULE_COUT = 2;                    /* spores prises a l'astre par spore chargee */
-const BOULE_ROTATION = 0.25;             /* radians par seconde vers la souris : un demi-tour en 12 s */
+const BOULE_ROTATION = 0.15;             /* radians par seconde vers la souris, au zoom 1 et plus */
+
+/* LA ROTATION RALENTIT QUAND ON DEZOOME. A vitesse d'angle fixe, dezoome, on
+   voit toute la longue trajectoire prevue balayer l'ecran, et son bout file :
+   la boule semblait tourner vite. Elle tourne donc d'autant moins vite qu'on
+   voit loin : pleine vitesse au zoom 1, le quart au zoom 0,25 et en dessous. */
+function vitesseRotationBoule(zoom) {
+    return BOULE_ROTATION * Math.max(0.25, Math.min(1, zoom || 1));
+}
 const BOULE_VITESSE = 1.4;               /* par rapport a un jet */
 const BOULE_PAS = Math.round(200 * 2 / BOULE_VITESSE);   /* deux fois la portee d'un jet */
 const BOULE_GRAVITE = 0.25;
@@ -7686,7 +7698,7 @@ function demarrerBoule() {
     if (gameState.isMulti) {
         const zt = src.lutte ? zoneDeTir(src, moi) : null;
         const zc = zt ? zoneCentre(src, zt.z) : null;
-        sendAction('boule_debut', { srcName: src.name,
+        sendAction('boule_debut', { srcName: src.name, z: gameState.camera.zoom,
             tx: gameState.mouseWorldX, ty: gameState.mouseWorldY,
             zx: zc ? zc.x : undefined, zy: zc ? zc.y : undefined });
     }
@@ -7711,11 +7723,12 @@ function majBoule(dt) {
         B.envoi += dt;
         if (B.envoi >= 0.12) {
             B.envoi = 0;
-            sendAction('boule_cible', { tx: gameState.mouseWorldX, ty: gameState.mouseWorldY });
+            sendAction('boule_cible', { tx: gameState.mouseWorldX, ty: gameState.mouseWorldY,
+                                        z: gameState.camera.zoom });
         }
         return;
     }
-    B.angle = _angleVers(B.angle, cible, BOULE_ROTATION * dt);
+    B.angle = _angleVers(B.angle, cible, vitesseRotationBoule(gameState.camera.zoom) * dt);
     /* Charger : on ne prend que ce que l'astre (ou la zone) peut payer. */
     let voulu = Math.min(BOULE_DEBIT * dt, BOULE_MAX - B.n);
     if (voulu <= 0) return;
