@@ -702,6 +702,14 @@ v9.7.6 | 2026-09-25 | (en cours)
        anneaux qui tournent encore). Le jet normal ne change pas. Valable
        pour les tirs de l'adversaire en multijoueur (marques rafale et
        boule transmis par le serveur).
+     - L'ONDE DE CHOC DE LA BOULE. Au lacher, l'ecran du tireur tremble
+       (recul) et trois anneaux s'ecartent depuis la boule : eclair blanc
+       rapide, couleur du tireur, large anneau lent. A l'impact, la meme
+       onde est visible de tous, mais seul l'ecran du joueur TOUCHE tremble
+       (proprietaire de l'astre, ou qui y tient du terrain). La force suit
+       le contenu : de 6 a 20 au depart, de 8 a 26 a l'arrivee, une boule
+       pleine secoue le plus. Verifie : depart plein 20, frappe chez moi
+       18,8, ma boule chez l'ennemi 0 chez moi, trois anneaux a chaque fois.
 
      ── MULTIJOUEUR ──
      - VERIFICATION COMPLETE DU MULTI. Le serveur de production n'est pas
@@ -7720,6 +7728,38 @@ function majBoule(dt) {
     B.n += voulu;
 }
 
+/* L'ONDE DE CHOC de la boule : trois anneaux qui s'ecartent a des vitesses
+   differentes - un eclair blanc rapide, la couleur du tireur, puis un large
+   anneau lent - et, si on la ressent, l'ecran qui tremble. La force suit le
+   contenu de la boule : une boule pleine secoue beaucoup plus. */
+function ondeDeChoc(x, y, rayon, couleurHex, n) {
+    if (!gameState._ondes) gameState._ondes = [];
+    const c = _rgbDe(couleurEtincelle(couleurHex || '#FFFFFF'));
+    const f = Math.min(1, (n || 0) / BOULE_MAX);
+    gameState._ondes.push({ x: x, y: y, r0: rayon * 0.1, r1: rayon * (1.2 + 0.6 * f), age: 0, maxAge: 0.35, couleur: '255,255,255', ep: 5 + 4 * f });
+    gameState._ondes.push({ x: x, y: y, r0: rayon * 0.2, r1: rayon * (2 + f), age: 0, maxAge: 0.7, couleur: c, ep: 4 + 4 * f });
+    gameState._ondes.push({ x: x, y: y, r0: rayon * 0.3, r1: rayon * (3 + 1.5 * f), age: 0, maxAge: 1.2, couleur: c, ep: 2 + 2 * f });
+}
+
+/* Au depart : le tireur sent le recul. */
+function _chocDepartBoule(src, angle, n) {
+    const h = src.radius * BOULE_HAUTEUR;
+    const j = gameState.players[localSlot()];
+    ondeDeChoc(src.x + Math.cos(angle) * h, src.y + Math.sin(angle) * h, src.radius * 1.4, j && j.color, n);
+    secouerEcran(6 + 14 * Math.min(1, n / BOULE_MAX));
+}
+
+/* A l'arrivee : tout le monde voit l'onde ; seul celui qu'elle frappe - le
+   proprietaire de l'astre, ou qui y tient du terrain - voit son ecran
+   trembler. */
+function impactBoule(jet, body) {
+    ondeDeChoc(jet.x, jet.y, body.radius * 1.6, jet.color, jet.spores);
+    const moi = localSlot();
+    if (jet.owner === moi) return;
+    const touche = body.owner === moi || (body.lutte && zonesDe(body, moi).length > 0);
+    if (touche) secouerEcran(8 + 18 * Math.min(1, jet.spores / BOULE_MAX));
+}
+
 /* La planete et ses lunes : ce que la boule traverse au depart. */
 function _groupeBoule(src) {
     const pl = src.type === 'moon' ? src.parent : src;
@@ -7739,6 +7779,14 @@ function lancerBoule() {
     const B = gameState._boule;
     if (!B) return;
     gameState._boule = null;
+    /* L'onde de choc du depart, avec l'angle et le contenu reels : les
+       notres en solo, ceux du serveur en multijoueur. */
+    let _ang = B.angle, _n = B.n;
+    if (gameState.isMulti) {
+        const mienne = (gameState._boulesServeur || []).find(x => x.owner === localSlot());
+        if (mienne) { _ang = mienne.a; _n = mienne.n; }
+    }
+    if (_n >= 5) _chocDepartBoule(B.src, _ang, _n);
     /* Pas de clic en cours : rien a neutraliser, le prochain tir normal passe. */
     if (!gameState._aimHolding) gameState._bouleUtilisee = false;
     if (gameState.isMulti) { sendAction('boule_lancer', {}); return; }
@@ -10118,6 +10166,7 @@ function checkJetCollision(jet) {
 
         if (dx*dx + dy*dy < _br*_br) {
             spawnImpact(jet.x, jet.y, jet.color);
+            if (jet.boule) impactBoule(jet, body);
             // Jets renvoyés par vaisseau noir : ciblent une planète spécifique
             if (jet.owner === -1) {
                 if (body === jet._targetBody || !jet._targetBody) {
