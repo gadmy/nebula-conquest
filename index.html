@@ -817,6 +817,24 @@ v9.7.6 | 2026-09-25 | (en cours)
        cout de dessin, 60 images/s mesurees. Repli canevas sans le
        grossissement. Tirage a part (graine 4242), le reste du decor ne
        change pas.
+     - FIN DU CLIGNOTEMENT EN MULTIJOUEUR. A chaque instantane (dix par
+       seconde) l'horloge et les angles d'orbite etaient remis d'un coup sur
+       ceux du serveur : l'horloge reculait par moments (3 a 5 fois en 180
+       images, mesure) et les astres sautaient d'une dizaine d'unites en
+       arriere avant de repartir - de pres, un effet stroboscopique. Le
+       recalage se fait desormais en douceur (20 % de l'ecart par
+       instantane pour les orbites, 15 % pour l'horloge, qui ne recule
+       jamais de plus de 4 ms) ; un ecart franc se recale d'un coup.
+       Verifie sur serveur local, deux joueurs : 0 recul d'horloge.
+     - NOMBRE DE VAISSEAUX EN PARTIE LOCALE. L'ecran de la partie locale a
+       un curseur « Vaisseaux » (0 a 12, le maximum du serveur) ; c'est
+       celui de l'hote qui compte. Le matchmaking garde 2. Corrige au
+       passage : un reglage a 0 donnait 3 vaisseaux (« || 3 »). Et surtout :
+       l'invite fabriquait ses vaisseaux selon SA config (3 par defaut) au
+       lieu de reprendre ceux de l'hote - avec 2 cote serveur, il voyait un
+       vaisseau fantome que rien ne corrigeait. loadMapFromJSON reprend
+       desormais la liste du serveur en multijoueur. Verifie : hote et invite
+       ont les memes 8 vaisseaux, aux memes places.
      - DUELS DE VAISSEAUX. Deux vaisseaux de couleurs differentes qui
        passent a moins de 380 se prennent en chasse : ils se contournent en
        tournant l'un autour de l'autre et se tirent dessus (lasers a leur
@@ -2732,6 +2750,12 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
             <button class="btn" id="btnLocalInvite" style="font-size:12px; padding:7px 14px; margin:0; background:rgba(100,180,255,0.2); border-color:rgba(100,180,255,0.5); color:#7DD3FC;">INVITER</button>
         </div>
         <div id="localInviteMsg" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#4ADE80; min-height:16px; margin-bottom:12px; text-align:center;"></div>
+        <!-- Reglage de l'hote : nombre de vaisseaux de la partie (le serveur en accepte 12 au plus). -->
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; font-family:'Exo 2',sans-serif; font-size:13px; color:#94A3B8;">
+            <span style="white-space:nowrap;">🛸 Vaisseaux</span>
+            <input type="range" id="localCleaners" min="0" max="12" value="2" style="flex:1;">
+            <span id="localCleanersVal" style="color:#7DD3FC; min-width:18px; text-align:right;">2</span>
+        </div>
         <div id="localWaitMsg" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#94A3B8; text-align:center; padding:10px 0;">En attente d'une réponse...</div>
         <button class="btn" id="btnLocalCancel" style="width:100%; margin-top:8px; font-size:12px; padding:8px;">ANNULER</button>
     </div>
@@ -6016,7 +6040,18 @@ function loadMapFromJSON(mapData) {
 
     // Vaisseaux nettoyeurs
     gameState.cleaners = [];
-    const cleanerCount = gameState.config.cleanerCount || 3;
+    /* En multijoueur, les vaisseaux sont ceux de l'hote, tels que le serveur
+       les a retenus : l'invite en fabriquait lui-meme selon SA config (3 par
+       defaut), et les instantanes, qui les suivent par leur rang, laissaient
+       un vaisseau fantome ou en oubliaient. */
+    const _clServeur = gameState.isMulti && Array.isArray(mapData.cleaners) ? mapData.cleaners : null;
+    if (_clServeur) {
+        for (const k of _clServeur) {
+            gameState.cleaners.push({ x: k.x, y: k.y, vx: k.vx || 0, vy: k.vy || 0, angle: k.angle || 0,
+                                      turnTimer: 0, _target: null, size: k.size || 8, type: k.type });
+        }
+    }
+    const cleanerCount = _clServeur ? 0 : (gameState.config.cleanerCount ?? 3);
     for (let i = 0; i < cleanerCount; i++) {
         const cType = ['red','green','dark'][i % 3];
         const rSun = gameState.suns[i % gameState.suns.length];
@@ -6292,7 +6327,7 @@ function generateUniverse() {
 
     // ── Vaisseaux nettoyeurs ──
     gameState.cleaners = [];
-    const cleanerCount = gameState.config.cleanerCount || 3;
+    const cleanerCount = gameState.config.cleanerCount ?? 3;
 
     const clTypes = ['red', 'green', 'dark'];
     for (let c = 0; c < cleanerCount; c++) {
@@ -19549,6 +19584,9 @@ function startLocalHost() {
         }
     });
 
+    const _nbv = document.getElementById('localCleaners');
+    if (_nbv) _nbv.oninput = () => { document.getElementById('localCleanersVal').textContent = _nbv.value; };
+
     document.getElementById('btnLocalInvite').onclick = () => {
         const pseudo = document.getElementById('localInviteInput').value.trim();
         if (!pseudo || !currentRoom) return;
@@ -19621,7 +19659,10 @@ function _onGameReady(roomId, players) {
         gameState.config.playerCount = players ? players.length : 2;
         gameState.config.mapIndex = Math.floor(Math.random() * MAP_LIBRARY.length);
         gameState.config.useComets = true;
-        gameState.config.cleanerCount = 2;
+        /* Partie locale : l'hote choisit le nombre de vaisseaux (0 a 12). */
+        const _nbv = document.getElementById('localCleaners');
+        gameState.config.cleanerCount = (currentRoom && currentRoom.mode === 'local' && _nbv)
+            ? Math.max(0, Math.min(12, parseInt(_nbv.value, 10) || 0)) : 2;
         fadeTransition(() => startGame());
     } else {
         // Les autres attendent le signal du serveur
@@ -19764,22 +19805,38 @@ function applySnapshot(snap) {
     }
 
 // Sync orbites et timer
+    /* RECALAGE EN DOUCEUR. L'horloge et les angles d'orbite etaient remis
+       d'un coup sur ceux du serveur a chaque instantane : l'horloge reculait
+       par moments, et les astres sautaient d'une dizaine d'unites en arriere
+       puis repartaient - dix fois par seconde. De pres, un effet
+       stroboscopique. On rattrape desormais l'ecart par petites touches, et
+       l'horloge ne recule jamais que de quelques millisecondes. Un ecart
+       franc (reprise apres un onglet en veille) se recale d'un coup. */
     if (snap.time !== undefined) {
-        gameState.time = snap.time;
+        const ecart = snap.time - gameState.time;
+        if (!isFinite(gameState.time) || Math.abs(ecart) > 1) gameState.time = snap.time;
+        else gameState.time += Math.max(-0.004, ecart * 0.15);
         gameState.gameStats.timeElapsed = snap.time;
     }
+    const _recale = (cur, cible) => {
+        if (!isFinite(cur)) return cible;
+        let d = (cible - cur) % (Math.PI * 2);
+        if (d > Math.PI) d -= Math.PI * 2;
+        if (d < -Math.PI) d += Math.PI * 2;
+        return Math.abs(d) > 0.5 ? cible : cur + d * 0.2;
+    };
     if (snap.orbits) {
         snap.orbits.forEach((so, si) => {
             const sun = gameState.suns[si];
             if (!sun) return;
-            sun.angle = so.a;
+            sun.angle = _recale(sun.angle, so.a);
             so.planets.forEach((sp, pi) => {
                 const planet = sun.planets[pi];
                 if (!planet) return;
-                planet.angle = sp.a;
+                planet.angle = _recale(planet.angle, sp.a);
                 sp.moons.forEach((sm, mi) => {
                     const moon = planet.moons[mi];
-                    if (moon) moon.angle = sm.a;
+                    if (moon) moon.angle = _recale(moon.angle, sm.a);
                 });
             });
         });
