@@ -817,6 +817,15 @@ v9.7.6 | 2026-09-25 | (en cours)
        cout de dessin, 60 images/s mesurees. Repli canevas sans le
        grossissement. Tirage a part (graine 4242), le reste du decor ne
        change pas.
+     - SERVEUR : CHARGE MESUREE ET COMPRESSION. Banc de charge (salle de 2 a
+       16 joueurs joues par l'IA, rafales sans arret, jusqu'a 320 tirs en
+       vol) : 1,2 a 4,6 ms de calcul par pas sur 50 (9 % au pire, pire pas
+       12 ms). La limite etait le debit : l'instantane (18 a 58 Ko, 10 fois
+       par seconde et par joueur) partait non compresse. Compression
+       WebSocket activee cote serveur (perMessageDeflate, au-dela de 1 Ko) :
+       2 a 6 Ko mesures, environ huit fois moins. Rien a changer cote jeu,
+       les navigateurs decompressent. Verifie : extension negociee, partie a
+       deux sur serveur local sans ecart.
      - FIN DU CLIGNOTEMENT EN MULTIJOUEUR. A chaque instantane (dix par
        seconde) l'horloge et les angles d'orbite etaient remis d'un coup sur
        ceux du serveur : l'horloge reculait par moments (3 a 5 fois en 180
