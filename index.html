@@ -960,26 +960,69 @@ v9.7.6 | 2026-09-25 | Tirs speciaux, demolisseur, icones, decor spatial, IA, mul
        60 images/s, aucune erreur. Ca ralentit la copie, ca ne l'empeche
        pas : le navigateur doit pouvoir lire le code pour le faire tourner.
 
-v9.7.7 | 2026-09-28 | (en cours)
+v9.7.7 | 2026-09-28 | Prototype lockstep (en cours)
+     ── LOCKSTEP : PREMIER PROTOTYPE ──
+     - BANC D'ESSAI : npm run lockstep (outils/lockstep-test.mjs). Il ouvre
+       le jeu dans deux onglets : meme graine, meme carte, memes IA, memes
+       ordres pour le joueur 0 (un tir tous les 40 tours, fixe a l'avance
+       comme s'il venait du serveur), tours fixes de 1/20 s. Tout ce qui a
+       le droit de differer differe : vrai hasard (Math.random) de graine
+       differente, fenetre de taille differente, camera qui se promene et
+       dessin a chaque image dans le second onglet, aucun dans le premier.
+       A chaque tour, les deux comparent leur empreinte ; le premier tour
+       qui differe est signale avec la famille en cause.
+     - EMPREINTE DE L'ETAT : empreinteEtat() resume toute la partie en un
+       nombre (astres, luttes au sol, batiments, tirs en vol, joueurs,
+       vaisseaux, cometes, horloge). Le decor n'y entre pas. Servira plus
+       tard a detecter une desynchronisation en vraie partie.
+     - QUATRE FUITES DU VRAI HASARD BOUCHEES. Premier essai : ecart des le
+       tour 0. Coupables : les amas et vaisseaux des cartes de la
+       bibliotheque (worldRandom n'avait pas de graine hors generateur, il
+       retombait sur Math.random), les noms des IA, la trajectoire et la
+       couleur des cometes, l'ecart des tirs de rafale. Tous tires
+       maintenant de la graine de la partie. Au passage, une partie solo
+       sur carte de la bibliotheque avait toujours le meme hasard (graine
+       42 par defaut) : elle a desormais sa propre graine a chaque partie.
+     - RESULTAT : identique au bit pres, a chaque tour. 4000 tours (200 s)
+       a 4 joueurs ; une partie entiere de 10 min a 6 joueurs ; quatre
+       autres cartes et graines sur 400 s, eliminations comprises. A
+       l'inverse, un onglet en pas de 1/60 s diverge des le premier tour :
+       le pas fixe est bien indispensable.
+       Limite : seul Chromium est installe ici ; Firefox et Safari restent
+       a tester (maths du navigateur).
+     - BUG TROUVE PAR LE BANC : LE MIMETISME POUVAIT FIGER LE JEU. Sur une
+       carte, la page ne repondait plus vers 170 s de jeu : 4 000 tirs en
+       vol, puis 16 000. A la conquete d'une planete a lunes, la techno
+       Mimetisme envoie des eclats vers les lunes, depuis le CENTRE de la
+       planete ; quand la pesanteur ramenait un eclat dessus, il se
+       scindait a nouveau - 2, 4, 8... Un eclat ne se scinde plus (eclat:
+       true). Verifie : plus d'emballement, la partie va au bout et reste
+       identique dans les deux onglets. Le serveur (gameLoop.js) a
+       probablement le meme defaut : voir A FAIRE.
+     - LE BANC SIGNALE UN GEL au lieu d'attendre sans fin : la partie avance
+       par tranches de 250 tours, chacune limitee a 60 s.
 
    À FAIRE
-  🎯 PROCHAINE CONVERSATION : TESTER LE LOCKSTEP (multi facon OpenFront).
+  🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
+     mimetisme - un eclat (tir parti vers une lune) ne doit pas se scinder
+     a son tour. Sans ca, une partie multi peut s'emballer jusqu'au gel.
+  🎯 LOCKSTEP (multi facon OpenFront) - le prototype tient (voir v9.7.7).
      Le serveur ne relaie plus que les ORDRES des joueurs, regroupes en
      tours ; chaque navigateur calcule toute la partie. Trafic independant
      du nombre d'objets : vise des parties de 50 joueurs et plus, serveur
-     presque gratuit. Ce qu'il faut pour que ca tienne :
-     - des tours fixes (ex. 20 par seconde) au lieu du pas variable ;
-     - tout le hasard du jeu tire d'une graine commune (le decor peut
-       rester libre) ;
-     - des maths identiques sur tous les navigateurs : sin, cos, atan2,
-       sqrt... donnent parfois des resultats differents entre Chrome,
-       Firefox et Safari - fonctions maison ou calcul en entiers ;
+     presque gratuit. Fait : hasard du jeu sur graine commune, empreinte de
+     l'etat, banc d'essai a deux onglets (identique sur 10 min). Reste :
+     - tester Firefox et Safari : sin, cos, atan2... peuvent differer d'un
+       navigateur a l'autre - sinon fonctions maison ou calcul en entiers ;
+     - une vraie boucle a tours fixes (20 par seconde) dans le jeu, l'image
+       interpolee entre deux tours ;
+     - les gestes du joueur (visee, rafale, charge, boule, batiments...)
+       transformes en ordres dates d'un tour, au lieu d'agir tout de suite
+       en lisant la souris ;
      - un seul moteur de jeu partage (aujourd'hui en double : index.html et
        gameLoop.js du serveur) ;
-     - une empreinte de l'etat echangee a chaque tour pour detecter une
-       desynchronisation, et la reconnexion par rejeu des ordres.
-     Commencer par un prototype : deux navigateurs, meme graine, memes
-     ordres, et comparer l'empreinte de l'etat a chaque tour.
+     - l'empreinte echangee en partie pour detecter une desynchronisation,
+       et la reconnexion par rejeu des ordres.
   🎯 Parties a plus de 2 joueurs (audit fait) : limites du serveur (2 par
      salle), ecran de partie locale a 4 places avec bouton LANCER, file de
      matchmaking 2 a 4 avec compte a rebours, couleurs uniques, carte
@@ -6055,6 +6098,12 @@ function loadMapFromJSON(mapData) {
 
     // Ceintures d'astéroïdes — génération aléatoire autour de chaque soleil
     const beltTypes = ['dark', 'red', 'green'];
+    /* Amas et vaisseaux sont tires ici : sans graine, worldRandom retombait
+       sur Math.random et deux joueurs de la meme carte n'avaient pas les
+       memes. Meme regle que generateUniverse : la graine de la partie, ou
+       une nouvelle si on n'en a pas. */
+    if (!gameState.multiSeed) gameState.multiSeed = Math.floor(Math.random() * 2147483647);
+    _worldRng = mulberry32(gameState.multiSeed);
     const _arng = () => worldRandom();
     for (const sun of gameState.suns) {
         const firstPlanet = sun.planets[0];
@@ -7937,7 +7986,7 @@ function majRafale(dt) {
         const src = gameState._fireLanceur || gameState._fireSource;
         const dx = gameState.mouseWorldX - src.x, dy = gameState.mouseWorldY - src.y;
         if (dx * dx + dy * dy < 100) continue;     /* curseur sur le lanceur : pas de direction */
-        const a = Math.atan2(dy, dx) + (Math.random() * 2 - 1) * RAFALE_ECART;
+        const a = Math.atan2(dy, dx) + (gameRandom() * 2 - 1) * RAFALE_ECART;
         const n0 = gameState.jets.length;
         launchJet(src, Math.cos(a), Math.sin(a), 'normal', localSlot(),
                   { nombre: RAFALE_PAQUET, muet: true });
@@ -8970,7 +9019,7 @@ const _usedAiNames = new Set();
 function randomAiName() {
     const available = AI_NAMES.filter(n => !_usedAiNames.has(n));
     const pool = available.length > 0 ? available : AI_NAMES;
-    const n = pool[Math.floor(Math.random() * pool.length)];
+    const n = pool[Math.floor(gameRandom() * pool.length)];
     _usedAiNames.add(n); return '[IA] ' + n;
 }
 function createPlayers() {
@@ -10012,12 +10061,12 @@ function updateComets(dt) {
         gameState.cometTimer = COMET_CFG.freq * (0.7 + gameRandom() * 0.6);
         const cam = gameState.camera;
         const range = (gameState.universeRadius || 6000) * 2;
-        const angle = Math.random() * Math.PI * 2;
+        const angle = gameRandom() * Math.PI * 2;
         const startDist = range * 0.8;
         const cx = Math.cos(angle) * startDist;
         const cy = Math.sin(angle) * startDist;
         // Viser un point aléatoire dans l'univers
-        const targetAngle = angle + Math.PI + (Math.random() - 0.5) * 1.2;
+        const targetAngle = angle + Math.PI + (gameRandom() - 0.5) * 1.2;
         const spd = COMET_CFG.speed + gameRandom() * COMET_CFG.speed * 0.5;
         gameState.comets.push({
             x: cx, y: cy,
@@ -10027,7 +10076,7 @@ function updateComets(dt) {
             tail: COMET_CFG.tail * (0.7 + gameRandom() * 0.6),
             life: range * 2 / spd,
             age: 0,
-            color: ['#88DDFF','#AAEEFF','#FFCC66','#FF9966'][Math.floor(Math.random()*4)]
+            color: ['#88DDFF','#AAEEFF','#FFCC66','#FF9966'][Math.floor(gameRandom()*4)]
         });
     }
 
@@ -10892,7 +10941,11 @@ function checkJetCollision(jet) {
             } else {
                 const _ml = gameState.players[jet.owner]?.tech?.mimicry || 0;
                 const oldOwner = body.owner;
-                if (_ml > 0 && body.type === 'planet' && body.moons && body.moons.length > 0) {
+                /* Un eclat ne se scinde pas a son tour. Il part du centre de la
+                   planete : quand la pesanteur le ramenait dessus, il se
+                   scindait encore - 2 eclats, puis 4, 8... jusqu'a des milliers
+                   de tirs et le jeu fige (vu par le banc lockstep). */
+                if (_ml > 0 && !jet.eclat && body.type === 'planet' && body.moons && body.moons.length > 0) {
                     const _skip = _ml >= 10;
                     if (!_skip) { applyConquest(body, jet); if (body.owner !== oldOwner) playConquestSound(); }
                     const _mr = 0.2 + _ml * 0.08;
@@ -10903,7 +10956,7 @@ function checkJetCollision(jet) {
                         const mdx=mn.x-body.x, mdy=mn.y-body.y, mdd=Math.sqrt(mdx*mdx+mdy*mdy);
                         if (mdd<1) continue;
                         const mSpd=jet.speed*0.8, mTr=computeTrajectory(body.x,body.y,mdx/mdd,mdy/mdd,mSpd,200);
-                        gameState.jets.push({ owner:jet.owner, color:jet.color, spores:_ms, trajectory:mTr, posIndex:0, x:body.x, y:body.y, speed:mSpd, alive:true, trail:[], sparkles:[], age:0, selected:false, source:body, sourceName:body.name, _hitBelt:{} });
+                        gameState.jets.push({ owner:jet.owner, color:jet.color, spores:_ms, trajectory:mTr, posIndex:0, x:body.x, y:body.y, speed:mSpd, alive:true, trail:[], sparkles:[], age:0, selected:false, source:body, sourceName:body.name, eclat:true, _hitBelt:{} });
                     }
                 } else {
                     applyConquest(body, jet);
@@ -14003,6 +14056,66 @@ if (gameState.isMulti) {
     updateAudioTension();
     updateOrbitHum();
     if (gameState._hudCounter % 60 === 0) updateAmbiance();
+}
+
+
+/* ─────────────────────────────────────────────
+   EMPREINTE DE L'ETAT (preparation du lockstep)
+   Un nombre qui resume toute la partie : astres, luttes au sol, batiments,
+   tirs en vol, joueurs, vaisseaux, cometes. Deux navigateurs qui calculent
+   la meme partie doivent trouver le meme a chaque tour ; le premier tour ou
+   ils different montre ou la partie s'est desynchronisee.
+   Le decor (etincelles, lasers, ondes...) n'y entre pas : il a le droit
+   d'etre different d'un ecran a l'autre. Les champs en _ non plus (caches,
+   textures, etat d'affichage).
+   detail = true rend une empreinte par famille, pour chercher le coupable.
+   ───────────────────────────────────────────── */
+function empreinteEtat(detail) {
+    let h = 0;
+    const melanger = function (s) {
+        for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    };
+    const simples = function (o) {
+        if (!o) return '';
+        let s = '';
+        const cles = Object.keys(o).sort();
+        for (let i = 0; i < cles.length; i++) {
+            const k = cles[i];
+            if (k[0] === '_') continue;
+            const v = o[k], t = typeof v;
+            if (t === 'number' || t === 'string' || t === 'boolean' || v === null) s += k + '=' + v + ';';
+        }
+        return s;
+    };
+    const familles = {
+        astres: function (b) {
+            let s = simples(b);
+            for (const e of (b.edifices || [])) s += '[' + simples(e) + ']';
+            if (b.lutte) s += '|' + (b.lutte.cellules ? b.lutte.cellules.join('') : '') + '|' + simples(b.lutte.assaut);
+            return s;
+        },
+        jets: simples,
+        joueurs: function (p) {
+            return simples(p) + simples(p.stats) + simples(p.tech) + simples(p.nidification);
+        },
+        vaisseaux: simples,
+        cometes: simples,
+    };
+    const listes = {
+        astres: gameState.allBodies, jets: gameState.jets, joueurs: gameState.players,
+        vaisseaux: gameState.cleaners, cometes: gameState.comets,
+    };
+    const parts = {};
+    let total = 0x811c9dc5;
+    for (const nom in familles) {
+        h = 0x811c9dc5;
+        for (const x of (listes[nom] || [])) melanger(familles[nom](x));
+        parts[nom] = (h >>> 0).toString(16);
+        total = Math.imul(total ^ h, 16777619);
+    }
+    h = total; melanger('t=' + gameState.time);
+    const empreinte = (h >>> 0).toString(16);
+    return detail ? { empreinte: empreinte, parts: parts } : empreinte;
 }
 
 
