@@ -5,10 +5,16 @@
   "scripts": {
     "brouiller": "node outils/brouiller.mjs",
     "lockstep": "node outils/lockstep-test.mjs",
-    "relais": "node outils/relais.mjs"
+    "relais": "node outils/relais.mjs",
+    "start": "node outils/relais.mjs"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "devDependencies": {
-    "terser": "^5.51.2",
+    "terser": "^5.51.2"
+  },
+  "dependencies": {
     "ws": "^8.22.0"
   }
 }

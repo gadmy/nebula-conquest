@@ -19,7 +19,12 @@
 
    Options : --port 8080, --latence 0 --gigue 0 (en ms, retard ajoute a
    chaque envoi vers chaque joueur, pour simuler un reseau lent ou
-   irregulier ; l'ordre des messages est garde). */
+   irregulier ; l'ordre des messages est garde).
+
+   En ligne (Railway) : un service cree depuis ce depot demarre tout seul
+   par "npm start" (ce fichier), sur le port que donne la variable PORT.
+   Le jeu s'y connecte en wss:// (chiffre, obligatoire depuis une page en
+   https) : ?relais=wss://ADRESSE-DU-SERVICE&salle=nom&joueurs=2 */
 
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -31,7 +36,8 @@ const opt = (nom, def) => {
     const i = args.indexOf('--' + nom);
     return i >= 0 && args[i + 1] !== undefined ? Number(args[i + 1]) : def;
 };
-const PORT = opt('port', 8080);
+/* Un hebergeur (Railway...) impose son port par la variable PORT. */
+const PORT = opt('port', Number(process.env.PORT) || 8080);
 const LATENCE = opt('latence', 0);
 const GIGUE = opt('gigue', 0);
 const PERIODE = 50;                    /* ms entre deux paquets : 3 tours de 1/60 s */
