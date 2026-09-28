@@ -674,6 +674,13 @@ v9.7.6 | 2026-09-25 | (en cours)
        (angle tire d'un hachage du cycle), rien a stocker par nid.
      - Aide : paragraphe des icones, et la conquete « ne detruit rien, sauf
        le demolisseur ».
+     - LES GAINS ET PERTES EN VOL SAUTENT EN CHIFFRE. +N vert, -N rouge, a
+       l'endroit du jet (popSpores, noterVariationJet) : amas noir, vaisseau
+       rouge, vaisseau vert (+N au lieu de « x2 »), brulure d'etoile. Les
+       petites pertes continues sont cumulees et affichees une fois par
+       seconde. En multijoueur, le client ne touche plus lui-meme aux spores
+       de ces jets : il fait sauter l'ecart entre deux instantanes du
+       serveur - le chiffre vu est donc celui du serveur.
 
      ── GAMEPLAY (suite) ──
      - LA RAFALE : CTRL + CLIC GAUCHE EN VISEE. L'astre crache des paquets
@@ -758,6 +765,12 @@ v9.7.6 | 2026-09-25 | (en cours)
        Verifie : solo, arme / molette / tir 250 / nid casse / alveole
        absente sans effet / refus sans spores ; multi sur serveur local,
        nid casse (3 -> 2) et vu par la victime.
+
+     - LES ETOILES BRULENT LES TIRS QUI LES FROLENT. A moins de 2,2 rayons
+       du centre d'une etoile, un tir perd 1 spore/s ; a moins de 1,5 rayon,
+       5/s ; a zero, il s'eteint. Tirs de surface et jets renvoyes exclus.
+       Client (solo) et serveur (multi), memes constantes BRULURE_*.
+       Verifie : 3 rayons 0 perte, 1,9 rayon -1/s, 1,3 rayon -5/s.
 
      ── MULTIJOUEUR ──
      - VERIFICATION COMPLETE DU MULTI. Le serveur de production n'est pas
@@ -2961,6 +2974,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <p id="h-dangers" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚠️ DANGERS</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
   <tr><td style="padding:3px 0;color:#A78BFA;">Trou noir central</td><td style="padding:3px 0;">Détruit les jets trop proches, courbe toutes les trajectoires</td></tr>
+  <tr><td style="padding:3px 0;color:#FBBF24;">Étoiles</td><td style="padding:3px 0;">Détruisent le jet au contact. Un jet qui passe près d'une étoile brûle <b>1 spore/s</b>, tout près <b>5 spores/s</b></td></tr>
   <tr><td style="padding:3px 0;color:#EF4444;">Vaisseau rouge</td><td style="padding:3px 0;">Attaque et détruit vos jets</td></tr>
   <tr><td style="padding:3px 0;color:#4ADE80;">Vaisseau vert</td><td style="padding:3px 0;">×2 les spores d'un jet au contact (une seule fois par jet)</td></tr>
   <tr><td style="padding:3px 0;color:#888;">Vaisseau noir</td><td style="padding:3px 0;">Renvoie vos jets vers leurs astres d'origine</td></tr>
@@ -2969,6 +2983,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
   <tr><td style="padding:3px 0;color:#4ADE80;">Astéroïde vert</td><td style="padding:3px 0;">Éclate le jet en 5 mini-jets partant dans des directions aléatoires (Ténacité améliore leur direction et leur charge)</td></tr>
   <tr><td style="padding:3px 0;color:#60A5FA;">Comète</td><td style="padding:3px 0;">Détruit les spores au contact — trajectoire imprévisible</td></tr>
 </table>
+<p style="margin-bottom:16px;">Chaque gain ou perte en vol <span style="color:#E9D5FF;">saute en chiffre</span> au-dessus du jet, là où il se produit : <span style="color:#4ADE80;">+N</span> en vert, <span style="color:#F87171;">−N</span> en rouge. La brûlure d'une étoile s'affiche une fois par seconde.</p>
 
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
@@ -10224,6 +10239,52 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
     });
 }
 
+/* ─────────────────────────────────────────────
+   CE QUE LE VOYAGE COUTE (OU RAPPORTE) A UN TIR. Chaque gain ou perte en vol
+   saute en chiffre la ou il se produit : +N en vert, -N en rouge. Les
+   petites pertes continues (une etoile trop proche) sont cumulees et
+   affichees une fois par seconde, les coups francs (amas noir, vaisseau)
+   tout de suite.
+   ───────────────────────────────────────────── */
+function popSpores(x, y, n) {
+    if (!n) return;
+    gameState.conquestEffects.push({
+        x: x, y: y, baseX: x,
+        text: (n > 0 ? '+' : '') + n,
+        color: n > 0 ? '#4ADE80' : '#F87171',
+        age: 0, maxAge: 1.4, petit: true
+    });
+}
+function noterVariationJet(jet, delta) {
+    jet._popAcc = (jet._popAcc || 0) + delta;
+    const t = gameState.time;
+    if (jet._popT === undefined) jet._popT = t;
+    if (Math.abs(delta) < 3 && t - jet._popT < 1) return;
+    const n = Math.round(jet._popAcc);
+    if (!n) return;
+    const z = gameState.camera.zoom || 1;
+    popSpores(jet.x, jet.y - 14 / z, n);
+    jet._popAcc -= n;
+    jet._popT = t;
+}
+
+/* LES ETOILES BRULENT LES TIRS QUI LES FROLENT. Un tir qui passe pres d'une
+   etoile perd 1 spore par seconde, tres pres 5 par seconde. Distances en
+   rayons de l'etoile, depuis son centre (le contact detruit toujours). */
+const BRULURE_PRES = 2.2, BRULURE_TRES_PRES = 1.5;
+const BRULURE_LENTE = 1, BRULURE_FORTE = 5;
+function brulureEtoile(jet, suns) {
+    let taux = 0;
+    for (const s of suns) {
+        const dx = jet.x - s.x, dy = jet.y - s.y;
+        const d2 = dx * dx + dy * dy;
+        const r = s.radius;
+        if (d2 < r * r * BRULURE_TRES_PRES * BRULURE_TRES_PRES) { taux = BRULURE_FORTE; break; }
+        if (d2 < r * r * BRULURE_PRES * BRULURE_PRES) taux = Math.max(taux, BRULURE_LENTE);
+    }
+    return taux;
+}
+
 function updateJets(dt) {
     const bh = gameState.blackHole;
     const jets = gameState.jets;
@@ -10316,6 +10377,22 @@ function updateJets(dt) {
             }
         }
 
+        /* Brulure des etoiles. En multijoueur c'est le serveur qui retire
+           les spores : les instantanes les font sauter a l'ecran. */
+        if (!jet._serverDriven && !jet._surface && jet.owner !== -1) {
+            const taux = brulureEtoile(jet, gameState.suns);
+            if (taux) {
+                jet._brule = (jet._brule || 0) + taux * dt;
+                const k = Math.floor(jet._brule);
+                if (k > 0) {
+                    jet._brule -= k;
+                    jet.spores -= k;
+                    noterVariationJet(jet, -k);
+                    if (jet.spores <= 0) { spawnImpact(jet.x, jet.y, '#FFB347'); jet.alive = false; continue; }
+                }
+            }
+        }
+
         // Traversée amas de météorites
         if (!jet._hitBelt) jet._hitBelt = {};
         for (let bi = 0; bi < gameState.asteroidBelts.length; bi++) {
@@ -10342,7 +10419,13 @@ function updateJets(dt) {
                 // Noir : divise les spores (Ténacité réduit la perte)
                 const _tl1 = gameState.players[jet.owner]?.tech?.tenacity || 0;
                 const _dk = 0.5 + _tl1 * 0.05;
-                jet.spores = Math.max(1, Math.floor(jet.spores * _dk));
+                /* En multijoueur, le serveur fait la perte ; l'instantane
+                   la fera sauter en chiffre. */
+                if (!jet._serverDriven) {
+                    const _av = jet.spores;
+                    jet.spores = Math.max(1, Math.floor(jet.spores * _dk));
+                    noterVariationJet(jet, jet.spores - _av);
+                }
                 spawnImpact(jet.x, jet.y, '#555555');
             } else if (closestType === 'red') {
                 // Rouge : dévie le jet de 5° à 15°
@@ -15115,23 +15198,17 @@ function updateCleaners(dt) {
                     if (cl.type === 'red') {
                         // Rouge : attaque classique, réduit les spores
                         const damage = CLN_CFG.dmgMin + gameRandom() * (CLN_CFG.dmgMax - CLN_CFG.dmgMin);
+                        const _av = jet.spores;
                         jet.spores -= damage;
                         if (jet.spores <= 0) jet.alive = false;
-                        gameState.conquestEffects.push({
-                            x: jet.x, y: jet.y - 10, baseX: jet.x,
-                            text: '-' + Math.floor(damage),
-                            color: '#FF4444', age: 0, maxAge: 1.5
-                        });
+                        noterVariationJet(jet, -Math.min(_av, Math.floor(damage)));
                     } else if (cl.type === 'green') {
                         // Vert : multiplie les spores par 2 (une seule fois)
                         if (!jet._boosted) {
+                            const _av = jet.spores;
                             jet.spores = Math.floor(jet.spores * 2);
                             jet._boosted = true;
-                            gameState.conquestEffects.push({
-                                x: jet.x, y: jet.y - 10, baseX: jet.x,
-                                text: 'x2',
-                                color: '#44FF44', age: 0, maxAge: 1.5
-                            });
+                            noterVariationJet(jet, jet.spores - _av);
                         }
                     } else if (cl.type === 'dark') {
                         // Noir : renvoie les spores vers la planète d'origine
@@ -16552,7 +16629,7 @@ function drawConquestEffects(ctx) {
         const alpha = 1 - prog;
         /* une bouffee au depart : le nombre saute puis se pose */
         const bouffee = prog < 0.18 ? (1 + (1 - prog / 0.18) * 0.45) : 1;
-        const px = _taillePx(z, 19, 0, 16, 44) * bouffee;
+        const px = _taillePx(z, 19, 0, 16, 44) * bouffee * (e.petit ? 0.9 : 1);
         const monde = px / z;
         ctx.font = 'bold ' + monde + 'px Orbitron';
         ctx.globalAlpha = alpha;
@@ -18519,6 +18596,7 @@ function connectSocket() {
             if (ev.speed > 0) j.speed = ev.speed;
             j.id         = ev.id;
             j.spores     = ev.spores;
+            j._sv        = ev.spores;
             j.color      = ev.color;
             j._serverDriven = true;
             if (ev.trajectory && ev.trajectory.length > 0) {
@@ -18915,6 +18993,12 @@ function applySnapshot(snap) {
             if (j) {
                 j.x = sj.x;
                 j.y = sj.y;
+                /* Ce que le serveur a ajoute ou retire depuis son dernier
+                   instantane saute en chiffre (etoile, amas, vaisseau). */
+                if (sj.spores !== undefined && sj.spores !== null) {
+                    if (j._sv !== undefined && sj.spores !== j._sv) noterVariationJet(j, sj.spores - j._sv);
+                    j._sv = sj.spores;
+                }
                 j.spores = sj.spores ?? j.spores;
                 if (!sj.alive) j.alive = false;
             }
