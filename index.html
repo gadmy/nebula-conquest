@@ -714,6 +714,31 @@ v9.7.6 | 2026-09-25 | (en cours)
        le contenu : de 6 a 20 au depart, de 8 a 26 a l'arrivee, une boule
        pleine secoue le plus. Verifie : depart plein 20, frappe chez moi
        18,8, ma boule chez l'ennemi 0 chez moi, trois anneaux a chaque fois.
+     - CLIQUER, C'EST VISER. Un clic gauche sur un astre d'ou l'on peut
+       tirer (a soi, ou ou l'on tient une zone) le met aussitot en visee ;
+       ce clic ne tire pas, le second clic d'un double-clic non plus. Tab
+       met aussi l'astre suivant en visee. L'ancienne visee a la touche
+       Espace (_viserDepuisSelection) est retiree.
+     - LE DEMOLISSEUR : ESPACE. Espace arme le tir (ou le desarme) : le
+       trait de visee rougeoie et pulse, trois icones suivent le curseur
+       (alveole, nid, biome) ; la molette choisit le batiment au lieu de
+       zoomer, et le nombre que l'astre pointe en possede s'affiche. Le clic
+       tire 250 spores, vitesse x0,6 pour la meme portee (trajectoire de 333
+       pas, apercu identique). A l'impact, un batiment DU GENRE CHOISI, au
+       hasard parmi ceux qui ne sont pas au tireur, explose (eclair, boule
+       de feu, debris a sa couleur, a sa place sur l'astre) ; s'il n'y en a
+       pas, rien ne casse. Les spores attaquent ensuite comme un jet. Sans
+       250 spores (astre ou zone) : l'ecran vibre, on reste arme. En vol :
+       un boulet sombre herisse, cerne de feu, avec une traine de braises.
+       Jauge ENVOI : DEMOLISSEUR 250 et le batiment choisi.
+       En multijoueur, le serveur verifie le genre, tire les 250 spores et
+       casse ; les clients alignent leur liste de batiments sur les
+       compteurs de l'instantane (accorderEdifices : un compteur qui baisse
+       fait exploser un batiment, un compteur qui monte en pose un - la
+       liste restait figee jusque-la).
+       Verifie : solo, arme / molette / tir 250 / nid casse / alveole
+       absente sans effet / refus sans spores ; multi sur serveur local,
+       nid casse (3 -> 2) et vu par la victime.
 
      ── MULTIJOUEUR ──
      - VERIFICATION COMPLETE DU MULTI. Le serveur de production n'est pas
@@ -2789,7 +2814,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p id="h-controles" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🕹 CONTRÔLES</p>
 <p style="margin-bottom:6px;color:rgba(200,210,230,0.55);font-size:11px;letter-spacing:1px;">SOURIS</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche sur un astre</td><td style="padding:3px 0;">Le sélectionne et centre la caméra dessus</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche sur un astre</td><td style="padding:3px 0;">Le sélectionne et centre la caméra dessus ; si vous pouvez tirer depuis lui, il passe aussitôt en visée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un astre possédé</td><td style="padding:3px 0;">Menu radial : ⚪ Spores · 🦠 Parasite · 🍯 Alvéole · 🏗 Nid · 🛡 Biome · 📖 Codex</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche maintenu → relâcher</td><td style="padding:3px 0;">En mode visée : tire un jet de spores dans la direction pointée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic sur une zone de la planète</td><td style="padding:3px 0;">Choisit la zone d'où partira le tir — elle se cerne d'un trait double et d'un « TIR »</td></tr>
@@ -2806,7 +2831,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Z Q S D <span style="color:rgba(200,210,230,0.45)">ou flèches</span></td><td style="padding:3px 0;">Déplacer la caméra</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">P / M</td><td style="padding:3px 0;">Zoom avant / arrière</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;">Passe en mode visée depuis l'astre sélectionné</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;"><b style="color:#FF8A3D;">Démolisseur</b> — arme le tir (le trait rougeoie) ; la molette choisit le bâtiment 🍯 🏗️ 🛡️ ; le clic tire 250 spores, plus lentes, qui en détruisent un de ce type. Espace à nouveau : désarme</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans Mes Astres — le bouton ⇄ choisit : de planète en planète, ou d'astre en astre (lunes comprises)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
@@ -2838,6 +2863,7 @@ input[type="radio"]:checked + .build-icon-btn {
 <p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA RAFALE — CTRL + CLIC GAUCHE.</span> Pendant la visée, maintenez Ctrl et le clic gauche : votre astre crache des <span style="color:#E9D5FF;">paquets de 10 spores, 8 par seconde</span>, dans la direction du curseur à plus ou moins 20° près — une mitrailleuse, pas un fusil. Il se vide tant que vous tenez, et s'arrête quand vous lâchez ou quand il n'a plus de quoi faire un paquet. Le pourcentage d'envoi n'y compte pas.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA BOULE — SHIFT.</span> Pendant la visée, maintenez Shift : votre astre agglutine des spores dans son atmosphère, <span style="color:#E9D5FF;">25 par seconde jusqu'à 500</span>. Chaque spore chargée lui en coûte <b>deux</b>, et rien n'est rendu. La boule tourne lentement vers la souris ; en lâchant Shift elle part <span style="color:#E9D5FF;">dans l'axe centre de l'astre → boule</span>, pas selon la visée habituelle. Elle va plus vite qu'un jet, <span style="color:#4ADE80;">deux fois plus loin</span>, subit quatre fois moins la gravité, et <span style="color:#4ADE80;">les vaisseaux et amas rouges et noirs ne lui font rien</span>. À l'arrivée, c'est un jet comme un autre.</p>
+<p style="margin-bottom:6px;"><span style="color:#FF8A3D;">LE DÉMOLISSEUR — ESPACE.</span> Pendant la visée, Espace <span style="color:#E9D5FF;">arme</span> le démolisseur : le trait de visée rougeoie et trois icônes suivent le curseur — 🍯 alvéole, 🏗️ nid, 🛡️ biome. <span style="color:#E9D5FF;">La molette</span> choisit le bâtiment visé ; sous les icônes, le nombre que l'astre pointé en possède. Le clic tire alors <span style="color:#E9D5FF;">250 spores</span>, <b>moins vite</b> qu'un jet pour la même portée. À l'impact, <span style="color:#4ADE80;">un bâtiment de ce type</span>, pris au hasard parmi ceux qui ne sont pas à vous, explose ; si l'astre n'en a pas, rien ne casse. Ses spores attaquent ensuite comme un jet ordinaire. Sans 250 spores sur l'astre (ou la zone), l'écran vibre et rien ne part. Espace à nouveau désarme.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Sur chaque astre où plusieurs camps se partagent le sol et où vous tenez une zone, chacune de vos zones engage <span style="color:#E9D5FF;">le pourcentage d'envoi</span> de sa réserve — celui que vous réglez avec <b>A</b> et <b>E</b>, comme pour un jet. Chez vous, chez l'autre, ou sur un neutre entamé. Chaque case reprise se paie au prix du sol, et <span style="color:#4ADE80;">ce qui n'a rien trouvé à acheter reste dans la zone</span> : riposter à 100 % pour trois cases ne vide pas la planète.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">C'est la souris qui désigne la cible :</span> le curseur sur un astre, la riposte ne touche que <b>ses</b> zones ; le curseur dans le vide, <b>tous</b> vos astres contaminés repartent d'un coup. Rien à nettoyer : l'écran vibre.</p>
 <p style="margin-bottom:16px;">Plusieurs attaques sur la même planète ouvrent <span style="color:#E9D5FF;">chacune leur propre front</span> à l'endroit touché. Des spores ne renforcent une tache que si le tir retombe sur du terrain que vous tenez déjà.</p>
@@ -6306,7 +6332,7 @@ function setupUI() {
        RACCOURCIS SUR L'ASTRE SELECTIONNE
        1 2 3 : construire alveole, nid, biome - meme ordre que la barre de
                construction du panneau.
-       Espace : passer directement en mode visee.
+       Espace : armer le demolisseur (voir armerDemolisseur).
        Tab    : amener la camera sur l'entree suivante de la liste de gauche.
        ───────────────────────────────────────────── */
     function _astreActif() {
@@ -6323,30 +6349,6 @@ function setupUI() {
         if (typeof updateCodexBuild === 'function' && gameState.selectedBody === body) {
             updateCodexBuild(body);
         }
-    }
-
-    function _viserDepuisSelection() {
-        /* En mode surface on vise l'astre sous les yeux meme s'il ne nous
-           appartient pas : il suffit d'y tenir du terrain. */
-        /* Un pied-a-terre suffit : pas besoin de posseder l'astre en entier
-           pour viser depuis lui. */
-        const sel = (typeof followingBody !== 'undefined' && followingBody)
-                  ? followingBody : gameState.selectedBody;
-        if (sel && peutTirerSurface(sel, localSlot())) {
-            _closeSporMenu();
-            followingBody = sel;
-            gameState._fireSource = sel;
-            gameState._fireType = 'normal';
-            gameState._firePhase = 'aiming';
-            return;
-        }
-        const body = _astreActif();
-        if (!body) return;
-        _closeSporMenu();
-        followingBody = body;
-        gameState._fireSource = body;
-        gameState._fireType = 'normal';
-        gameState._firePhase = 'aiming';
     }
 
     /* DEUX FACONS DE PARCOURIR SES ASTRES A LA TOUCHE TAB, au choix du
@@ -6402,6 +6404,14 @@ function setupUI() {
         followingBody = suivant;
         gameState.camera.x = suivant.x;
         gameState.camera.y = suivant.y;   /* le zoom ne bouge pas */
+        /* Choisir un astre, c'est viser depuis lui : Tab aussi. */
+        if (!gameState._boule && !gameState._rafale) {
+            _closeSporMenu();
+            gameState._fireSource = suivant;
+            gameState._fireLanceur = null;
+            gameState._fireType = 'normal';
+            gameState._firePhase = 'aiming';
+        }
         document.querySelectorAll('#myPlanetsList .mp-body-row').forEach(function (el) {
             el.classList.toggle('active', el.dataset.bodyName === suivant.name);
         });
@@ -6476,7 +6486,8 @@ function setupUI() {
                             Numpad1: 'alveole', Numpad2: 'nid', Numpad3: 'biome' };
             const _bat = _rang[e.code] || ({ '1': 'alveole', '2': 'nid', '3': 'biome' })[e.key];
             if (_bat) { e.preventDefault(); _construire(_bat); return; }
-            if (e.code === 'Space') { e.preventDefault(); _viserDepuisSelection(); return; }
+            /* Espace arme (ou desarme) le DEMOLISSEUR : voir armerDemolisseur. */
+            if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) armerDemolisseur(); return; }
             if (e.key === 'Tab')    { e.preventDefault(); _astreSuivant();    return; }
             if (_camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
             /* La souris designe la cible : sur un astre, la riposte s'y
@@ -7828,6 +7839,232 @@ function lancerBoule() {
     });
 }
 
+/* ─────────────────────────────────────────────
+   LE DEMOLISSEUR (touche Espace). Espace ARME le tir : le trait de visee
+   rougeoie, et la molette fait defiler les trois batiments - alveole, nid,
+   biome. Le clic suivant tire 250 spores, plus lentes qu'un jet, qui cassent
+   sur l'astre touche UN batiment du genre choisi, pris au hasard parmi ceux
+   qui ne sont pas au tireur. S'il n'y en a pas de ce genre, rien ne casse.
+   Les spores attaquent en plus comme celles d'un jet ordinaire. Sans les 250
+   spores, l'ecran vibre et rien ne part. Espace a nouveau desarme.
+   ───────────────────────────────────────────── */
+const DEMOL_SPORES = 250;
+const DEMOL_VITESSE = 0.6;                            /* par rapport a un jet */
+const DEMOL_PAS = Math.round(200 / DEMOL_VITESSE);    /* meme portee qu'un jet */
+const DEMOL_GENRES = ['alveole', 'nid', 'biome'];
+const DEMOL_ICONES = { alveole: '🍯', nid: '🏗️', biome: '🛡️' };
+const DEMOL_NOMS = { alveole: 'Alvéole', nid: 'Nid', biome: 'Biome' };
+
+/* Espace : armer ou desarmer. Sans visee en cours, on vise d'abord depuis
+   l'astre choisi. */
+function armerDemolisseur() {
+    if (gameState.phase !== 'game' || gameState.isSpectator) return;
+    if (gameState._boule || gameState._rafale) return;
+    if (gameState._demol) { gameState._demol = false; return; }
+    const moi = localSlot();
+    if (gameState._firePhase !== 'aiming' || !gameState._fireSource) {
+        const sel = (typeof followingBody !== 'undefined' && followingBody) ? followingBody : gameState.selectedBody;
+        if (!sel || !peutTirerSurface(sel, moi)) { secouerEcran(8); return; }
+        gameState._fireSource = sel;
+        gameState._fireLanceur = null;
+        gameState._fireType = 'normal';
+        gameState._firePhase = 'aiming';
+    }
+    if (!gameState._demolGenre) gameState._demolGenre = 'nid';
+    gameState._demol = true;
+}
+
+/* Molette pendant que le demolisseur est arme : le genre suivant. */
+function genreDemolisseurSuivant(sens) {
+    const i = DEMOL_GENRES.indexOf(gameState._demolGenre || 'nid');
+    gameState._demolGenre = DEMOL_GENRES[(i + (sens > 0 ? 1 : DEMOL_GENRES.length - 1)) % DEMOL_GENRES.length];
+    if (typeof playClickSound === 'function') playClickSound();
+}
+
+/* Le tir, au clic. Vrai s'il est parti (ou a ete demande au serveur). */
+function tirDemolisseur() {
+    const moi = localSlot();
+    const src = gameState._fireLanceur || gameState._fireSource;
+    if (!src || !peutTirerSurface(src, moi)) { secouerEcran(8); return false; }
+    const dx = gameState.mouseWorldX - src.x, dy = gameState.mouseWorldY - src.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 10) return false;
+    const zt = src.lutte ? zoneDeTir(src, moi) : null;
+    if (src.lutte && (!zt || zt.z.n < ZONE_MIN)) { secouerEcran(8); return false; }
+    const dispo = zt ? zt.z.spores : (src.spores || 0);
+    if (dispo < DEMOL_SPORES) { secouerEcran(8); return false; }
+    const genre = gameState._demolGenre || 'nid';
+    if (gameState.isMulti) {
+        const zc = zt ? zoneCentre(src, zt.z) : null;
+        sendAction('demolisseur', { srcName: (gameState._fireSource || src).name,
+                                    dirX: dx / len, dirY: dy / len, genre: genre,
+                                    zx: zc ? zc.x : undefined, zy: zc ? zc.y : undefined });
+        return true;
+    }
+    launchJet(src, dx / len, dy / len, 'normal', moi,
+              { nombre: DEMOL_SPORES, vitesse: DEMOL_VITESSE, pas: DEMOL_PAS, demol: genre });
+    return true;
+}
+
+/* Casse un batiment du genre voulu qui n'est pas au tireur ; rend son genre,
+   ou null s'il n'y en avait pas. Solo seulement : en multijoueur c'est le
+   serveur qui casse, et le client suit ses compteurs. */
+function demolirEdifice(body, tireur, genre) {
+    const liste = edifices(body);
+    const monCamp = campDe(body, tireur);
+    const cel = body.lutte ? body.lutte.cellules : null;
+    const cibles = [];
+    for (let k = 0; k < liste.length; k++) {
+        if (liste[k].g !== genre) continue;
+        if (cel ? cel[liste[k].i] === monCamp : body.owner === tireur) continue;
+        cibles.push(k);
+    }
+    if (!cibles.length) return null;
+    const k = cibles[Math.floor(gameRandom() * cibles.length)];
+    const e = liste.splice(k, 1)[0];
+    const cle = e.g === 'nid' ? 'nids' : e.g === 'alveole' ? 'alveoles' : 'biomes';
+    body[cle] = Math.max(0, (body[cle] || 0) - 1);
+    effetDemolition(body, e);
+    return e.g;
+}
+
+/* Ce qu'on voit quand un batiment tombe : un eclat a sa place, son nom
+   barre au-dessus de l'astre, et une ligne au journal pour sa victime. */
+function effetDemolition(body, e) {
+    const noms = { nid: 'Nid', alveole: 'Alvéole', biome: 'Biome' };
+    let x = body.x, y = body.y;
+    if (e && e.i !== undefined && e.i >= 0) { const c = _celluleVers(body, e.i); x = c.x; y = c.y; }
+    const teinte = BATI_TEINTES[e.g] || '#FFFFFF';
+    spawnImpact(x, y, '#FF7A1A');
+    if (!gameState._ondes) gameState._ondes = [];
+    gameState._ondes.push({ x: x, y: y, r0: 1, r1: body.radius * 0.3, age: 0, maxAge: 0.5, couleur: '255,170,60', ep: 2 });
+    /* La petite explosion, a la place meme du batiment : un eclair, une
+       boule de feu, et des debris a sa couleur qui retombent. */
+    const pas = (2 * body.radius) / LUTTE_N;
+    const debris = [];
+    for (let k = 0; k < 10; k++) {
+        const a = Math.random() * Math.PI * 2;
+        debris.push({ a: a, v: (1.5 + Math.random() * 2.5) * pas, t: 0.5 + Math.random() * 0.8 });
+    }
+    if (!gameState._explosionsBat) gameState._explosionsBat = [];
+    gameState._explosionsBat.push({ body: body, dx: x - body.x, dy: y - body.y, t0: gameState.time,
+                                    pas: pas, teinte: teinte, debris: debris });
+    gameState.conquestEffects.push({
+        x: body.x, y: body.y - body.radius - 26, baseX: body.x,
+        text: '💥 ' + (noms[e.g] || 'Bâtiment') + ' détruit',
+        color: '#FF8A3D', age: 0, maxAge: 2.8
+    });
+    const moi = localSlot();
+    if (body.owner === moi || (body.lutte && zonesDe(body, moi).length > 0)) {
+        addEvent('war', '💥', (noms[e.g] || 'Bâtiment') + ' détruit sur ' + body.name, body, '#FF8A3D');
+    }
+}
+
+/* Les explosions de batiments, collees a leur astre (il orbite). */
+function drawExplosionsBat(ctx) {
+    const L = gameState._explosionsBat;
+    if (!L || !L.length) return;
+    const DUREE = 1.3;
+    const z = gameState.camera.zoom;
+    ctx.save();
+    for (let i = L.length - 1; i >= 0; i--) {
+        const E = L[i];
+        const age = gameState.time - E.t0;
+        if (age > DUREE || age < 0) { L.splice(i, 1); continue; }
+        const x = E.body.x + E.dx, y = E.body.y + E.dy;
+        const r = Math.max(E.pas, 3 / z);
+        ctx.globalCompositeOperation = 'lighter';
+        if (age < 0.5) {
+            const f = age / 0.5;
+            ctx.globalAlpha = 1 - f;
+            ctx.drawImage(haloSprite('#FF7A1A', 'halo'), x - r * 5 * (0.5 + f), y - r * 5 * (0.5 + f), r * 10 * (0.5 + f), r * 10 * (0.5 + f));
+            ctx.fillStyle = '#FFF4D6';
+            ctx.beginPath();
+            ctx.arc(x, y, r * 1.6 * (1 - f), 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalCompositeOperation = 'source-over';
+        for (const d of E.debris) {
+            if (age > d.t) continue;
+            const f = age / d.t;
+            ctx.globalAlpha = 1 - f;
+            ctx.fillStyle = f < 0.3 ? '#FFB347' : E.teinte;
+            const dd = d.v * (1 - (1 - f) * (1 - f));
+            ctx.fillRect(x + Math.cos(d.a) * dd - r * 0.2, y + Math.sin(d.a) * dd - r * 0.2, r * 0.4, r * 0.4);
+        }
+    }
+    ctx.restore();
+}
+
+/* Multijoueur : le serveur n'envoie que des compteurs. On aligne la liste des
+   batiments dessus - un compteur qui baisse, c'est un batiment demoli ; un
+   compteur qui monte, un batiment neuf a placer. */
+function accorderEdifices(body) {
+    if (!body.edifices) return;
+    const genres = [['alveole', 'alveoles'], ['nid', 'nids'], ['biome', 'biomes']];
+    for (const [g, cle] of genres) {
+        const voulu = body[cle] || 0;
+        let n = 0;
+        for (const e of body.edifices) if (e.g === g) n++;
+        while (n > voulu) {
+            let k = -1;
+            for (let i = body.edifices.length - 1; i >= 0; i--) if (body.edifices[i].g === g) { k = i; break; }
+            const e = body.edifices.splice(k, 1)[0];
+            effetDemolition(body, e);
+            n--;
+        }
+        while (n < voulu) {
+            const i = _caseLibre(body, null);
+            if (i < 0) break;
+            body.edifices.push({ g: g, i: i });
+            n++;
+        }
+    }
+}
+
+/* Le demolisseur en vol : un boulet sombre et lourd, cerne d'un liseré
+   ardent, qui laisse des braises derriere lui. */
+function dessinerDemolisseur(ctx, jet) {
+    const z = gameState.camera.zoom;
+    const t = gameState.time;
+    const r = Math.max(6, 5 / z);
+    const tr = jet.trail;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < tr.length; i++) {
+        const f = (i + 1) / tr.length;
+        ctx.globalAlpha = 0.5 * f;
+        ctx.fillStyle = i % 2 ? '#FF7A1A' : '#FFB347';
+        const rr = r * (0.25 + 0.5 * f);
+        ctx.beginPath();
+        ctx.arc(tr[i].x, tr[i].y, rr, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 0.55 + 0.2 * Math.sin(t * 10);
+    ctx.drawImage(haloSprite('#FF7A1A', 'halo'), jet.x - r * 3, jet.y - r * 3, r * 6, r * 6);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#2A1408';
+    ctx.strokeStyle = '#FF8A3D';
+    ctx.lineWidth = Math.max(1.2 / z, r * 0.28);
+    ctx.beginPath();
+    const a0 = jet.age * 3;
+    for (let k = 0; k < 7; k++) {
+        const a = a0 + k * Math.PI * 2 / 7;
+        const rk = r * (k % 2 ? 0.8 : 1.05);
+        if (k === 0) ctx.moveTo(jet.x + Math.cos(a) * rk, jet.y + Math.sin(a) * rk);
+        else ctx.lineTo(jet.x + Math.cos(a) * rk, jet.y + Math.sin(a) * rk);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = jet.color || '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(jet.x, jet.y, r * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
+
 /* Les boules en charge : la notre en solo, celles de tous (serveur) en
    multijoueur. Une lueur qui grossit avec son contenu, et son nombre. */
 function drawBoules(ctx) {
@@ -9124,7 +9361,10 @@ function majJaugeEnvoi(pulse) {
              || ((typeof followingBody !== 'undefined' && followingBody) ? followingBody : null)
              || gameState.selectedBody;
     const nb = document.getElementById('envoiNb');
-    if (nb && gameState._boule) {
+    if (nb && gameState._demol) {
+        const g = gameState._demolGenre || 'nid';
+        nb.innerHTML = 'DÉMOLISSEUR<em>' + DEMOL_SPORES + ' · ' + DEMOL_ICONES[g] + ' ' + DEMOL_NOMS[g] + '</em>';
+    } else if (nb && gameState._boule) {
         /* Pendant la charge : le contenu de la boule, sur son maximum. */
         let n = gameState._boule.n;
         if (gameState.isMulti) {
@@ -9918,8 +10158,10 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
         source.spores -= sporeCount;
     }
 
-    const speed = 20 + player.stats.velocity * 6;
-    const traj = computeTrajectory(source.x, source.y, dirX, dirY, speed, 200);
+    /* opts.vitesse ralentit (ou accelere) le jet ; opts.pas allonge sa
+       trajectoire d'autant, pour garder la meme portee. */
+    const speed = (20 + player.stats.velocity * 6) * (opts && opts.vitesse > 0 ? opts.vitesse : 1);
+    const traj = computeTrajectory(source.x, source.y, dirX, dirY, speed, (opts && opts.pas) || 200);
 
     // Générer des particules scintillantes autour du jet
     const sparkles = [];
@@ -9952,7 +10194,8 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
         age: 0,
         selected: false,
         source: source,
-        sourceName: source.name
+        sourceName: source.name,
+        demolisseur: (opts && opts.demol) || false
     });
 }
 
@@ -10180,6 +10423,13 @@ function checkJetCollision(jet) {
         if (dx*dx + dy*dy < _br*_br) {
             spawnImpact(jet.x, jet.y, jet.color);
             if (jet.boule) impactBoule(jet, body);
+            /* Le demolisseur casse avant que ses spores n'attaquent : ce
+               qu'il vise, c'est ce qui se trouve la a son arrivee. */
+            if (jet.demolisseur) {
+                const _moi = localSlot();
+                if (jet.owner === _moi || body.owner === _moi) secouerEcran(5);
+                if (!gameState.isMulti) demolirEdifice(body, jet.owner, jet.demolisseur);
+            }
             // Jets renvoyés par vaisseau noir : ciblent une planète spécifique
             if (jet.owner === -1) {
                 if (body === jet._targetBody || !jet._targetBody) {
@@ -12254,6 +12504,7 @@ function drawJets(ctx) {
         if (!jet.alive) continue;
         if (jet.rafale) { dessinerTracante(ctx, jet); continue; }
         if (jet.boule) { dessinerBouleEnVol(ctx, jet); continue; }
+        if (jet.demolisseur) { dessinerDemolisseur(ctx, jet); continue; }
 
         /* Un jet n'est que de la lumiere : brume, trainee, halo, noyau et
            scintillements s'AJOUTENT au fond. En transparence simple ils
@@ -12365,7 +12616,13 @@ function drawLaunchPreview(ctx) {
     /* Trait rouge quand une etoile ou le trou noir barre la route : le jet y
        serait detruit, et la cible passerait pour invulnerable. */
     const bloque = !surface && !gameState._boule && gameState._tirBloque;
-    const col = bloque ? '#FF3B30' : (player ? player.color : '#C8A0FF');
+    const demol = !!gameState._demol && !gameState._boule;
+    const col = bloque ? '#FF3B30' : demol ? '#FF5A1F' : (player ? player.color : '#C8A0FF');
+    /* Demolisseur arme : le trait rougeoie, il pulse et luit. */
+    if (demol) {
+        ctx.shadowColor = '#FF3B00';
+        ctx.shadowBlur = 10 + 6 * Math.sin(gameState.time * 6);
+    }
     if (surface && gameState._departSurface) {
         const d0 = gameState._departSurface;
         ctx.setLineDash([]);
@@ -12383,9 +12640,9 @@ function drawLaunchPreview(ctx) {
     }
 
     for (let i = 0; i < count - 1; i++) {
-        const alpha = (bloque ? 0.85 : 0.5) * (1 - i / count);
+        const alpha = (bloque || demol ? 0.85 : 0.5) * (1 - i / count);
         ctx.strokeStyle = col + Math.floor(alpha * 255).toString(16).padStart(2, '0');
-        ctx.lineWidth = (bloque ? 3 : 2) * zScale;
+        ctx.lineWidth = (bloque ? 3 : demol ? 3.5 : 2) * zScale;
         ctx.beginPath();
         ctx.moveTo(preview[i].x, preview[i].y);
         ctx.lineTo(preview[i+1].x, preview[i+1].y);
@@ -12393,7 +12650,68 @@ function drawLaunchPreview(ctx) {
     }
     ctx.restore();
 
+    if (demol) { dessinerChoixDemolisseur(ctx); return; }
     if (!gameState._boule) dessinerDevis(ctx, src, bloque);
+}
+
+/* Les trois batiments, colles au curseur, celui qu'on detruira entoure de
+   feu ; en dessous, combien l'astre vise en a qu'on peut casser. */
+function dessinerChoixDemolisseur(ctx) {
+    const z = gameState.camera.zoom;
+    const px = _taillePx(z, 12, 40, 11, 17);
+    const m = px / z;
+    const genre = gameState._demolGenre || 'nid';
+    const x0 = gameState.mouseWorldX + m * 2.2, y0 = gameState.mouseWorldY - m * 2.4;
+    const pasI = m * 2.4;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let k = 0; k < DEMOL_GENRES.length; k++) {
+        const g = DEMOL_GENRES[k];
+        const cx = x0 + k * pasI, cy = y0;
+        const choisi = g === genre;
+        ctx.globalAlpha = choisi ? 1 : 0.45;
+        ctx.fillStyle = 'rgba(12,8,20,0.8)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, m * (choisi ? 1.05 : 0.8), 0, Math.PI * 2);
+        ctx.fill();
+        if (choisi) {
+            ctx.shadowColor = '#FF3B00';
+            ctx.shadowBlur = 12;
+            ctx.strokeStyle = '#FF5A1F';
+            ctx.lineWidth = m * 0.16;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        ctx.font = Math.round(m * (choisi ? 1.15 : 0.85)) + 'px sans-serif';
+        ctx.fillText(DEMOL_ICONES[g], cx, cy + m * 0.05);
+    }
+    ctx.globalAlpha = 1;
+    const cible = _astreSousCurseur();
+    let txt = 'DÉMOLIR : ' + DEMOL_NOMS[genre].toUpperCase();
+    let teinte = '#FF8A3D';
+    if (cible) {
+        const moi = localSlot();
+        const monCamp = campDe(cible, moi);
+        const cel = cible.lutte ? cible.lutte.cellules : null;
+        let n = 0;
+        const n0 = (cible.alveoles || 0) + (cible.nids || 0) + (cible.biomes || 0);
+        if (n0) for (const e of edifices(cible)) {
+            if (e.g !== genre) continue;
+            if (cel ? cel[e.i] === monCamp : cible.owner === moi) continue;
+            n++;
+        }
+        txt += n ? '  \u00b7 ' + n + ' sur ' + cible.name : '  \u00b7 aucun sur ' + cible.name;
+        if (!n) teinte = '#9CA3AF';
+    }
+    ctx.font = '600 ' + Math.round(m * 0.8) + 'px "Exo 2", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.lineWidth = m * 0.22;
+    ctx.strokeStyle = 'rgba(8,6,20,0.85)';
+    ctx.strokeText(txt, x0 - m, y0 + m * 1.9);
+    ctx.fillStyle = teinte;
+    ctx.fillText(txt, x0 - m, y0 + m * 1.9);
+    ctx.restore();
 }
 
 /* LE DEVIS, colle au curseur. Ce que l'envoi achetera sur l'astre vise, et a
@@ -12483,6 +12801,11 @@ function setupInput() {
         const mpEl = document.getElementById('myPlanets');
         if (mpEl && mpEl.matches(':hover')) return;
         e.preventDefault();
+        /* Demolisseur arme : la molette choisit le batiment, pas le zoom. */
+        if (gameState._demol && gameState._firePhase === 'aiming') {
+            if (e.deltaY) genreDemolisseurSuivant(e.deltaY > 0 ? 1 : -1);
+            return;
+        }
         /* La molette reprend la main sur le zoom automatique du mode surface. */
         gameState._zoomCible = null;
         const direction = e.deltaY > 0 ? -1 : 1;
@@ -12528,6 +12851,7 @@ function setupInput() {
         return null;
     }
     function _cancelFire() {
+        gameState._demol = false;
         gameState._firePhase = null;
         gameState._fireSource = null;
         gameState._fireLanceur = null;
@@ -12563,6 +12887,7 @@ function setupInput() {
         if (gameState._firePhase === 'aiming') {
             /* Ctrl + clic : la rafale, pas le tir unique (voir demarrerRafale). */
             if (e.ctrlKey) { demarrerRafale(); return; }
+            if (performance.now() - (gameState._viseeDepuisClic || 0) < 350) return;
             gameState._aimHolding = true;
             gameState._fireCamZoom = cam.zoom;
             return;
@@ -12595,6 +12920,18 @@ function setupInput() {
                     if (best) gameState._zoneSel = { body: body, id: best };
                 }
             }
+            /* CLIQUER, C'EST VISER. Un astre d'ou l'on peut tirer passe
+               aussitot en visee : plus besoin de le choisir puis d'appuyer
+               sur une touche. Ce clic-ci ne tire pas (le tir part au clic
+               suivant), et le second clic d'un double-clic non plus. */
+            if (gameState.phase === 'game' && peutTirerSurface(body, localSlot())) {
+                _closeSporMenu();
+                gameState._fireSource = body;
+                gameState._fireLanceur = null;
+                gameState._fireType = 'normal';
+                gameState._firePhase = 'aiming';
+                gameState._viseeDepuisClic = performance.now();
+            }
         }
     });
 
@@ -12612,6 +12949,24 @@ function setupInput() {
                     cam.zoom = gameState._fireCamZoom; gameState._fireCamZoom = null;
                 }
             }
+            return;
+        }
+
+        /* Demolisseur arme : le clic le tire a la place du jet. Refuse (pas
+           assez de spores), on reste arme et en visee. */
+        if (gameState._firePhase === 'aiming' && gameState._aimHolding && gameState._demol) {
+            gameState._aimHolding = false;
+            if (gameState._fireCamZoom !== null && gameState._fireCamZoom !== undefined) {
+                cam.zoom = gameState._fireCamZoom; gameState._fireCamZoom = null;
+            }
+            if (!tirDemolisseur()) return;
+            gameState._demol = false;
+            gameState._firePhase = null;
+            gameState._fireSource = null;
+            gameState._fireLanceur = null;
+            gameState._fireGroupe = null;
+            gameState._chargeAcc = 0;
+            gameState.launchPreview = [];
             return;
         }
 
@@ -13313,6 +13668,7 @@ function render() {
     // ── Jets de spores ──
     drawJets(ctx);
     drawBoules(ctx);
+    drawExplosionsBat(ctx);
 
     // ── Prévisualisation de lancement ──
     // Recalculer la preview à chaque frame (la planète orbite même si la souris ne bouge pas)
@@ -13330,7 +13686,7 @@ function render() {
             gameState.launchPreview = computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 120);
         }
     }
-    const _bSurf = astreTirSurface();
+    const _bSurf = gameState._demol ? null : astreTirSurface();
     if (_bSurf) {
         /* En surface le trait part du bout de terrain qu'on tient le plus
            proche du curseur, et suit la cloche de la pesanteur de l'astre. */
@@ -13352,7 +13708,9 @@ function render() {
                courberait le trait - comme le fait launchJet. */
             const player = gameState.players[localSlot()];
             const speed = 20 + (player ? player.stats.velocity * 6 : 0);
-            gameState.launchPreview = computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 200);
+            gameState.launchPreview = gameState._demol
+                ? computeTrajectory(src.x, src.y, dx/len, dy/len, speed * DEMOL_VITESSE, DEMOL_PAS)
+                : computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 200);
         }
     }
     drawOndesSolaires(ctx);
@@ -18043,6 +18401,7 @@ function connectSocket() {
             if (ev.slot !== undefined && ev.slot !== null) j.owner = ev.slot;
             if (ev.boule) { j.boule = true; j._groupe = _groupeBoule(src); }
             if (ev.rafale) j.rafale = true;
+            if (ev.demol) j.demolisseur = ev.demol;
             /* La vitesse du serveur : celle de la boule n'est pas celle d'un jet. */
             if (ev.speed > 0) j.speed = ev.speed;
             j.id         = ev.id;
@@ -18358,6 +18717,7 @@ function applySnapshot(snap) {
         p.nids          = sp.nids          ?? p.nids;
         p.biomes        = sp.biomes        ?? p.biomes;
         p.alveoles      = sp.alveoles      ?? p.alveoles;
+        accorderEdifices(p);
         p.buildMode        = sp.buildMode        ?? p.buildMode;
         p.parasiteSpore    = sp.parasiteSpore     ?? p.parasiteSpore;
         p.parasiteProgress = sp.parasiteProgress  ?? p.parasiteProgress;
@@ -18406,6 +18766,7 @@ function applySnapshot(snap) {
         m.nids      = sm.nids      ?? m.nids;
         m.biomes    = sm.biomes    ?? m.biomes;
         m.alveoles  = sm.alveoles  ?? m.alveoles;
+        accorderEdifices(m);
         /* Envoyes par les serveurs recents : le plafond bouge avec les
            alveoles, et la fiche montre la symbiose. */
         if (sm.maxSpores !== undefined) m.maxSpores = sm.maxSpores;
@@ -18938,7 +19299,7 @@ const TUTORIAL_STEPS = [
         target: 'playerPlanet', popup: 'bottom-right', waitFor: 'radialOpen'
     },
     {
-        text: "Le menu radial est ouvert !\n• <b>Centre</b> : tir Normal\n• <b>Couronne</b> : Parasite 🦠, et les constructions Nid 🏗️, Biome 🛡️, Alvéole 🍯\nCliquez sur le <b>centre ⚪</b> pour activer le mode visée. Raccourci : <b>Espace</b>.",
+        text: "Le menu radial est ouvert !\n• <b>Centre</b> : tir Normal\n• <b>Couronne</b> : Parasite 🦠, et les constructions Nid 🏗️, Biome 🛡️, Alvéole 🍯\nCliquez sur le <b>centre ⚪</b> pour activer le mode visée. Raccourci : un <b>clic gauche</b> sur votre astre.",
         target: 'canvas', popup: 'top-right', waitFor: 'aimMode'
     },
     {
