@@ -791,6 +791,9 @@ v9.7.6 | 2026-09-25 | (en cours)
        parasite, rafale, boule, demolisseur (visant les biomes, les plus
        nombreux) ; serveur, 3 IA sur 400 s : 35 jets, 176 paquets, 7
        boules, 1 demolisseur, 1 parasite, tous annonces, aucune erreur.
+     - ZQSD PENDANT LE CHOIX DE LA PLANETE. Les touches de camera n'etaient
+       ecoutees qu'en partie : au choix du depart, seules les fleches
+       marchaient. Verifie : D, S, fleches, ~1 800 unites en 0,6 s.
 
      ── MULTIJOUEUR ──
      - VERIFICATION COMPLETE DU MULTI. Le serveur de production n'est pas
@@ -6537,6 +6540,10 @@ function setupUI() {
            saisie, ni par-dessus un menu de pause. */
         const cible = document.activeElement;
         const enSaisie = cible && (cible.tagName === 'INPUT' || cible.tagName === 'TEXTAREA');
+        /* ZQSD marche aussi pendant le choix de la planete de depart : c'est
+           le moment ou l'on a le plus besoin de parcourir la carte. */
+        if (gameState.phase === 'spawn' && !enSaisie && !e.ctrlKey && !e.altKey && !e.metaKey
+            && _camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
         if (gameState.phase === 'game' && !enSaisie && !e.ctrlKey && !e.altKey && !e.metaKey) {
             /* Rangee du haut, quel que soit le clavier : en azerty ces touches
                sortent & é " sans majuscule, on lit donc leur position et non
