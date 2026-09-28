@@ -771,6 +771,10 @@ v9.7.6 | 2026-09-25 | (en cours)
        5/s ; a zero, il s'eteint. Tirs de surface et jets renvoyes exclus.
        Client (solo) et serveur (multi), memes constantes BRULURE_*.
        Verifie : 3 rayons 0 perte, 1,9 rayon -1/s, 1,3 rayon -5/s.
+     - ESPACE REDEVIENT LA VISEE, LE DEMOLISSEUR PASSE SUR F. Espace remet
+       en visee l'astre choisi (viserDepuisSelection, retabli), le clic
+       aussi ; F arme / desarme le demolisseur, juste a cote de D sous
+       l'index. Aide, didacticiel et commentaires ajustes.
      - LES IA SE SERVENT DE TOUT L'ARSENAL. Batiments : les trois genres
        (biome quand l'astre est dispute, alveole quand il deborde, nids
        d'abord) et des foyers putrides. Tirs : parasite des qu'une spore
@@ -2901,7 +2905,8 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Z Q S D <span style="color:rgba(200,210,230,0.45)">ou flèches</span></td><td style="padding:3px 0;">Déplacer la caméra</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">P / M</td><td style="padding:3px 0;">Zoom avant / arrière</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;"><b style="color:#FF8A3D;">Démolisseur</b> — arme le tir (le trait rougeoie) ; la molette choisit le bâtiment <i class="ic-bat" data-g="alveole"></i> <i class="ic-bat" data-g="nid"></i> <i class="ic-bat" data-g="biome"></i> ; le clic tire 250 spores, plus lentes, qui en détruisent un de ce type. Espace à nouveau : désarme</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;">Passe en mode visée depuis l'astre sélectionné</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">F</td><td style="padding:3px 0;"><b style="color:#FF8A3D;">Démolisseur</b> — arme le tir (le trait rougeoie) ; la molette choisit le bâtiment <i class="ic-bat" data-g="alveole"></i> <i class="ic-bat" data-g="nid"></i> <i class="ic-bat" data-g="biome"></i> ; le clic tire 250 spores, plus lentes, qui en détruisent un de ce type. F à nouveau : désarme</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans Mes Astres — le bouton ⇄ choisit : de planète en planète, ou d'astre en astre (lunes comprises)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
@@ -2933,7 +2938,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA RAFALE — CTRL + CLIC GAUCHE.</span> Pendant la visée, maintenez Ctrl et le clic gauche : votre astre crache des <span style="color:#E9D5FF;">paquets de 10 spores, 8 par seconde</span>, dans la direction du curseur à plus ou moins 20° près — une mitrailleuse, pas un fusil. Il se vide tant que vous tenez, et s'arrête quand vous lâchez ou quand il n'a plus de quoi faire un paquet. Le pourcentage d'envoi n'y compte pas.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA BOULE — SHIFT.</span> Pendant la visée, maintenez Shift : votre astre agglutine des spores dans son atmosphère, <span style="color:#E9D5FF;">25 par seconde jusqu'à 500</span>. Chaque spore chargée lui en coûte <b>deux</b>, et rien n'est rendu. La boule tourne lentement vers la souris ; en lâchant Shift elle part <span style="color:#E9D5FF;">dans l'axe centre de l'astre → boule</span>, pas selon la visée habituelle. Elle va plus vite qu'un jet, <span style="color:#4ADE80;">deux fois plus loin</span>, subit quatre fois moins la gravité, et <span style="color:#4ADE80;">les vaisseaux et amas rouges et noirs ne lui font rien</span>. À l'arrivée, c'est un jet comme un autre.</p>
-<p style="margin-bottom:6px;"><span style="color:#FF8A3D;">LE DÉMOLISSEUR — ESPACE.</span> Pendant la visée, Espace <span style="color:#E9D5FF;">arme</span> le démolisseur : le trait de visée rougeoie et trois icônes suivent le curseur — <i class="ic-bat" data-g="alveole"></i> alvéole, <i class="ic-bat" data-g="nid"></i> nid, <i class="ic-bat" data-g="biome"></i> biome. <span style="color:#E9D5FF;">La molette</span> choisit le bâtiment visé ; sous les icônes, le nombre que l'astre pointé en possède. Le clic tire alors <span style="color:#E9D5FF;">250 spores</span>, <b>moins vite</b> qu'un jet pour la même portée. À l'impact, <span style="color:#4ADE80;">un bâtiment de ce type</span>, pris au hasard parmi ceux qui ne sont pas à vous, explose ; si l'astre n'en a pas, rien ne casse. Ses spores attaquent ensuite comme un jet ordinaire. Sans 250 spores sur l'astre (ou la zone), l'écran vibre et rien ne part. Espace à nouveau désarme.</p>
+<p style="margin-bottom:6px;"><span style="color:#FF8A3D;">LE DÉMOLISSEUR — F.</span> Pendant la visée, F <span style="color:#E9D5FF;">arme</span> le démolisseur : le trait de visée rougeoie et trois icônes suivent le curseur — <i class="ic-bat" data-g="alveole"></i> alvéole, <i class="ic-bat" data-g="nid"></i> nid, <i class="ic-bat" data-g="biome"></i> biome. <span style="color:#E9D5FF;">La molette</span> choisit le bâtiment visé ; sous les icônes, le nombre que l'astre pointé en possède. Le clic tire alors <span style="color:#E9D5FF;">250 spores</span>, <b>moins vite</b> qu'un jet pour la même portée. À l'impact, <span style="color:#4ADE80;">un bâtiment de ce type</span>, pris au hasard parmi ceux qui ne sont pas à vous, explose ; si l'astre n'en a pas, rien ne casse. Ses spores attaquent ensuite comme un jet ordinaire. Sans 250 spores sur l'astre (ou la zone), l'écran vibre et rien ne part. F à nouveau désarme.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Sur chaque astre où plusieurs camps se partagent le sol et où vous tenez une zone, chacune de vos zones engage <span style="color:#E9D5FF;">le pourcentage d'envoi</span> de sa réserve — celui que vous réglez avec <b>A</b> et <b>E</b>, comme pour un jet. Chez vous, chez l'autre, ou sur un neutre entamé. Chaque case reprise se paie au prix du sol, et <span style="color:#4ADE80;">ce qui n'a rien trouvé à acheter reste dans la zone</span> : riposter à 100 % pour trois cases ne vide pas la planète.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">C'est la souris qui désigne la cible :</span> le curseur sur un astre, la riposte ne touche que <b>ses</b> zones ; le curseur dans le vide, <b>tous</b> vos astres contaminés repartent d'un coup. Rien à nettoyer : l'écran vibre.</p>
 <p style="margin-bottom:16px;">Plusieurs attaques sur la même planète ouvrent <span style="color:#E9D5FF;">chacune leur propre front</span> à l'endroit touché. Des spores ne renforcent une tache que si le tir retombe sur du terrain que vous tenez déjà.</p>
@@ -2963,7 +2968,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 </table>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">UNE ICÔNE PAR BÂTIMENT, PARTOUT LA MÊME.</span> <i class="ic-bat" data-g="alveole"></i> le rayon de miel pour l'alvéole, <i class="ic-bat" data-g="nid"></i> l'œuf dans son nid pour le nid, <i class="ic-bat" data-g="biome"></i> le dôme de vie pour le biome, et <i class="ic-bat" data-g="parasite"></i> la spore infectée pour le parasite. Ce sont les mêmes sur les astres, dans le menu radial, la barre de construction, la liste de gauche, la fiche et le journal. De très près, un <span style="color:#4ADE80;">nid qui produit crache ses spores</span> en petits jets.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">LES BÂTIMENTS SONT POSÉS SUR LE SOL.</span> Chacun occupe une case de la surface : on le voit là où il est. Vous pouvez bâtir sur une simple tête de pont chez l'ennemi, payée par la réserve que vous avez sur place.</p>
-<p style="margin-bottom:16px;">Quand la frontière passe dessus, le bâtiment <span style="color:#4ADE80;">change de mains avec le terrain</span> : la conquête ne détruit rien, elle récupère — seul le <span style="color:#FF8A3D;">démolisseur</span> (Espace) fait exploser un bâtiment. Seuls comptent les nids que vous tenez, et les biomes qui défendent sont ceux que l'assaillant ne tient pas.</p>
+<p style="margin-bottom:16px;">Quand la frontière passe dessus, le bâtiment <span style="color:#4ADE80;">change de mains avec le terrain</span> : la conquête ne détruit rien, elle récupère — seul le <span style="color:#FF8A3D;">démolisseur</span> (F) fait exploser un bâtiment. Seuls comptent les nids que vous tenez, et les biomes qui défendent sont ceux que l'assaillant ne tient pas.</p>
 <p style="margin-bottom:16px;"><span style="color:#FFD700;">Système solaire entier conquis</span> → +3 % de production sur tous ses astres, et les ondes solaires se déclenchent (voir Territoires).</p>
 
 <!-- TERRITOIRES -->
@@ -6405,7 +6410,8 @@ function setupUI() {
        RACCOURCIS SUR L'ASTRE SELECTIONNE
        1 2 3 : construire alveole, nid, biome - meme ordre que la barre de
                construction du panneau.
-       Espace : armer le demolisseur (voir armerDemolisseur).
+       Espace : passer en visee depuis l'astre choisi.
+       F      : armer le demolisseur (voir armerDemolisseur).
        Tab    : amener la camera sur l'entree suivante de la liste de gauche.
        ───────────────────────────────────────────── */
     function _astreActif() {
@@ -6563,8 +6569,10 @@ function setupUI() {
                             Numpad1: 'alveole', Numpad2: 'nid', Numpad3: 'biome' };
             const _bat = _rang[e.code] || ({ '1': 'alveole', '2': 'nid', '3': 'biome' })[e.key];
             if (_bat) { e.preventDefault(); _construire(_bat); return; }
-            /* Espace arme (ou desarme) le DEMOLISSEUR : voir armerDemolisseur. */
-            if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) armerDemolisseur(); return; }
+            /* Espace : viser depuis l'astre choisi. F arme (ou desarme) le
+               DEMOLISSEUR : voir armerDemolisseur. */
+            if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) viserDepuisSelection(); return; }
+            if (e.code === 'KeyF')  { e.preventDefault(); if (!e.repeat) armerDemolisseur(); return; }
             if (e.key === 'Tab')    { e.preventDefault(); _astreSuivant();    return; }
             if (_camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
             /* La souris designe la cible : sur un astre, la riposte s'y
@@ -7920,13 +7928,13 @@ function creerJetBoule(src, angle, n, slot) {
 }
 
 /* ─────────────────────────────────────────────
-   LE DEMOLISSEUR (touche Espace). Espace ARME le tir : le trait de visee
+   LE DEMOLISSEUR (touche F). F ARME le tir : le trait de visee
    rougeoie, et la molette fait defiler les trois batiments - alveole, nid,
    biome. Le clic suivant tire 250 spores, plus lentes qu'un jet, qui cassent
    sur l'astre touche UN batiment du genre choisi, pris au hasard parmi ceux
    qui ne sont pas au tireur. S'il n'y en a pas de ce genre, rien ne casse.
    Les spores attaquent en plus comme celles d'un jet ordinaire. Sans les 250
-   spores, l'ecran vibre et rien ne part. Espace a nouveau desarme.
+   spores, l'ecran vibre et rien ne part. F a nouveau desarme.
    ───────────────────────────────────────────── */
 const DEMOL_SPORES = 250;
 const DEMOL_VITESSE = 0.6;                            /* par rapport a un jet */
@@ -7934,7 +7942,22 @@ const DEMOL_PAS = Math.round(200 / DEMOL_VITESSE);    /* meme portee qu'un jet *
 const DEMOL_GENRES = ['alveole', 'nid', 'biome'];
 const DEMOL_NOMS = { alveole: 'Alvéole', nid: 'Nid', biome: 'Biome' };
 
-/* Espace : armer ou desarmer. Sans visee en cours, on vise d'abord depuis
+/* Espace : passer en visee depuis l'astre choisi (suivi ou selectionne),
+   des qu'on peut tirer depuis lui - un pied-a-terre suffit. */
+function viserDepuisSelection() {
+    if (gameState.phase !== 'game' || gameState.isSpectator) return;
+    if (gameState._boule || gameState._rafale) return;
+    const sel = (typeof followingBody !== 'undefined' && followingBody) ? followingBody : gameState.selectedBody;
+    if (!sel || !peutTirerSurface(sel, localSlot())) { secouerEcran(8); return; }
+    _closeSporMenu();
+    followingBody = sel;
+    gameState._fireSource = sel;
+    gameState._fireLanceur = null;
+    gameState._fireType = 'normal';
+    gameState._firePhase = 'aiming';
+}
+
+/* F : armer ou desarmer. Sans visee en cours, on vise d'abord depuis
    l'astre choisi. */
 function armerDemolisseur() {
     if (gameState.phase !== 'game' || gameState.isSpectator) return;
@@ -19813,7 +19836,7 @@ const TUTORIAL_STEPS = [
         target: 'playerPlanet', popup: 'bottom-right', waitFor: 'radialOpen'
     },
     {
-        text: "Le menu radial est ouvert !\n• <b>Centre</b> : tir Normal\n• <b>Couronne</b> : Parasite " + iconeBat('parasite', 14) + ", et les constructions Nid " + iconeBat('nid', 14) + ", Biome " + iconeBat('biome', 14) + ", Alvéole " + iconeBat('alveole', 14) + "\nCliquez sur le <b>centre ⚪</b> pour activer le mode visée. Raccourci : un <b>clic gauche</b> sur votre astre.",
+        text: "Le menu radial est ouvert !\n• <b>Centre</b> : tir Normal\n• <b>Couronne</b> : Parasite " + iconeBat('parasite', 14) + ", et les constructions Nid " + iconeBat('nid', 14) + ", Biome " + iconeBat('biome', 14) + ", Alvéole " + iconeBat('alveole', 14) + "\nCliquez sur le <b>centre ⚪</b> pour activer le mode visée. Raccourcis : un <b>clic gauche</b> sur votre astre, ou <b>Espace</b>.",
         target: 'canvas', popup: 'top-right', waitFor: 'aimMode'
     },
     {
