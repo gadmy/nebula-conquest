@@ -6,8 +6,9 @@
 
    Ce banc d'essai le verifie. Il ouvre le jeu dans deux onglets :
    - meme graine, meme carte, memes IA ;
-   - memes ordres pour le joueur 0 (des tirs fixes a l'avance, tour par tour,
-     comme les enverrait le serveur) ;
+   - memes ordres pour le joueur 0, fixes a l'avance, tour par tour, comme
+     les enverrait le serveur : tirs, rafales, boules et visees avec charge,
+     passes par la file d'ordres du jeu (programmerOrdre) ;
    - les tours fixes du jeu (TOUR_SIM, 1/60 s). L'onglet A les enchaine un
      par un (tourSimulation), sans jamais dessiner. L'onglet B passe par la
      vraie boucle d'images (avancerImage) avec des images irregulieres, de
@@ -78,10 +79,26 @@ function listeOrdres() {
         t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
         return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
+    /* Un geste toutes les 2 s : surtout des tirs, mais aussi des rafales,
+       des boules et des visees avec charge, qui ont un debut, des cibles qui
+       bougent et une fin - chacun son ordre, a son tour. */
     const ordres = [];
     for (let tour = 120; tour < TOURS; tour += 120) {
-        ordres.push({ tour, rang: Math.floor(alea() * 8), angle: alea() * Math.PI * 2 });
+        const r = alea();
+        const geste = r < 0.55 ? 'tir' : r < 0.7 ? 'rafale' : r < 0.85 ? 'boule' : 'visee';
+        ordres.push({ tour, geste, rang: Math.floor(alea() * 8), angle: alea() * Math.PI * 2 });
+        if (geste === 'rafale') {
+            ordres.push({ tour: tour + 30, suite: 'rafale_cible', angle: alea() * Math.PI * 2 });
+            ordres.push({ tour: tour + 70, suite: 'rafale_fin' });
+        } else if (geste === 'boule') {
+            ordres.push({ tour: tour + 40, suite: 'boule_cible', angle: alea() * Math.PI * 2 });
+            ordres.push({ tour: tour + 100, suite: 'boule_lancer' });
+        } else if (geste === 'visee') {
+            ordres.push({ tour: tour + 50, suite: 'visee', angle: alea() * Math.PI * 2 });
+            ordres.push({ tour: tour + 110, suite: 'visee_fin' });
+        }
     }
+    ordres.sort((a, b) => a.tour - b.tour);
     return ordres;
 }
 
@@ -129,14 +146,33 @@ async function jouer(navigateur, variante, ordres) {
            y compris quand l'onglet B enchaine plusieurs tours par image.
            L'astre de depart se choisit ici, a partir de l'etat du tour :
            c'est la partie du banc qui joue le role du joueur. */
+        const donner = (tour, type, d) => programmerOrdre({ tour: tour, slot: 0, type: type, d: d });
+        /* Un point a 600 unites de l'astre, dans la direction voulue. */
+        const vers = (src, angle) => ({ tx: src.x + Math.cos(angle) * 600, ty: src.y + Math.sin(angle) * 600 });
         gameState.avantChaqueTour = function (tour) {
             while (B.k < ordres.length && ordres[B.k].tour === tour) {
                 const o = ordres[B.k++];
+                if (o.suite) {
+                    /* La suite d'un geste en cours : depuis l'astre ou il a commence. */
+                    const src = B.src;
+                    if (!src) continue;
+                    if (o.suite === 'rafale_cible') donner(tour, o.suite, { src: src.name, ...vers(src, o.angle) });
+                    else if (o.suite === 'boule_cible') donner(tour, o.suite, { ...vers(src, o.angle), z: 0.8 });
+                    else if (o.suite === 'visee') donner(tour, o.suite, { src: src.name, ...vers(src, o.angle) });
+                    else donner(tour, o.suite, {});
+                    continue;
+                }
                 const miens = gameState.allBodies.filter(b => b.owner === 0 && b.spores >= 10);
-                if (miens.length) {
-                    const src = miens[o.rang % miens.length];
-                    programmerOrdre({ tour: tour, slot: 0, type: 'tir',
-                                      d: { src: src.name, dx: Math.cos(o.angle), dy: Math.sin(o.angle), t: 'normal' } });
+                if (!miens.length) { B.src = null; continue; }
+                const src = B.src = miens[o.rang % miens.length];
+                if (o.geste === 'tir') {
+                    donner(tour, 'tir', { src: src.name, dx: Math.cos(o.angle), dy: Math.sin(o.angle), t: 'normal' });
+                } else if (o.geste === 'rafale') {
+                    donner(tour, 'rafale_debut', { src: src.name, ...vers(src, o.angle) });
+                } else if (o.geste === 'boule') {
+                    donner(tour, 'boule_debut', { src: src.name, ...vers(src, o.angle), z: 0.5 });
+                } else {
+                    donner(tour, 'visee', { src: src.name, ...vers(src, o.angle) });
                 }
             }
         };
@@ -199,6 +235,8 @@ async function jouer(navigateur, variante, ordres) {
         return {
             bilan: {
                 'ordres appliques (journal)': (gameState.journalOrdres || []).length,
+                'ordres par type': (gameState.journalOrdres || []).reduce((c, o) => { c[o.type] = (c[o.type] || 0) + 1; return c; }, {}),
+                'boules et rafales en vol': gameState.jets.filter(j => j.boule || j.rafale).length,
                 'tirs en tout': st.jetsLaunched,
                 'conquetes': st.bodiesConquered,
                 'tirs neutralises': st.jetsNeutralized,

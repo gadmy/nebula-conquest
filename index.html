@@ -1030,6 +1030,55 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
        d'images (images irregulieres de 1/240 a 1/15 s, interpolation et
        dessin) : identique a l'onglet A, tour par tour, sur 5 cartes et
        400 s de jeu chacune.
+       Mis en ligne sur main (GitHub Pages) et teste a la main : bon.
+
+     ── ORDRES DES JOUEURS ──
+     - LES GESTES DEVIENNENT DES ORDRES (solo). Un clic n'agit plus sur la
+       partie : il donne un ordre, date du tour suivant (1/60 s plus tard,
+       imperceptible), que ce tour applique. Un ordre ne contient que des
+       donnees - noms d'astres, directions, nombres - jamais la souris, la
+       camera ou un reglage de l'ecran. Deux ordinateurs qui recoivent les
+       memes ordres aux memes tours calculent la meme partie : en lockstep,
+       le serveur n'aura plus qu'a les faire circuler.
+       Nouvelles fonctions : donnerOrdre (le geste), programmerOrdre (un
+       ordre venu d'ailleurs, pour un tour donne), appliquerOrdres (au debut
+       de chaque tour), EXECUTER_ORDRE (ce que fait chaque ordre).
+       Le journal de la partie (gameState.journalOrdres) garde tous les
+       ordres appliques : de quoi rejouer une partie, ou remettre a niveau
+       un joueur qui se reconnecte.
+     - 24 ORDRES : part (A / E, curseur), zone (clic sur un astre partage),
+       tir, tir_surface, riposte (R), arret (T), batiment, sacrifice, stat,
+       techno, colonie (astre de depart), demol (demolisseur), et les gestes
+       continus : visee / visee_fin (la charge du lanceur), rafale_debut /
+       rafale_cible / rafale_fin, boule_debut / boule_cible / boule_fin /
+       boule_lancer. Chaque ordre est verifie a l'execution (astre a soi,
+       valeurs dans les bornes) : un ordre truque ne passe pas.
+       Les verifications qui font vibrer l'ecran restent au clic, pour que
+       le refus se sente tout de suite.
+     - LE CALCUL NE LIT PLUS L'ECRAN. La charge, la rafale et la boule
+       lisaient la souris a chaque tour : elles vivent maintenant chez
+       chaque joueur (ordreVisee, ordreRafale, ordreBoule) et avancent par
+       majVisees, majRafales, majBoules, avec la cible de leurs ordres.
+       L'ecran garde le trait de visee et recopie la boule pour l'afficher.
+       Le choix du lanceur (la lune du groupe la plus proche de la cible)
+       est une seule fonction, choisirLanceur, pour l'ecran et le calcul.
+     - CHAQUE JOUEUR A SA PART D'ENVOI ET SA ZONE. Deux reglages de l'ecran
+       etaient lus par le calcul. La part d'envoi : les IA lisaient le
+       curseur du joueur - le monter faisait tirer l'IA plus gros. Elles
+       gardent maintenant 50 %, le joueur a la sienne (ordre 'part'). La
+       zone choisie sur un astre partage : elle decidait aussi d'ou sortait
+       un batiment, et l'ordinateur d'en face ne l'aurait pas eue (ordre
+       'zone').
+     - Multijoueur actuel inchange : le serveur decide toujours, les gestes
+       lui sont envoyes comme avant.
+     - VERIFIE. Dans le vrai jeu, chaque geste : colonisation, A / E et
+       curseur, batiment (nid construit), techno, statistique, sacrifice,
+       R, T, tir ; la charge fait passer les spores au lanceur (meme
+       lanceur a l'ecran et au calcul), la rafale tire 8 paquets/s et
+       s'arrete au relacher, la boule se charge de 25 spores/s et part.
+       Aucune erreur. Au banc lockstep, le joueur 0 donne maintenant de
+       vrais ordres (tirs, rafales, boules, visees) : identique d'un onglet
+       a l'autre, sur 5 cartes et 400 s de jeu chacune.
 
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
@@ -1041,12 +1090,14 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
      du nombre d'objets : vise des parties de 50 joueurs et plus, serveur
      presque gratuit. Fait : hasard du jeu sur graine commune, empreinte de
      l'etat, banc d'essai a deux onglets (identique sur 10 min), tours
-     fixes de 1/60 s avec image interpolee. Reste :
+     fixes de 1/60 s avec image interpolee, gestes du joueur en ordres
+     (solo) avec journal. Reste :
+     - le relais d'ordres : un petit serveur qui recoit les ordres de
+       chacun, les date d'un tour un peu dans le futur (environ 100 ms,
+       pour laisser le temps au reseau) et les renvoie a tous ; en partie,
+       donnerOrdre passerait par lui au lieu d'aller directement a la file ;
      - tester Firefox et Safari : sin, cos, atan2... peuvent differer d'un
        navigateur a l'autre - sinon fonctions maison ou calcul en entiers ;
-     - les gestes du joueur (visee, rafale, charge, boule, batiments...)
-       transformes en ordres dates d'un tour, au lieu d'agir tout de suite
-       en lisant la souris ;
      - un seul moteur de jeu partage (aujourd'hui en double : index.html et
        gameLoop.js du serveur) ;
      - l'empreinte echangee en partie pour detecter une desynchronisation,
@@ -7983,7 +8034,10 @@ function demarrerRafale() {
     if (gameState._firePhase !== 'aiming' || !gameState._fireSource || gameState._boule) return;
     /* Premier paquet sans attendre : le doigt appuie, ca part. */
     gameState._rafale = { acc: 1 / RAFALE_CADENCE, n: 0, envoi: 0 };
-    if (gameState.isMulti) {
+    if (!gameState.isMulti) {
+        const src = gameState._fireLanceur || gameState._fireSource;
+        donnerOrdre('rafale_debut', { src: src.name, tx: gameState.mouseWorldX, ty: gameState.mouseWorldY });
+    } else {
         const src = gameState._fireSource;
         const zt = src.lutte ? zoneDeTir(src, localSlot()) : null;
         const zc = zt ? zoneCentre(src, zt.z) : null;
@@ -7997,6 +8051,7 @@ function arreterRafale() {
     if (!gameState._rafale) return;
     gameState._rafale = null;
     if (gameState.isMulti) sendAction('rafale_fin', {});
+    else donnerOrdre('rafale_fin', {});
 }
 
 function majRafale(dt) {
@@ -8015,24 +8070,46 @@ function majRafale(dt) {
         }
         return;
     }
-    R.acc += dt;
-    while (R.acc >= 1 / RAFALE_CADENCE) {
-        R.acc -= 1 / RAFALE_CADENCE;
+    /* En solo : la cible et le lanceur partent en ordre 'rafale_cible', a la
+       meme cadence qu'au serveur. Quand le calcul arrete la rafale (plus de
+       quoi faire un paquet), l'ecran la lache aussi. */
+    const moi = gameState.players[localSlot()];
+    if (moi && moi.ordreRafale) R.vue = true;
+    else if (R.vue) { gameState._rafale = null; return; }
+    R.envoi += dt;
+    if (R.envoi >= 0.12) {
+        R.envoi = 0;
         const src = gameState._fireLanceur || gameState._fireSource;
-        const dx = gameState.mouseWorldX - src.x, dy = gameState.mouseWorldY - src.y;
-        if (dx * dx + dy * dy < 100) continue;     /* curseur sur le lanceur : pas de direction */
-        const a = Math.atan2(dy, dx) + (gameRandom() * 2 - 1) * RAFALE_ECART;
-        const n0 = gameState.jets.length;
-        launchJet(src, Math.cos(a), Math.sin(a), 'normal', localSlot(),
-                  { nombre: RAFALE_PAQUET, muet: true });
-        if (gameState.jets.length === n0) {        /* plus de quoi faire un paquet */
-            arreterRafale();
-            return;
+        donnerOrdre('rafale_cible', { src: src.name, tx: gameState.mouseWorldX, ty: gameState.mouseWorldY });
+    }
+}
+
+/* LA RAFALE, cote calcul (solo) : pour chaque joueur qui en tient une, des
+   paquets de RAFALE_PAQUET vers la cible de ses ordres. */
+function majRafales(dt) {
+    const joueurs = gameState.players;
+    for (let slot = 0; slot < joueurs.length; slot++) {
+        const R = joueurs[slot].ordreRafale;
+        if (!R) continue;
+        R.acc += dt;
+        while (R.acc >= 1 / RAFALE_CADENCE) {
+            R.acc -= 1 / RAFALE_CADENCE;
+            const src = R.src;
+            const dx = R.tx - src.x, dy = R.ty - src.y;
+            if (dx * dx + dy * dy < 100) continue;     /* cible sur le lanceur : pas de direction */
+            const a = Math.atan2(dy, dx) + (gameRandom() * 2 - 1) * RAFALE_ECART;
+            const n0 = gameState.jets.length;
+            launchJet(src, Math.cos(a), Math.sin(a), 'normal', slot,
+                      { nombre: RAFALE_PAQUET, muet: true });
+            if (gameState.jets.length === n0) {        /* plus de quoi faire un paquet */
+                joueurs[slot].ordreRafale = null;
+                break;
+            }
+            gameState.jets[n0].rafale = true;          /* dessine en balle tracante */
+            /* Un son de lancer sur trois : huit par seconde saturaient l'oreille. */
+            if (R.n % 3 === 0) _playBuffer('launch', 0.25);
+            R.n++;
         }
-        gameState.jets[n0].rafale = true;          /* dessine en balle tracante */
-        /* Un son de lancer sur trois : huit par seconde saturaient l'oreille. */
-        if (R.n % 3 === 0) _playBuffer('launch', 0.25);
-        R.n++;
     }
 }
 
@@ -8084,7 +8161,10 @@ function demarrerBoule() {
     /* La boule REMPLACE le tir normal : le clic qu'on relachera pendant ou
        apres la charge ne doit pas tirer un jet en plus. */
     gameState._bouleUtilisee = true;
-    if (gameState.isMulti) {
+    if (!gameState.isMulti) {
+        donnerOrdre('boule_debut', { src: src.name, tx: gameState.mouseWorldX, ty: gameState.mouseWorldY,
+                                     z: gameState.camera.zoom });
+    } else {
         const zt = src.lutte ? zoneDeTir(src, moi) : null;
         const zc = zt ? zoneCentre(src, zt.z) : null;
         sendAction('boule_debut', { srcName: src.name, z: gameState.camera.zoom,
@@ -8102,6 +8182,7 @@ function majBoule(dt) {
         || (src.owner !== moi && !(src.lutte && zonesDe(src, moi).length))) {
         /* Visee abandonnee ou astre perdu : la boule se disperse, perdue. */
         if (gameState.isMulti) sendAction('boule_fin', {});
+        else donnerOrdre('boule_fin', {});
         gameState._boule = null;
         return;
     }
@@ -8117,17 +8198,46 @@ function majBoule(dt) {
         }
         return;
     }
-    B.angle = _angleVers(B.angle, cible, vitesseRotationBoule(gameState.camera.zoom) * dt);
-    /* Charger : on ne prend que ce que l'astre (ou la zone) peut payer. */
-    let voulu = Math.min(BOULE_DEBIT * dt, BOULE_MAX - B.n);
-    if (voulu <= 0) return;
-    const zt = src.lutte ? zoneDeTir(src, moi) : null;
-    const dispo = zt ? zt.z.spores : (src.spores || 0);
-    voulu = Math.min(voulu, dispo / BOULE_COUT);
-    if (voulu <= 0) return;
-    if (zt) { zt.z.spores -= voulu * BOULE_COUT; zonesAgreger(src, src.lutte); }
-    else src.spores -= voulu * BOULE_COUT;
-    B.n += voulu;
+    /* En solo : la boule vit dans le calcul (majBoules) ; l'ecran recopie
+       son angle et son contenu pour l'afficher, et envoie la cible et le
+       zoom en ordre 'boule_cible'. Si le calcul l'a dispersee, l'ecran la
+       lache aussi. */
+    const S = gameState.players[moi] && gameState.players[moi].ordreBoule;
+    if (S) { B.vue = true; B.angle = S.angle; B.n = S.n; }
+    else if (B.vue) { gameState._boule = null; return; }
+    B.envoi += dt;
+    if (B.envoi >= 0.12) {
+        B.envoi = 0;
+        donnerOrdre('boule_cible', { tx: gameState.mouseWorldX, ty: gameState.mouseWorldY,
+                                     z: gameState.camera.zoom });
+    }
+}
+
+/* LA BOULE, cote calcul (solo) : elle tourne vers la cible de ses ordres, a
+   la vitesse que donne le zoom annonce, et se charge de ce que l'astre (ou
+   la zone) peut payer. */
+function majBoules(dt) {
+    const joueurs = gameState.players;
+    for (let slot = 0; slot < joueurs.length; slot++) {
+        const B = joueurs[slot].ordreBoule;
+        if (!B) continue;
+        const src = B.src;
+        if (src.owner !== slot && !(src.lutte && zonesDe(src, slot).length)) {
+            joueurs[slot].ordreBoule = null;         /* astre perdu : dispersee */
+            continue;
+        }
+        const cible = Math.atan2(B.ty - src.y, B.tx - src.x);
+        B.angle = _angleVers(B.angle, cible, vitesseRotationBoule(B.z) * dt);
+        let voulu = Math.min(BOULE_DEBIT * dt, BOULE_MAX - B.n);
+        if (voulu <= 0) continue;
+        const zt = src.lutte ? zoneDeTir(src, slot) : null;
+        const dispo = zt ? zt.z.spores : (src.spores || 0);
+        voulu = Math.min(voulu, dispo / BOULE_COUT);
+        if (voulu <= 0) continue;
+        if (zt) { zt.z.spores -= voulu * BOULE_COUT; zonesAgreger(src, src.lutte); }
+        else src.spores -= voulu * BOULE_COUT;
+        B.n += voulu;
+    }
 }
 
 /* L'ONDE DE CHOC de la boule : trois anneaux qui s'ecartent a des vitesses
@@ -8192,9 +8302,7 @@ function lancerBoule() {
     /* Pas de clic en cours : rien a neutraliser, le prochain tir normal passe. */
     if (!gameState._aimHolding) gameState._bouleUtilisee = false;
     if (gameState.isMulti) { sendAction('boule_lancer', {}); return; }
-    const n = Math.floor(B.n);
-    if (n < 5) return;                          /* trop peu : dispersee, perdue */
-    creerJetBoule(B.src, B.angle, n, localSlot());
+    donnerOrdre('boule_lancer', {});
 }
 
 /* Le jet d'une boule lancee, pour le joueur comme pour les IA. */
@@ -8569,9 +8677,39 @@ window.addEventListener('keyup', function (e) { if (e.key === 'Shift') lancerBou
 window.addEventListener('keyup', function (e) { if (e.key === 'Control') arreterRafale(); });
 window.addEventListener('blur', function () { arreterRafale(); });
 
+/* L'astre du groupe qui tirera vers (tx, ty). Viser chez soi ne change plus
+   le lanceur. Traverser sa propre frontiere pour aller chercher une cible
+   derriere faisait sauter le tir d'une lune a l'autre, et chaque saut
+   remettait la charge a zero : la charge ne montait jamais. Des que la cible
+   ressort, la bascule reprend. Sert a l'ecran (le trait de visee) comme au
+   calcul (la charge, ordre 'visee') : la meme regle des deux cotes. */
+function choisirLanceur(groupe, source, precedent, tx, ty) {
+    if (_viseeInterne(groupe, tx, ty) && precedent && groupe.indexOf(precedent) >= 0) return precedent;
+    /* Le plus proche QUI VOIT LA CIBLE. Une etoile avale le jet : le plus
+       proche n'est pas le meilleur s'il tire a travers un soleil. On ne
+       retombe sur le plus proche tout court que si aucun n'a la vue. */
+    let lanceur = source;
+    let meilleure = Infinity, meilleureVue = Infinity, lanceurVue = null;
+    for (let i = 0; i < groupe.length; i++) {
+        const b = groupe[i];
+        const dx = tx - b.x, dy = ty - b.y;
+        const d = dx * dx + dy * dy;
+        if (d < meilleure) { meilleure = d; lanceur = b; }
+        if (d < meilleureVue && !tirBloque(b.x, b.y, tx, ty)) {
+            meilleureVue = d; lanceurVue = b;
+        }
+    }
+    return lanceurVue || lanceur;
+}
+
+/* LA VISEE, cote ecran : elle suit la souris pour le trait et le lanceur
+   affiches. La charge elle-meme (les spores qui passent au lanceur) est
+   calculee ailleurs : par le serveur en multijoueur, par majVisees en solo,
+   a partir de la cible que ces fonctions leur envoient. */
 function majChargementTir(dt) {
     if (gameState._firePhase !== 'aiming' || !gameState._fireSource) {
         if (gameState._fireLanceur && gameState.isMulti) sendAction('aim_end', {});
+        if (gameState._viseeOrdre) { donnerOrdre('visee_fin', {}); gameState._viseeOrdre = null; }
         gameState._fireLanceur = null;
         gameState._fireGroupe = null;
         gameState._tirBloque = false;
@@ -8583,29 +8721,8 @@ function majChargementTir(dt) {
                  ? _groupeTir(gameState._fireSource) : [gameState._fireSource];
     gameState._fireGroupe = groupe;
 
-    /* Viser chez soi ne change plus le lanceur. Traverser sa propre frontiere
-       pour aller chercher une cible derriere faisait sauter le tir d'une lune
-       a l'autre, et chaque saut remettait la charge a zero : la charge ne
-       montait jamais. Des que le curseur ressort, la bascule reprend. */
-    const interne = _viseeInterne(groupe, gameState.mouseWorldX, gameState.mouseWorldY);
-    let lanceur = gameState._fireLanceur;
-    if (!interne || !lanceur || groupe.indexOf(lanceur) < 0) {
-        /* Le plus proche QUI VOIT LA CIBLE. Une etoile avale le jet : le plus
-           proche n'est pas le meilleur s'il tire a travers un soleil. On ne
-           retombe sur le plus proche tout court que si aucun n'a la vue. */
-        lanceur = gameState._fireSource;
-        let meilleure = Infinity, meilleureVue = Infinity, lanceurVue = null;
-        for (let i = 0; i < groupe.length; i++) {
-            const b = groupe[i];
-            const dx = gameState.mouseWorldX - b.x, dy = gameState.mouseWorldY - b.y;
-            const d = dx * dx + dy * dy;
-            if (d < meilleure) { meilleure = d; lanceur = b; }
-            if (d < meilleureVue && !tirBloque(b.x, b.y, gameState.mouseWorldX, gameState.mouseWorldY)) {
-                meilleureVue = d; lanceurVue = b;
-            }
-        }
-        if (lanceurVue) lanceur = lanceurVue;
-    }
+    const lanceur = choisirLanceur(groupe, gameState._fireSource, gameState._fireLanceur,
+                                   gameState.mouseWorldX, gameState.mouseWorldY);
     /* Quand meme le lanceur retenu n'a pas la vue, le trait de visee le dit :
        sans cela le joueur tire dans une etoile sans comprendre pourquoi rien
        n'arrive. */
@@ -8632,24 +8749,54 @@ function majChargementTir(dt) {
         return;
     }
 
-    gameState._chargeAcc = (gameState._chargeAcc || 0) + dt;
-    while (gameState._chargeAcc >= CHARGE_PERIODE) {
-        gameState._chargeAcc -= CHARGE_PERIODE;
-        let place = lanceur.maxSpores - lanceur.spores;
-        if (place <= 1) break;
-        let envoye = 0;
-        for (let i = 0; i < groupe.length && place > 1; i++) {
-            const b = groupe[i];
-            if (b === lanceur) continue;
-            const envoi = Math.min(CHARGE_PAQUET, Math.floor(b.spores), Math.floor(place));
-            if (envoi <= 0) continue;
-            b.spores -= envoi;
-            lanceur.spores += envoi;
-            place -= envoi;
-            envoye += envoi;
-            gameState._filetsCharge.push({ de: b, vers: lanceur, age: 0, maxAge: 0.45 });
+    /* En solo : l'ordre 'visee' dit au calcul d'ou l'on vise et vers ou, a
+       la meme cadence qu'au serveur - et tout de suite quand l'astre de
+       depart change. */
+    const V = gameState._viseeOrdre;
+    gameState._viseeEnvoi = (gameState._viseeEnvoi || 0) + dt;
+    if (!V || V.src !== gameState._fireSource || gameState._viseeEnvoi >= 0.15) {
+        gameState._viseeEnvoi = 0;
+        gameState._viseeOrdre = { src: gameState._fireSource };
+        donnerOrdre('visee', { src: gameState._fireSource.name,
+                               tx: gameState.mouseWorldX, ty: gameState.mouseWorldY });
+    }
+}
+
+/* LA CHARGE, cote calcul (solo). Pour chaque joueur qui vise depuis un
+   groupe (une planete et ses lunes, toutes a lui), les autres astres du
+   groupe envoient au lanceur leurs spores par paquets. Le lanceur est choisi
+   par la regle de l'ecran, mais avec la cible de l'ordre 'visee' : jamais la
+   souris, que l'ordinateur d'en face ne voit pas. */
+function majVisees(dt) {
+    const joueurs = gameState.players;
+    for (let slot = 0; slot < joueurs.length; slot++) {
+        const V = joueurs[slot].ordreVisee;
+        if (!V) continue;
+        const src = V.src;
+        if (src.owner !== slot && !(src.lutte && zonesDe(src, slot).length)) { joueurs[slot].ordreVisee = null; continue; }
+        const groupe = (src.owner === slot) ? _groupeTir(src) : [src];
+        const lanceur = choisirLanceur(groupe, src, V.lanceur, V.tx, V.ty);
+        if (lanceur !== V.lanceur) { V.lanceur = lanceur; V.acc = 0; }
+        if (groupe.length < 2) continue;
+        V.acc += dt;
+        while (V.acc >= CHARGE_PERIODE) {
+            V.acc -= CHARGE_PERIODE;
+            let place = lanceur.maxSpores - lanceur.spores;
+            if (place <= 1) break;
+            let envoye = 0;
+            for (let i = 0; i < groupe.length && place > 1; i++) {
+                const b = groupe[i];
+                if (b === lanceur) continue;
+                const envoi = Math.min(CHARGE_PAQUET, Math.floor(b.spores), Math.floor(place));
+                if (envoi <= 0) continue;
+                b.spores -= envoi;
+                lanceur.spores += envoi;
+                place -= envoi;
+                envoye += envoi;
+                if (slot === localSlot()) gameState._filetsCharge.push({ de: b, vers: lanceur, age: 0, maxAge: 0.45 });
+            }
+            if (envoye === 0) break;
         }
-        if (envoye === 0) break;
     }
 }
 
@@ -14095,7 +14242,74 @@ const EXECUTER_ORDRE = {
         launchJet(src, dx, dy, 'normal', slot,
                   { nombre: DEMOL_SPORES, vitesse: DEMOL_VITESSE, pas: DEMOL_PAS, demol: d.genre });
     },
+
+    /* LES GESTES CONTINUS : la visee (et sa charge), la rafale, la boule.
+       Chacun a un debut, des mises a jour de la cible, et une fin. L'etat
+       vit chez le joueur (ordreVisee, ordreRafale, ordreBoule) et c'est le
+       calcul qui le fait avancer : majVisees, majRafales, majBoules. */
+    visee: function (slot, d) {
+        const src = astreNomme(d.src), j = gameState.players[slot];
+        const tx = Number(d.tx), ty = Number(d.ty);
+        if (!src || !isFinite(tx) || !isFinite(ty) || !peutTirerDe(src, slot)) return;
+        if (j.ordreVisee && j.ordreVisee.src === src) { j.ordreVisee.tx = tx; j.ordreVisee.ty = ty; }
+        else j.ordreVisee = { src: src, tx: tx, ty: ty, lanceur: null, acc: 0 };
+    },
+    visee_fin: function (slot) {
+        gameState.players[slot].ordreVisee = null;
+    },
+    rafale_debut: function (slot, d) {
+        const src = astreNomme(d.src), j = gameState.players[slot];
+        const tx = Number(d.tx), ty = Number(d.ty);
+        if (!src || !isFinite(tx) || !isFinite(ty) || !peutTirerDe(src, slot) || j.ordreBoule) return;
+        /* Premier paquet sans attendre : le doigt appuie, ca part. */
+        j.ordreRafale = { src: src, tx: tx, ty: ty, acc: 1 / RAFALE_CADENCE, n: 0 };
+    },
+    rafale_cible: function (slot, d) {
+        const R = gameState.players[slot].ordreRafale;
+        const tx = Number(d.tx), ty = Number(d.ty);
+        if (!R || !isFinite(tx) || !isFinite(ty)) return;
+        R.tx = tx; R.ty = ty;
+        /* Le lanceur peut changer en cours de rafale (la cible passe plus
+           pres d'une autre lune du groupe). */
+        const src = astreNomme(d.src);
+        if (src && peutTirerDe(src, slot)) R.src = src;
+    },
+    rafale_fin: function (slot) {
+        gameState.players[slot].ordreRafale = null;
+    },
+    boule_debut: function (slot, d) {
+        const src = astreNomme(d.src), j = gameState.players[slot];
+        const tx = Number(d.tx), ty = Number(d.ty), z = Number(d.z);
+        if (!src || !isFinite(tx) || !isFinite(ty) || !peutTirerDe(src, slot) || j.ordreBoule || j.ordreRafale) return;
+        j.ordreBoule = { src: src, angle: Math.atan2(ty - src.y, tx - src.x), n: 0,
+                         tx: tx, ty: ty, z: z > 0 ? z : 1 };
+    },
+    boule_cible: function (slot, d) {
+        const B = gameState.players[slot].ordreBoule;
+        const tx = Number(d.tx), ty = Number(d.ty), z = Number(d.z);
+        if (!B || !isFinite(tx) || !isFinite(ty)) return;
+        B.tx = tx; B.ty = ty;
+        if (z > 0) B.z = z;
+    },
+    boule_fin: function (slot) {
+        gameState.players[slot].ordreBoule = null;
+    },
+    /* Au relacher : la boule part dans l'axe centre -> boule. Trop peu
+       chargee, elle se disperse. */
+    boule_lancer: function (slot) {
+        const j = gameState.players[slot], B = j.ordreBoule;
+        if (!B) return;
+        j.ordreBoule = null;
+        const n = Math.floor(B.n);
+        if (n >= 5) creerJetBoule(B.src, B.angle, n, slot);
+    },
 };
+
+/* Un joueur peut-il tirer de cet astre : le sien, ou une tete de pont qu'il
+   y tient ? */
+function peutTirerDe(src, slot) {
+    return src.owner === slot || !!(src.lutte && zonesDe(src, slot).length);
+}
 
 function _mobilesInterpoles() {
     return [gameState.suns, gameState.allBodies, gameState.jets, gameState.cleaners, gameState.comets];
@@ -14345,9 +14559,14 @@ if (gameState.isMulti) {
     majLuttes(dt);
     majOndesSolaires(dt);
     majModeSurface(dt);
+    /* Les gestes, cote ecran : ils ne touchent pas a la partie, ils donnent
+       des ordres. Puis les memes gestes, cote calcul, pour chaque joueur. */
     majChargementTir(dt);
     majRafale(dt);
     majBoule(dt);
+    majVisees(dt);
+    majRafales(dt);
+    majBoules(dt);
     majFiletsCharge(dt);
     majPopProduction(dt);
     majSecousse(dt);
