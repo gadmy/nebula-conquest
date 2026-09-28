@@ -794,6 +794,17 @@ v9.7.6 | 2026-09-25 | (en cours)
      - ZQSD PENDANT LE CHOIX DE LA PLANETE. Les touches de camera n'etaient
        ecoutees qu'en partie : au choix du depart, seules les fleches
        marchaient. Verifie : D, S, fleches, ~1 800 unites en 0,6 s.
+     - ERUPTIONS SOLAIRES (decor). Toutes les 2 a 8 s, une etoile a l'ecran
+       crache une gerbe de feu d'un point de sa surface : 40 a 65 grains a
+       depart echelonne, en eventail qui peut pencher, montent en parabole
+       et retombent (traits courts, blanc -> or -> orange -> rouge sombre,
+       un sur quatre luit), eclat au pied et panache orange qui monte avec
+       la gerbe. Hauteur 0,25 a 0,7 rayon, 1,6 a 3,2 s. LOD moyen et plus.
+     - RAYONNEMENT DE HAWKING (decor). Au bord de l'horizon du trou noir,
+       26 paires de grains : l'un est avale en un instant, l'autre
+       s'echappe lentement (jusqu'a 1,9 rayon) en palissant, bleu pale ou
+       mauve ; trois arcs tres pales frissonnent sur l'horizon. Sans etat
+       (hachage du cycle). LOD moyen et plus.
 
      ── MULTIJOUEUR ──
      - VERIFICATION COMPLETE DU MULTI. Le serveur de production n'est pas
@@ -14235,6 +14246,59 @@ function drawBlackHole(ctx) {
     ctx.beginPath();
     ctx.arc(0, 0, bh.radius, 0, Math.PI * 2);
     ctx.fill();
+
+    if (bhLod >= 1) rayonnementHawking(ctx, bh, t);
+}
+
+/* LE RAYONNEMENT DE HAWKING, purement decoratif. Au bord de l'horizon
+   naissent des paires de grains : l'un retombe et s'eteint aussitot,
+   l'autre s'echappe lentement en palissant. Plus un fin liseré qui
+   frissonne sur l'horizon. Sans etat : chaque paire vit un cycle, et son
+   angle au cycle suivant est tire d'un hachage du numero de cycle. */
+function rayonnementHawking(ctx, bh, t) {
+    const R = bh.radius;
+    const z = gameState.camera.zoom;
+    const op = ctx.globalCompositeOperation, a0 = ctx.globalAlpha;
+    ctx.globalCompositeOperation = 'lighter';
+    /* Le liseré : un anneau tres pale dont l'eclat ondule. */
+    ctx.lineWidth = Math.max(1 / z, R * 0.025);
+    for (let k = 0; k < 3; k++) {
+        const a1 = t * (0.4 + k * 0.17) + k * 2.1;
+        ctx.strokeStyle = 'rgba(190,170,255,' + (0.10 + 0.06 * Math.sin(t * 1.7 + k)).toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.arc(bh.x, bh.y, R * 1.01, a1, a1 + 1.6 + 0.6 * Math.sin(t + k));
+        ctx.stroke();
+    }
+    const taille = Math.max(1.2 / z, R * 0.018);
+    const N = 26;
+    for (let j = 0; j < N; j++) {
+        const decal = (j * 0.618) % 1;
+        const u = t * 0.35 + decal;
+        const cycle = Math.floor(u);
+        const ph = u - cycle;
+        const h = Math.sin(cycle * 91.7 + j * 12.9898) * 43758.5453;
+        const alea = h - Math.floor(h);
+        const ang = alea * Math.PI * 2;
+        const c = Math.cos(ang), s = Math.sin(ang);
+        /* Le grain qui s'echappe. */
+        const re = R * (1.02 + 0.9 * ph);
+        ctx.globalAlpha = 0.75 * Math.sin(Math.PI * Math.min(1, ph * 1.15)) * (1 - ph * 0.6);
+        ctx.fillStyle = alea < 0.5 ? '#E0F2FE' : '#C4B5FD';
+        ctx.beginPath();
+        ctx.arc(bh.x + c * re, bh.y + s * re, taille * (1 - ph * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+        /* Son partenaire, avale en un instant. */
+        if (ph < 0.15) {
+            const ri = R * (1.02 - ph * 0.6);
+            ctx.globalAlpha = 0.7 * (1 - ph / 0.15);
+            ctx.fillStyle = '#A78BFA';
+            ctx.beginPath();
+            ctx.arc(bh.x + c * ri, bh.y + s * ri, taille * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    ctx.globalAlpha = a0;
+    ctx.globalCompositeOperation = op;
 }
 
 
@@ -14391,6 +14455,7 @@ function drawSuns(ctx) {
             ctx.drawImage(niv[k], sun.x - sun.radius, sun.y - sun.radius, sun.radius * 2, sun.radius * 2);
             ctx.imageSmoothingEnabled = _liss;
         }
+        if (gameState.lod >= 1) eruptionsSolaires(ctx, sun, t);
         // Anneau de sélection
         if (gameState.selectedBody === sun) {
             ctx.strokeStyle = 'rgba(255,255,255,0.9)';
@@ -14400,6 +14465,93 @@ function drawSuns(ctx) {
             ctx.stroke();
         }
     }
+}
+
+/* LES ERUPTIONS SOLAIRES, purement decoratives. De temps en temps, une
+   gerbe de feu jaillit d'un point de la surface : une trentaine de grains
+   partent en eventail, montent, ralentissent et retombent en passant du
+   blanc a la couleur de l'etoile puis au rouge. Un eclat marque le pied de
+   la gerbe. En moyenne une gerbe toutes les 5 s par etoile a l'ecran. */
+function eruptionsSolaires(ctx, sun, t) {
+    const R = sun.radius;
+    if (!sun._eruptions) { sun._eruptions = []; sun._eruptionT = t + 1 + Math.random() * 4; }
+    if (t >= sun._eruptionT) {
+        const grains = [];
+        const n = 40 + Math.floor(Math.random() * 25);
+        const hMax = R * (0.25 + Math.random() * 0.45);
+        const penche = (Math.random() - 0.5) * 0.5;      /* la gerbe peut pencher */
+        for (let k = 0; k < n; k++) {
+            grains.push({ off: (Math.random() - 0.5) * 0.45,
+                          derive: penche + (Math.random() - 0.5) * 0.7,
+                          h: hMax * (0.3 + Math.random() * 0.7),
+                          retard: Math.random() * 0.35,      /* depart echelonne */
+                          taille: 0.5 + Math.random() * 0.9 });
+        }
+        sun._eruptions.push({ a: Math.random() * Math.PI * 2, t0: t, duree: 1.6 + Math.random() * 1.6,
+                              grains: grains, hMax: hMax, penche: penche });
+        sun._eruptionT = t + 2 + Math.random() * 6;
+    }
+    const L = sun._eruptions;
+    if (!L.length) return;
+    const z = gameState.camera.zoom;
+    const couleur = sun.color || '#FFB830';
+    const op = ctx.globalCompositeOperation, a0 = ctx.globalAlpha;
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = L.length - 1; i >= 0; i--) {
+        const E = L[i];
+        const age = t - E.t0;
+        if (age < 0 || age > E.duree) { L.splice(i, 1); continue; }
+        const f = age / E.duree;
+        /* Eclat au pied. */
+        const bx = sun.x + Math.cos(E.a) * R, by = sun.y + Math.sin(E.a) * R;
+        if (f < 0.5) {
+            ctx.globalAlpha = 0.8 * (1 - f / 0.5);
+            const rb = R * 0.22 * (0.6 + f);
+            ctx.drawImage(haloSprite('#FFE7A8', 'halo'), bx - rb, by - rb, rb * 2, rb * 2);
+        }
+        /* Le panache : une lueur douce qui monte avec la gerbe. */
+        {
+            const hp = E.hMax * 0.55 * Math.sin(Math.PI * Math.min(1, f * 1.3));
+            const ap = E.a + E.penche * 0.5;
+            const px = sun.x + Math.cos(ap) * (R + hp), py = sun.y + Math.sin(ap) * (R + hp);
+            const rp = E.hMax * 0.7;
+            ctx.globalAlpha = 0.45 * Math.sin(Math.PI * f);
+            ctx.drawImage(haloSprite('#FF7A1A', 'halo'), px - rp, py - rp, rp * 2, rp * 2);
+        }
+        const base = Math.max(1.2 / z, R * 0.014);
+        ctx.lineCap = 'round';
+        for (let k = 0; k < E.grains.length; k++) {
+            const g = E.grains[k];
+            /* Chaque grain a sa vie : il part un peu apres les autres, monte
+               en parabole et retombe. */
+            const fg = (f - g.retard) / (1 - g.retard);
+            if (fg <= 0 || fg >= 1) continue;
+            const pos = (q) => {
+                const r = R * 0.97 + g.h * 4 * q * (1 - q);
+                const ang = E.a + g.off + g.derive * q;
+                return [sun.x + Math.cos(ang) * r, sun.y + Math.sin(ang) * r];
+            };
+            const [x, y] = pos(fg);
+            const [qx, qy] = pos(Math.max(0, fg - 0.09));
+            const coul = fg < 0.2 ? '#FFF1C1' : fg < 0.45 ? '#FFC04D' : fg < 0.75 ? '#FF6A1F' : '#C2310F';
+            const ep = base * g.taille * (1.3 - fg * 0.7);
+            ctx.globalAlpha = Math.min(1, (1 - fg) * 1.6);
+            ctx.strokeStyle = coul;
+            ctx.lineWidth = ep;
+            ctx.beginPath();
+            ctx.moveTo(qx, qy);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            /* Un grain sur quatre luit : le feu, pas des billes. */
+            if ((k & 3) === 0) {
+                ctx.globalAlpha *= 0.5;
+                const rh = ep * 4;
+                ctx.drawImage(haloSprite(fg < 0.45 ? couleur : '#FF6A1F', 'halo'), x - rh, y - rh, rh * 2, rh * 2);
+            }
+        }
+    }
+    ctx.globalAlpha = a0;
+    ctx.globalCompositeOperation = op;
 }
 
 
