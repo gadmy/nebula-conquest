@@ -1101,6 +1101,25 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
        aucun ne touchait ; apres, aucun sur sa planete, les autres
        touchent, ratent une cible qui a bouge ou finissent dans un soleil
        comme n'importe quel tir. Les IA en profitent aussi.
+       Mis en ligne et teste a la main : bon.
+     - UN CLIC SUR UN ASTRE LE CHOISIT DU PREMIER COUP, puis Espace vise
+       (signale en jeu : on ne pouvait pas toujours viser tout de suite).
+       1) De loin, la zone de clic etait minuscule : rayon + 8 unites du
+       monde, soit 5 px pour une lune au zoom 0,3. La marge se compte
+       maintenant aussi a l'ecran, 14 px au moins, et parmi les astres a
+       portee c'est celui dont le bord est le plus proche qui gagne (une
+       lune collee a sa planete). Une seule regle pour le clic, le relacher,
+       le double-clic et le clic droit (findBodyAt). Mesure, clics au bord
+       d'une planete et d'une lune et jusqu'a 13 px a cote : au zoom 0,3,
+       2 sur 8 choisissaient l'astre avant, 8 sur 8 apres ; 5 puis 8 au
+       zoom 0,6.
+       2) Un clic hors du panneau central le fermait sans rien faire
+       d'autre : il fallait recliquer l'astre. Il le ferme et choisit
+       l'astre dans la foulee.
+       3) Un curseur touche (part d'envoi, sacrifice) gardait le clavier et
+       comptait comme une saisie de texte : Espace, F, A, E ne repondaient
+       plus. Seule une vraie saisie de texte coupe desormais les raccourcis,
+       et cliquer dans l'espace rend le clavier au jeu.
 
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
@@ -6935,7 +6954,12 @@ function setupUI() {
         /* Les raccourcis de jeu ne doivent pas se declencher pendant une
            saisie, ni par-dessus un menu de pause. */
         const cible = document.activeElement;
-        const enSaisie = cible && (cible.tagName === 'INPUT' || cible.tagName === 'TEXTAREA');
+        /* Seule une vraie saisie de texte coupe les raccourcis. Un curseur
+           (part d'envoi, sacrifice) garde la main apres qu'on l'a touche : le
+           compter comme une saisie rendait Espace muet jusqu'au clic suivant
+           dans l'interface. */
+        const enSaisie = cible && (cible.tagName === 'TEXTAREA' || (cible.tagName === 'INPUT'
+            && !['range', 'checkbox', 'radio', 'button', 'submit', 'color'].includes(cible.type)));
         /* ZQSD marche aussi pendant le choix de la planete de depart : c'est
            le moment ou l'on a le plus besoin de parcourir la carte. */
         if (gameState.phase === 'spawn' && !enSaisie && !e.ctrlKey && !e.altKey && !e.metaKey
@@ -13666,12 +13690,11 @@ function setupInput() {
         const mx = clientX - rect.left, my = clientY - rect.top;
         return { x: (mx - gameState.width/2)/cam.zoom + cam.x, y: (my - gameState.height/2)/cam.zoom + cam.y };
     }
+    /* Planete ou lune sous le curseur (double-clic, clic droit) : la meme
+       zone de clic que la selection, soleils exclus. */
     function _bodyAt(wx, wy) {
-        for (const body of gameState.allBodies) {
-            const dx = body.x - wx, dy = body.y - wy;
-            if (Math.sqrt(dx*dx+dy*dy) < body.radius + 8) return body;
-        }
-        return null;
+        const b = findBodyAt(wx, wy);
+        return (b && b.type !== 'sun') ? b : null;
     }
     function _cancelFire() {
         gameState._demol = false;
@@ -13691,6 +13714,12 @@ function setupInput() {
         if (e.button !== 0 || gameState.phase !== 'game') return;
         if (gameState.isSpectator) return;
         const wp = _worldPos(e.clientX, e.clientY);
+        /* Cliquer dans l'espace rend la main au jeu : le bouton ou le
+           curseur touche juste avant ne garde plus le clavier (Espace, F, A,
+           E... repartent au jeu). */
+        const _actif = document.activeElement;
+        if (_actif && _actif !== document.body && _actif.tagName !== 'TEXTAREA'
+            && !(_actif.tagName === 'INPUT' && _actif.type === 'text')) _actif.blur();
 
         // Fermer tous les menus en jeu si clic hors du menu
         const _openMenus = [
@@ -13698,13 +13727,18 @@ function setupInput() {
             { id: 'codex',    close: () => closeCodex() },
         ].map(m => ({ ...m, el: document.getElementById(m.id) }))
          .filter(m => m.el && m.el.offsetParent !== null);
+        /* Un clic hors d'un menu le ferme ET compte : s'il tombe sur un
+           astre, celui-ci est choisi dans la foulee - il fallait sinon un
+           second clic avant de pouvoir viser (Espace). */
+        let _menuFerme = false;
         for (const menu of _openMenus) {
             const mr = menu.el.getBoundingClientRect();
             if (e.clientX < mr.left || e.clientX > mr.right || e.clientY < mr.top || e.clientY > mr.bottom) {
                 menu.close();
-                return;
+                _menuFerme = true;
             }
         }
+        if (_menuFerme && !findBodyAt(wp.x, wp.y)) return;
 
         // Phase aiming : maintien gauche → dézoom progressif, relâche → tir
         if (gameState._firePhase === 'aiming') {
@@ -13715,8 +13749,11 @@ function setupInput() {
             return;
         }
 
-        // Sinon : centrer caméra sur l'astre
-        const body = _bodyAt(wp.x, wp.y);
+        /* Sinon : l'astre sous le clic devient l'astre choisi, tout de suite,
+           ou que soit la camera - Espace vise depuis lui. Meme zone de clic
+           que la selection au relacher (findBodyAt, plus genereuse pour les
+           petites lunes) : un clic un peu a cote d'une lune la manquait ici. */
+        const body = findBodyAt(wp.x, wp.y);
         if (body) {
             followingBody = body;
             /* Sur un astre partage, le clic choisit la ZONE sur laquelle il
@@ -14072,18 +14109,22 @@ if (body && _pied && (e.button === 2)) {
     });
 }
 
+/* L'ASTRE SOUS LE CLIC. La marge autour de chaque astre se compte aussi en
+   pixels d'ecran : au moins 14 px, quel que soit le zoom. En monde seul, de
+   loin (zoom 0,3), une lune n'etait cliquable que sur 5 px et le clic
+   tombait a cote. Quand plusieurs astres sont a portee (une lune pres de sa
+   planete), c'est celui dont le BORD est le plus pres du clic qui gagne. */
 function findBodyAt(wx, wy) {
-    // Chercher lunes, puis planètes, puis soleils (plus petit d'abord)
-    for (const m of gameState.moons) {
-        const dx = m.x - wx, dy = m.y - wy;
-        const hr = Math.max(m.radius + 18, 22);
-        if (dx*dx + dy*dy < hr * hr) return m;
-    }
-    for (const p of gameState.planets) {
-        const dx = p.x - wx, dy = p.y - wy;
-        const hr = Math.max(p.radius + 14, 20);
-        if (dx*dx + dy*dy < hr * hr) return p;
-    }
+    const z = gameState.camera.zoom || 1;
+    const margePx = 14 / z;
+    let meilleur = null, meilleurEcart = Infinity;
+    const essayer = function (b, marge) {
+        const d = Math.sqrt((b.x - wx) * (b.x - wx) + (b.y - wy) * (b.y - wy)) - b.radius;
+        if (d < Math.max(marge, margePx) && d < meilleurEcart) { meilleur = b; meilleurEcart = d; }
+    };
+    for (const m of gameState.moons) essayer(m, 18);
+    for (const p of gameState.planets) essayer(p, 14);
+    if (meilleur) return meilleur;
     for (const s of gameState.suns) {
         const dx = s.x - wx, dy = s.y - wy;
         if (dx*dx + dy*dy < (s.radius + 10) * (s.radius + 10)) return s;
