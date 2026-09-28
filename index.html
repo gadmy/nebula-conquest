@@ -1120,6 +1120,52 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
        comptait comme une saisie de texte : Espace, F, A, E ne repondaient
        plus. Seule une vraie saisie de texte coupe desormais les raccourcis,
        et cliquer dans l'espace rend le clavier au jeu.
+       Mis en ligne et teste a la main : bon.
+
+     ── LOCKSTEP : LE RELAIS D'ORDRES (prototype) ──
+     - PREMIERES PARTIES EN RESEAU OU CHAQUE NAVIGATEUR CALCULE TOUT. Nouveau
+       serveur, npm run relais (outils/relais.mjs, avec la bibliotheque ws).
+       Il ne calcule rien : il reunit les joueurs d'une salle, leur donne
+       la meme graine et les memes reglages, attend qu'ils aient charge,
+       puis envoie toutes les 50 ms un paquet numerote avec les ordres
+       recus. Le paquet n s'applique au tour (n + 2) x 3 + 1 chez tous, et
+       personne ne calcule plus loin que le dernier paquet recu. Il sert
+       aussi le jeu : npm run relais, puis ouvrir deux fois
+       http://localhost:8080/?relais=ws://localhost:8080&salle=essai&joueurs=2
+       (parametres : joueurs, ia, carte, difficulte, nom).
+     - COTE JEU (section LOCKSTEP : LE RELAIS D'ORDRES) : l'adresse avec
+       ?relais= fait rejoindre la salle ; donnerOrdre envoie au relais au
+       lieu de la file ; les humains prennent les premiers numeros (noms,
+       couleurs, statistiques identiques partout), les IA suivent ; la
+       partie commence quand tous les humains ont leur astre de depart (au
+       bout de 30 s, un astre au hasard pour les retardataires) ; pas de
+       vraie pause. Le calcul garde une reserve de 3 a 6 tours sous le
+       dernier paquet (il ralentit ou accelere un peu) pour absorber un
+       paquet en retard sans figer l'image ; tres en retard, il rattrape.
+       Un bandeau en haut dit l'etat : joueur, tour, paquets, reserve, et
+       le nombre d'images ou la partie a du attendre un paquet.
+     - SURVEILLANCE : chaque seconde de jeu, l'empreinte part au relais,
+       qui la compare a celle des autres et alerte tout le monde a la
+       moindre difference. Premier essai : alerte des le tour 60 - fausse :
+       le champ "c'est moi" (isLocal) comptait dans l'empreinte, vrai chez
+       l'un, faux chez l'autre. Lui et la selection d'un tir par clic
+       (propres a chaque ecran) n'y entrent plus.
+     - Corrige en route : dans le message de depart, le nombre de joueurs
+       ecrasait la liste des joueurs (meme nom de champ) - chaque
+       navigateur ne creait qu'un joueur.
+     - VERIFIE, navigateurs pilotes qui jouent vraiment (colonisation au
+       popup, tirs, rafales, boules, batiments), 2 IA en plus : 2 humains
+       pendant 60 s, puis 3 humains : empreintes identiques a chaque
+       seconde, memes ordres aux memes tours chez tous. Delai entre le
+       geste et son effet : 67 ms sur reseau parfait (3 arrets d'image en
+       40 s) ; environ 190 ms avec 80 ms de latence et jusqu'a 60 ms
+       d'irregularite simulees (--latence 80 --gigue 60), 17 a 27 arrets
+       d'image en 40 s, aucune desynchronisation. Trafic : un paquet vide
+       fait une trentaine d'octets, 20 fois par seconde - moins de 1 Ko/s
+       par joueur, contre 20 a 60 Ko/s pour les instantanes du serveur
+       actuel.
+     - Solo et multijoueur actuel inchanges : le mode ne s'active qu'avec
+       ?relais= dans l'adresse.
 
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
@@ -1133,10 +1179,15 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
      l'etat, banc d'essai a deux onglets (identique sur 10 min), tours
      fixes de 1/60 s avec image interpolee, gestes du joueur en ordres
      (solo) avec journal. Reste :
-     - le relais d'ordres : un petit serveur qui recoit les ordres de
-       chacun, les date d'un tour un peu dans le futur (environ 100 ms,
-       pour laisser le temps au reseau) et les renvoie a tous ; en partie,
-       donnerOrdre passerait par lui au lieu d'aller directement a la file ;
+     - HEBERGER LE RELAIS (prototype fait, voir v9.7.7) : aujourd'hui il ne
+       tourne qu'en local. Le mettre sur Railway (second service) ou un
+       serveur Hetzner, en wss:// (chiffre) pour une page servie en https ;
+     - un vrai salon : creer / rejoindre une salle depuis le menu, au lieu
+       de l'adresse ; puis identite (jeton Supabase) et classement ;
+     - la reserve s'adapte au reseau : sur une connexion irreguliere, plus
+       de tours d'avance, pour ne plus figer l'image ;
+     - la reconnexion : un joueur qui revient recoit le journal des ordres
+       et rejoue la partie jusqu'au tour courant ;
      - tester Firefox et Safari : sin, cos, atan2... peuvent differer d'un
        navigateur a l'autre - sinon fonctions maison ou calcul en entiers ;
      - un seul moteur de jeu partage (aujourd'hui en double : index.html et
@@ -3922,6 +3973,9 @@ function init() {
     // Démarrer sur l'écran auth — initAuth() basculera sur title si session valide
     // Différé pour s'assurer que tous les scripts sont parsés
     setTimeout(() => showAuthScreen(), 0);
+
+    /* Adresse avec ?relais=... : partie en lockstep (voir rejoindreRelais). */
+    lockstepDepuisAdresse();
 }
 
 /* LA RESOLUTION DE RENDU. Le canevas est affiche en plein ecran par le CSS,
@@ -7669,7 +7723,9 @@ function afficherPause(oui) {
 }
 
 function togglePause() {
-    if (gameState.isMulti) {
+    /* En lockstep non plus, pas de vraie pause : la partie des autres
+       continue. Le menu s'ouvre, le jeu tourne. */
+    if (gameState.isMulti || gameState.lockstep) {
         if (gameState.phase === 'game') {
             document.getElementById('pauseTitle').textContent = 'MENU';
             afficherPause(true);
@@ -7692,8 +7748,9 @@ function startGame() {
     document.getElementById('loadingScreen').classList.remove('hidden');
     updateLoadingBar(0, 'Génération de l\'espace...');
 
-    // Lire la config (solo seulement, en multi c'est déjà défini par onMultiGameStart)
-    if (!gameState.isMulti && !gameState.isTutorial) {
+    // Lire la config (solo seulement, en multi c'est déjà défini par onMultiGameStart,
+    // en lockstep par lancerPartieLockstep)
+    if (!gameState.isMulti && !gameState.isTutorial && !gameState.lockstep) {
         gameState.config.difficulty = document.getElementById('cfgDifficulty').value;
         gameState.config.useIA = true;
         gameState.config.aiCount = parseInt(document.getElementById('cfgPlayers').value);
@@ -7954,6 +8011,7 @@ function finishStartGame() {
 
     // Créer les joueurs
     createPlayers();
+    if (gameState.lockstep) preparerJoueursLockstep();
     /* La part d'envoi reglee avant la partie vaut des le premier tour. */
     if (!gameState.isMulti) donnerOrdre('part', { v: gameState.jetRatio });
     if (gameState.isMulti && gameState._pendingRoomId && isHost) {
@@ -8003,6 +8061,7 @@ function finishStartGame() {
         if (banner) banner.textContent = 'En attente de l\'adversaire...';
         if (_socket) _socket.emit('spawn_ready');
     }
+    if (gameState.lockstep) lockstepPret();
 }
 
 /* ─────────────────────────────────────────────
@@ -10220,6 +10279,12 @@ function coloniser(slot, astre) {
     if (slot === localSlot()) addEvent('mine', '🌍', `Vous colonisez ${astre.name} !`, astre, human.color);
     if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
     gameState._spawnFlashes.push({ body: astre, age: 0, maxAge: 2.5, color: human.color });
+    /* En lockstep, la partie ne commence que quand TOUS les humains ont leur
+       astre : verifierColonisationLockstep, a chaque tour. */
+    if (gameState.lockstep) {
+        if (slot !== localSlot()) addEvent('war', '🌍', `${human.name} colonise ${astre.name} !`, astre, human.color);
+        return;
+    }
     autoSpawnAIs();
     setPhase('game');
 }
@@ -10228,7 +10293,7 @@ function autoSpawnAIs() {
     const available = [...gameState.planets, ...gameState.moons].filter(b => b.owner === null);
     for (let i = 1; i < gameState.players.length; i++) {
         if (available.length === 0) break;
-        if (gameState.isMulti && gameState.players[i].isHuman) continue;
+        if ((gameState.isMulti || gameState.lockstep) && gameState.players[i].isHuman) continue;
         // Choisir un astre éloigné des autres joueurs
         let bestPlanet = null;
         let bestScore = -1;
@@ -14209,7 +14274,13 @@ function tourSimulation() {
     gameState.tour = (gameState.tour || 0) + 1;
     if (typeof gameState.avantChaqueTour === 'function') gameState.avantChaqueTour(gameState.tour);
     appliquerOrdres(gameState.tour);
+    if (gameState.lockstep && gameState.phase === 'spawn') verifierColonisationLockstep();
     update(TOUR_SIM);
+    /* Une fois par seconde de jeu, l'empreinte part au relais, qui la
+       compare a celle des autres joueurs. */
+    if (gameState.lockstep && gameState.tour % 60 === 0) {
+        envoyerAuRelais({ t: 'empreinte', tour: gameState.tour, h: empreinteEtat() });
+    }
 }
 
 /* ─────────────────────────────────────────────
@@ -14229,6 +14300,9 @@ function tourSimulation() {
 let _ordresEnAttente = [];
 
 function donnerOrdre(type, d) {
+    /* En lockstep, l'ordre part au relais : il reviendra a tous les joueurs
+       dans un paquet, date du meme tour pour chacun (recevoirPaquet). */
+    if (gameState.lockstep) { envoyerAuRelais({ t: 'ordre', type: type, d: d || {} }); return; }
     programmerOrdre({ tour: (gameState.tour || 0) + 1, slot: localSlot(), type: type, d: d || {} });
 }
 
@@ -14408,6 +14482,165 @@ function peutTirerDe(src, slot) {
     return src.owner === slot || !!(src.lutte && zonesDe(src, slot).length);
 }
 
+/* ─────────────────────────────────────────────
+   LOCKSTEP : LE RELAIS D'ORDRES (prototype)
+   Chaque navigateur calcule toute la partie ; le serveur (outils/relais.mjs)
+   ne fait que faire circuler les ordres. Il envoie toutes les 50 ms un
+   paquet numerote : le paquet n s'applique au tour (n + 2) x 3 + 1, chez
+   tout le monde, et personne ne calcule plus loin que le dernier paquet
+   recu. Deux paquets d'avance : le temps que le reseau livre.
+   On y entre par l'adresse du jeu :
+     ?relais=ws://serveur:8080&salle=nom&joueurs=2&ia=0&carte=6
+   Les joueurs humains ont les premiers numeros, les IA suivent. Chaque
+   seconde de jeu, l'empreinte de la partie part au relais, qui les compare.
+   ───────────────────────────────────────────── */
+const TOURS_PAR_PAQUET = 3;
+const PAQUETS_AVANCE = 2;
+
+function envoyerAuRelais(msg) {
+    const L = gameState.lockstep;
+    if (L && L.ws && L.ws.readyState === 1) L.ws.send(JSON.stringify(msg));
+}
+
+function lockstepDepuisAdresse() {
+    const q = new URLSearchParams(location.search);
+    const url = q.get('relais');
+    if (!url) return;
+    rejoindreRelais(url, {
+        salle: q.get('salle') || 'essai', joueurs: q.get('joueurs'), ia: q.get('ia'),
+        carte: q.get('carte'), difficulte: q.get('difficulte'),
+        nom: q.get('nom') || (currentProfile && currentProfile.pseudo) || '',
+    });
+}
+
+function rejoindreRelais(url, reglages) {
+    let ws;
+    try { ws = new WebSocket(url); } catch (e) { afficherLockstep('Relais injoignable : ' + url, true); return; }
+    const L = gameState.lockstep = { ws: ws, slot: null, enJeu: false, joueurs: [], paquets: 0,
+                                     tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null };
+    ws.onopen = function () { ws.send(JSON.stringify(Object.assign({ t: 'rejoindre' }, reglages))); };
+    ws.onclose = function () { afficherLockstep('Relais deconnecte', true); };
+    ws.onmessage = function (ev) {
+        let m;
+        try { m = JSON.parse(ev.data); } catch (e) { return; }
+        if (m.t === 'attente') afficherLockstep('En attente des joueurs : ' + m.presents + ' / ' + m.attendus);
+        else if (m.t === 'refus') afficherLockstep('Refuse : ' + m.raison, true);
+        else if (m.t === 'depart') lancerPartieLockstep(m);
+        else if (m.t === 'paquet') recevoirPaquet(m);
+        else if (m.t === 'desync') { L.desync = m.tour; afficherLockstep('DESYNCHRONISATION au tour ' + m.tour, true); }
+        else if (m.t === 'parti') {
+            const j = gameState.players[m.slot];
+            if (j) addEvent('neutral', '⚠', j.name + ' a quitte la partie', null, '#888888');
+        }
+    };
+    afficherLockstep('Connexion au relais...');
+}
+
+/* Le relais a reuni tout le monde : meme graine, meme carte, memes reglages
+   pour tous. Les vaisseaux et les cometes gardent les valeurs par defaut du
+   solo, identiques partout. */
+function lancerPartieLockstep(m) {
+    const L = gameState.lockstep;
+    L.slot = m.slot;
+    L.joueurs = m.joueurs;
+    gameState.isMulti = false;
+    gameState.isTutorial = false;
+    gameState.multiSeed = m.graine;
+    const cfg = gameState.config;
+    cfg.difficulty = m.difficulte;
+    cfg.useIA = true;
+    cfg.aiCount = m.ia;
+    cfg.playerCount = m.joueurs.length + m.ia;
+    cfg.cleanerCount = 3;
+    cfg.useComets = true;
+    cfg.mapIndex = m.carte;
+    afficherLockstep('Partie lancee : vous etes le joueur ' + (m.slot + 1) + ' sur ' + m.joueurs.length);
+    /* Attendre que l'ecran d'accueil ait fini de s'installer, pour qu'il ne
+       repasse pas par-dessus la partie. */
+    const partir = function () {
+        if (gameState.phase === 'title' || performance.now() > 4000) startGame();
+        else setTimeout(partir, 200);
+    };
+    partir();
+}
+
+/* Apres createPlayers : les humains ont les premiers numeros, avec leur nom,
+   des couleurs et des statistiques identiques chez tous. */
+function preparerJoueursLockstep() {
+    const L = gameState.lockstep;
+    for (let i = 0; i < gameState.players.length; i++) {
+        const p = gameState.players[i];
+        p.color = gameState.teamColors[i % gameState.teamColors.length];
+        p.isLocal = (i === L.slot);
+        if (i < L.joueurs.length) {
+            p.isHuman = true;
+            p.name = L.joueurs[i].nom;
+            p.stats = { growth: 3, velocity: 4, density: 2, sensitivity: 1 };
+        }
+    }
+    L.tourPermis = PAQUETS_AVANCE * TOURS_PAR_PAQUET;
+    L.paquets = 0;
+}
+
+/* La partie est chargee : on le dit au relais, qui lancera les paquets
+   quand tout le monde sera pret. */
+function lockstepPret() {
+    const L = gameState.lockstep;
+    L.enJeu = true;
+    envoyerAuRelais({ t: 'pret' });
+    if (!L.affichage) L.affichage = setInterval(majBandeauLockstep, 500);
+}
+
+function recevoirPaquet(m) {
+    const L = gameState.lockstep;
+    const base = (m.n + PAQUETS_AVANCE) * TOURS_PAR_PAQUET;
+    for (const o of (m.o || [])) programmerOrdre({ tour: base + 1, slot: o.s, type: o.type, d: o.d || {} });
+    L.tourPermis = base + TOURS_PAR_PAQUET;
+    L.paquets = m.n + 1;
+}
+
+/* Pendant le choix des astres de depart : la partie commence quand tous les
+   humains ont le leur. Au bout de 30 s, un retardataire en recoit un au
+   hasard - le hasard du jeu, donc le meme chez tous. */
+function verifierColonisationLockstep() {
+    const L = gameState.lockstep;
+    const humains = gameState.players.slice(0, L.joueurs.length);
+    if (gameState.tour >= 30 * 60) {
+        for (const h of humains) {
+            if (h.spawnPlanet) continue;
+            const libres = [...gameState.planets, ...gameState.moons].filter(b => b.owner === null);
+            if (libres.length) coloniser(h.id, libres[Math.floor(gameRandom() * libres.length)]);
+        }
+    }
+    if (humains.every(h => h.spawnPlanet)) {
+        autoSpawnAIs();
+        setPhase('game');
+    }
+}
+
+/* Le bandeau d'etat, en haut de l'ecran. */
+function afficherLockstep(texte, alerte) {
+    let el = document.getElementById('bandeauLockstep');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'bandeauLockstep';
+        el.style.cssText = 'position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:5000;' +
+            'padding:4px 12px;border-radius:6px;font:11px monospace;pointer-events:none;' +
+            'background:rgba(6,8,22,0.85);border:1px solid rgba(139,92,246,0.5);color:#D8CFF5;';
+        document.body.appendChild(el);
+    }
+    el.textContent = 'LOCKSTEP · ' + texte;
+    if (alerte) { el.style.color = '#FFB4B4'; el.style.borderColor = '#FF4D6D'; }
+}
+
+function majBandeauLockstep() {
+    const L = gameState.lockstep;
+    if (!L || !L.enJeu || L.desync !== null) return;
+    afficherLockstep('joueur ' + (L.slot + 1) + '/' + L.joueurs.length + ' · tour ' + (gameState.tour || 0) +
+                     ' · paquets ' + L.paquets + ' · reserve ' + (L.tourPermis - (gameState.tour || 0)) +
+                     ' · attentes ' + L.attentes);
+}
+
 function _mobilesInterpoles() {
     return [gameState.suns, gameState.allBodies, gameState.jets, gameState.cleaners, gameState.comets];
 }
@@ -14455,12 +14688,33 @@ function restaurerPositions() {
 /* Une image : les tours dus depuis la precedente, puis le dessin. */
 function avancerImage(dt, timestamp) {
     const _t0 = performance.now();
-    _accSim += dt;
+    const L = gameState.lockstep;
     let n = 0;
-    while (_accSim >= TOUR_SIM && n < TOURS_MAX_PAR_IMAGE) {
-        tourSimulation();
-        _accSim -= TOUR_SIM;
-        n++;
+    if (L && L.enJeu) {
+        /* En lockstep, on ne depasse jamais le dernier tour permis par les
+           paquets recus. L'allure s'ajuste pour garder une reserve de 3 a 6
+           tours sous ce plafond : elle absorbe les paquets qui arrivent un
+           peu en retard sans que l'image s'arrete. Tres en retard (onglet
+           cache, machine lente), on rattrape a pleine vitesse. */
+        const ecart = L.tourPermis - gameState.tour;
+        const allure = ecart > 3 * TOURS_PAR_PAQUET ? 1.25 : ecart > 6 ? 1.05 : ecart < 3 ? 0.9 : 1;
+        _accSim += dt * allure;
+        while (n < TOURS_MAX_PAR_IMAGE && gameState.tour < L.tourPermis
+               && (_accSim >= TOUR_SIM || L.tourPermis - gameState.tour > 4 * TOURS_PAR_PAQUET)) {
+            tourSimulation();
+            _accSim = Math.max(0, _accSim - TOUR_SIM);
+            n++;
+        }
+        /* Une image ou l'on voulait avancer mais ou le paquet manquait : la
+           partie s'est figee un instant. A surveiller sur un reseau lent. */
+        if (gameState.tour >= L.tourPermis && _accSim >= TOUR_SIM) L.attentes = (L.attentes || 0) + 1;
+    } else {
+        _accSim += dt;
+        while (_accSim >= TOUR_SIM && n < TOURS_MAX_PAR_IMAGE) {
+            tourSimulation();
+            _accSim -= TOUR_SIM;
+            n++;
+        }
     }
     if (_accSim > TOUR_SIM) _accSim = TOUR_SIM;
     const _t1 = performance.now();
@@ -14704,13 +14958,16 @@ function empreinteEtat(detail) {
     const melanger = function (s) {
         for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
     };
+    /* Propres a chaque ecran, donc differents d'un joueur a l'autre sans que
+       la partie le soit : qui est "moi", le tir qu'on a clique. */
+    const LOCAUX = { isLocal: 1, selected: 1 };
     const simples = function (o) {
         if (!o) return '';
         let s = '';
         const cles = Object.keys(o).sort();
         for (let i = 0; i < cles.length; i++) {
             const k = cles[i];
-            if (k[0] === '_') continue;
+            if (k[0] === '_' || LOCAUX[k]) continue;
             const v = o[k], t = typeof v;
             if (t === 'number' || t === 'string' || t === 'boolean' || v === null) s += k + '=' + v + ';';
         }
@@ -20286,7 +20543,10 @@ function sendAction(type, data) {
     _socket.emit('player_action', { type, ...data });
 }
 
-function localSlot() { return gameState.isMulti ? mySlot : 0; }
+function localSlot() {
+    if (gameState.lockstep && gameState.lockstep.slot !== null) return gameState.lockstep.slot;
+    return gameState.isMulti ? mySlot : 0;
+}
 
 // ── MULTI : matchmaking ───────────────────────────────────────
 
