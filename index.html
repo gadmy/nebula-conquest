@@ -1278,6 +1278,41 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
      - Verifie dans le salon, clics reels : partie rapide a 2 qui attend
        puis se lance, partie privee avec code et 1 IA, code faux refuse,
        annulation. Aucune erreur.
+     - Essai en ligne signale "decalage" : en fait identique (memes tours a
+       la reserve pres, memes scores, journaux du relais "identiques"). Le
+       cadre rouge du bandeau etait le reste d'une alerte passee : il
+       reprend desormais sa couleur normale.
+
+     ── FIN DE PARTIE EN RESEAU ──
+     - ELIMINE : on reste dans la partie en SPECTATEUR (bandeau "ELIMINE -
+       vous regardez la suite" et bouton QUITTER). Le calcul continue comme
+       chez les autres ; seules les commandes sont coupees. Avant, l'ecran
+       de defaite passait la partie en phase "fin" pour ce seul ordinateur :
+       certains ordres (riposte, arret...) y etaient ignores, et la
+       verification s'arretait net en sautant les autres joueurs -
+       desynchronisation assuree.
+     - VICTOIRE : 80 % des astres comme en solo, ou DERNIER JOUEUR EN VIE
+       (humains et IA). Decidee dans le calcul, donc au meme tour chez tous
+       (finPartieLockstep) : VICTOIRE chez le gagnant, DEFAITE "X remporte
+       la partie" chez les autres. Pas de "rejouer" solo par-dessus : MENU
+       repart d'une page neuve. Parties lockstep non enregistrees dans les
+       statistiques (beta, resultats non verifies).
+     - DESYNCHRONISATION TROUVEE EN ROUTE : LE BONUS DE SYSTEME COMPLET.
+       isSystemComplete retenait une seule reponse par etoile, effacee
+       seulement a la conquete par un tir ; une bataille au sol ou un
+       vaisseau qui chasse ne l'effacaient pas, et l'affichage la remplacait
+       au rythme des images pour le joueur local. Le +3 % de production
+       tombait donc un tour plus tot ou plus tard selon l'ordinateur -
+       intermittent. Trouve en comparant les deux navigateurs a chaque
+       tour : premier ecart au tour du changement de proprietaires, +3 %
+       exactement. Corrige : recalcul a chaque appel (quelques astres par
+       systeme, negligeable).
+     - Le compteur qui cadence l'IA et la verification de victoire
+       (_hudCounter) repart de zero a chaque partie : deux joueurs dont
+       l'un avait deja joue dans la page n'etaient pas cales pareil.
+     - Verifie : elimination du joueur 2 puis victoire du joueur 1 au meme
+       tour dans deux navigateurs, deux fois : spectateur, VICTOIRE /
+       DEFAITE, aucune desynchronisation.
 
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
@@ -1296,8 +1331,6 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
        serveur Hetzner, en wss:// (chiffre) pour une page servie en https ;
      - salon fait (bouton RESEAU, parties rapides et privees, 16 joueurs) ;
        reste l'identite (jeton Supabase, pseudo verifie) et le classement ;
-     - fin de partie en reseau : victoire, elimines en spectateurs, retour
-       au salon ;
      - remplacer a terme le multijoueur actuel (serveur 2) par ce systeme ;
      - la reconnexion : un joueur qui revient recoit le journal des ordres
        et rejoue la partie jusqu'au tour courant ;
@@ -7015,7 +7048,10 @@ function setupUI() {
     document.getElementById('btnReplay').addEventListener('click', () => { hideEndScreen(); startGame(); });
     setupMinimap();
     setupVolumeControl();
-    document.getElementById('btnEndQuit').addEventListener('click', () => { hideEndScreen(); setPhase('title'); });
+    document.getElementById('btnEndQuit').addEventListener('click', () => {
+        if (gameState.lockstep) { quitterPartieLockstep(); return; }
+        hideEndScreen(); setPhase('title');
+    });
 
     // ── Touche Échap pour pause ──
     /* ─────────────────────────────────────────────
@@ -8143,6 +8179,11 @@ function finishStartGame() {
     gameState.cometTimer = 0;
     gameState.time = 0;
     gameState.tour = 0;
+    /* Il cadence l'IA (un tour sur deux) et la verification de victoire (tous
+       les 30 tours) : il doit repartir de zero a chaque partie, sinon deux
+       joueurs dont l'un a deja joue une partie dans la page ne sont pas
+       cales pareil. */
+    gameState._hudCounter = 0;
     _accSim = 0;
     _ordresEnAttente = [];
     gameState.journalOrdres = [];
@@ -15109,6 +15150,50 @@ function quitterRelais() {
     salonChoixVisibles(true);
 }
 
+/* FIN DE PARTIE EN RESEAU. Elle se decide dans le calcul, donc au meme tour
+   chez tous (checkVictoryAndElimination). */
+function finPartieLockstep(gagnant) {
+    const L = gameState.lockstep;
+    if (!L || L.fini) return;
+    L.fini = true;
+    L.gagnant = gagnant.name;
+    const bandeauSpect = document.getElementById('bandeauElimine');
+    if (bandeauSpect) bandeauSpect.remove();
+    showEndScreen(gagnant === gameState.players[localSlot()]);
+    afficherLockstep('Partie terminee : ' + gagnant.name + ' l\'emporte');
+}
+
+/* Elimine : on reste dans la partie en spectateur. Le calcul continue
+   comme chez les autres (il le faut : ils comptent sur nos empreintes, et
+   on voit la suite) ; seules les commandes sont coupees. */
+function passerSpectateurLockstep() {
+    gameState.isSpectator = true;
+    gameState._firePhase = null;
+    gameState._fireSource = null;
+    let el = document.getElementById('bandeauElimine');
+    if (el) return;
+    el = document.createElement('div');
+    el.id = 'bandeauElimine';
+    el.style.cssText = 'position:fixed;top:40px;left:50%;transform:translateX(-50%);z-index:5000;' +
+        'display:flex;gap:12px;align-items:center;padding:8px 16px;border-radius:20px;' +
+        'background:rgba(40,10,20,0.9);border:1px solid rgba(255,77,109,0.6);' +
+        'font-family:Orbitron,monospace;font-size:12px;color:#FFB4B4;letter-spacing:1px;';
+    el.innerHTML = '💀 ÉLIMINÉ — vous regardez la suite';
+    const b = document.createElement('button');
+    b.textContent = 'QUITTER';
+    b.style.cssText = 'font-family:Orbitron,monospace;font-size:11px;padding:4px 10px;border-radius:10px;' +
+        'background:rgba(255,77,109,0.2);border:1px solid rgba(255,77,109,0.6);color:#FFD1D9;cursor:pointer;';
+    b.addEventListener('click', quitterPartieLockstep);
+    el.appendChild(b);
+    document.body.appendChild(el);
+}
+
+/* Quitter une partie en reseau : on repart d'une page neuve, ecran titre,
+   sans rien garder de la partie (mode lockstep, maths fixes...). */
+function quitterPartieLockstep() {
+    location.href = location.pathname;
+}
+
 function salonStatut(texte) {
     const el = document.getElementById('salonStatut');
     if (el) { el.textContent = texte; el.style.whiteSpace = 'pre-line'; }
@@ -15169,7 +15254,10 @@ function afficherLockstep(texte, alerte) {
         document.body.appendChild(el);
     }
     el.textContent = 'LOCKSTEP · ' + texte;
-    if (alerte) { el.style.color = '#FFB4B4'; el.style.borderColor = '#FF4D6D'; }
+    /* Rouge pour une alerte, sinon la couleur normale : le rouge restait
+       d'une alerte passee (partie precedente) sur la partie suivante. */
+    el.style.color = alerte ? '#FFB4B4' : '#D8CFF5';
+    el.style.borderColor = alerte ? '#FF4D6D' : 'rgba(139,92,246,0.5)';
 }
 
 function majBandeauLockstep() {
@@ -19161,6 +19249,7 @@ function checkVictoryAndElimination() {
     if (gameState.phase !== 'game') return;
 
     const totalBodies = gameState.planets.length + gameState.moons.length;
+    let eliminationLocale = false;
 
     // Timer 1v1 multi : 10 minutes → victoire au plus grand nombre de planètes
     if (gameState.isMulti && gameState.time >= 600) {
@@ -19199,8 +19288,11 @@ function checkVictoryAndElimination() {
                 player._inSursis = false;
                 addEvent('neutral', '💀', player.name + ' est éliminé !', null, player.color);
                 if (player.isLocal) {
-                    showEndScreen(false);
-                    return;
+                    /* En lockstep, on ne s'arrete pas la : les autres joueurs
+                       doivent etre verifies au meme tour chez tous. L'elimine
+                       devient spectateur apres la boucle. */
+                    if (gameState.lockstep) eliminationLocale = true;
+                    else { showEndScreen(false); return; }
                 }
             }
         } else {
@@ -19217,6 +19309,7 @@ function checkVictoryAndElimination() {
         }
         const pct = totalBodies > 0 ? teamOwnedCount / totalBodies : 0;
         if (pct >= 0.8) {
+            if (gameState.lockstep) { finPartieLockstep(player); return; }
             const localPlayer = gameState.players[localSlot()];
             const localWins = teamCount >= 2
                 ? localPlayer?.team === player.team
@@ -19224,6 +19317,14 @@ function checkVictoryAndElimination() {
             showEndScreen(localWins);
             return;
         }
+    }
+
+    if (gameState.lockstep) {
+        if (eliminationLocale) passerSpectateurLockstep();
+        /* En reseau, le dernier joueur en vie l'emporte aussi : humains et IA
+           confondus, decide au meme tour chez tous. */
+        const vivants = gameState.players.filter(p => p.alive);
+        if (vivants.length === 1) finPartieLockstep(vivants[0]);
     }
 }
 
@@ -19244,7 +19345,9 @@ function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverr
         ? 'Victoire par forfait !'
         : isVictory
             ? 'Vous contrôlez ' + ownedPct + '% de l\'univers !'
-            : 'Votre empire s\'est effondré...';
+            : (gameState.lockstep && gameState.lockstep.gagnant)
+                ? gameState.lockstep.gagnant + ' remporte la partie.'
+                : 'Votre empire s\'est effondré...';
 
     const stats = statsOverride || gameState.gameStats;
     if (!statsOverride) stats.timeElapsed = gameState.time;
@@ -19279,7 +19382,9 @@ function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverr
             document.getElementById('endScreen').querySelector('.end-buttons')?.appendChild(btnBracket);
         }
         btnBracket.style.display = '';
-    } else if (gameState.isMulti) {
+    } else if (gameState.isMulti || gameState.lockstep) {
+        /* En reseau (lockstep aussi) : pas de "rejouer" en solo par-dessus ;
+           MENU ramene a l'ecran titre (voir btnEndQuit). */
         if (btnReplay) btnReplay.style.display = 'none';
         if (btnSpectate) btnSpectate.style.display = 'none';
         const btnBracket = document.getElementById('btnBackToBracket');
@@ -19292,8 +19397,9 @@ function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverr
     if (isVictory) playVictorySound();
     else playDefeatSound();
 
-    // Sauvegarder la partie dans Supabase
-    saveGame(isVictory, stats, human, totalBodies);
+    // Sauvegarder la partie dans Supabase (pas les parties lockstep, en
+    // beta : resultats non verifies)
+    if (!gameState.lockstep) saveGame(isVictory, stats, human, totalBodies);
 }
 
 async function saveGame(isVictory, stats, human, totalBodies) {
@@ -19340,9 +19446,14 @@ function hideEndScreen() {
 // ─────────────────────────────────────────────
 let followingBody = null;
 
+/* Recalcule a chaque appel : quelques astres par systeme, c'est negligeable.
+   Il y avait un cache (une seule reponse retenue par etoile, effacee a la
+   conquete par un tir). Mais une bataille au sol, un vaisseau qui chasse
+   un proprietaire ne l'effacaient pas, et l'affichage le remplacait au
+   rythme des images en posant la question pour le joueur local : le bonus
+   de systeme complet (+3 % de production) tombait un tour plus tot ou plus
+   tard selon l'ordinateur - desynchronisation en lockstep. */
 function isSystemComplete(sun, ownerID) {
-    // Cache invalidé à la conquête via sun._sysCache = null
-    if (sun._sysCacheOwner === ownerID && sun._sysCache !== null && sun._sysCache !== undefined) return sun._sysCache;
     let result = sun.planets.length > 0;
     for (const planet of sun.planets) {
         if (planet.owner !== ownerID) { result = false; break; }
@@ -19351,8 +19462,6 @@ function isSystemComplete(sun, ownerID) {
         }
         if (!result) break;
     }
-    sun._sysCacheOwner = ownerID;
-    sun._sysCache = result;
     return result;
 }
 
