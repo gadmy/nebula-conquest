@@ -144,13 +144,21 @@ function noterEmpreinte(c, m) {
     if (tour < 0) return;
     let e = salle.empreintes.get(tour);
     if (!e) { e = {}; salle.empreintes.set(tour, e); }
-    e[c.slot] = String(m.h).slice(0, 16);
+    e[c.slot] = { h: String(m.h).slice(0, 16), p: (m.p && typeof m.p === 'object') ? m.p : {} };
     const vivants = salle.clients.filter(k => k.ws.readyState === 1);
     if (Object.keys(e).length < vivants.length) return;
-    const valeurs = new Set(Object.values(e));
+    const valeurs = new Set(Object.values(e).map(x => x.h));
     if (valeurs.size > 1) {
-        console.log('[' + salle.nom + '] DESYNCHRONISATION au tour ' + tour + ' ' + JSON.stringify(e));
-        aTous(salle, { t: 'desync', tour, empreintes: e });
+        /* Ce qui differe : astres, tirs, joueurs, vaisseaux, cometes. */
+        const liste = Object.values(e);
+        const familles = Object.keys(liste[0].p).filter(f => liste.some(x => x.p[f] !== liste[0].p[f]));
+        const empreintes = {};
+        for (const k in e) empreintes[k] = e[k].h;
+        if (!salle.desync) {
+            salle.desync = true;
+            console.log('[' + salle.nom + '] DESYNCHRONISATION au tour ' + tour + ' (' + familles.join(', ') + ') ' + JSON.stringify(empreintes));
+        }
+        aTous(salle, { t: 'desync', tour, familles, empreintes });
     } else if (tour % 600 === 0) {
         console.log('[' + salle.nom + '] tour ' + tour + ' : ' + vivants.length + ' joueurs identiques (' + [...valeurs][0] + ')');
     }
