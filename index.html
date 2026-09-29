@@ -1226,6 +1226,29 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
        le serveur ne fait que relayer les ordres. Reste a ameliorer : 134
        et 89 images figees en 3 min (attente d'un paquet) - la reserve
        doit s'adapter au reseau.
+     - LA RESERVE S'ADAPTE AU RESEAU (mesurerReseau). A chaque paquet, on
+       note son retard sur le rythme de 50 ms ; sur les 6 dernieres
+       secondes, l'ecart entre le plus en avance et les plus en retard (5 %
+       extremes ecartes) donne la gigue, et la reserve visee couvre cette
+       gigue plus 2 tours (3 a 36 tours). Chaque accroc ajoute un tour de
+       marge (6 au plus), chaque tranche de 5 s sans accroc en retire un.
+       Mesure sur 40 s, latence simulee : gigue 60 ms, de ~20 images
+       figees a 0 (delai du geste 190 -> 240 ms) ; gigue 150 ms, de ~65 a
+       0-2 (195 -> 344 ms). Plus de delai, mais une image fluide. Le
+       bandeau montre reserve actuelle / visee et la gigue mesuree.
+     - "LES PLANETES SONT DECALEES" (signale en ligne) : pas une
+       desynchronisation, un RETARD. L'onglet Firefox etait en arriere-
+       plan : le navigateur coupe la boucle d'images d'une page cachee, la
+       partie s'y arretait, et elle avait 4 minutes de retard (memes
+       scores, planetes ailleurs sur leur orbite). Deux corrections :
+       1) PAGE CACHEE, LA PARTIE CONTINUE (avancerEnFond) : les messages
+       du reseau arrivent toujours, chaque paquet recu fait donc les tours
+       dus, sans dessin ni son. Verifie : 20 s page cachee, l'onglet suit
+       tour pour tour (1 220 contre 1 221), empreintes identiques.
+       2) RATTRAPAGE RAPIDE, si le navigateur a gele la page (economie
+       d'energie) : autant de tours que possible pendant 10 ms par image
+       au lieu de 6 tours, sons coupes, "RATTRAPAGE" au bandeau. Verifie :
+       page gelee 30 s, a jour une demi-seconde apres.
 
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
@@ -1244,8 +1267,6 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
        serveur Hetzner, en wss:// (chiffre) pour une page servie en https ;
      - un vrai salon : creer / rejoindre une salle depuis le menu, au lieu
        de l'adresse ; puis identite (jeton Supabase) et classement ;
-     - la reserve s'adapte au reseau : sur une connexion irreguliere, plus
-       de tours d'avance, pour ne plus figer l'image ;
      - la reconnexion : un joueur qui revient recoit le journal des ordres
        et rejoue la partie jusqu'au tour courant ;
      - tester Firefox et Safari : sin, cos, atan2... peuvent differer d'un
@@ -14858,6 +14879,47 @@ function recevoirPaquet(m) {
     for (const o of (m.o || [])) programmerOrdre({ tour: base + 1, slot: o.s, type: o.type, d: o.d || {} });
     L.tourPermis = base + TOURS_PAR_PAQUET;
     L.paquets = m.n + 1;
+    mesurerReseau(L, m.n);
+    if (document.visibilityState === 'hidden' && L.enJeu) avancerEnFond(L);
+}
+
+/* LA PARTIE CONTINUE PAGE CACHEE. Onglet en arriere-plan, fenetre reduite :
+   le navigateur n'affiche plus la page et coupe la boucle d'images - la
+   partie de ce joueur s'arretait, et il revenait avec des minutes de retard
+   (vu en ligne : 4 minutes). Mais les messages du reseau, eux, continuent
+   d'arriver : a chaque paquet recu, on fait donc les tours dus, sans
+   dessiner ni jouer de son, en gardant la reserve habituelle. Au retour,
+   la partie est deja a jour. */
+function avancerEnFond(L) {
+    const cible = L.cible || RESERVE_MIN;
+    gameState._rattrapage = true;
+    let n = 0;
+    while (gameState.tour < L.tourPermis - cible && n < 900) { tourSimulation(); n++; }
+    _accSim = 0;
+}
+
+/* LA RESERVE S'ADAPTE AU RESEAU. Les paquets partent toutes les 50 ms ;
+   chacun arrive plus ou moins en retard sur ce rythme. Sur les 6 dernieres
+   secondes, l'ecart entre le paquet le plus en avance et les plus en retard
+   (on ecarte les 5 % extremes) dit de combien un paquet peut tarder : la
+   reserve doit tenir ce temps-la, plus 2 tours de marge. Reseau regulier :
+   petite reserve, le geste repond vite. Reseau irregulier : plus de
+   reserve, un peu plus de delai, mais l'image ne se fige plus.
+   Une image figee malgre tout ajoute un tour de marge (6 au plus) ; chaque
+   tranche de 5 s sans accroc en retire un. */
+const RESERVE_MIN = 3, RESERVE_MAX = 36;
+function mesurerReseau(L, n) {
+    const maintenant = performance.now();
+    if (L.origine === undefined) L.origine = maintenant - n * 50;
+    if (!L.retards) L.retards = [];
+    L.retards.push(maintenant - (L.origine + n * 50));
+    if (L.retards.length > 120) L.retards.shift();
+    const tri = L.retards.slice().sort((a, b) => a - b);
+    const gigue = tri[Math.floor((tri.length - 1) * 0.95)] - tri[0];
+    L.gigue = gigue;
+    if (L.bonus === undefined) { L.bonus = 0; L.sansAccroc = maintenant; }
+    if (L.bonus > 0 && maintenant - L.sansAccroc > 5000) { L.bonus--; L.sansAccroc = maintenant; }
+    L.cible = Math.max(RESERVE_MIN, Math.min(RESERVE_MAX, Math.ceil(gigue / (1000 / 60)) + 2 + L.bonus));
 }
 
 /* Pendant le choix des astres de depart : la partie commence quand tous les
@@ -14934,9 +14996,14 @@ function afficherLockstep(texte, alerte) {
 function majBandeauLockstep() {
     const L = gameState.lockstep;
     if (!L || !L.enJeu || L.desync !== null) return;
+    const retard = L.tourPermis - (gameState.tour || 0);
+    if (retard > 60) {
+        afficherLockstep('RATTRAPAGE : ' + Math.round(retard / 60) + ' s de jeu de retard (onglet cache ?)');
+        return;
+    }
     afficherLockstep('joueur ' + (L.slot + 1) + '/' + L.joueurs.length + ' · tour ' + (gameState.tour || 0) +
-                     ' · paquets ' + L.paquets + ' · reserve ' + (L.tourPermis - (gameState.tour || 0)) +
-                     ' · attentes ' + L.attentes);
+                     ' · reserve ' + retard + '/' + (L.cible || RESERVE_MIN) +
+                     ' · gigue ' + Math.round(L.gigue || 0) + ' ms · attentes ' + L.attentes);
 }
 
 function _mobilesInterpoles() {
@@ -14990,22 +15057,39 @@ function avancerImage(dt, timestamp) {
     let n = 0;
     if (L && L.enJeu) {
         /* En lockstep, on ne depasse jamais le dernier tour permis par les
-           paquets recus. L'allure s'ajuste pour garder une reserve de 3 a 6
-           tours sous ce plafond : elle absorbe les paquets qui arrivent un
-           peu en retard sans que l'image s'arrete. Tres en retard (onglet
-           cache, machine lente), on rattrape a pleine vitesse. */
+           paquets recus. L'allure s'ajuste pour garder sous ce plafond la
+           reserve voulue (L.cible, voir mesurerReseau) : elle absorbe les
+           paquets qui arrivent en retard sans que l'image s'arrete. Tres en
+           retard (onglet cache, machine lente), on rattrape a pleine
+           vitesse. */
         const ecart = L.tourPermis - gameState.tour;
-        const allure = ecart > 3 * TOURS_PAR_PAQUET ? 1.25 : ecart > 6 ? 1.05 : ecart < 3 ? 0.9 : 1;
+        const cible = L.cible || RESERVE_MIN;
+        const allure = ecart > cible + 3 * TOURS_PAR_PAQUET ? 1.25 : ecart > cible + 3 ? 1.05 : ecart < cible ? 0.9 : 1;
         _accSim += dt * allure;
-        while (n < TOURS_MAX_PAR_IMAGE && gameState.tour < L.tourPermis
-               && (_accSim >= TOUR_SIM || L.tourPermis - gameState.tour > 4 * TOURS_PAR_PAQUET)) {
+        /* RATTRAPAGE. Un onglet cache est mis en pause par le navigateur :
+           au retour, il peut avoir des minutes de retard. On calcule alors
+           autant de tours que possible pendant 10 ms par image (plusieurs
+           centaines de tours par seconde), sons coupes. Avant : 6 tours par
+           image au plus, un retard de 4 minutes ne se rattrapait jamais. */
+        const loin = ecart > cible + 4 * TOURS_PAR_PAQUET;
+        gameState._rattrapage = ecart > 60;
+        const debut = performance.now();
+        while (gameState.tour < L.tourPermis
+               && (n < TOURS_MAX_PAR_IMAGE || (loin && performance.now() - debut < 10))
+               && (_accSim >= TOUR_SIM || L.tourPermis - gameState.tour > cible + 4 * TOURS_PAR_PAQUET)) {
             tourSimulation();
             _accSim = Math.max(0, _accSim - TOUR_SIM);
             n++;
         }
         /* Une image ou l'on voulait avancer mais ou le paquet manquait : la
-           partie s'est figee un instant. A surveiller sur un reseau lent. */
-        if (gameState.tour >= L.tourPermis && _accSim >= TOUR_SIM) L.attentes = (L.attentes || 0) + 1;
+           partie s'est figee un instant. La premiere image de chaque accroc
+           ajoute un tour de marge a la reserve (6 au plus). */
+        const figee = gameState.tour >= L.tourPermis && _accSim >= TOUR_SIM;
+        if (figee) {
+            L.attentes = (L.attentes || 0) + 1;
+            if (!L.figee && L.bonus !== undefined) { L.bonus = Math.min(6, L.bonus + 1); L.sansAccroc = performance.now(); }
+        }
+        L.figee = figee;
     } else {
         _accSim += dt;
         while (_accSim >= TOUR_SIM && n < TOURS_MAX_PAR_IMAGE) {
@@ -20016,6 +20100,9 @@ async function loadAudioBuffers() {
 
 function _playBuffer(key, volume = 1.0, loop = false) {
     if (!gameState.audio.initialized || gameState.audio.muted) return null;
+    /* Pendant un rattrapage lockstep, des centaines de tours passent en une
+       seconde : leurs sons feraient une cacophonie. */
+    if (gameState._rattrapage && !loop) return null;
     const buf = gameState.audio.buffers[key];
     if (!buf) return null;
     const ac = gameState.audio.ctx;
