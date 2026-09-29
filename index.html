@@ -1075,7 +1075,7 @@ v9.7.7 | 2026-09-29 | Multijoueur lockstep : tours fixes, ordres, relais, salon
        Salon, fin de partie et 16 joueurs verifies avec des navigateurs
        pilotes.
 
-v9.7.8 | 2026-09-29 | (en cours)
+v9.7.8 | 2026-09-29 | Reseau : la reconnexion
      ── MULTIJOUEUR RESEAU : LA RECONNEXION ──
      - COUPURE BREVE (page ouverte) : le jeu retente aussitot, puis toutes
        les 2 s pendant 3 minutes ; le relais renvoie les paquets manques
@@ -1091,6 +1091,8 @@ v9.7.8 | 2026-09-29 | (en cours)
      - Partie abandonnee de tous : gardee 3 minutes avant d'etre effacee.
      - Essai pilote : coupure puis rechargement en pleine partie, aucune
        desynchronisation, memes astres chez les deux joueurs.
+
+v9.7.9 | 2026-09-29 | (en cours)
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -2881,7 +2883,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.7) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.8) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnSalon" style="margin-top:8px; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.45); color:#D8B4FE;">🛰️ RÉSEAU (bêta)</button>
@@ -3305,7 +3307,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">F3</span> affiche les images par seconde, puis <span style="color:#E9D5FF;">D</span> détaille ce qui coûte cher à dessiner — utile si le jeu rame.</p>
 <p style="margin-bottom:16px;"><span style="color:#FFD700;">Si ça rame</span>, le réglage <span style="color:#E9D5FF;">GRAPH</span> en haut à droite fait peindre le jeu plus petit avant de l'agrandir : la carte y perd un peu de netteté, jamais les panneaux ni le texte. La finesse baisse déjà toute seule quand vous dézoomez — mesuré, une image complète passe de 9,1 à 5,6 ms — et ce réglage décale toute l'échelle vers le bas. En <span style="color:#E9D5FF;">Bas</span>, les scintillements et la brume des jets sont coupés en prime.</p>
 
-<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.7</p>
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.8</p>
     </div>
     <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
 </div>
