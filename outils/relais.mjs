@@ -121,6 +121,12 @@ function rejoindre(ws, m) {
     return c;
 }
 
+/* Tous ceux qui sont encore la ont fini de charger (et il en reste un). */
+function tousPrets(salle) {
+    const la = salle.clients.filter(k => k.ws.readyState === 1);
+    return la.length > 0 && la.every(k => k.pret);
+}
+
 /* Tous charges : les paquets partent. */
 function demarrerPaquets(salle) {
     console.log('[' + salle.nom + '] tous prets, premier paquet');
@@ -163,7 +169,7 @@ wss.on('connection', (ws) => {
         if (!c) return;
         if (m.t === 'pret') {
             c.pret = true;
-            if (!c.salle.minuteur && c.salle.clients.every(k => k.pret)) demarrerPaquets(c.salle);
+            if (!c.salle.minuteur && tousPrets(c.salle)) demarrerPaquets(c.salle);
         } else if (m.t === 'ordre') {
             /* Des le depart : ce qui arrive pendant le chargement (la part
                d'envoi reglee avant la partie) part dans le premier paquet. */
@@ -177,6 +183,19 @@ wss.on('connection', (ws) => {
         if (!c) return;
         const salle = c.salle;
         console.log('[' + salle.nom + '] ' + c.nom + ' part');
+        /* Avant le depart, celui qui part libere sa place : une page
+           rechargee dans l'attente laissait un joueur fantome, la salle se
+           croyait pleine et la partie ne demarrait jamais pour de bon. */
+        if (!salle.lancee) {
+            salle.clients = salle.clients.filter(k => k !== c);
+            salle.clients.forEach((k, i) => { k.slot = i; });
+            if (!salle.clients.length) { salles.delete(salle.nom); return; }
+            aTous(salle, { t: 'attente', presents: salle.clients.length, attendus: salle.reglages.joueurs });
+            return;
+        }
+        /* Parti pendant le chargement : les autres ne l'attendent pas. Ses
+           astres restent en jeu, sans ordres - chez tous pareil. */
+        if (!salle.minuteur && tousPrets(salle)) demarrerPaquets(salle);
         aTous(salle, { t: 'parti', slot: c.slot });
         if (salle.clients.every(k => k.ws.readyState !== 1)) {
             clearInterval(salle.minuteur);

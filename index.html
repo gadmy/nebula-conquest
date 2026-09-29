@@ -1169,7 +1169,15 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
      - PRET POUR RAILWAY : le relais prend le port impose par l'hebergeur
        (variable PORT), "npm start" le lance, et ws passe en dependance de
        production (un hebergeur n'installe pas les outils de developpement).
-       Mis sur main ; hebergement a faire (voir A FAIRE).
+       Mis sur main et heberge sur Railway (service nebula-conquest,
+       nebula-conquest-production.up.railway.app).
+     - RELAIS : UNE PAGE RECHARGEE DANS L'ATTENTE BLOQUAIT LA SALLE. Sa
+       connexion morte gardait sa place : la salle se croyait pleine, la
+       partie partait avec un fantome qui ne chargeait jamais, et personne
+       ne recevait de paquet. Avant le depart, celui qui part libere sa
+       place ; pendant le chargement, les autres ne l'attendent plus.
+       Verifie : A arrive, recharge sa page, B arrive - partie lancee pour
+       les deux.
 
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
