@@ -1219,6 +1219,13 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
        menus ni l'ecran de connexion (setPhase, showAuthScreen), et le
        hasard repart toujours de la graine du relais, gardee a part.
        Verifie : meme scenario, identique sur 25 s.
+     - TROISIEME ESSAI EN LIGNE, CHROME CONTRE FIREFOX : REUSSI. Plus de
+       3 minutes (tour 11 361), conquetes de lunes des deux cotes, aucune
+       desynchronisation ; memes scores (31 % / 46 %) et memes evenements
+       dans les deux fenetres. Chaque navigateur calcule toute la partie,
+       le serveur ne fait que relayer les ordres. Reste a ameliorer : 134
+       et 89 images figees en 3 min (attente d'un paquet) - la reserve
+       doit s'adapter au reseau.
 
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
