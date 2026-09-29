@@ -960,396 +960,140 @@ v9.7.6 | 2026-09-25 | Tirs speciaux, demolisseur, icones, decor spatial, IA, mul
        60 images/s, aucune erreur. Ca ralentit la copie, ca ne l'empeche
        pas : le navigateur doit pouvoir lire le code pour le faire tourner.
 
-v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
-     ── LOCKSTEP : PREMIER PROTOTYPE ──
-     - BANC D'ESSAI : npm run lockstep (outils/lockstep-test.mjs). Il ouvre
-       le jeu dans deux onglets : meme graine, meme carte, memes IA, memes
-       ordres pour le joueur 0 (un tir tous les 40 tours, fixe a l'avance
-       comme s'il venait du serveur), tours fixes de 1/20 s. Tout ce qui a
-       le droit de differer differe : vrai hasard (Math.random) de graine
-       differente, fenetre de taille differente, camera qui se promene et
-       dessin a chaque image dans le second onglet, aucun dans le premier.
-       A chaque tour, les deux comparent leur empreinte ; le premier tour
-       qui differe est signale avec la famille en cause.
-     - EMPREINTE DE L'ETAT : empreinteEtat() resume toute la partie en un
-       nombre (astres, luttes au sol, batiments, tirs en vol, joueurs,
-       vaisseaux, cometes, horloge). Le decor n'y entre pas. Servira plus
-       tard a detecter une desynchronisation en vraie partie.
-     - QUATRE FUITES DU VRAI HASARD BOUCHEES. Premier essai : ecart des le
-       tour 0. Coupables : les amas et vaisseaux des cartes de la
-       bibliotheque (worldRandom n'avait pas de graine hors generateur, il
-       retombait sur Math.random), les noms des IA, la trajectoire et la
-       couleur des cometes, l'ecart des tirs de rafale. Tous tires
-       maintenant de la graine de la partie. Au passage, une partie solo
-       sur carte de la bibliotheque avait toujours le meme hasard (graine
-       42 par defaut) : elle a desormais sa propre graine a chaque partie.
-     - RESULTAT : identique au bit pres, a chaque tour. 4000 tours (200 s)
-       a 4 joueurs ; une partie entiere de 10 min a 6 joueurs ; quatre
-       autres cartes et graines sur 400 s, eliminations comprises. A
-       l'inverse, un onglet en pas de 1/60 s diverge des le premier tour :
-       le pas fixe est bien indispensable.
-       Limite : seul Chromium est installe ici ; Firefox et Safari restent
-       a tester (maths du navigateur).
-     - BUG TROUVE PAR LE BANC : LE MIMETISME POUVAIT FIGER LE JEU. Sur une
-       carte, la page ne repondait plus vers 170 s de jeu : 4 000 tirs en
-       vol, puis 16 000. A la conquete d'une planete a lunes, la techno
-       Mimetisme envoie des eclats vers les lunes, depuis le CENTRE de la
-       planete ; quand la pesanteur ramenait un eclat dessus, il se
-       scindait a nouveau - 2, 4, 8... Un eclat ne se scinde plus (eclat:
-       true). Verifie : plus d'emballement, la partie va au bout et reste
-       identique dans les deux onglets. Le serveur (gameLoop.js) a
-       probablement le meme defaut : voir A FAIRE.
-     - LE BANC SIGNALE UN GEL au lieu d'attendre sans fin : la partie avance
-       par tranches de 250 tours, chacune limitee a 60 s.
+v9.7.7 | 2026-09-29 | Multijoueur lockstep : tours fixes, ordres, relais, salon
+     ── LE PRINCIPE ──
+     - LOCKSTEP (facon OpenFront) : chaque navigateur calcule toute la
+       partie, le serveur ne fait que relayer les ORDRES des joueurs. Le
+       trafic ne depend plus du nombre d'objets : moins de 1 Ko/s par
+       joueur, contre 20 a 60 Ko/s pour les instantanes du serveur 2.
+       Condition : deux navigateurs partis du meme etat et recevant les
+       memes ordres restent identiques au bit pres, tour apres tour.
 
-     ── TOURS FIXES ──
-     - LA PARTIE AVANCE PAR TOURS DE 1/60 s, quel que soit l'ecran. Avant,
-       chaque image faisait un pas de sa propre duree : un ecran a 144 Hz
-       faisait 144 petits pas par seconde, une machine lente a 30 images/s
-       des pas deux fois plus grands - deux joueurs ne calculaient jamais
-       la meme partie. Desormais chaque image fait les tours dus depuis la
-       precedente (0, 1 ou plusieurs ; 6 au plus, au-dela le jeu ralentit
-       au lieu de s'emballer). Nouvelles fonctions : tourSimulation (un
-       tour) et avancerImage (une image). Un crochet, avantChaqueTour,
-       recoit le numero de chaque tour : c'est la que s'appliqueront les
-       ordres des joueurs.
-       Pourquoi 60 et pas 20 : c'est la cadence pour laquelle le jeu a ete
-       regle (traines, rythme de l'IA, collisions des tirs rapides). A 20,
-       tout cela aurait change. Le reseau pourra grouper les ordres par
-       paquets de 3 tours.
-     - IMAGE INTERPOLEE ENTRE DEUX TOURS. Sur un ecran plus rapide que 60 Hz,
-       certaines images tombent entre deux tours : astres, tirs, vaisseaux
-       et cometes y sont dessines a mi-chemin, puis remis a leur vraie place
-       aussitot le dessin fini. La camera (fleches, ZQSD, suivi d'un astre)
-       et le niveau de detail suivent chaque image, hors des tours.
-       Mesure a 144 Hz simule : sans interpolation, 258 images figees sur
-       580 (saccades) ; avec, aucune.
-     - VERIFIE DANS LE JEU REEL : 60 tours/s tenus a 22, 32 et 107 images/s,
-       horloge jamais en recul, camera qui suit, aucune erreur.
-       Et au banc lockstep, l'onglet B passe maintenant par la vraie boucle
-       d'images (images irregulieres de 1/240 a 1/15 s, interpolation et
-       dessin) : identique a l'onglet A, tour par tour, sur 5 cartes et
-       400 s de jeu chacune.
-       Mis en ligne sur main (GitHub Pages) et teste a la main : bon.
+     ── LA MEME PARTIE PARTOUT (determinisme) ──
+     - HASARD DU JEU SUR UNE GRAINE COMMUNE : quatre fuites vers le vrai
+       hasard bouchees (amas et vaisseaux des cartes de la bibliotheque,
+       noms des IA, cometes, ecart de la rafale). Au passage, une partie
+       solo sur carte de la bibliotheque a enfin sa propre graine (elle
+       avait toujours la graine 42).
+     - TOURS FIXES DE 1/60 s quel que soit l'ecran (tourSimulation,
+       avancerImage) ; image interpolee entre deux tours sur les ecrans
+       rapides (258 images figees sur 580 a 144 Hz sans, aucune avec) ;
+       camera et niveau de detail suivent chaque image. 60 et pas 20 :
+       la cadence pour laquelle le jeu est regle.
+     - MATHS IDENTIQUES DANS TOUS LES NAVIGATEURS (MATHS_FIXES, d'apres
+       fdlibm) : sin, cos, atan2, exp, hypot, pow refaits avec les seules
+       operations exactes partout. Chrome et Firefox ne donnaient pas le
+       meme dernier chiffre : desynchronisation en 4 s. Ecart avec les
+       fonctions natives 1e-16, cout 40 ns par appel. Installees au depart
+       d'une partie en reseau.
+     - NOMS D'ASTRES UNIQUES (nomsUniques) : 4 cartes sur 15 avaient deux
+       astres du meme nom ("Synenra" deux fois sur la carte 6) ; or le nom
+       sert d'identifiant aux ordres et au serveur. Le second devient
+       "Synenra II".
+     - PLUS DE CACHE LU PAR LE CALCUL ET REMPLI PAR L'AFFICHAGE : le bonus
+       de systeme complet (+3 %) tombait un tour plus tot ou plus tard
+       selon l'ordinateur (isSystemComplete recalcule a chaque appel). Le
+       compteur qui cadence l'IA et la victoire repart de zero a chaque
+       partie. Le champ isLocal et la selection d'un tir n'entrent plus
+       dans l'empreinte.
+     - EMPREINTE DE L'ETAT (empreinteEtat) : toute la partie resumee en un
+       nombre, comparee chaque seconde entre les joueurs.
 
-     ── ORDRES DES JOUEURS ──
-     - LES GESTES DEVIENNENT DES ORDRES (solo). Un clic n'agit plus sur la
-       partie : il donne un ordre, date du tour suivant (1/60 s plus tard,
-       imperceptible), que ce tour applique. Un ordre ne contient que des
-       donnees - noms d'astres, directions, nombres - jamais la souris, la
-       camera ou un reglage de l'ecran. Deux ordinateurs qui recoivent les
-       memes ordres aux memes tours calculent la meme partie : en lockstep,
-       le serveur n'aura plus qu'a les faire circuler.
-       Nouvelles fonctions : donnerOrdre (le geste), programmerOrdre (un
-       ordre venu d'ailleurs, pour un tour donne), appliquerOrdres (au debut
-       de chaque tour), EXECUTER_ORDRE (ce que fait chaque ordre).
-       Le journal de la partie (gameState.journalOrdres) garde tous les
-       ordres appliques : de quoi rejouer une partie, ou remettre a niveau
-       un joueur qui se reconnecte.
-     - 24 ORDRES : part (A / E, curseur), zone (clic sur un astre partage),
-       tir, tir_surface, riposte (R), arret (T), batiment, sacrifice, stat,
-       techno, colonie (astre de depart), demol (demolisseur), et les gestes
-       continus : visee / visee_fin (la charge du lanceur), rafale_debut /
-       rafale_cible / rafale_fin, boule_debut / boule_cible / boule_fin /
-       boule_lancer. Chaque ordre est verifie a l'execution (astre a soi,
-       valeurs dans les bornes) : un ordre truque ne passe pas.
-       Les verifications qui font vibrer l'ecran restent au clic, pour que
-       le refus se sente tout de suite.
-     - LE CALCUL NE LIT PLUS L'ECRAN. La charge, la rafale et la boule
-       lisaient la souris a chaque tour : elles vivent maintenant chez
-       chaque joueur (ordreVisee, ordreRafale, ordreBoule) et avancent par
-       majVisees, majRafales, majBoules, avec la cible de leurs ordres.
-       L'ecran garde le trait de visee et recopie la boule pour l'afficher.
-       Le choix du lanceur (la lune du groupe la plus proche de la cible)
-       est une seule fonction, choisirLanceur, pour l'ecran et le calcul.
-     - CHAQUE JOUEUR A SA PART D'ENVOI ET SA ZONE. Deux reglages de l'ecran
-       etaient lus par le calcul. La part d'envoi : les IA lisaient le
-       curseur du joueur - le monter faisait tirer l'IA plus gros. Elles
-       gardent maintenant 50 %, le joueur a la sienne (ordre 'part'). La
-       zone choisie sur un astre partage : elle decidait aussi d'ou sortait
-       un batiment, et l'ordinateur d'en face ne l'aurait pas eue (ordre
-       'zone').
-     - Multijoueur actuel inchange : le serveur decide toujours, les gestes
-       lui sont envoyes comme avant.
-     - VERIFIE. Dans le vrai jeu, chaque geste : colonisation, A / E et
-       curseur, batiment (nid construit), techno, statistique, sacrifice,
-       R, T, tir ; la charge fait passer les spores au lanceur (meme
-       lanceur a l'ecran et au calcul), la rafale tire 8 paquets/s et
-       s'arrete au relacher, la boule se charge de 25 spores/s et part.
-       Aucune erreur. Au banc lockstep, le joueur 0 donne maintenant de
-       vrais ordres (tirs, rafales, boules, visees) : identique d'un onglet
-       a l'autre, sur 5 cartes et 400 s de jeu chacune.
-       Mis en ligne sur main et teste a la main : bon, sauf le demolisseur.
+     ── LES GESTES DEVIENNENT DES ORDRES ──
+     - Un clic n'agit plus sur la partie : il donne un ordre, date d'un
+       tour, qui ne contient que des donnees (noms d'astres, directions,
+       nombres), jamais la souris ni la camera. donnerOrdre,
+       programmerOrdre, appliquerOrdres, EXECUTER_ORDRE ; tous les ordres
+       appliques sont gardes (gameState.journalOrdres).
+     - 21 ORDRES, verifies a l'execution (un ordre truque ne passe pas) :
+       part, zone, tir, tir_surface, riposte, arret, batiment, sacrifice,
+       stat, techno, colonie, demol, et les gestes continus visee /
+       visee_fin, rafale_debut / cible / fin, boule_debut / cible / fin /
+       lancer. La charge, la rafale et la boule vivent chez chaque joueur
+       (majVisees, majRafales, majBoules) ; un seul choix du lanceur pour
+       l'ecran et le calcul (choisirLanceur).
+     - CHAQUE JOUEUR A SA PART D'ENVOI ET SA ZONE : les IA lisaient le
+       curseur du joueur (le monter les faisait tirer plus gros) ; elles
+       gardent 50 %.
 
-     ── CORRECTIFS ──
-     - LE DEMOLISSEUR N'ATTEIGNAIT JAMAIS SA CIBLE (signale en jeu : il
-       "explose en cours de route"). Deux causes, deja la avant cette
-       version. 1) Un astre laisse partir son tir pendant 0,5 s ; le
-       demolisseur, a 60 % de la vitesse d'un jet, survolait encore sa
-       planete au bout de ce temps (ou elle le rattrapait sur son orbite)
-       et s'y ecrasait. L'astre ignore desormais son tir tant qu'il n'en
-       est pas nettement degage (1,6 rayon + 40, la marge deja prise pour
-       les amas). 2) DEUX ASTRES PORTAIENT LE MEME NOM sur 4 cartes sur 15
-       ("Synenra" deux fois sur la carte 6), et parfois avec le generateur
-       : l'astre de depart etait reconnu a son nom, donc confondu avec
-       l'autre. Or le nom sert d'identifiant partout - ordres des joueurs,
-       serveur. Nouvelle fonction nomsUniques, au chargement de toute
-       carte : le second devient "Synenra II". Verifie : plus aucun
-       doublon sur les 15 cartes ni sur 30 graines du generateur.
-       Mesure sur 32 tirs de demolisseur dont le trait de visee passait
-       sur une cible : avant, 31 s'ecrasaient sur leur propre planete et
-       aucun ne touchait ; apres, aucun sur sa planete, les autres
-       touchent, ratent une cible qui a bouge ou finissent dans un soleil
-       comme n'importe quel tir. Les IA en profitent aussi.
-       Mis en ligne et teste a la main : bon.
-     - UN CLIC SUR UN ASTRE LE CHOISIT DU PREMIER COUP, puis Espace vise
-       (signale en jeu : on ne pouvait pas toujours viser tout de suite).
-       1) De loin, la zone de clic etait minuscule : rayon + 8 unites du
-       monde, soit 5 px pour une lune au zoom 0,3. La marge se compte
-       maintenant aussi a l'ecran, 14 px au moins, et parmi les astres a
-       portee c'est celui dont le bord est le plus proche qui gagne (une
-       lune collee a sa planete). Une seule regle pour le clic, le relacher,
-       le double-clic et le clic droit (findBodyAt). Mesure, clics au bord
-       d'une planete et d'une lune et jusqu'a 13 px a cote : au zoom 0,3,
-       2 sur 8 choisissaient l'astre avant, 8 sur 8 apres ; 5 puis 8 au
-       zoom 0,6.
-       2) Un clic hors du panneau central le fermait sans rien faire
-       d'autre : il fallait recliquer l'astre. Il le ferme et choisit
-       l'astre dans la foulee.
-       3) Un curseur touche (part d'envoi, sacrifice) gardait le clavier et
-       comptait comme une saisie de texte : Espace, F, A, E ne repondaient
-       plus. Seule une vraie saisie de texte coupe desormais les raccourcis,
-       et cliquer dans l'espace rend le clavier au jeu.
-       Mis en ligne et teste a la main : bon.
+     ── LE RELAIS ET LE SALON ──
+     - RELAIS D'ORDRES (outils/relais.mjs, npm run relais), heberge sur
+       Railway (service nebula-conquest, nebula-conquest-production.up.
+       railway.app). Il reunit les joueurs, donne graine et reglages,
+       attend que tous aient charge, puis envoie toutes les 50 ms un paquet
+       numerote ; le paquet n s'applique au tour (n + 2) x 3 + 1 chez tous.
+       Une page rechargee dans l'attente libere sa place ; un joueur parti
+       pendant le chargement n'est plus attendu.
+     - RESERVE ADAPTEE AU RESEAU (mesurerReseau) : le calcul garde sous le
+       dernier paquet assez de tours pour couvrir la gigue mesuree. Gigue
+       60 ms : de ~20 images figees en 40 s a 0 ; 150 ms : de ~65 a 0-2.
+     - LA PARTIE CONTINUE PAGE CACHEE (avancerEnFond) : chaque paquet recu
+       fait les tours dus, sans dessin ni son. Rattrapage rapide apres un
+       gel du navigateur (10 ms de calcul par image, sons coupes).
+     - UNE PARTIE EN RESEAU NE REPASSE PLUS PAR L'ECRAN TITRE : la
+       connexion au compte y renvoyait en plein chargement et effacait la
+       graine (vaisseaux et cometes differents).
+     - SALON (bouton RESEAU de l'ecran titre) : partie rapide a 2, 4, 8 ou
+       16 joueurs, lancee des qu'elle est pleine ; partie privee avec code
+       de 4 lettres, joueurs et IA au choix. JUSQU'A 16 JOUEURS (16
+       couleurs), carte choisie selon le nombre. Une partie a 16 sur la
+       plus grande carte coute 0,56 ms de calcul par tour (3 % d'un
+       ordinateur).
+     - FIN DE PARTIE : l'elimine reste en spectateur (bandeau, bouton
+       QUITTER) ; victoire a 80 % des astres ou au dernier joueur en vie,
+       decidee au meme tour chez tous ; MENU repart d'une page neuve.
+       Parties en reseau non enregistrees dans les statistiques (beta).
+     - Bandeau d'etat en haut de l'ecran : joueur, tour, reserve, gigue,
+       images figees, alertes.
 
-     ── LOCKSTEP : LE RELAIS D'ORDRES (prototype) ──
-     - PREMIERES PARTIES EN RESEAU OU CHAQUE NAVIGATEUR CALCULE TOUT. Nouveau
-       serveur, npm run relais (outils/relais.mjs, avec la bibliotheque ws).
-       Il ne calcule rien : il reunit les joueurs d'une salle, leur donne
-       la meme graine et les memes reglages, attend qu'ils aient charge,
-       puis envoie toutes les 50 ms un paquet numerote avec les ordres
-       recus. Le paquet n s'applique au tour (n + 2) x 3 + 1 chez tous, et
-       personne ne calcule plus loin que le dernier paquet recu. Il sert
-       aussi le jeu : npm run relais, puis ouvrir deux fois
-       http://localhost:8080/?relais=ws://localhost:8080&salle=essai&joueurs=2
-       (parametres : joueurs, ia, carte, difficulte, nom).
-     - COTE JEU (section LOCKSTEP : LE RELAIS D'ORDRES) : l'adresse avec
-       ?relais= fait rejoindre la salle ; donnerOrdre envoie au relais au
-       lieu de la file ; les humains prennent les premiers numeros (noms,
-       couleurs, statistiques identiques partout), les IA suivent ; la
-       partie commence quand tous les humains ont leur astre de depart (au
-       bout de 30 s, un astre au hasard pour les retardataires) ; pas de
-       vraie pause. Le calcul garde une reserve de 3 a 6 tours sous le
-       dernier paquet (il ralentit ou accelere un peu) pour absorber un
-       paquet en retard sans figer l'image ; tres en retard, il rattrape.
-       Un bandeau en haut dit l'etat : joueur, tour, paquets, reserve, et
-       le nombre d'images ou la partie a du attendre un paquet.
-     - SURVEILLANCE : chaque seconde de jeu, l'empreinte part au relais,
-       qui la compare a celle des autres et alerte tout le monde a la
-       moindre difference. Premier essai : alerte des le tour 60 - fausse :
-       le champ "c'est moi" (isLocal) comptait dans l'empreinte, vrai chez
-       l'un, faux chez l'autre. Lui et la selection d'un tir par clic
-       (propres a chaque ecran) n'y entrent plus.
-     - Corrige en route : dans le message de depart, le nombre de joueurs
-       ecrasait la liste des joueurs (meme nom de champ) - chaque
-       navigateur ne creait qu'un joueur.
-     - VERIFIE, navigateurs pilotes qui jouent vraiment (colonisation au
-       popup, tirs, rafales, boules, batiments), 2 IA en plus : 2 humains
-       pendant 60 s, puis 3 humains : empreintes identiques a chaque
-       seconde, memes ordres aux memes tours chez tous. Delai entre le
-       geste et son effet : 67 ms sur reseau parfait (3 arrets d'image en
-       40 s) ; environ 190 ms avec 80 ms de latence et jusqu'a 60 ms
-       d'irregularite simulees (--latence 80 --gigue 60), 17 a 27 arrets
-       d'image en 40 s, aucune desynchronisation. Trafic : un paquet vide
-       fait une trentaine d'octets, 20 fois par seconde - moins de 1 Ko/s
-       par joueur, contre 20 a 60 Ko/s pour les instantanes du serveur
-       actuel.
-     - Solo et multijoueur actuel inchanges : le mode ne s'active qu'avec
-       ?relais= dans l'adresse.
-     - PRET POUR RAILWAY : le relais prend le port impose par l'hebergeur
-       (variable PORT), "npm start" le lance, et ws passe en dependance de
-       production (un hebergeur n'installe pas les outils de developpement).
-       Mis sur main et heberge sur Railway (service nebula-conquest,
-       nebula-conquest-production.up.railway.app).
-     - RELAIS : UNE PAGE RECHARGEE DANS L'ATTENTE BLOQUAIT LA SALLE. Sa
-       connexion morte gardait sa place : la salle se croyait pleine, la
-       partie partait avec un fantome qui ne chargeait jamais, et personne
-       ne recevait de paquet. Avant le depart, celui qui part libere sa
-       place ; pendant le chargement, les autres ne l'attendent plus.
-       Verifie : A arrive, recharge sa page, B arrive - partie lancee pour
-       les deux.
-     - PREMIERE PARTIE EN LIGNE, CHROME CONTRE FIREFOX : la salle se forme,
-       la partie demarre chez les deux, chacun colonise... puis
-       DESYNCHRONISATION au tour 240. Cause : sinus, cosinus, arc tangente,
-       exponentielle, hypotenuse ne sont pas calcules pareil par chaque
-       navigateur (le dernier chiffre peut differer), et repete 60 fois par
-       seconde l'ecart change la partie. Nouvelles MATHS IDENTIQUES PARTOUT
-       (MATHS_FIXES, d'apres fdlibm) : ces fonctions refaites avec additions,
-       multiplications, divisions et racines, exactes dans tous les
-       navigateurs. En lockstep, elles remplacent celles du navigateur des
-       le depart (installerMathsFixes). Ecart avec les natives : 1e-16 au
-       plus (2 millions de valeurs) ; cout 40 ns par appel au lieu de 12.
-       Verifie en simulant un navigateur aux maths differentes (dernier
-       chiffre altere dans un onglet) : sans les maths fixes, alerte des le
-       tour 60 (astres, vaisseaux, cometes) ; avec, identique sur 40 s.
-       A refaire pour de vrai : Chrome contre Firefox en ligne.
-     - L'ALERTE DIT CE QUI DIFFERE : les joueurs envoient au relais le detail
-       de leur empreinte (astres, tirs, joueurs, vaisseaux, cometes), et le
-       bandeau affiche les familles en cause.
-     - DEUXIEME ESSAI CHROME CONTRE FIREFOX : les astres restent identiques
-       (les maths fixes ont regle les orbites), mais vaisseaux et cometes
-       divergent des le tour 60 - justement les deux qui tirent dans le
-       hasard de la partie. Pas reproduit entre deux Chrome, meme avec un
-       onglet ralenti 4 fois et la souris qui se promene. D'ou un
-       DIAGNOSTIC COMPLET : chaque seconde, chaque joueur garde toute la
-       partie a plat (detailPartie) ; a la premiere alerte, il l'envoie au
-       relais, qui ecrit dans son journal les valeurs generales des deux
-       (tour, horloge, nombre de tirages du hasard - nouveau compteur
-       _nbAlea -, reglages, graine, navigateur, sin(1)) et les 40 premieres
-       valeurs qui different. Verifie sur un onglet aux maths alterees.
-     - CAUSE PROBABLE TROUVEE : LA CONNEXION AU COMPTE. Connecte dans un
-       navigateur, le jeu finit sa connexion quelques secondes apres
-       l'ouverture de la page et repasse a l'ecran titre - en plein
-       chargement de la partie lockstep. Le retour au titre efface la
-       graine : la carte, deja faite, reste la meme (astres identiques),
-       mais le hasard de la partie repart d'une autre graine (vaisseaux et
-       cometes differents). Reproduit en provoquant ce retour au titre dans
-       un seul onglet : 46 tirages du hasard d'un cote, 28 de l'autre.
-       Corrige : une partie lockstep ne repasse plus par l'ecran titre, les
-       menus ni l'ecran de connexion (setPhase, showAuthScreen), et le
-       hasard repart toujours de la graine du relais, gardee a part.
-       Verifie : meme scenario, identique sur 25 s.
-     - TROISIEME ESSAI EN LIGNE, CHROME CONTRE FIREFOX : REUSSI. Plus de
-       3 minutes (tour 11 361), conquetes de lunes des deux cotes, aucune
-       desynchronisation ; memes scores (31 % / 46 %) et memes evenements
-       dans les deux fenetres. Chaque navigateur calcule toute la partie,
-       le serveur ne fait que relayer les ordres. Reste a ameliorer : 134
-       et 89 images figees en 3 min (attente d'un paquet) - la reserve
-       doit s'adapter au reseau.
-     - LA RESERVE S'ADAPTE AU RESEAU (mesurerReseau). A chaque paquet, on
-       note son retard sur le rythme de 50 ms ; sur les 6 dernieres
-       secondes, l'ecart entre le plus en avance et les plus en retard (5 %
-       extremes ecartes) donne la gigue, et la reserve visee couvre cette
-       gigue plus 2 tours (3 a 36 tours). Chaque accroc ajoute un tour de
-       marge (6 au plus), chaque tranche de 5 s sans accroc en retire un.
-       Mesure sur 40 s, latence simulee : gigue 60 ms, de ~20 images
-       figees a 0 (delai du geste 190 -> 240 ms) ; gigue 150 ms, de ~65 a
-       0-2 (195 -> 344 ms). Plus de delai, mais une image fluide. Le
-       bandeau montre reserve actuelle / visee et la gigue mesuree.
-     - "LES PLANETES SONT DECALEES" (signale en ligne) : pas une
-       desynchronisation, un RETARD. L'onglet Firefox etait en arriere-
-       plan : le navigateur coupe la boucle d'images d'une page cachee, la
-       partie s'y arretait, et elle avait 4 minutes de retard (memes
-       scores, planetes ailleurs sur leur orbite). Deux corrections :
-       1) PAGE CACHEE, LA PARTIE CONTINUE (avancerEnFond) : les messages
-       du reseau arrivent toujours, chaque paquet recu fait donc les tours
-       dus, sans dessin ni son. Verifie : 20 s page cachee, l'onglet suit
-       tour pour tour (1 220 contre 1 221), empreintes identiques.
-       2) RATTRAPAGE RAPIDE, si le navigateur a gele la page (economie
-       d'energie) : autant de tours que possible pendant 10 ms par image
-       au lieu de 6 tours, sons coupes, "RATTRAPAGE" au bandeau. Verifie :
-       page gelee 30 s, a jour une demi-seconde apres.
-     - QUATRIEME ESSAI EN LIGNE, CHROME CONTRE FIREFOX : BON. Pres de
-       5 minutes (tour 17 740), les deux au meme tour a la reserve pres,
-       planetes aux memes places, memes scores ; gigue mesuree 38 a 56 ms,
-       reserve 5 a 6 tours ; 65 et 11 images figees en 5 min (contre 134
-       et 89 en 3 min avant la reserve adaptative).
+     ── CORRECTIFS DU JEU ──
+     - LE MIMETISME POUVAIT FIGER LE JEU : un eclat ramene sur sa planete
+       se scindait encore (2, 4, 8... jusqu'a 16 000 tirs). Un eclat ne se
+       scinde plus. Le serveur 2 a sans doute le meme defaut (A FAIRE).
+     - LE DEMOLISSEUR N'ATTEIGNAIT JAMAIS SA CIBLE : trop lent, il
+       retombait sur sa propre planete (31 tirs sur 32). L'astre de depart
+       ignore son tir tant qu'il n'en est pas degage.
+     - UN CLIC CHOISIT L'ASTRE DU PREMIER COUP, puis Espace vise : zone de
+       clic d'au moins 14 px a l'ecran (de loin : 2 clics sur 8 avant, 8
+       sur 8 apres), clic hors du panneau central qui choisit aussi
+       l'astre, curseurs qui ne bloquent plus le clavier.
 
-     ── LE SALON RESEAU ──
-     - BOUTON "RESEAU (beta)" A L'ECRAN TITRE : une fenetre (salonReseau)
-       pour jouer en lockstep sans adresse a coller.
-       PARTIE RAPIDE a 2, 4, 8 ou 16 joueurs : le relais place le joueur
-       dans la premiere partie publique de cette taille qui attend ; elle
-       se lance des qu'elle est pleine, les suivants en remplissent une
-       nouvelle. PARTIE PRIVEE : on choisit joueurs et IA, CREER donne un
-       code de 4 lettres (sans I ni O), les amis le saisissent (minuscules
-       acceptees) ; lancee elle aussi des qu'elle est pleine. ANNULER
-       libere la place. Code inconnu : message clair.
-       Le jeu trouve seul le relais (Railway en ligne, lui-meme en local) ;
-       ?relais=...&salle=... marche toujours pour les essais.
-     - JUSQU'A 16 JOUEURS, humains et IA : 6 couleurs de plus (16 en tout),
-       et le relais choisit une carte d'au moins 2 planetes par joueur
-       (les deux grandes cartes en ont 47 et 49).
-       Mesure, un seul navigateur : calcul d'un tour 0,28 ms a 4 joueurs
-       sur carte moyenne, 0,56 ms a 16 joueurs sur la plus grande carte
-       (157 astres) ; dessin 2,1 a 2,2 ms. Une partie a 16 occupe environ
-       3 % d'un ordinateur. Essai a 16 (4 humains + 12 IA, 4 navigateurs) :
-       123 ordres, empreintes identiques a chaque seconde.
-     - Verifie dans le salon, clics reels : partie rapide a 2 qui attend
-       puis se lance, partie privee avec code et 1 IA, code faux refuse,
-       annulation. Aucune erreur.
-     - Essai en ligne signale "decalage" : en fait identique (memes tours a
-       la reserve pres, memes scores, journaux du relais "identiques"). Le
-       cadre rouge du bandeau etait le reste d'une alerte passee : il
-       reprend desormais sa couleur normale.
+     ── OUTILS ──
+     - npm run lockstep (outils/lockstep-test.mjs) : la meme partie dans
+       deux onglets, avec de vrais ordres, empreintes comparees a chaque
+       tour ; signale aussi un gel. npm run relais : le relais, qui sert
+       aussi le jeu pour essayer en local (?relais=...&salle=...).
+     - DIAGNOSTIC DE DESYNCHRONISATION : a la premiere alerte, chaque joueur
+       envoie au relais toute la partie a plat (detailPartie) ; le journal
+       Railway donne les valeurs generales (dont le nombre de tirages du
+       hasard) et les premieres valeurs qui different.
 
-     ── FIN DE PARTIE EN RESEAU ──
-     - ELIMINE : on reste dans la partie en SPECTATEUR (bandeau "ELIMINE -
-       vous regardez la suite" et bouton QUITTER). Le calcul continue comme
-       chez les autres ; seules les commandes sont coupees. Avant, l'ecran
-       de defaite passait la partie en phase "fin" pour ce seul ordinateur :
-       certains ordres (riposte, arret...) y etaient ignores, et la
-       verification s'arretait net en sautant les autres joueurs -
-       desynchronisation assuree.
-     - VICTOIRE : 80 % des astres comme en solo, ou DERNIER JOUEUR EN VIE
-       (humains et IA). Decidee dans le calcul, donc au meme tour chez tous
-       (finPartieLockstep) : VICTOIRE chez le gagnant, DEFAITE "X remporte
-       la partie" chez les autres. Pas de "rejouer" solo par-dessus : MENU
-       repart d'une page neuve. Parties lockstep non enregistrees dans les
-       statistiques (beta, resultats non verifies).
-     - DESYNCHRONISATION TROUVEE EN ROUTE : LE BONUS DE SYSTEME COMPLET.
-       isSystemComplete retenait une seule reponse par etoile, effacee
-       seulement a la conquete par un tir ; une bataille au sol ou un
-       vaisseau qui chasse ne l'effacaient pas, et l'affichage la remplacait
-       au rythme des images pour le joueur local. Le +3 % de production
-       tombait donc un tour plus tot ou plus tard selon l'ordinateur -
-       intermittent. Trouve en comparant les deux navigateurs a chaque
-       tour : premier ecart au tour du changement de proprietaires, +3 %
-       exactement. Corrige : recalcul a chaque appel (quelques astres par
-       systeme, negligeable).
-     - Le compteur qui cadence l'IA et la verification de victoire
-       (_hudCounter) repart de zero a chaque partie : deux joueurs dont
-       l'un avait deja joue dans la page n'etaient pas cales pareil.
-     - Verifie : elimination du joueur 2 puis victoire du joueur 1 au meme
-       tour dans deux navigateurs, deux fois : spectateur, VICTOIRE /
-       DEFAITE, aucune desynchronisation.
+     ── ESSAIS EN LIGNE, CHROME CONTRE FIREFOX ──
+     - Quatre essais : desynchronisation au tour 240 (maths), puis au tour
+       60 (retour au titre), puis REUSSI : 3 min puis pres de 5 min
+       identiques, memes scores et evenements, reserve 5 a 6 tours.
+       Salon, fin de partie et 16 joueurs verifies avec des navigateurs
+       pilotes.
+
+v9.7.8 | 2026-09-29 | (en cours)
 
    À FAIRE
-  🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
+  🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
      mimetisme - un eclat (tir parti vers une lune) ne doit pas se scinder
      a son tour. Sans ca, une partie multi peut s'emballer jusqu'au gel.
-  🎯 LOCKSTEP (multi facon OpenFront) - le prototype tient (voir v9.7.7).
-     Le serveur ne relaie plus que les ORDRES des joueurs, regroupes en
-     tours ; chaque navigateur calcule toute la partie. Trafic independant
-     du nombre d'objets : vise des parties de 50 joueurs et plus, serveur
-     presque gratuit. Fait : hasard du jeu sur graine commune, empreinte de
-     l'etat, banc d'essai a deux onglets (identique sur 10 min), tours
-     fixes de 1/60 s avec image interpolee, gestes du joueur en ordres
-     (solo) avec journal. Reste :
-     - HEBERGER LE RELAIS (prototype fait, voir v9.7.7) : aujourd'hui il ne
-       tourne qu'en local. Le mettre sur Railway (second service) ou un
-       serveur Hetzner, en wss:// (chiffre) pour une page servie en https ;
-     - salon fait (bouton RESEAU, parties rapides et privees, 16 joueurs) ;
-       reste l'identite (jeton Supabase, pseudo verifie) et le classement ;
-     - remplacer a terme le multijoueur actuel (serveur 2) par ce systeme ;
+  🎯 MULTIJOUEUR RESEAU (lockstep, bouton RESEAU) - la suite :
      - la reconnexion : un joueur qui revient recoit le journal des ordres
        et rejoue la partie jusqu'au tour courant ;
-     - tester Firefox et Safari : sin, cos, atan2... peuvent differer d'un
-       navigateur a l'autre - sinon fonctions maison ou calcul en entiers ;
-     - un seul moteur de jeu partage (aujourd'hui en double : index.html et
-       gameLoop.js du serveur) ;
-     - l'empreinte echangee en partie pour detecter une desynchronisation,
-       et la reconnexion par rejeu des ordres.
-  🎯 Parties a plus de 2 joueurs (audit fait) : limites du serveur (2 par
-     salle), ecran de partie locale a 4 places avec bouton LANCER, file de
-     matchmaking 2 a 4 avec compte a rebours, couleurs uniques, carte
-     choisie selon le nombre de joueurs, message « elimine - spectateur »,
-     duree de partie a revoir (10 min pense pour le 1 contre 1).
-     Charge mesuree : le calcul tient 16 a 30 joueurs ; le debit est la
-     limite (compression activee : 2 a 12 Ko par instantane).
-  🎯 Hebergement : Railway facture le trafic (~0,05 $/Go). Un serveur
-     Hetzner (~5,50 €/mois, 20 To inclus en Allemagne/Finlande) couterait
-     bien moins des que le multi aura du monde.
+     - l'identite (jeton Supabase, pseudo verifie) puis le classement et
+       les statistiques ;
+     - tester Safari (maths fixes deja en place) ;
+     - remplacer a terme le multijoueur actuel (serveur 2), puis l'arreter
+       - un seul moteur de jeu au lieu de deux (index.html et gameLoop.js) ;
+     - duree de partie a revoir pour les grandes parties (16 joueurs).
+  🎯 Hebergement : le relais est tres leger (moins de 1 Ko/s par joueur) ;
+     Railway suffit. Un serveur Hetzner (~5,50 €/mois) reste une option
+     si le trafic grossit. Dans Railway, garder "Watch Paths" sur
+     outils/relais.mjs pour ne pas couper les parties a chaque mise a jour.
   🎯 Sons (à faire à la maison) : la liste precise est dans
      Audio/SONS_A_CREER.md - 12 sons (noms de fichiers, moments, durees,
      ambiance), plus 7 fichiers deja presents mais jamais joues a attribuer.
@@ -3124,7 +2868,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.6) </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.7) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnSalon" style="margin-top:8px; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.45); color:#D8B4FE;">🛰️ RÉSEAU (bêta)</button>
@@ -3547,7 +3291,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">F3</span> affiche les images par seconde, puis <span style="color:#E9D5FF;">D</span> détaille ce qui coûte cher à dessiner — utile si le jeu rame.</p>
 <p style="margin-bottom:16px;"><span style="color:#FFD700;">Si ça rame</span>, le réglage <span style="color:#E9D5FF;">GRAPH</span> en haut à droite fait peindre le jeu plus petit avant de l'agrandir : la carte y perd un peu de netteté, jamais les panneaux ni le texte. La finesse baisse déjà toute seule quand vous dézoomez — mesuré, une image complète passe de 9,1 à 5,6 ms — et ce réglage décale toute l'échelle vers le bas. En <span style="color:#E9D5FF;">Bas</span>, les scintillements et la brume des jets sont coupés en prime.</p>
 
-<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.6</p>
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.7</p>
     </div>
     <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
 </div>
