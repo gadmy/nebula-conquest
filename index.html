@@ -1110,8 +1110,12 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
      - ELO a plusieurs : chaque paire de joueurs compte comme un duel
        (K = 32 reparti). A deux joueurs de meme niveau : +16 / -16.
        Partie de moins de 30 s : non classee.
+     - UN CLASSEMENT PAR TAILLE : parties a 2, 4, 8 et 16 joueurs, chacune
+       son ELO (table elo_reseau, avec parties jouees et victoires). L'ELO
+       du 1 contre 1 de l'ancien multijoueur n'est pas touche.
      - Ecran de fin : ligne "ELO 1000 → 1016 (+16)" (ou la raison si la
-       partie ne compte pas). Salon RESEAU : les 10 premiers et son rang.
+       partie ne compte pas). Salon RESEAU : onglets 2 / 4 / 8 / 16 J,
+       les 10 premiers (ELO, victoires, parties) et sa propre ligne.
      ── BASE DE DONNEES ──
      - Fonction enregistrer_partie_reseau (appelable par le relais seul) :
        ELO et parties (colonnes mode, elo_avant, elo_apres) en une fois.
@@ -1124,16 +1128,14 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        transmis. Cas limites verifies : meme compte deux fois, invite
        usurpateur, partie privee, desaccord, perdant parti, envoi en
        double, classement truque. npm run lockstep : toujours identique.
-     - A FAIRE EN LIGNE : ajouter SUPABASE_SERVICE_KEY au service du relais
-       sur Railway (sans elle : comptes verifies, rien de classe).
+     - SUPABASE_SERVICE_KEY ajoutee au relais sur Railway.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
      mimetisme - un eclat (tir parti vers une lune) ne doit pas se scinder
      a son tour. Sans ca, une partie multi peut s'emballer jusqu'au gel.
   🎯 MULTIJOUEUR RESEAU (lockstep, bouton RESEAU) - la suite :
-     - Railway : variable SUPABASE_SERVICE_KEY sur le service du relais,
-       puis une partie rapide a deux comptes pour verifier l'ELO en ligne ;
+     - verifier l'ELO en ligne : une partie rapide a deux comptes ;
      - tester Safari (maths fixes deja en place) ;
      - remplacer a terme le multijoueur actuel (serveur 2), puis l'arreter
        - un seul moteur de jeu au lieu de deux (index.html et gameLoop.js) ;
@@ -2971,6 +2973,12 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
                 <button class="btn" id="salonRejoindre" style="margin:0; padding:7px 14px; font-size:12px;">REJOINDRE</button>
             </div>
             <div style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:#C4B5FD; margin:16px 0 6px;">CLASSEMENT</div>
+            <div id="salonTailles" style="display:flex; gap:6px; justify-content:center; margin-bottom:6px;">
+                <button class="btn salon-taille" data-n="2" style="margin:0; padding:4px 10px; font-size:11px;">2 J</button>
+                <button class="btn salon-taille" data-n="4" style="margin:0; padding:4px 10px; font-size:11px;">4 J</button>
+                <button class="btn salon-taille" data-n="8" style="margin:0; padding:4px 10px; font-size:11px;">8 J</button>
+                <button class="btn salon-taille" data-n="16" style="margin:0; padding:4px 10px; font-size:11px;">16 J</button>
+            </div>
             <div id="salonClassement" style="max-height:170px; overflow-y:auto; font-size:12px; text-align:left;"></div>
         </div>
         <div id="salonStatut" style="min-height:40px; margin:14px 0 10px; font-size:14px;"></div>
@@ -15041,6 +15049,9 @@ function installerSalon() {
         salonChoixVisibles(true);
         salonClassement();
     });
+    document.querySelectorAll('.salon-taille').forEach(function (b) {
+        b.addEventListener('click', function () { salonClassement(+b.dataset.n); });
+    });
     /* Une partie en reseau quittee (page fermee, rechargee) : on peut y
        revenir. */
     const btR = document.getElementById('btnReprendre');
@@ -15132,14 +15143,13 @@ function afficherResultatReseau(m) {
         const d = e.apres - e.avant;
         texte = e.avant + ' → ' + e.apres + ' (' + (d >= 0 ? '+' : '') + d + ')';
         couleur = d >= 0 ? '#4ADE80' : '#F87171';
-        if (currentProfile) currentProfile.elo = e.apres;
     } else if (m.raison && m.raison !== 'partie non classee') texte += ' (' + m.raison + ')';
     const bilan = document.getElementById('endStats');
     if (!bilan) return;
     const ligne = document.createElement('div');
     ligne.className = 'end-stat-row';
     const nom = document.createElement('span');
-    nom.textContent = 'ELO';
+    nom.textContent = 'ELO (parties à ' + L.joueurs.length + ')';
     const val = document.createElement('span');
     val.className = 'end-stat-val';
     val.style.color = couleur;
@@ -15205,28 +15215,47 @@ function quitterPartieLockstep() {
     location.href = location.pathname;
 }
 
-/* Les 10 premiers a l'ELO, et le sien s'il n'y est pas. */
-function salonClassement() {
+/* UN CLASSEMENT PAR TAILLE DE PARTIE (2, 4, 8, 16 joueurs) : les 10
+   premiers, et sa propre ligne si on n'y est pas. */
+let salonTaille = 2;
+function salonClassement(taille) {
+    if (taille) salonTaille = taille;
     const el = document.getElementById('salonClassement');
     if (!el) return;
+    document.querySelectorAll('.salon-taille').forEach(function (b) {
+        const actif = +b.dataset.n === salonTaille;
+        b.style.borderColor = actif ? '#D8B4FE' : '';
+        b.style.color = actif ? '#F5F3FF' : '';
+        b.style.opacity = actif ? '1' : '0.6';
+    });
     el.textContent = 'Chargement...';
-    Promise.resolve(_supa.from('leaderboard').select('pseudo, elo').order('elo', { ascending: false }).limit(10))
-        .then(function (r) {
-            if (!r || r.error || !r.data) { el.textContent = 'Classement indisponible.'; return; }
-            const moi = currentProfile && currentProfile.pseudo;
-            const ligne = function (rang, pseudo, elo) {
-                const soi = pseudo === moi;
-                return '<div style="display:flex; justify-content:space-between; padding:2px 6px;' +
-                    (soi ? ' background:rgba(168,85,247,0.18); border-radius:4px;' : '') + '">' +
-                    '<span>' + rang + '. ' + esc(pseudo) + '</span>' +
-                    '<span style="font-family:Orbitron,monospace; color:#FDE68A;">' + (elo || 1000) + '</span></div>';
-            };
-            let html = r.data.map(function (x, i) { return ligne(i + 1, x.pseudo, x.elo); }).join('');
-            if (moi && !r.data.some(function (x) { return x.pseudo === moi; })) html += ligne('—', moi, currentProfile.elo);
-            if (!moi) html += '<div style="padding:4px 6px; color:#94A3B8;">Connectez-vous pour être classé.</div>';
-            el.innerHTML = html;
-        })
-        .catch(function () { el.textContent = 'Classement indisponible.'; });
+    const demande = salonTaille;
+    const moi = currentProfile && currentProfile.pseudo;
+    const ligne = function (rang, x) {
+        const soi = x.pseudo === moi;
+        return '<div style="display:flex; justify-content:space-between; gap:8px; padding:2px 6px;' +
+            (soi ? ' background:rgba(168,85,247,0.18); border-radius:4px;' : '') + '">' +
+            '<span>' + rang + '. ' + esc(x.pseudo) + '</span>' +
+            '<span><span style="color:#94A3B8; font-size:11px;">' + x.victoires + ' V / ' + x.parties + ' P</span> ' +
+            '<span style="font-family:Orbitron,monospace; color:#FDE68A;">' + x.elo + '</span></span></div>';
+    };
+    const base = function () { return _supa.from('classement_reseau').select('pseudo, elo, parties, victoires').eq('taille', demande); };
+    Promise.all([
+        Promise.resolve(base().order('elo', { ascending: false }).limit(10)),
+        Promise.resolve(moi ? base().eq('pseudo', moi) : { data: [] }),
+    ]).then(function (rs) {
+        if (demande !== salonTaille) return;           /* un autre onglet a ete choisi entre-temps */
+        const r = rs[0];
+        if (!r || r.error || !r.data) { el.textContent = 'Classement indisponible.'; return; }
+        let html = r.data.map(function (x, i) { return ligne(i + 1, x); }).join('');
+        if (!r.data.length) html = '<div style="padding:4px 6px; color:#94A3B8;">Aucune partie classée à ' + demande + ' joueurs pour l\'instant.</div>';
+        const mien = rs[1] && rs[1].data && rs[1].data[0];
+        if (moi && !r.data.some(function (x) { return x.pseudo === moi; })) {
+            html += mien ? ligne('—', mien) : '<div style="padding:4px 6px; color:#94A3B8;">Vous : 1000 (aucune partie à ' + demande + ')</div>';
+        }
+        if (!moi) html += '<div style="padding:4px 6px; color:#94A3B8;">Connectez-vous pour être classé.</div>';
+        el.innerHTML = html;
+    }).catch(function () { el.textContent = 'Classement indisponible.'; });
 }
 
 function salonStatut(texte) {
