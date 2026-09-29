@@ -1255,6 +1255,30 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
        reserve 5 a 6 tours ; 65 et 11 images figees en 5 min (contre 134
        et 89 en 3 min avant la reserve adaptative).
 
+     ── LE SALON RESEAU ──
+     - BOUTON "RESEAU (beta)" A L'ECRAN TITRE : une fenetre (salonReseau)
+       pour jouer en lockstep sans adresse a coller.
+       PARTIE RAPIDE a 2, 4, 8 ou 16 joueurs : le relais place le joueur
+       dans la premiere partie publique de cette taille qui attend ; elle
+       se lance des qu'elle est pleine, les suivants en remplissent une
+       nouvelle. PARTIE PRIVEE : on choisit joueurs et IA, CREER donne un
+       code de 4 lettres (sans I ni O), les amis le saisissent (minuscules
+       acceptees) ; lancee elle aussi des qu'elle est pleine. ANNULER
+       libere la place. Code inconnu : message clair.
+       Le jeu trouve seul le relais (Railway en ligne, lui-meme en local) ;
+       ?relais=...&salle=... marche toujours pour les essais.
+     - JUSQU'A 16 JOUEURS, humains et IA : 6 couleurs de plus (16 en tout),
+       et le relais choisit une carte d'au moins 2 planetes par joueur
+       (les deux grandes cartes en ont 47 et 49).
+       Mesure, un seul navigateur : calcul d'un tour 0,28 ms a 4 joueurs
+       sur carte moyenne, 0,56 ms a 16 joueurs sur la plus grande carte
+       (157 astres) ; dessin 2,1 a 2,2 ms. Une partie a 16 occupe environ
+       3 % d'un ordinateur. Essai a 16 (4 humains + 12 IA, 4 navigateurs) :
+       123 ordres, empreintes identiques a chaque seconde.
+     - Verifie dans le salon, clics reels : partie rapide a 2 qui attend
+       puis se lance, partie privee avec code et 1 IA, code faux refuse,
+       annulation. Aucune erreur.
+
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
      mimetisme - un eclat (tir parti vers une lune) ne doit pas se scinder
@@ -1270,8 +1294,11 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
      - HEBERGER LE RELAIS (prototype fait, voir v9.7.7) : aujourd'hui il ne
        tourne qu'en local. Le mettre sur Railway (second service) ou un
        serveur Hetzner, en wss:// (chiffre) pour une page servie en https ;
-     - un vrai salon : creer / rejoindre une salle depuis le menu, au lieu
-       de l'adresse ; puis identite (jeton Supabase) et classement ;
+     - salon fait (bouton RESEAU, parties rapides et privees, 16 joueurs) ;
+       reste l'identite (jeton Supabase, pseudo verifie) et le classement ;
+     - fin de partie en reseau : victoire, elimines en spectateurs, retour
+       au salon ;
+     - remplacer a terme le multijoueur actuel (serveur 2) par ce systeme ;
      - la reconnexion : un joueur qui revient recoit le journal des ordres
        et rejoue la partie jusqu'au tour courant ;
      - tester Firefox et Safari : sin, cos, atan2... peuvent differer d'un
@@ -3067,11 +3094,44 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
     <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.6) </div>
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
+    <button class="btn" id="btnSalon" style="margin-top:8px; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.45); color:#D8B4FE;">🛰️ RÉSEAU (bêta)</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
     <button class="btn" id="btnCompetition" style="margin-top:8px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); color:#FFD700;">🏆 COMPÉTITION</button>
     <button class="btn" id="btnHelp" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">AIDE</button>
     <div id="titlePseudo" style="margin-top:20px; font-family:'Orbitron',sans-serif; font-size:11px; color:rgba(200,170,255,0.5); letter-spacing:2px;"></div>
     <button id="btnLogout" style="margin-top:8px; background:none; border:none; color:rgba(200,170,255,0.3); font-family:'Exo 2',sans-serif; font-size:11px; cursor:pointer; letter-spacing:1px;">DÉCONNEXION</button>
+</div>
+
+<!-- SALON RESEAU (lockstep) : partie rapide ou privee, par le relais
+     d'ordres. Fenetre independante, par-dessus l'ecran titre. -->
+<div id="salonReseau" style="display:none; position:fixed; inset:0; z-index:900; background:rgba(5,8,25,0.92); align-items:center; justify-content:center; padding:16px;">
+    <div style="background:rgba(15,23,42,0.96); border:1px solid rgba(168,85,247,0.45); border-radius:12px; padding:22px 24px; width:100%; max-width:400px; text-align:center; font-family:'Exo 2',sans-serif; color:#E0E7FF;">
+        <h2 style="font-family:'Orbitron',monospace; color:#D8B4FE; text-shadow:0 0 18px rgba(168,85,247,0.45); margin:0 0 6px; font-size:20px;">🛰️ RÉSEAU</h2>
+        <div style="font-size:11px; color:#94A3B8; margin-bottom:16px;">Chaque joueur calcule la partie, le serveur relaie les ordres (bêta).</div>
+        <div id="salonChoix">
+            <div style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:#C4B5FD; margin-bottom:8px;">PARTIE RAPIDE</div>
+            <div style="font-size:12px; color:#94A3B8; margin-bottom:8px;">Elle se lance dès qu'elle est pleine.</div>
+            <div style="display:flex; gap:8px; margin-bottom:18px;">
+                <button class="btn salon-rapide" data-n="2" style="flex:1; margin:0; padding:10px 0; font-size:12px;">2</button>
+                <button class="btn salon-rapide" data-n="4" style="flex:1; margin:0; padding:10px 0; font-size:12px;">4</button>
+                <button class="btn salon-rapide" data-n="8" style="flex:1; margin:0; padding:10px 0; font-size:12px;">8</button>
+                <button class="btn salon-rapide" data-n="16" style="flex:1; margin:0; padding:10px 0; font-size:12px;">16</button>
+            </div>
+            <div style="font-size:11px; color:#94A3B8; margin:-12px 0 16px;">joueurs</div>
+            <div style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:#C4B5FD; margin-bottom:8px;">PARTIE PRIVÉE</div>
+            <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:8px; font-size:12px;">
+                <label>Joueurs <select id="salonNb" style="margin-left:4px;"></select></label>
+                <label>IA <select id="salonIa" style="margin-left:4px;"></select></label>
+                <button class="btn" id="salonCreer" style="margin:0; padding:7px 14px; font-size:12px;">CRÉER</button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:6px;">
+                <input id="salonCode" type="text" maxlength="4" placeholder="CODE" autocomplete="off" style="width:90px; text-align:center; text-transform:uppercase; letter-spacing:4px; font-family:'Orbitron',sans-serif; padding:7px; border-radius:6px; border:1px solid rgba(168,85,247,0.45); background:rgba(0,0,0,0.3); color:#E0E7FF;">
+                <button class="btn" id="salonRejoindre" style="margin:0; padding:7px 14px; font-size:12px;">REJOINDRE</button>
+            </div>
+        </div>
+        <div id="salonStatut" style="min-height:40px; margin:14px 0 10px; font-size:14px;"></div>
+        <button class="btn" id="salonFermer" style="font-size:12px; padding:8px 24px; margin:0;">FERMER</button>
+    </div>
 </div>
 
 <!-- ═══ ÉCRAN MULTI (matchmaking) ═══ -->
@@ -3970,7 +4030,10 @@ const gameState = {
     playerColor: '#8B5CF6',
 
     // ── Couleurs disponibles ──
-    teamColors: ['#8B5CF6','#EC4899','#EF4444','#F97316','#EAB308','#22C55E','#06B6D4','#3B82F6','#A855F7','#F472B6'],
+    /* 16 couleurs : jusqu'a 16 joueurs en reseau (lockstep). Les 6 dernieres
+       ne servent qu'au-dela de 10 joueurs. */
+    teamColors: ['#8B5CF6','#EC4899','#EF4444','#F97316','#EAB308','#22C55E','#06B6D4','#3B82F6','#A855F7','#F472B6',
+                 '#14B8A6','#84CC16','#E2E8F0','#B45309','#6EE7B7','#FF7F50'],
 
     // ── Codex ──
     selectedBody: null,
@@ -4062,6 +4125,7 @@ function init() {
 
     /* Adresse avec ?relais=... : partie en lockstep (voir rejoindreRelais). */
     lockstepDepuisAdresse();
+    installerSalon();
 }
 
 /* LA RESOLUTION DE RENDU. Le canevas est affiche en plein ecran par le CSS,
@@ -14771,10 +14835,22 @@ function envoyerAuRelais(msg) {
     if (L && L.ws && L.ws.readyState === 1) L.ws.send(JSON.stringify(msg));
 }
 
+/* Le relais en ligne (Railway). En local, le relais sert lui-meme la page :
+   on le trouve a la meme adresse. ?relais=... dans l'adresse l'emporte. */
+const RELAIS_EN_LIGNE = 'wss://nebula-conquest-production.up.railway.app';
+function adresseRelais() {
+    const q = new URLSearchParams(location.search);
+    if (q.get('relais')) return q.get('relais');
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return 'ws://' + location.host;
+    return RELAIS_EN_LIGNE;
+}
+
+/* Adresse avec ?relais=...&salle=... : on rejoint cette salle directement,
+   sans passer par le salon (pratique pour les essais). */
 function lockstepDepuisAdresse() {
     const q = new URLSearchParams(location.search);
     const url = q.get('relais');
-    if (!url) return;
+    if (!url || !q.get('salle')) return;
     rejoindreRelais(url, {
         salle: q.get('salle') || 'essai', joueurs: q.get('joueurs'), ia: q.get('ia'),
         carte: q.get('carte'), difficulte: q.get('difficulte'),
@@ -14788,12 +14864,28 @@ function rejoindreRelais(url, reglages) {
     const L = gameState.lockstep = { ws: ws, slot: null, enJeu: false, joueurs: [], paquets: 0,
                                      tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null };
     ws.onopen = function () { ws.send(JSON.stringify(Object.assign({ t: 'rejoindre' }, reglages))); };
-    ws.onclose = function () { afficherLockstep('Relais deconnecte', true); };
+    ws.onclose = function () {
+        afficherLockstep('Relais deconnecte', true);
+        /* Coupe avant le depart : le salon redevient utilisable. */
+        if (gameState.lockstep === L && !L.enJeu && L.slot === null) { gameState.lockstep = null; salonChoixVisibles(true); }
+    };
+    ws.onerror = function () { salonStatut('Relais injoignable. Reessayez dans un instant.'); };
     ws.onmessage = function (ev) {
         let m;
         try { m = JSON.parse(ev.data); } catch (e) { return; }
-        if (m.t === 'attente') afficherLockstep('En attente des joueurs : ' + m.presents + ' / ' + m.attendus);
-        else if (m.t === 'refus') afficherLockstep('Refuse : ' + m.raison, true);
+        if (m.t === 'attente') {
+            const txt = 'En attente des joueurs : ' + m.presents + ' / ' + m.attendus;
+            afficherLockstep(txt);
+            salonStatut((L.code ? 'Partie privée ' + L.code + ' — donnez ce code à vos amis.\n' : '') + txt);
+        }
+        else if (m.t === 'salle') { L.code = m.code; }
+        else if (m.t === 'refus') {
+            afficherLockstep('Refuse : ' + m.raison, true);
+            salonStatut('Impossible : ' + m.raison);
+            gameState.lockstep = null;
+            salonChoixVisibles(true);
+            try { ws.onclose = null; ws.close(); } catch (e) {}
+        }
         else if (m.t === 'depart') lancerPartieLockstep(m);
         else if (m.t === 'paquet') recevoirPaquet(m);
         else if (m.t === 'desync') {
@@ -14830,6 +14922,8 @@ function lancerPartieLockstep(m) {
        les autres joueurs, quel que soit leur navigateur. */
     installerMathsFixes();
     L.graine = m.graine;
+    const salon = document.getElementById('salonReseau');
+    if (salon) salon.style.display = 'none';
     gameState.isMulti = false;
     gameState.isTutorial = false;
     gameState.multiSeed = m.graine;
@@ -14944,6 +15038,86 @@ function verifierColonisationLockstep() {
         autoSpawnAIs();
         setPhase('game');
     }
+}
+
+/* ─────────────────────────────────────────────
+   LE SALON RESEAU (bouton RESEAU de l'ecran titre)
+   - Partie rapide : 2, 4, 8 ou 16 joueurs. Le relais place le joueur dans
+     la premiere partie publique de cette taille qui attend ; elle se lance
+     des qu'elle est pleine, les suivants en remplissent une nouvelle.
+   - Partie privee : CREER donne un code de 4 lettres a transmettre ;
+     REJOINDRE avec ce code. Lancee elle aussi des qu'elle est pleine.
+   Jusqu'a 16 joueurs en tout, humains et IA (16 couleurs).
+   ───────────────────────────────────────────── */
+const JOUEURS_MAX = 16;
+
+function installerSalon() {
+    const nb = document.getElementById('salonNb'), ia = document.getElementById('salonIa');
+    if (!nb || nb.options.length) return;
+    for (let i = 2; i <= JOUEURS_MAX; i++) nb.add(new Option(String(i), String(i)));
+    const majIa = function () {
+        const garde = +ia.value || 0;
+        ia.innerHTML = '';
+        for (let i = 0; i <= JOUEURS_MAX - (+nb.value); i++) ia.add(new Option(String(i), String(i)));
+        ia.value = String(Math.min(garde, JOUEURS_MAX - (+nb.value)));
+    };
+    nb.addEventListener('change', majIa);
+    majIa();
+    document.getElementById('btnSalon').addEventListener('click', function () {
+        if (typeof ensureAudio === 'function') ensureAudio();
+        if (typeof playClickSound === 'function') playClickSound();
+        document.getElementById('salonReseau').style.display = 'flex';
+        salonStatut('');
+        salonChoixVisibles(true);
+    });
+    document.querySelectorAll('.salon-rapide').forEach(function (b) {
+        b.addEventListener('click', function () {
+            salonRejoindre({ public: true, joueurs: +b.dataset.n },
+                           'Recherche d\'une partie à ' + b.dataset.n + ' joueurs...');
+        });
+    });
+    document.getElementById('salonCreer').addEventListener('click', function () {
+        salonRejoindre({ creer: true, joueurs: +nb.value, ia: +ia.value }, 'Création de la partie...');
+    });
+    document.getElementById('salonRejoindre').addEventListener('click', function () {
+        const code = document.getElementById('salonCode').value.trim().toUpperCase();
+        if (!/^[A-Z]{4}$/.test(code)) { salonStatut('Le code fait 4 lettres.'); return; }
+        salonRejoindre({ code: code }, 'Connexion à la partie ' + code + '...');
+    });
+    document.getElementById('salonFermer').addEventListener('click', function () {
+        quitterRelais();
+        document.getElementById('salonReseau').style.display = 'none';
+    });
+}
+
+function salonRejoindre(reglages, message) {
+    quitterRelais();
+    salonChoixVisibles(false);
+    salonStatut(message);
+    reglages.nom = (currentProfile && currentProfile.pseudo) || '';
+    rejoindreRelais(adresseRelais(), reglages);
+}
+
+/* Quitter une salle avant le depart (ANNULER, ou un autre choix). */
+function quitterRelais() {
+    const L = gameState.lockstep;
+    if (!L || L.enJeu || L.slot !== null) return;
+    try { L.ws.onclose = null; L.ws.close(); } catch (e) {}
+    gameState.lockstep = null;
+    const b = document.getElementById('bandeauLockstep');
+    if (b) b.remove();
+    salonChoixVisibles(true);
+}
+
+function salonStatut(texte) {
+    const el = document.getElementById('salonStatut');
+    if (el) { el.textContent = texte; el.style.whiteSpace = 'pre-line'; }
+}
+
+function salonChoixVisibles(oui) {
+    const c = document.getElementById('salonChoix'), f = document.getElementById('salonFermer');
+    if (c) c.style.display = oui ? 'block' : 'none';
+    if (f) f.textContent = oui ? 'FERMER' : 'ANNULER';
 }
 
 /* TOUTE LA PARTIE A PLAT, pour chercher une desynchronisation : chaque

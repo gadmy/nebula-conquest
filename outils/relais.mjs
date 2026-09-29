@@ -83,23 +83,71 @@ function entier(v, min, max, def) {
     return v >= min && v <= max ? v : def;
 }
 
+/* Jusqu'a 16 joueurs, humains et IA : le jeu a 16 couleurs. */
+const JOUEURS_MAX = 16;
+/* Planetes de chaque carte de la bibliotheque du jeu (MAP_LIBRARY), pour en
+   choisir une assez grande : au moins deux planetes par joueur. */
+const PLANETES_CARTE = [5, 5, 16, 10, 17, 7, 12, 7, 6, 5, 13, 21, 17, 49, 47];
+function carteAuHasard(total) {
+    const ok = PLANETES_CARTE.map((p, i) => [p, i]).filter(([p]) => p >= total * 2).map(([, i]) => i);
+    if (!ok.length) return PLANETES_CARTE.indexOf(Math.max(...PLANETES_CARTE));
+    return ok[Math.floor(Math.random() * ok.length)];
+}
+
+/* Code de partie privee : 4 lettres, sans celles qu'on confond (I, O). */
+function nouveauCode() {
+    const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let code;
+    do { code = ''; for (let i = 0; i < 4; i++) code += L[Math.floor(Math.random() * L.length)]; }
+    while (salles.has(code));
+    return code;
+}
+let compteurPublic = 0;
+
+function nouvelleSalle(nom, m, options) {
+    const joueurs = entier(m.joueurs, 1, JOUEURS_MAX, 2);
+    const ia = entier(m.ia, 0, JOUEURS_MAX - joueurs, 0);
+    const salle = {
+        nom, clients: [], lancee: false, n: 0, ordres: [], empreintes: new Map(), minuteur: null,
+        public: !!options.public,
+        reglages: {
+            joueurs, ia,
+            carte: m.carte !== undefined && m.carte !== null && m.carte !== '' ? entier(m.carte, 0, 14, 6) : carteAuHasard(joueurs + ia),
+            difficulte: ['easy', 'normal', 'hard', 'brutal'].includes(m.difficulte) ? m.difficulte : 'normal',
+        },
+    };
+    salles.set(nom, salle);
+    return salle;
+}
+
 function rejoindre(ws, m) {
-    const nom = String(m.salle || 'essai').slice(0, 40);
-    let salle = salles.get(nom);
-    if (!salle) {
-        salle = {
-            nom, clients: [], lancee: false, n: 0, ordres: [], empreintes: new Map(), minuteur: null,
-            reglages: {
-                joueurs: entier(m.joueurs, 1, 8, 2),
-                ia: entier(m.ia, 0, 10, 0),
-                carte: entier(m.carte, 0, 14, 6),
-                difficulte: ['easy', 'normal', 'hard', 'brutal'].includes(m.difficulte) ? m.difficulte : 'normal',
-            },
-        };
-        salles.set(nom, salle);
+    let salle;
+    if (m.public) {
+        /* PARTIE RAPIDE : la premiere partie publique de cette taille qui
+           attend encore, sinon une nouvelle. */
+        const n = entier(m.joueurs, 2, JOUEURS_MAX, 2);
+        for (const s of salles.values()) {
+            if (s.public && !s.lancee && s.reglages.joueurs === n && s.clients.length < n) { salle = s; break; }
+        }
+        if (!salle) salle = nouvelleSalle('public-' + n + '-' + (++compteurPublic), { joueurs: n }, { public: true });
+    } else if (m.creer) {
+        /* PARTIE PRIVEE : un code a transmettre. */
+        salle = nouvelleSalle(nouveauCode(), m, {});
+        ws.send(JSON.stringify({ t: 'salle', code: salle.nom }));
+    } else if (m.code) {
+        salle = salles.get(String(m.code).toUpperCase().slice(0, 4));
+        if (!salle || salle.public) {
+            ws.send(JSON.stringify({ t: 'refus', raison: 'code inconnu' }));
+            return null;
+        }
+    } else {
+        /* Adresse ?relais=...&salle=... : la salle est creee si besoin. */
+        const nom = String(m.salle || 'essai').slice(0, 40);
+        salle = salles.get(nom) || nouvelleSalle(nom, m, {});
     }
+    const nom = salle.nom;
     if (salle.lancee || salle.clients.length >= salle.reglages.joueurs) {
-        ws.send(JSON.stringify({ t: 'refus', raison: 'salle pleine ou deja lancee' }));
+        ws.send(JSON.stringify({ t: 'refus', raison: 'partie pleine ou deja lancee' }));
         return null;
     }
     const c = { ws, salle, slot: salle.clients.length, pret: false,
