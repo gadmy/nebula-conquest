@@ -1042,7 +1042,8 @@ v9.7.7 | 2026-09-29 | Multijoueur lockstep : tours fixes, ordres, relais, salon
      - FIN DE PARTIE : l'elimine reste en spectateur (bandeau, bouton
        QUITTER) ; victoire a 80 % des astres ou au dernier joueur en vie,
        decidee au meme tour chez tous ; MENU repart d'une page neuve.
-       Parties en reseau non enregistrees dans les statistiques (beta).
+       Parties en reseau non enregistrees dans les statistiques (beta) -
+       elles le sont depuis la v9.7.9.
      - Bandeau d'etat en haut de l'ecran : joueur, tour, reserve, gigue,
        images figees, alertes.
 
@@ -1092,15 +1093,47 @@ v9.7.8 | 2026-09-29 | Reseau : la reconnexion
      - Essai pilote : coupure puis rechargement en pleine partie, aucune
        desynchronisation, memes astres chez les deux joueurs.
 
-v9.7.9 | 2026-09-29 | (en cours)
+v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
+     ── IDENTITE ──
+     - Le jeu envoie au relais son jeton de session Supabase ; le relais le
+       fait verifier et prend le pseudo dans la base. Sans compte : le nom
+       annonce suivi de "(invité)" - plus moyen de jouer sous le pseudo
+       d'un inscrit. Un compte n'a qu'une place par partie.
+     ── CLASSEMENT (ELO) ──
+     - Parties rapides seulement, entre joueurs connectes (au moins deux) ;
+       les parties privees ne comptent pas (pas d'ELO gonfle entre amis).
+     - Fin de partie : chaque joueur envoie le classement qu'il a calcule
+       (gagnant, survivants par astres, elimines du dernier au premier -
+       le tour de l'elimination est garde dans la partie). Le relais
+       retient celui de la majorite ; desaccord ou desynchronisation : non
+       classee. Le perdant qui quitte avant la fin perd quand meme.
+     - ELO a plusieurs : chaque paire de joueurs compte comme un duel
+       (K = 32 reparti). A deux joueurs de meme niveau : +16 / -16.
+       Partie de moins de 30 s : non classee.
+     - Ecran de fin : ligne "ELO 1000 → 1016 (+16)" (ou la raison si la
+       partie ne compte pas). Salon RESEAU : les 10 premiers et son rang.
+     ── BASE DE DONNEES ──
+     - Fonction enregistrer_partie_reseau (appelable par le relais seul) :
+       ELO et parties (colonnes mode, elo_avant, elo_apres) en une fois.
+       Parties jusqu'a 16 joueurs acceptees.
+     - FAILLE FERMEE : tout joueur connecte pouvait ecrire son propre ELO
+       dans son profil. L'ELO ne s'ecrit plus que par le serveur.
+     ── ESSAIS ──
+     - Deux navigateurs, relais local, faux Supabase : pseudos verifies,
+       partie identique jusqu'a la fin, +16 / -16 affiches, classement
+       transmis. Cas limites verifies : meme compte deux fois, invite
+       usurpateur, partie privee, desaccord, perdant parti, envoi en
+       double, classement truque. npm run lockstep : toujours identique.
+     - A FAIRE EN LIGNE : ajouter SUPABASE_SERVICE_KEY au service du relais
+       sur Railway (sans elle : comptes verifies, rien de classe).
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
      mimetisme - un eclat (tir parti vers une lune) ne doit pas se scinder
      a son tour. Sans ca, une partie multi peut s'emballer jusqu'au gel.
   🎯 MULTIJOUEUR RESEAU (lockstep, bouton RESEAU) - la suite :
-     - l'identite (jeton Supabase, pseudo verifie) puis le classement et
-       les statistiques ;
+     - Railway : variable SUPABASE_SERVICE_KEY sur le service du relais,
+       puis une partie rapide a deux comptes pour verifier l'ELO en ligne ;
      - tester Safari (maths fixes deja en place) ;
      - remplacer a terme le multijoueur actuel (serveur 2), puis l'arreter
        - un seul moteur de jeu au lieu de deux (index.html et gameLoop.js) ;
@@ -2903,7 +2936,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
         <div style="font-size:11px; color:#94A3B8; margin-bottom:16px;">Chaque joueur calcule la partie, le serveur relaie les ordres (bêta).</div>
         <div id="salonChoix">
             <div style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:#C4B5FD; margin-bottom:8px;">PARTIE RAPIDE</div>
-            <div style="font-size:12px; color:#94A3B8; margin-bottom:8px;">Elle se lance dès qu'elle est pleine.</div>
+            <div style="font-size:12px; color:#94A3B8; margin-bottom:8px;">Elle se lance dès qu'elle est pleine. Classée (ELO) entre joueurs connectés à leur compte.</div>
             <div style="display:flex; gap:8px; margin-bottom:18px;">
                 <button class="btn salon-rapide" data-n="2" style="flex:1; margin:0; padding:10px 0; font-size:12px;">2</button>
                 <button class="btn salon-rapide" data-n="4" style="flex:1; margin:0; padding:10px 0; font-size:12px;">4</button>
@@ -2921,6 +2954,8 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
                 <input id="salonCode" type="text" maxlength="4" placeholder="CODE" autocomplete="off" style="width:90px; text-align:center; text-transform:uppercase; letter-spacing:4px; font-family:'Orbitron',sans-serif; padding:7px; border-radius:6px; border:1px solid rgba(168,85,247,0.45); background:rgba(0,0,0,0.3); color:#E0E7FF;">
                 <button class="btn" id="salonRejoindre" style="margin:0; padding:7px 14px; font-size:12px;">REJOINDRE</button>
             </div>
+            <div style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:#C4B5FD; margin:16px 0 6px;">CLASSEMENT</div>
+            <div id="salonClassement" style="max-height:170px; overflow-y:auto; font-size:12px; text-align:left;"></div>
         </div>
         <div id="salonStatut" style="min-height:40px; margin:14px 0 10px; font-size:14px;"></div>
         <button class="btn" id="salonFermer" style="font-size:12px; padding:8px 24px; margin:0;">FERMER</button>
@@ -14653,10 +14688,14 @@ function lockstepDepuisAdresse() {
     const q = new URLSearchParams(location.search);
     const url = q.get('relais');
     if (!url || !q.get('salle')) return;
-    rejoindreRelais(url, {
+    const reglages = {
         salle: q.get('salle') || 'essai', joueurs: q.get('joueurs'), ia: q.get('ia'),
         carte: q.get('carte'), difficulte: q.get('difficulte'),
         nom: q.get('nom') || (currentProfile && currentProfile.pseudo) || '',
+    };
+    jetonSession(function (jeton) {
+        reglages.jeton = jeton;
+        rejoindreRelais(url, reglages);
     });
 }
 
@@ -14741,6 +14780,7 @@ function ouvrirRelais(L, premier) {
                 if (!L.graine) lancerPartieLockstep(m.depart);
             }
         }
+        else if (m.t === 'resultat') afficherResultatReseau(m);
         else if (m.t === 'revenu') {
             const j = gameState.players[m.slot];
             if (j) addEvent('neutral', '↩', j.name + ' est de retour', null, '#888888');
@@ -14841,7 +14881,8 @@ function lancerPartieLockstep(m) {
     cfg.cleanerCount = 3;
     cfg.useComets = true;
     cfg.mapIndex = m.carte;
-    afficherLockstep('Partie lancee : vous etes le joueur ' + (m.slot + 1) + ' sur ' + m.joueurs.length);
+    afficherLockstep('Partie lancee : vous etes le joueur ' + (m.slot + 1) + ' sur ' + m.joueurs.length +
+                     (m.classee ? ' — partie classee (ELO)' : ''));
     /* Attendre que l'ecran d'accueil ait fini de s'installer, pour qu'il ne
        repasse pas par-dessus la partie. */
     const partir = function () {
@@ -14982,6 +15023,7 @@ function installerSalon() {
         document.getElementById('salonReseau').style.display = 'flex';
         salonStatut('');
         salonChoixVisibles(true);
+        salonClassement();
     });
     /* Une partie en reseau quittee (page fermee, rechargee) : on peut y
        revenir. */
@@ -15020,7 +15062,21 @@ function salonRejoindre(reglages, message) {
     salonChoixVisibles(false);
     salonStatut(message);
     reglages.nom = (currentProfile && currentProfile.pseudo) || '';
-    rejoindreRelais(adresseRelais(), reglages);
+    jetonSession(function (jeton) {
+        reglages.jeton = jeton;
+        rejoindreRelais(adresseRelais(), reglages);
+    });
+}
+
+/* LE JETON DE SESSION du compte, pour le relais : il le fait verifier par
+   Supabase et prend le pseudo dans la base (sans jeton : invite, non
+   classe). suite(null) quoi qu'il arrive, jamais d'attente sans fin. */
+function jetonSession(suite) {
+    try {
+        Promise.resolve(_supa.auth.getSession())
+            .then(function (r) { suite(r && r.data && r.data.session ? r.data.session.access_token : null); })
+            .catch(function () { suite(null); });
+    } catch (e) { suite(null); }
 }
 
 /* Quitter une salle avant le depart (ANNULER, ou un autre choix). */
@@ -15042,10 +15098,63 @@ function finPartieLockstep(gagnant) {
     L.fini = true;
     L.gagnant = gagnant.name;
     oublierPartieReseau();
+    envoyerAuRelais(classementFinal(gagnant));
     const bandeauSpect = document.getElementById('bandeauElimine');
     if (bandeauSpect) bandeauSpect.remove();
     showEndScreen(gagnant === gameState.players[localSlot()]);
     afficherLockstep('Partie terminee : ' + gagnant.name + ' l\'emporte');
+}
+
+/* Le relais a enregistre la partie : l'ELO avant/apres s'ajoute au bilan
+   de fin (ou la raison pour laquelle elle ne compte pas). */
+function afficherResultatReseau(m) {
+    const L = gameState.lockstep;
+    if (!L) return;
+    const e = m.elo && m.elo[L.slot];
+    let texte = 'Non classée', couleur = '#94A3B8';
+    if (m.classee && e) {
+        const d = e.apres - e.avant;
+        texte = e.avant + ' → ' + e.apres + ' (' + (d >= 0 ? '+' : '') + d + ')';
+        couleur = d >= 0 ? '#4ADE80' : '#F87171';
+        if (currentProfile) currentProfile.elo = e.apres;
+    } else if (m.raison && m.raison !== 'partie non classee') texte += ' (' + m.raison + ')';
+    const bilan = document.getElementById('endStats');
+    if (!bilan) return;
+    const ligne = document.createElement('div');
+    ligne.className = 'end-stat-row';
+    const nom = document.createElement('span');
+    nom.textContent = 'ELO';
+    const val = document.createElement('span');
+    val.className = 'end-stat-val';
+    val.style.color = couleur;
+    val.textContent = texte;
+    ligne.appendChild(nom);
+    ligne.appendChild(val);
+    bilan.appendChild(ligne);
+}
+
+/* LE CLASSEMENT FINAL, envoye au relais qui le compare entre joueurs et
+   l'enregistre (ELO) : le gagnant, puis les survivants par nombre
+   d'astres, puis les elimines, le dernier tombe en tete. IA comprises dans
+   le tri, seuls les humains (les premiers numeros) sont envoyes. */
+function classementFinal(gagnant) {
+    const L = gameState.lockstep;
+    const cle = function (p) {
+        if (p === gagnant) return [0, 0];
+        if (p.alive) return [1, -p.bodies.length];
+        return [2, -(p.eliminTour || 0)];
+    };
+    /* Le numero d'un joueur : sa place dans la liste (comme au depart). */
+    const js = gameState.players;
+    const tries = js.map(function (p, i) { return i; }).sort(function (i, j) {
+        const x = cle(js[i]), y = cle(js[j]);
+        return x[0] - y[0] || x[1] - y[1] || i - j;
+    });
+    const humains = L.joueurs.length;
+    const rangs = tries.filter(function (i) { return i < humains; });
+    const astres = {};
+    for (let i = 0; i < humains && i < js.length; i++) astres[i] = js[i].bodies.length;
+    return { t: 'fin', tour: gameState.tour, rangs: rangs, astres: astres, duree: Math.floor(gameState.time) };
 }
 
 /* Elimine : on reste dans la partie en spectateur. Le calcul continue
@@ -15078,6 +15187,30 @@ function passerSpectateurLockstep() {
 function quitterPartieLockstep() {
     oublierPartieReseau();
     location.href = location.pathname;
+}
+
+/* Les 10 premiers a l'ELO, et le sien s'il n'y est pas. */
+function salonClassement() {
+    const el = document.getElementById('salonClassement');
+    if (!el) return;
+    el.textContent = 'Chargement...';
+    Promise.resolve(_supa.from('leaderboard').select('pseudo, elo').order('elo', { ascending: false }).limit(10))
+        .then(function (r) {
+            if (!r || r.error || !r.data) { el.textContent = 'Classement indisponible.'; return; }
+            const moi = currentProfile && currentProfile.pseudo;
+            const ligne = function (rang, pseudo, elo) {
+                const soi = pseudo === moi;
+                return '<div style="display:flex; justify-content:space-between; padding:2px 6px;' +
+                    (soi ? ' background:rgba(168,85,247,0.18); border-radius:4px;' : '') + '">' +
+                    '<span>' + rang + '. ' + esc(pseudo) + '</span>' +
+                    '<span style="font-family:Orbitron,monospace; color:#FDE68A;">' + (elo || 1000) + '</span></div>';
+            };
+            let html = r.data.map(function (x, i) { return ligne(i + 1, x.pseudo, x.elo); }).join('');
+            if (moi && !r.data.some(function (x) { return x.pseudo === moi; })) html += ligne('—', moi, currentProfile.elo);
+            if (!moi) html += '<div style="padding:4px 6px; color:#94A3B8;">Connectez-vous pour être classé.</div>';
+            el.innerHTML = html;
+        })
+        .catch(function () { el.textContent = 'Classement indisponible.'; });
 }
 
 function salonStatut(texte) {
@@ -19176,6 +19309,9 @@ function checkVictoryAndElimination() {
                 // Éliminé définitivement
                 player.alive = false;
                 player._inSursis = false;
+                /* En reseau, le tour de l'elimination fait le classement
+                   final (identique chez tous : il entre dans l'empreinte). */
+                if (gameState.lockstep) player.eliminTour = gameState.tour;
                 addEvent('neutral', '💀', player.name + ' est éliminé !', null, player.color);
                 if (player.isLocal) {
                     /* En lockstep, on ne s'arrete pas la : les autres joueurs
@@ -19287,8 +19423,8 @@ function showEndScreen(isVictory, statsOverride, humanOverride, totalBodiesOverr
     if (isVictory) playVictorySound();
     else playDefeatSound();
 
-    // Sauvegarder la partie dans Supabase (pas les parties lockstep, en
-    // beta : resultats non verifies)
+    // Sauvegarder la partie dans Supabase (pas les parties lockstep : c'est
+    // le relais qui les enregistre, resultat compare entre joueurs)
     if (!gameState.lockstep) saveGame(isVictory, stats, human, totalBodies);
 }
 

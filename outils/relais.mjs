@@ -8,7 +8,10 @@
      paquet n au meme tour de jeu, deux paquets plus tard (le temps que le
      reseau livre), et calcule toute la partie lui-meme ;
    - compare les empreintes de la partie que les joueurs lui envoient : si
-     deux navigateurs ne calculent plus la meme chose, il le dit a tous.
+     deux navigateurs ne calculent plus la meme chose, il le dit a tous ;
+   - verifie le compte de chaque joueur (jeton Supabase) et, en fin de
+     partie rapide, enregistre le classement et l'ELO (cle de service dans
+     la variable SUPABASE_SERVICE_KEY).
    Le trafic ne depend que du nombre d'ordres, pas du nombre d'objets.
 
    Il sert aussi le jeu lui-meme, pour essayer en local :
@@ -42,6 +45,42 @@ const PORT = opt('port', Number(process.env.PORT) || 8080);
 const LATENCE = opt('latence', 0);
 const GIGUE = opt('gigue', 0);
 const PERIODE = 50;                    /* ms entre deux paquets : 3 tours de 1/60 s */
+
+/* ── Les comptes (Supabase) ──
+   L'adresse et la cle publique sont celles du jeu. La cle de service,
+   secrete, ne vient que de la variable SUPABASE_SERVICE_KEY (Railway) :
+   sans elle, les comptes sont verifies mais rien n'est classe. */
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hcjajtpbzusqgxkyzbgc.supabase.co';
+const SUPABASE_ANON = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjamFqdHBienVzcWd4a3l6YmdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTIwNjgsImV4cCI6MjA4NzY4ODA2OH0.UXiZvC3kQmQzZ4BSWp6X19ISPjlac87YZlLonUqzvic';
+const SUPABASE_SERVICE = process.env.SUPABASE_SERVICE_KEY || '';
+
+/* Une requete a Supabase, abandonnee au bout de 5 s. Les nouvelles cles
+   (sb_...) ne passent que par apikey ; les anciennes aussi en Bearer. */
+async function supabase(chemin, cle, options = {}) {
+    const entetes = { apikey: cle, 'Content-Type': 'application/json' };
+    if (cle.startsWith('eyJ')) entetes.Authorization = 'Bearer ' + cle;
+    const r = await fetch(SUPABASE_URL + chemin, { ...options, headers: { ...entetes, ...(options.headers || {}) },
+                                                  signal: AbortSignal.timeout(5000) });
+    if (!r.ok) throw new Error('Supabase ' + r.status + ' ' + chemin.split('?')[0]);
+    return r.json();
+}
+
+/* LE COMPTE D'UN JOUEUR. Le jeu envoie son jeton de session ; Supabase dit
+   a qui il appartient, et le pseudo se lit dans la base. Sans jeton valide
+   (pas connecte, jeton perime, Supabase injoignable) : invite, non classe. */
+async function verifierJeton(jeton) {
+    if (!jeton || typeof jeton !== 'string' || jeton.length > 4000) return null;
+    try {
+        const u = await supabase('/auth/v1/user', SUPABASE_ANON, { headers: { Authorization: 'Bearer ' + jeton } });
+        if (!u || !u.id) return null;
+        const p = await supabase('/rest/v1/profiles?select=pseudo,elo&id=eq.' + encodeURIComponent(u.id), SUPABASE_ANON);
+        if (!p || !p[0]) return null;
+        return { id: u.id, pseudo: String(p[0].pseudo).replace(/[<>&"]/g, '').slice(0, 20), elo: p[0].elo };
+    } catch (e) {
+        console.log('Compte non verifie : ' + e.message);
+        return null;
+    }
+}
 
 /* Les ordres que le jeu connait (EXECUTER_ORDRE). Le reste est refuse. */
 const ORDRES = new Set(['part', 'zone', 'tir', 'tir_surface', 'riposte', 'arret', 'batiment',
@@ -122,14 +161,18 @@ function nouvelleSalle(nom, m, options) {
     return salle;
 }
 
-function rejoindre(ws, m) {
+/* Ce compte a deja une place dans cette salle (un seul joueur par compte :
+   sinon on se classerait contre soi-meme). */
+const dejaLa = (salle, compte) => !!compte && salle.clients.some(k => k.compte && k.compte.id === compte.id);
+
+function rejoindre(ws, m, compte) {
     let salle;
     if (m.public) {
         /* PARTIE RAPIDE : la premiere partie publique de cette taille qui
            attend encore, sinon une nouvelle. */
         const n = entier(m.joueurs, 2, JOUEURS_MAX, 2);
         for (const s of salles.values()) {
-            if (s.public && !s.lancee && s.reglages.joueurs === n && s.clients.length < n) { salle = s; break; }
+            if (s.public && !s.lancee && s.reglages.joueurs === n && s.clients.length < n && !dejaLa(s, compte)) { salle = s; break; }
         }
         if (!salle) salle = nouvelleSalle('public-' + n + '-' + (++compteurPublic), { joueurs: n }, { public: true });
     } else if (m.creer) {
@@ -152,18 +195,29 @@ function rejoindre(ws, m) {
         ws.send(JSON.stringify({ t: 'refus', raison: 'partie pleine ou deja lancee' }));
         return null;
     }
-    const c = { ws, salle, slot: salle.clients.length, pret: false,
-                nom: String(m.nom || ('Joueur ' + (salle.clients.length + 1))).replace(/[<>&"]/g, '').slice(0, 20) };
+    if (dejaLa(salle, compte)) {
+        ws.send(JSON.stringify({ t: 'refus', raison: 'ce compte est deja dans la partie' }));
+        return null;
+    }
+    /* Le pseudo verifie ; sans compte, le nom annonce marque "invite" (il ne
+       peut pas se faire passer pour un joueur inscrit). */
+    const annonce = String(m.nom || ('Joueur ' + (salle.clients.length + 1))).replace(/[<>&"]/g, '').slice(0, 12);
+    const c = { ws, salle, slot: salle.clients.length, pret: false, compte,
+                nom: compte ? compte.pseudo : annonce + ' (invité)' };
     salle.clients.push(c);
     aTous(salle, { t: 'attente', presents: salle.clients.length, attendus: salle.reglages.joueurs });
     console.log('[' + nom + '] ' + c.nom + ' arrive (' + salle.clients.length + '/' + salle.reglages.joueurs + ')');
     if (salle.clients.length === salle.reglages.joueurs) {
         salle.lancee = true;
         const graine = 1 + Math.floor(Math.random() * 2147483646);
-        const joueurs = salle.clients.map(k => ({ nom: k.nom }));
+        const joueurs = salle.clients.map(k => ({ nom: k.nom, elo: k.compte ? k.compte.elo : null }));
+        /* CLASSEE : partie rapide (pas de partie privee entre amis pour
+           gonfler son ELO), au moins deux joueurs avec un compte, et un
+           relais qui peut ecrire dans la base. */
+        const classee = salle.public && !!SUPABASE_SERVICE && salle.clients.filter(k => k.compte).length >= 2;
         /* Les reglages d'abord : leur "joueurs" (un nombre) ne doit pas
            ecraser la liste des joueurs. Garde pour les reprises. */
-        salle.depart = { ...salle.reglages, graine, joueurs, salle: nom };
+        salle.depart = { ...salle.reglages, graine, joueurs, classee, salle: nom };
         for (const k of salle.clients) {
             /* Le jeton, secret et propre a chaque joueur, lui permettra de
                reprendre sa place s'il perd la connexion - et a lui seul. */
@@ -291,9 +345,66 @@ function noterDetail(c, m) {
     }
 }
 
+/* FIN DE PARTIE. Chaque joueur calcule la fin au meme tour et envoie son
+   classement : les joueurs humains du premier au dernier, leurs astres, la
+   duree. Le relais ne calcule rien, il compare : le resultat retenu est
+   celui de la majorite de ceux qui l'ont envoye (un tricheur seul ne peut
+   rien imposer). Tous les joueurs encore connectes ont repondu, ou 10 s
+   ont passe : on conclut. */
+function noterFin(c, m) {
+    const salle = c.salle;
+    if (!salle.depart || salle.conclue || c.desync) return;
+    const n = salle.depart.joueurs.length;
+    const rangs = Array.isArray(m.rangs) ? m.rangs.map(Number) : [];
+    if (rangs.length !== n || new Set(rangs).size !== n || !rangs.every(s => Number.isInteger(s) && s >= 0 && s < n)) return;
+    const astres = rangs.map(s => entier(m.astres && m.astres[s], 0, 500, 0));
+    const duree = entier(m.duree, 0, 86400, 0);
+    if (!salle.fins) salle.fins = new Map();
+    salle.fins.set(c.slot, JSON.stringify([rangs, astres, duree]));
+    const la = salle.clients.filter(k => k.ws.readyState === 1 && !k.desync);
+    if (la.every(k => salle.fins.has(k.slot))) conclure(salle);
+    else if (!salle.minuteurFin) salle.minuteurFin = setTimeout(() => conclure(salle), 10000);
+}
+
+async function conclure(salle) {
+    if (salle.conclue) return;
+    salle.conclue = true;
+    clearTimeout(salle.minuteurFin);
+    const log = (t) => console.log('[' + salle.nom + '] ' + t);
+    const votes = new Map();
+    for (const v of salle.fins.values()) votes.set(v, (votes.get(v) || 0) + 1);
+    const [cle, voix] = [...votes.entries()].sort((a, b) => b[1] - a[1])[0];
+    const refus = (raison) => { log('resultat non classe : ' + raison); aTous(salle, { t: 'resultat', classee: false, raison }); };
+    if (voix * 2 <= salle.fins.size) return refus('les joueurs ne sont pas d\'accord sur le resultat');
+    if (salle.desync) return refus('partie desynchronisee');
+    const [rangs, astres, duree] = JSON.parse(cle);
+    log('fin : ' + rangs.map((s, i) => (i + 1) + '. ' + salle.clients[s].nom + ' (' + astres[i] + ' astres)').join(', ') +
+        ', ' + duree + ' s, ' + voix + ' voix sur ' + salle.fins.size);
+    if (!salle.depart.classee) return refus('partie non classee');
+    const classes = rangs.map((s, i) => ({ slot: s, rang: i + 1, astres: astres[i], compte: salle.clients[s].compte }))
+                         .filter(x => x.compte);
+    try {
+        const r = await supabase('/rest/v1/rpc/enregistrer_partie_reseau', SUPABASE_SERVICE, {
+            method: 'POST',
+            body: JSON.stringify({ p_joueurs: classes.map(x => ({ id: x.compte.id, rang: x.rang, astres: x.astres })),
+                                   p_duree: duree, p_total: salle.depart.joueurs.length + salle.depart.ia }),
+        });
+        if (!Array.isArray(r)) return refus('partie trop courte');
+        const elo = {};
+        for (const x of classes) {
+            const e = r.find(y => y.id === x.compte.id);
+            if (e) elo[x.slot] = { avant: e.avant, apres: e.apres };
+        }
+        log('ELO : ' + classes.map(x => x.compte.pseudo + ' ' + (elo[x.slot] ? elo[x.slot].avant + ' -> ' + elo[x.slot].apres : '?')).join(', '));
+        aTous(salle, { t: 'resultat', classee: true, elo });
+    } catch (e) {
+        refus('enregistrement impossible (' + e.message + ')');
+    }
+}
+
 const wss = new WebSocketServer({ server: serveur });
 wss.on('connection', (ws) => {
-    let c = null;
+    let c = null, verification = false;
     ws.on('message', (brut) => {
         if (brut.length > 400000) return;
         let m;
@@ -303,7 +414,14 @@ wss.on('connection', (ws) => {
            desynchronisation (une fois par partie) peut etre gros. */
         if (m.t !== 'detail' && brut.length > 4096) return;
         if (m.t === 'detail' && c) { noterDetail(c, m); return; }
-        if (m.t === 'rejoindre' && !c) { c = rejoindre(ws, m); return; }
+        if (m.t === 'rejoindre' && !c && !verification) {
+            /* Le compte d'abord (quelques dizaines de ms), la place ensuite. */
+            verification = true;
+            verifierJeton(m.jeton).then((compte) => {
+                if (ws.readyState === 1) c = rejoindre(ws, m, compte);
+            });
+            return;
+        }
         if (m.t === 'reprendre' && !c) { c = reprendre(ws, m); return; }
         if (!c) return;
         if (m.t === 'pret') {
@@ -316,6 +434,8 @@ wss.on('connection', (ws) => {
             c.salle.ordres.push({ s: c.slot, type: m.type, d: (m.d && typeof m.d === 'object') ? m.d : {} });
         } else if (m.t === 'empreinte') {
             noterEmpreinte(c, m);
+        } else if (m.t === 'fin') {
+            noterFin(c, m);
         }
     });
     ws.on('close', () => {
@@ -352,5 +472,6 @@ wss.on('connection', (ws) => {
 serveur.listen(PORT, () => {
     console.log('Relais d\'ordres sur le port ' + PORT +
                 (LATENCE || GIGUE ? ' (latence simulee ' + LATENCE + ' ms + gigue ' + GIGUE + ' ms)' : ''));
+    console.log(SUPABASE_SERVICE ? 'Parties rapides classees (ELO)' : 'SUPABASE_SERVICE_KEY absente : aucune partie classee');
     console.log('Essai local : http://localhost:' + PORT + '/?relais=ws://localhost:' + PORT + '&salle=essai&joueurs=2');
 });
