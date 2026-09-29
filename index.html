@@ -1076,14 +1076,27 @@ v9.7.7 | 2026-09-29 | Multijoueur lockstep : tours fixes, ordres, relais, salon
        pilotes.
 
 v9.7.8 | 2026-09-29 | (en cours)
+     ── MULTIJOUEUR RESEAU : LA RECONNEXION ──
+     - COUPURE BREVE (page ouverte) : le jeu retente aussitot, puis toutes
+       les 2 s pendant 3 minutes ; le relais renvoie les paquets manques
+       et la partie repart. Bandeau "Connexion perdue - reconnexion".
+     - PAGE FERMEE OU RECHARGEE : la partie est gardee dans le navigateur
+       (30 minutes) ; l'ecran titre affiche "REPRENDRE LA PARTIE". Le
+       relais renvoie le depart et tous les ordres : la partie est relancee
+       avec la meme graine et rejouee en accelere (30 s de jeu en moins de
+       2 s), puis le joueur reprend la main.
+     - Un jeton secret par joueur : lui seul peut reprendre sa place.
+     - Le relais garde les empreintes validees : le joueur qui rejoue est
+       verifie tour par tour contre ce que les autres avaient.
+     - Partie abandonnee de tous : gardee 3 minutes avant d'etre effacee.
+     - Essai pilote : coupure puis rechargement en pleine partie, aucune
+       desynchronisation, memes astres chez les deux joueurs.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
      mimetisme - un eclat (tir parti vers une lune) ne doit pas se scinder
      a son tour. Sans ca, une partie multi peut s'emballer jusqu'au gel.
   🎯 MULTIJOUEUR RESEAU (lockstep, bouton RESEAU) - la suite :
-     - la reconnexion : un joueur qui revient recoit le journal des ordres
-       et rejoue la partie jusqu'au tour courant ;
      - l'identite (jeton Supabase, pseudo verifie) puis le classement et
        les statistiques ;
      - tester Safari (maths fixes deja en place) ;
@@ -2872,6 +2885,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
     <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
     <button class="btn" id="btnSalon" style="margin-top:8px; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.45); color:#D8B4FE;">🛰️ RÉSEAU (bêta)</button>
+    <button class="btn" id="btnReprendre" style="display:none; margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.5); color:#BBF7D0;">↩ REPRENDRE LA PARTIE</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
     <button class="btn" id="btnCompetition" style="margin-top:8px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); color:#FFD700;">🏆 COMPÉTITION</button>
     <button class="btn" id="btnHelp" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">AIDE</button>
@@ -7962,7 +7976,8 @@ function finishStartGame() {
     createPlayers();
     if (gameState.lockstep) preparerJoueursLockstep();
     /* La part d'envoi reglee avant la partie vaut des le premier tour. */
-    if (!gameState.isMulti) donnerOrdre('part', { v: gameState.jetRatio });
+    /* Sauf en reprise : cet ordre-la est deja dans les paquets a rejouer. */
+    if (!gameState.isMulti && !(gameState.lockstep && gameState.lockstep.aRejouer)) donnerOrdre('part', { v: gameState.jetRatio });
     if (gameState.isMulti && gameState._pendingRoomId && isHost) {
         const _universe = _buildMultiUniverse();
         _socket.emit('game_start', { roomId: gameState._pendingRoomId, universe: _universe });
@@ -14644,12 +14659,37 @@ function lockstepDepuisAdresse() {
 }
 
 function rejoindreRelais(url, reglages) {
-    let ws;
-    try { ws = new WebSocket(url); } catch (e) { afficherLockstep('Relais injoignable : ' + url, true); return; }
-    const L = gameState.lockstep = { ws: ws, slot: null, enJeu: false, joueurs: [], paquets: 0,
+    const L = gameState.lockstep = { ws: null, url: url, slot: null, enJeu: false, joueurs: [], paquets: 0,
                                      tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null };
-    ws.onopen = function () { ws.send(JSON.stringify(Object.assign({ t: 'rejoindre' }, reglages))); };
+    ouvrirRelais(L, function () { return Object.assign({ t: 'rejoindre' }, reglages); });
+    afficherLockstep('Connexion au relais...');
+}
+
+/* RECONNEXION. La demande de reprise : notre place (numero + jeton secret)
+   et le premier paquet qui nous manque (0 : page rechargee, tout a
+   rejouer). */
+function demandeReprise(L) {
+    return { t: 'reprendre', salle: L.salleNom, slot: L.slot, jeton: L.jeton, depuis: L.enJeu ? L.paquets : 0 };
+}
+
+/* Ouvre la connexion au relais ; premier() donne le premier message. */
+function ouvrirRelais(L, premier) {
+    let ws;
+    try { ws = new WebSocket(L.url); } catch (e) { afficherLockstep('Relais injoignable : ' + L.url, true); return; }
+    L.ws = ws;
+    ws.onopen = function () { ws.send(JSON.stringify(premier())); };
     ws.onclose = function () {
+        if (gameState.lockstep !== L || L.ws !== ws) return;
+        /* Coupure en pleine partie : on retente toutes les 2 s, pendant
+           3 minutes (le temps que le relais garde la partie). La partie
+           continue jusqu'au dernier paquet recu, puis attend. */
+        if (L.jeton && !L.fini) {
+            L.essais = (L.essais || 0) + 1;
+            if (L.essais > 90) { afficherLockstep('Connexion perdue. Partie abandonnee.', true); return; }
+            afficherLockstep('Connexion perdue — reconnexion (essai ' + L.essais + ')...', true);
+            setTimeout(function () { if (gameState.lockstep === L && L.ws === ws) ouvrirRelais(L, function () { return demandeReprise(L); }); }, L.essais === 1 ? 300 : 2000);
+            return;
+        }
         afficherLockstep('Relais deconnecte', true);
         /* Coupe avant le depart : le salon redevient utilisable. */
         if (gameState.lockstep === L && !L.enJeu && L.slot === null) { gameState.lockstep = null; salonChoixVisibles(true); }
@@ -14664,6 +14704,18 @@ function rejoindreRelais(url, reglages) {
             salonStatut((L.code ? 'Partie privée ' + L.code + ' — donnez ce code à vos amis.\n' : '') + txt);
         }
         else if (m.t === 'salle') { L.code = m.code; }
+        else if (m.t === 'refus' && m.reprise) {
+            /* La partie n'existe plus (terminee, ou abandonnee de tous). */
+            oublierPartieReseau();
+            L.fini = true;
+            try { ws.onclose = null; ws.close(); } catch (e) {}
+            afficherLockstep('Reprise impossible : ' + m.raison, true);
+            if (!L.graine) {
+                gameState.lockstep = null;
+                const bt = document.getElementById('btnReprendre');
+                if (bt) bt.style.display = 'none';
+            }
+        }
         else if (m.t === 'refus') {
             afficherLockstep('Refuse : ' + m.raison, true);
             salonStatut('Impossible : ' + m.raison);
@@ -14673,6 +14725,24 @@ function rejoindreRelais(url, reglages) {
         }
         else if (m.t === 'depart') lancerPartieLockstep(m);
         else if (m.t === 'paquet') recevoirPaquet(m);
+        else if (m.t === 'reprise') {
+            L.essais = 0;
+            /* Le rythme des paquets repart de zero : l'ancienne mesure du
+               reseau ferait croire a un retard enorme. */
+            L.origine = undefined;
+            L.retards = [];
+            if (L.enJeu) { appliquerReprise(L, m); afficherLockstep('Reconnecte'); }
+            else {
+                /* Page rechargee : on relance la partie (meme graine) et on
+                   rejouera tous les ordres depuis le debut, en accelere. */
+                L.aRejouer = m;
+                if (!L.graine) lancerPartieLockstep(m.depart);
+            }
+        }
+        else if (m.t === 'revenu') {
+            const j = gameState.players[m.slot];
+            if (j) addEvent('neutral', '↩', j.name + ' est de retour', null, '#888888');
+        }
         else if (m.t === 'desync') {
             if (L.desync !== null) return;           /* la premiere compte, les suivantes en decoulent */
             L.desync = m.tour;
@@ -14693,7 +14763,53 @@ function rejoindreRelais(url, reglages) {
             if (j) addEvent('neutral', '⚠', j.name + ' a quitte la partie', null, '#888888');
         }
     };
-    afficherLockstep('Connexion au relais...');
+}
+
+/* Les paquets manques, remis par le relais (seuls ceux qui ont des ordres ;
+   les vides se deduisent du dernier numero, m.n). */
+function appliquerReprise(L, m) {
+    for (const p of (m.paquets || [])) {
+        if (p.n < L.paquets) continue;
+        const base = (p.n + PAQUETS_AVANCE) * TOURS_PAR_PAQUET;
+        for (const o of (p.o || [])) programmerOrdre({ tour: base + 1, slot: o.s, type: o.type, d: o.d || {} });
+    }
+    if (m.n + 1 > L.paquets) {
+        L.tourPermis = (m.n + PAQUETS_AVANCE) * TOURS_PAR_PAQUET + TOURS_PAR_PAQUET;
+        L.paquets = m.n + 1;
+    }
+}
+
+/* La partie en cours, gardee dans le navigateur : si la page est fermee ou
+   rechargee, le bouton REPRENDRE de l'ecran titre y ramene. */
+function noterPartieReseau(L) {
+    try {
+        localStorage.setItem('nc_partieReseau', JSON.stringify({ url: L.url, salle: L.salleNom, slot: L.slot,
+                                                                 jeton: L.jeton, t: Date.now() }));
+    } catch (e) {}
+    L.noteLe = performance.now();
+}
+function oublierPartieReseau() {
+    try { localStorage.removeItem('nc_partieReseau'); } catch (e) {}
+}
+/* Une partie quittee il y a moins de 30 minutes, sinon rien. */
+function partieReseauGardee() {
+    try {
+        const g = JSON.parse(localStorage.getItem('nc_partieReseau') || 'null');
+        if (g && g.jeton && g.url && Date.now() - g.t < 30 * 60 * 1000) return g;
+    } catch (e) {}
+    return null;
+}
+
+function reprendrePartieReseau() {
+    const g = partieReseauGardee();
+    if (!g || gameState.lockstep) return;
+    const L = gameState.lockstep = { ws: null, url: g.url, slot: null, enJeu: false, joueurs: [], paquets: 0,
+                                     tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null,
+                                     salleNom: g.salle, jeton: g.jeton, slotGarde: g.slot };
+    ouvrirRelais(L, function () {
+        return { t: 'reprendre', salle: L.salleNom, slot: L.slotGarde, jeton: L.jeton, depuis: 0 };
+    });
+    afficherLockstep('Reprise de la partie...');
 }
 
 /* Le relais a reuni tout le monde : meme graine, meme carte, memes reglages
@@ -14703,6 +14819,9 @@ function lancerPartieLockstep(m) {
     const L = gameState.lockstep;
     L.slot = m.slot;
     L.joueurs = m.joueurs;
+    L.jeton = m.jeton;
+    L.salleNom = m.salle;
+    if (L.jeton) noterPartieReseau(L);
     /* Avant tout calcul de la partie, carte comprise : les memes maths que
        les autres joueurs, quel que soit leur navigateur. */
     installerMathsFixes();
@@ -14753,12 +14872,19 @@ function preparerJoueursLockstep() {
 function lockstepPret() {
     const L = gameState.lockstep;
     L.enJeu = true;
+    if (L.aRejouer) { appliquerReprise(L, L.aRejouer); L.aRejouer = null; }
     envoyerAuRelais({ t: 'pret' });
     if (!L.affichage) L.affichage = setInterval(majBandeauLockstep, 500);
 }
 
 function recevoirPaquet(m) {
     const L = gameState.lockstep;
+    /* Reprise en cours de chargement : mis de cote avec le reste. */
+    if (!L.enJeu && L.aRejouer) {
+        if (m.o && m.o.length) L.aRejouer.paquets.push(m);
+        L.aRejouer.n = m.n;
+        return;
+    }
     const base = (m.n + PAQUETS_AVANCE) * TOURS_PAR_PAQUET;
     for (const o of (m.o || [])) programmerOrdre({ tour: base + 1, slot: o.s, type: o.type, d: o.d || {} });
     L.tourPermis = base + TOURS_PAR_PAQUET;
@@ -14855,6 +14981,18 @@ function installerSalon() {
         salonStatut('');
         salonChoixVisibles(true);
     });
+    /* Une partie en reseau quittee (page fermee, rechargee) : on peut y
+       revenir. */
+    const btR = document.getElementById('btnReprendre');
+    if (btR) {
+        if (partieReseauGardee()) btR.style.display = '';
+        btR.addEventListener('click', function () {
+            if (typeof ensureAudio === 'function') ensureAudio();
+            if (typeof playClickSound === 'function') playClickSound();
+            btR.style.display = 'none';
+            reprendrePartieReseau();
+        });
+    }
     document.querySelectorAll('.salon-rapide').forEach(function (b) {
         b.addEventListener('click', function () {
             salonRejoindre({ public: true, joueurs: +b.dataset.n },
@@ -14901,6 +15039,7 @@ function finPartieLockstep(gagnant) {
     if (!L || L.fini) return;
     L.fini = true;
     L.gagnant = gagnant.name;
+    oublierPartieReseau();
     const bandeauSpect = document.getElementById('bandeauElimine');
     if (bandeauSpect) bandeauSpect.remove();
     showEndScreen(gagnant === gameState.players[localSlot()]);
@@ -14935,6 +15074,7 @@ function passerSpectateurLockstep() {
 /* Quitter une partie en reseau : on repart d'une page neuve, ecran titre,
    sans rien garder de la partie (mode lockstep, maths fixes...). */
 function quitterPartieLockstep() {
+    oublierPartieReseau();
     location.href = location.pathname;
 }
 
@@ -15007,9 +15147,13 @@ function afficherLockstep(texte, alerte) {
 function majBandeauLockstep() {
     const L = gameState.lockstep;
     if (!L || !L.enJeu || L.desync !== null) return;
+    /* Coupe : le message de reconnexion reste affiche. */
+    if (!L.ws || L.ws.readyState !== 1) return;
+    /* La date de la partie gardee, rafraichie toutes les 10 s. */
+    if (L.jeton && !L.fini && performance.now() - (L.noteLe || 0) > 10000) noterPartieReseau(L);
     const retard = L.tourPermis - (gameState.tour || 0);
     if (retard > 60) {
-        afficherLockstep('RATTRAPAGE : ' + Math.round(retard / 60) + ' s de jeu de retard (onglet cache ?)');
+        afficherLockstep('RATTRAPAGE : ' + Math.round(retard / 60) + ' s de jeu de retard');
         return;
     }
     afficherLockstep('joueur ' + (L.slot + 1) + '/' + L.joueurs.length + ' · tour ' + (gameState.tour || 0) +
@@ -15086,7 +15230,7 @@ function avancerImage(dt, timestamp) {
         gameState._rattrapage = ecart > 60;
         const debut = performance.now();
         while (gameState.tour < L.tourPermis
-               && (n < TOURS_MAX_PAR_IMAGE || (loin && performance.now() - debut < 10))
+               && (n < TOURS_MAX_PAR_IMAGE || (loin && performance.now() - debut < (ecart > 600 ? 30 : 10)))
                && (_accSim >= TOUR_SIM || L.tourPermis - gameState.tour > cible + 4 * TOURS_PAR_PAQUET)) {
             tourSimulation();
             _accSim = Math.max(0, _accSim - TOUR_SIM);

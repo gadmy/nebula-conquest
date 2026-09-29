@@ -28,6 +28,7 @@
 
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { extname, join, resolve } from 'node:path';
 import { WebSocketServer } from 'ws';
 
@@ -109,6 +110,7 @@ function nouvelleSalle(nom, m, options) {
     const ia = entier(m.ia, 0, JOUEURS_MAX - joueurs, 0);
     const salle = {
         nom, clients: [], lancee: false, n: 0, ordres: [], empreintes: new Map(), minuteur: null,
+        historique: [], valides: new Map(), abandon: null,
         public: !!options.public,
         reglages: {
             joueurs, ia,
@@ -159,14 +161,44 @@ function rejoindre(ws, m) {
         salle.lancee = true;
         const graine = 1 + Math.floor(Math.random() * 2147483646);
         const joueurs = salle.clients.map(k => ({ nom: k.nom }));
+        /* Les reglages d'abord : leur "joueurs" (un nombre) ne doit pas
+           ecraser la liste des joueurs. Garde pour les reprises. */
+        salle.depart = { ...salle.reglages, graine, joueurs, salle: nom };
         for (const k of salle.clients) {
-            /* Les reglages d'abord : leur "joueurs" (un nombre) ne doit pas
-               ecraser la liste des joueurs. */
-            envoyer(k, { t: 'depart', ...salle.reglages, slot: k.slot, graine, joueurs });
+            /* Le jeton, secret et propre a chaque joueur, lui permettra de
+               reprendre sa place s'il perd la connexion - et a lui seul. */
+            k.jeton = randomUUID();
+            envoyer(k, { t: 'depart', ...salle.depart, slot: k.slot, jeton: k.jeton });
         }
         console.log('[' + nom + '] depart, graine ' + graine);
     }
     return c;
+}
+
+/* REPRISE : un joueur revient dans une partie lancee, avec son numero et
+   son jeton. depuis = le premier paquet qui lui manque (0 : il a tout perdu,
+   page rechargee - il rejouera la partie depuis le debut). On lui renvoie
+   le depart et les paquets non vides depuis ce numero, et le dernier numero
+   envoye : les paquets vides ne sont pas gardes, il les deduit. */
+function reprendre(ws, m) {
+    const salle = salles.get(String(m.salle || ''));
+    const slot = entier(m.slot, 0, JOUEURS_MAX - 1, -1);
+    const k = salle && salle.lancee ? salle.clients[slot] : null;
+    if (!k || !k.jeton || k.jeton !== String(m.jeton || '')) {
+        ws.send(JSON.stringify({ t: 'refus', raison: 'partie introuvable ou terminee', reprise: true }));
+        return null;
+    }
+    const ancien = k.ws;
+    k.ws = ws;
+    k.dernierEnvoi = 0;
+    if (ancien !== ws && ancien.readyState === 1) { try { ancien.close(); } catch (e) {} }
+    if (salle.abandon) { clearTimeout(salle.abandon); salle.abandon = null; }
+    const depuis = entier(m.depuis, 0, 1e9, 0);
+    envoyer(k, { t: 'reprise', depart: { ...salle.depart, slot: k.slot, jeton: k.jeton },
+                 n: salle.n - 1, depuis, paquets: salle.historique.filter(p => p.n >= depuis) });
+    for (const x of salle.clients) if (x !== k) envoyer(x, { t: 'revenu', slot: k.slot });
+    console.log('[' + salle.nom + '] ' + k.nom + ' reprend sa place (depuis le paquet ' + depuis + ')');
+    return k;
 }
 
 /* Tous ceux qui sont encore la ont fini de charger (et il en reste un). */
@@ -180,6 +212,9 @@ function demarrerPaquets(salle) {
     console.log('[' + salle.nom + '] tous prets, premier paquet');
     salle.minuteur = setInterval(() => {
         aTous(salle, { t: 'paquet', n: salle.n, o: salle.ordres });
+        /* L'historique, pour les reprises : seulement les paquets qui ont
+           des ordres (la plupart sont vides). */
+        if (salle.ordres.length) salle.historique.push({ n: salle.n, o: salle.ordres });
         salle.ordres = [];
         salle.n++;
     }, PERIODE);
@@ -190,9 +225,22 @@ function noterEmpreinte(c, m) {
     const salle = c.salle;
     const tour = entier(m.tour, 0, 1e9, -1);
     if (tour < 0) return;
+    const h = String(m.h).slice(0, 16);
+    /* Tour deja valide par les autres : c'est un joueur revenu qui rejoue
+       la partie, on compare son empreinte a celle qu'ils avaient tous. */
+    const valide = salle.valides.get(tour);
+    if (valide !== undefined) {
+        if (h !== valide && !c.desync) {
+            c.desync = true;
+            console.log('[' + salle.nom + '] DESYNCHRONISATION de ' + c.nom + ' (reprise) au tour ' + tour);
+            envoyer(c, { t: 'desync', tour, familles: [], empreintes: { [c.slot]: h } });
+        }
+        return;
+    }
+    for (const t of salle.empreintes.keys()) if (t < tour - 1200) salle.empreintes.delete(t);
     let e = salle.empreintes.get(tour);
     if (!e) { e = {}; salle.empreintes.set(tour, e); }
-    e[c.slot] = { h: String(m.h).slice(0, 16), p: (m.p && typeof m.p === 'object') ? m.p : {} };
+    e[c.slot] = { h, p: (m.p && typeof m.p === 'object') ? m.p : {} };
     const vivants = salle.clients.filter(k => k.ws.readyState === 1);
     if (Object.keys(e).length < vivants.length) return;
     const valeurs = new Set(Object.values(e).map(x => x.h));
@@ -207,7 +255,10 @@ function noterEmpreinte(c, m) {
             console.log('[' + salle.nom + '] DESYNCHRONISATION au tour ' + tour + ' (' + familles.join(', ') + ') ' + JSON.stringify(empreintes));
         }
         aTous(salle, { t: 'desync', tour, familles, empreintes });
-    } else if (tour % 600 === 0) {
+    } else {
+        salle.valides.set(tour, h);
+    }
+    if (valeurs.size === 1 && tour % 600 === 0) {
         console.log('[' + salle.nom + '] tour ' + tour + ' : ' + vivants.length + ' joueurs identiques (' + [...valeurs][0] + ')');
     }
     salle.empreintes.delete(tour);
@@ -253,6 +304,7 @@ wss.on('connection', (ws) => {
         if (m.t !== 'detail' && brut.length > 4096) return;
         if (m.t === 'detail' && c) { noterDetail(c, m); return; }
         if (m.t === 'rejoindre' && !c) { c = rejoindre(ws, m); return; }
+        if (m.t === 'reprendre' && !c) { c = reprendre(ws, m); return; }
         if (!c) return;
         if (m.t === 'pret') {
             c.pret = true;
@@ -267,7 +319,8 @@ wss.on('connection', (ws) => {
         }
     });
     ws.on('close', () => {
-        if (!c) return;
+        /* Remplace par une reprise : ce n'est plus sa connexion. */
+        if (!c || c.ws !== ws) return;
         const salle = c.salle;
         console.log('[' + salle.nom + '] ' + c.nom + ' part');
         /* Avant le depart, celui qui part libere sa place : une page
@@ -284,9 +337,14 @@ wss.on('connection', (ws) => {
            astres restent en jeu, sans ordres - chez tous pareil. */
         if (!salle.minuteur && tousPrets(salle)) demarrerPaquets(salle);
         aTous(salle, { t: 'parti', slot: c.slot });
-        if (salle.clients.every(k => k.ws.readyState !== 1)) {
-            clearInterval(salle.minuteur);
-            salles.delete(salle.nom);
+        /* Plus personne : la salle attend 3 minutes un retour avant de
+           disparaitre (les paquets continuent, vides). */
+        if (salle.clients.every(k => k.ws.readyState !== 1) && !salle.abandon) {
+            salle.abandon = setTimeout(() => {
+                clearInterval(salle.minuteur);
+                if (salles.get(salle.nom) === salle) salles.delete(salle.nom);
+                console.log('[' + salle.nom + '] abandonnee');
+            }, 180000);
         }
     });
 });
