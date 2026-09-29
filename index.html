@@ -1138,6 +1138,22 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
      - remplacer a terme le multijoueur actuel (serveur 2), puis l'arreter
        - un seul moteur de jeu au lieu de deux (index.html et gameLoop.js) ;
      - duree de partie a revoir pour les grandes parties (16 joueurs).
+  🎯 VAISSEAUX CAPITAUX (idee a construire) : 3 grands vaisseaux, memes
+     couleurs que les petits (vert, noir, rouge), qui tournent tres
+     lentement autour du trou noir sans jamais devier de leur course.
+     - Beaucoup de points de vie ; ils se defendent contre les petits
+       vaisseaux des autres couleurs, seuls capables de les detruire.
+     - Detruit : enorme explosion - spores a zero et production coupee
+       1 minute sur tous les astres alentour.
+     - Vert : en passant pres d'un astre, tire en mitrailleuse des paquets
+       de 5 spores qui s'AJOUTENT (quel que soit le camp). Noir : tirs en
+       mitrailleuse qui DETRUISENT 5 spores. Rouge : ne fait rien.
+     - Capture : 20 000 spores envoyees sur lui en moins de 30 s. Le
+       joueur le pilote 1 minute (ZQSD). Ecrase sur une planete : tous ses
+       batiments detruits, spores a zero pendant 1 min. Ecrase sur un
+       soleil : toutes les planetes du systeme a zero spore et zero
+       production pendant 1 min.
+     - En reseau, tout cela passe par des ordres (pilotage ZQSD compris).
   🎯 Hebergement : le relais est tres leger (moins de 1 Ko/s par joueur) ;
      Railway suffit. Un serveur Hetzner (~5,50 €/mois) reste une option
      si le trafic grossit. Dans Railway, garder "Watch Paths" sur
