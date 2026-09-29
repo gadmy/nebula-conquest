@@ -165,14 +165,45 @@ function noterEmpreinte(c, m) {
     salle.empreintes.delete(tour);
 }
 
+/* Le detail de la partie au tour de la premiere desynchronisation, envoye
+   par chaque joueur : on ecrit dans le journal les valeurs qui different,
+   de quoi trouver la cause sans rejouer. */
+function noterDetail(c, m) {
+    const salle = c.salle;
+    if (salle.detailFait || !m.d || typeof m.d !== 'object') return;
+    if (!salle.details) salle.details = {};
+    salle.details[c.slot] = m.d;
+    const vivants = salle.clients.filter(k => k.ws.readyState === 1);
+    if (Object.keys(salle.details).length < vivants.length) return;
+    salle.detailFait = true;
+    const lots = Object.entries(salle.details);
+    const [slotA, A] = lots[0];
+    const log = (t) => console.log('[' + salle.nom + '] ' + t);
+    log('DETAIL au tour ' + m.tour + ' - valeurs generales :');
+    for (const [s, D] of lots) {
+        const g = Object.keys(D).filter(k => k.indexOf('globaux.') === 0).map(k => k.slice(8) + '=' + D[k]).join(' | ');
+        log('  joueur ' + (+s + 1) + ' : ' + g);
+    }
+    for (const [slotB, B] of lots.slice(1)) {
+        const cles = [...new Set([...Object.keys(A), ...Object.keys(B)])].filter(k => k.indexOf('globaux.') !== 0);
+        const diff = cles.filter(k => A[k] !== B[k]);
+        log('  ' + diff.length + ' valeurs differentes entre joueur ' + (+slotA + 1) + ' et joueur ' + (+slotB + 1) + ' :');
+        for (const k of diff.slice(0, 40)) log('    ' + k + ' : ' + A[k] + '  /  ' + B[k]);
+    }
+}
+
 const wss = new WebSocketServer({ server: serveur });
 wss.on('connection', (ws) => {
     let c = null;
     ws.on('message', (brut) => {
-        if (brut.length > 4096) return;            /* un ordre tient en quelques dizaines d'octets */
+        if (brut.length > 400000) return;
         let m;
         try { m = JSON.parse(brut); } catch (e) { return; }
         if (!m || typeof m !== 'object') return;
+        /* Un ordre tient en quelques dizaines d'octets ; seul le detail d'une
+           desynchronisation (une fois par partie) peut etre gros. */
+        if (m.t !== 'detail' && brut.length > 4096) return;
+        if (m.t === 'detail' && c) { noterDetail(c, m); return; }
         if (m.t === 'rejoindre' && !c) { c = rejoindre(ws, m); return; }
         if (!c) return;
         if (m.t === 'pret') {

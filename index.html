@@ -1196,6 +1196,17 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
      - L'ALERTE DIT CE QUI DIFFERE : les joueurs envoient au relais le detail
        de leur empreinte (astres, tirs, joueurs, vaisseaux, cometes), et le
        bandeau affiche les familles en cause.
+     - DEUXIEME ESSAI CHROME CONTRE FIREFOX : les astres restent identiques
+       (les maths fixes ont regle les orbites), mais vaisseaux et cometes
+       divergent des le tour 60 - justement les deux qui tirent dans le
+       hasard de la partie. Pas reproduit entre deux Chrome, meme avec un
+       onglet ralenti 4 fois et la souris qui se promene. D'ou un
+       DIAGNOSTIC COMPLET : chaque seconde, chaque joueur garde toute la
+       partie a plat (detailPartie) ; a la premiere alerte, il l'envoie au
+       relais, qui ecrit dans son journal les valeurs generales des deux
+       (tour, horloge, nombre de tirages du hasard - nouveau compteur
+       _nbAlea -, reglages, graine, navigateur, sin(1)) et les 40 premieres
+       valeurs qui different. Verifie sur un onglet aux maths alterees.
 
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
@@ -4599,7 +4610,10 @@ function createSunTexture(sun) {
 let _worldRng = null;
 function worldRandom() { return _worldRng ? _worldRng() : Math.random(); }
 let _gameRng = null;
-function gameRandom() { return _gameRng ? _gameRng() : Math.random(); }
+/* _nbAlea compte les tirages : en lockstep, deux joueurs doivent en faire
+   exactement autant (voir detailPartie). */
+let _nbAlea = 0;
+function gameRandom() { _nbAlea++; return _gameRng ? _gameRng() : Math.random(); }
 
 // PRNG déterministe (mulberry32)
 function mulberry32(a) {
@@ -8038,6 +8052,7 @@ function finishStartGame() {
     const _logBody = document.querySelector('#eventLog .log-body');
     if (_logBody) _logBody.innerHTML = '';
     _gameRng = mulberry32((gameState.multiSeed || 42) + 5555);
+    _nbAlea = 0;
 
     // Créer les joueurs
     createPlayers();
@@ -14311,6 +14326,12 @@ function tourSimulation() {
     if (gameState.lockstep && gameState.tour % 60 === 0) {
         const e = empreinteEtat(true);
         envoyerAuRelais({ t: 'empreinte', tour: gameState.tour, h: e.empreinte, p: e.parts });
+        /* Le detail de la partie a ce tour, garde un moment : si le relais
+           signale un ecart, on le lui enverra pour qu'il dise quoi. */
+        const L = gameState.lockstep;
+        if (!L.details) L.details = {};
+        L.details[gameState.tour] = detailPartie();
+        delete L.details[gameState.tour - 240];
     }
 }
 
@@ -14723,6 +14744,15 @@ function rejoindreRelais(url, reglages) {
         else if (m.t === 'desync') {
             if (L.desync !== null) return;           /* la premiere compte, les suivantes en decoulent */
             L.desync = m.tour;
+            /* Le detail de ce tour part au relais, qui notera dans son
+               journal les premieres valeurs qui different. */
+            const d = L.details && L.details[m.tour];
+            if (d) {
+                const garde = {};
+                const familles = (m.familles || []).concat(['globaux']);
+                for (const k in d) if (familles.some(f => k.indexOf(f + '.') === 0)) garde[k] = d[k];
+                envoyerAuRelais({ t: 'detail', tour: m.tour, d: garde });
+            }
             afficherLockstep('DESYNCHRONISATION au tour ' + m.tour +
                              (m.familles && m.familles.length ? ' (' + m.familles.join(', ') + ')' : ''), true);
         }
@@ -14817,6 +14847,43 @@ function verifierColonisationLockstep() {
         autoSpawnAIs();
         setPhase('game');
     }
+}
+
+/* TOUTE LA PARTIE A PLAT, pour chercher une desynchronisation : chaque
+   valeur simple des astres, tirs, joueurs, vaisseaux et cometes, sous un
+   nom comme "vaisseaux.2.vx", plus quelques valeurs generales (tour,
+   horloge, nombre de tirages du hasard, reglages). */
+function detailPartie() {
+    const d = {};
+    const LOCAUX = { isLocal: 1, selected: 1 };
+    const mettre = function (pre, o, prof) {
+        if (!o) return;
+        for (const k of Object.keys(o)) {
+            if (k[0] === '_' || LOCAUX[k]) continue;
+            const v = o[k], t = typeof v;
+            if (t === 'number' || t === 'string' || t === 'boolean' || v === null) d[pre + k] = v;
+            else if (prof > 0 && v && t === 'object' && !Array.isArray(v) && !(v instanceof HTMLElement)
+                     && !(typeof v.getContext === 'function') && !ArrayBuffer.isView(v)) mettre(pre + k + '.', v, prof - 1);
+        }
+    };
+    (gameState.allBodies || []).forEach((b, i) => mettre('astres.' + i + '.', b, 0));
+    (gameState.jets || []).forEach((b, i) => mettre('jets.' + i + '.', b, 0));
+    (gameState.players || []).forEach((b, i) => mettre('joueurs.' + i + '.', b, 1));
+    (gameState.cleaners || []).forEach((b, i) => mettre('vaisseaux.' + i + '.', b, 0));
+    (gameState.comets || []).forEach((b, i) => mettre('cometes.' + i + '.', b, 0));
+    d['globaux.tour'] = gameState.tour;
+    d['globaux.time'] = gameState.time;
+    d['globaux.alea'] = _nbAlea;
+    d['globaux.univers'] = gameState.universeRadius;
+    d['globaux.cometTimer'] = gameState.cometTimer;
+    d['globaux.maxRange'] = gameState._maxRangeCache;
+    d['globaux.nbVaisseaux'] = (gameState.cleaners || []).length;
+    d['globaux.nbCometes'] = (gameState.comets || []).length;
+    d['globaux.config'] = JSON.stringify(gameState.config);
+    d['globaux.graine'] = gameState.multiSeed;
+    d['globaux.navigateur'] = navigator.userAgent.slice(-40);
+    d['globaux.sin1'] = Math.sin(1);          /* les maths fixes sont-elles bien la ? */
+    return d;
 }
 
 /* Le bandeau d'etat, en haut de l'ecran. */
