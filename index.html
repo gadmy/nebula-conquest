@@ -1207,6 +1207,18 @@ v9.7.7 | 2026-09-28 | Lockstep : prototype, tours fixes (en cours)
        (tour, horloge, nombre de tirages du hasard - nouveau compteur
        _nbAlea -, reglages, graine, navigateur, sin(1)) et les 40 premieres
        valeurs qui different. Verifie sur un onglet aux maths alterees.
+     - CAUSE PROBABLE TROUVEE : LA CONNEXION AU COMPTE. Connecte dans un
+       navigateur, le jeu finit sa connexion quelques secondes apres
+       l'ouverture de la page et repasse a l'ecran titre - en plein
+       chargement de la partie lockstep. Le retour au titre efface la
+       graine : la carte, deja faite, reste la meme (astres identiques),
+       mais le hasard de la partie repart d'une autre graine (vaisseaux et
+       cometes differents). Reproduit en provoquant ce retour au titre dans
+       un seul onglet : 46 tirages du hasard d'un cote, 28 de l'autre.
+       Corrige : une partie lockstep ne repasse plus par l'ecran titre, les
+       menus ni l'ecran de connexion (setPhase, showAuthScreen), et le
+       hasard repart toujours de la graine du relais, gardee a part.
+       Verifie : meme scenario, identique sur 25 s.
 
    À FAIRE
   🎯 SERVEUR (gameLoop.js, depot a part) : reporter le correctif du
@@ -7628,6 +7640,13 @@ function setupUI() {
 let spawnCountdownInterval = null;
 
 function setPhase(phase) {
+    /* Une partie en lockstep ne repasse pas par l'ecran titre ni par les
+       menus : la connexion au compte, qui se termine quelques secondes apres
+       l'ouverture de la page, y renvoyait en plein chargement - et le retour
+       au titre efface la graine de la partie (desynchronisation Chrome
+       connecte contre Firefox). Pour quitter, on recharge la page. */
+    if (gameState.lockstep && gameState.lockstep.slot !== null
+        && !['spawn', 'game', 'end'].includes(phase)) return;
     gameState.phase = phase;
     if (spawnCountdownInterval) { clearInterval(spawnCountdownInterval); spawnCountdownInterval = null; }
 
@@ -8051,7 +8070,10 @@ function finishStartGame() {
     gameState._chargeAcc = 0;
     const _logBody = document.querySelector('#eventLog .log-body');
     if (_logBody) _logBody.innerHTML = '';
-    _gameRng = mulberry32((gameState.multiSeed || 42) + 5555);
+    /* En lockstep, la graine donnee par le relais, a l'abri : multiSeed peut
+       avoir ete efface entre-temps (retour au titre). */
+    _gameRng = mulberry32((gameState.lockstep && gameState.lockstep.graine
+                           ? gameState.lockstep.graine : (gameState.multiSeed || 42)) + 5555);
     _nbAlea = 0;
 
     // Créer les joueurs
@@ -14774,6 +14796,7 @@ function lancerPartieLockstep(m) {
     /* Avant tout calcul de la partie, carte comprise : les memes maths que
        les autres joueurs, quel que soit leur navigateur. */
     installerMathsFixes();
+    L.graine = m.graine;
     gameState.isMulti = false;
     gameState.isTutorial = false;
     gameState.multiSeed = m.graine;
@@ -21297,6 +21320,7 @@ function onSignedIn(user) {
 }
 
 function showAuthScreen() {
+    if (gameState.lockstep && gameState.lockstep.slot !== null) return;   /* pas par-dessus une partie lockstep */
     document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('titleScreen').classList.add('hidden');
 }
