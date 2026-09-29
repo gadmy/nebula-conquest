@@ -1162,6 +1162,18 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        de la capture est ignore tant qu'on ne s'en est pas ecarte.
      - Pilotee, la sphere n'est plus attaquee par les petits vaisseaux.
      - Capture a 5 000 spores pour les essais (20 000 prevu).
+     - LES SPHERES DOMINENT LES PETITS VAISSEAUX (du spectacle : ce sont
+       les joueurs qui doivent les prendre). Riposte 35 a 55 degats, 85 %
+       de reussite, trait epais ; les petits ne font que 20 % de leurs
+       degats et la sphere se repare (25 PV/s apres 5 s de calme). En
+       5 min : 5 petits vaisseaux abattus, spheres intactes.
+     - Mitrailleuses : chaque balle s'ecrase sur la face de l'astre
+       tournee vers la sphere (etincelles) et fait sauter +5 ou -5.
+     - L'APOCALYPSE a l'ecrasement : eclair blanc, boule de feu, trois
+       ondes de choc, 160 etincelles, 42 nuages de gaz ejectes qui
+       derivent 4 a 7 s, eclats de blindage, ecran qui tremble. Sur un
+       soleil, chaque planete et lune du systeme s'embrase ensuite a son
+       tour. Explosion aussi quand les petits vaisseaux l'abattent.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -15933,6 +15945,7 @@ function render() {
     // ── Vaisseaux nettoyeurs, vaisseaux capitaux ──
     drawCleaners(ctx);
     drawCapitaux(ctx);
+    drawApocalypses(ctx);
 
     // ── Jets de spores ──
     drawJets(ctx);
@@ -17782,7 +17795,8 @@ function _tirLaser(a, b, touche) {
     const ec = touche ? 0 : 18 + Math.random() * 20;
     const ang = Math.random() * Math.PI * 2;
     gameState._lasers.push({ x1: a.x, y1: a.y, x2: b.x + Math.cos(ang) * ec, y2: b.y + Math.sin(ang) * ec,
-                             couleur: DUEL_COULEURS[a.type] || '#FFFFFF', t0: gameState.time, touche: touche });
+                             couleur: DUEL_COULEURS[a.type] || '#FFFFFF', t0: gameState.time, touche: touche,
+                             gros: a.rOrbite !== undefined });
 }
 
 function exploserVaisseau(cl) {
@@ -17898,7 +17912,8 @@ function drawDuels(ctx) {
         const x1 = l.x1 + (l.x2 - l.x1) * Math.max(0, f - 0.35), y1 = l.y1 + (l.y2 - l.y1) * Math.max(0, f - 0.35);
         ctx.globalAlpha = 1 - age / 0.18;
         ctx.strokeStyle = l.couleur;
-        ctx.lineWidth = Math.max(1.2 / z, 2.2);
+        /* Le canon d'une sphere capitale : un trait bien plus epais. */
+        ctx.lineWidth = Math.max(1.2 / z, 2.2) * (l.gros ? 3.5 : 1);
         ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = Math.max(0.5 / z, 0.8);
@@ -17938,7 +17953,12 @@ function drawDuels(ctx) {
 const CAP_CFG = {
     rayon: 40, pv: 4000, tourOrbite: 480, retour: 180,
     engage: 250,                          /* un petit vaisseau attaque a cette distance du bord */
-    riposte: { cadence: 0.8, dmgMin: 3, dmgMax: 6, precision: 0.5, portee: 520 },
+    /* Du spectacle : la sphere balaie les petits vaisseaux (2 ou 3 coups
+       suffisent), eux l'egratignent a peine et elle se repare. Ce sont
+       les joueurs qui doivent s'en emparer. */
+    riposte: { cadence: 0.55, dmgMin: 35, dmgMax: 55, precision: 0.85, portee: 520 },
+    blindage: 0.2,                        /* part des degats des petits vaisseaux qui passe */
+    reparation: 25,                       /* PV par seconde, 5 s apres la derniere attaque */
     explosion: { rayon: 700, duree: 60 },
     mitraille: { portee: 240, cadence: 0.12, paquet: 5 },
     capture: { spores: 5000, fenetre: 30, duree: 60 },       /* 20 000 prevu, 5 000 pour les essais */
@@ -18044,7 +18064,8 @@ function duelsCapitaux(dt) {
             const touche = gameRandom() < DUEL_CFG.precision;
             _tirLaser(cl, C, touche);
             if (touche) {
-                C.pv -= DUEL_CFG.dmgMin + gameRandom() * (DUEL_CFG.dmgMax - DUEL_CFG.dmgMin);
+                C.pv -= (DUEL_CFG.dmgMin + gameRandom() * (DUEL_CFG.dmgMax - DUEL_CFG.dmgMin)) * CAP_CFG.blindage;
+                C.touchee = gameState.time;
                 if (C.pv <= 0) { detruireCapital(C, true); }
             }
         }
@@ -18052,6 +18073,7 @@ function duelsCapitaux(dt) {
     /* La sphere riposte sur le plus proche de ses assaillants. */
     for (const C of caps) {
         if (C.mort) continue;
+        if (C.pv < CAP_CFG.pv && gameState.time - (C.touchee || 0) > 5) C.pv = Math.min(CAP_CFG.pv, C.pv + CAP_CFG.reparation * dt);
         C.riposteT -= dt;
         if (C.riposteT > 0) continue;
         let cible = null, best = C.rayon + CAP_CFG.riposte.portee;
@@ -18089,12 +18111,16 @@ function mitraillerCapital(C, dt) {
     if (!cible) { C.tirT = 0; return; }
     C.tirT = CAP_CFG.mitraille.cadence;
     const p = CAP_CFG.mitraille.paquet;
-    if (C.type === 'green') cible.spores = Math.min(Math.max(cible.spores, cible.maxSpores || 0), (cible.spores || 0) + p);
-    else cible.spores = Math.max(0, (cible.spores || 0) - p);
+    const avant = cible.spores || 0;
+    if (C.type === 'green') cible.spores = Math.min(Math.max(avant, cible.maxSpores || 0), avant + p);
+    else cible.spores = Math.max(0, avant - p);
+    /* La balle (dessin seulement) : elle file vers la face de l'astre
+       tournee vers la sphere et s'y ecrase, en faisant sauter le gain ou
+       la perte. */
     if (!gameState._balles) gameState._balles = [];
-    const a = Math.random() * Math.PI * 2, r = cible.radius * Math.random() * 0.8;
-    gameState._balles.push({ x1: C.x, y1: C.y, x2: cible.x + Math.cos(a) * r, y2: cible.y + Math.sin(a) * r,
-                             t0: gameState.time, couleur: 'rgb(' + CAP_TEINTES[C.type].accent + ')' });
+    gameState._balles.push({ x1: C.x, y1: C.y, astre: cible, ecart: (Math.random() - 0.5) * 1.3,
+                             t0: gameState.time, delta: Math.round(cible.spores - avant),
+                             couleur: 'rgb(' + CAP_TEINTES[C.type].accent + ')' });
 }
 
 /* Un tir de spores touche une sphere : il s'y perd. S'il vient d'un joueur,
@@ -18179,6 +18205,12 @@ function collisionCapital(C) {
             const touches = [];
             for (const p of (s.planets || [])) { touches.push(p); for (const m of (p.moons || [])) touches.push(m); }
             for (const b of touches) { b.spores = 0; b.panne = gameState.time + CAP_CFG.panne; }
+            /* L'etoile encaisse le choc, puis chaque monde du systeme s'embrase a son tour. */
+            const ax = s.x + (C.x - s.x) * s.radius / (s.radius + C.rayon), ay = s.y + (C.y - s.y) * s.radius / (s.radius + C.rayon);
+            lancerApocalypse(ax, ay, Math.max(260, s.radius * 2.6), CAP_TEINTES[C.type].accent, 0);
+            touches.forEach(function (b, k) {
+                lancerApocalypse(b.x, b.y, Math.max(70, b.radius * 1.6), '255,160,80', 0.5 + Math.hypot(b.x - s.x, b.y - s.y) / 1400 + (k % 3) * 0.1);
+            });
             addEvent('war', '☀', 'La sphère ' + CAP_TEINTES[C.type].nom + ' s\'écrase sur ' + s.name + ' : tout le système est paralysé 1 min', s, '#FFB347');
             detruireCapital(C, false);
             return true;
@@ -18193,6 +18225,8 @@ function collisionCapital(C) {
             b.buildMode = 'off';
             b.spores = 0;
             b.panne = gameState.time + CAP_CFG.panne;
+            const ax = b.x + (C.x - b.x) * b.radius / (b.radius + C.rayon), ay = b.y + (C.y - b.y) * b.radius / (b.radius + C.rayon);
+            lancerApocalypse(ax, ay, Math.max(180, b.radius * 2.4), CAP_TEINTES[C.type].accent, 0);
             addEvent('war', '💥', 'La sphère ' + CAP_TEINTES[C.type].nom + ' s\'écrase sur ' + b.name + ' : bâtiments détruits', b, '#FF7A1A');
             detruireCapital(C, false);
             return true;
@@ -18215,6 +18249,7 @@ function detruireCapital(C, abattue) {
             b.panne = gameState.time + CAP_CFG.explosion.duree;
         }
         addEvent('war', '💥', 'La sphère ' + CAP_TEINTES[C.type].nom + ' explose : les astres voisins sont paralysés 1 min', null, '#FF7A1A');
+        lancerApocalypse(C.x, C.y, 240, CAP_TEINTES[C.type].accent, 0);
     }
     /* L'explosion, a la mesure de l'engin. */
     const c = CAP_TEINTES[C.type].accent;
@@ -18256,6 +18291,158 @@ function pilotageCapital(h, v) {
     cam.x += (C.x - cam.x) * 0.12;
     cam.y += (C.y - cam.y) * 0.12;
     return true;
+}
+
+/* Une balle de mitrailleuse arrive sur la surface : petites etincelles a la
+   couleur du tireur, et le gain ou la perte qui saute. */
+function eclatBalle(b, ang) {
+    const P = gameState.particles;
+    if (P) {
+        for (let k = 0; k < 5; k++) {
+            const a = ang + (Math.random() - 0.5) * 1.6, v = 60 + Math.random() * 90;
+            P.push({ x: b.x2, y: b.y2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0,
+                     maxLife: 0.25 + Math.random() * 0.25, radius: 1 + Math.random() * 1.2, color: b.couleur });
+        }
+    }
+    if (!b.delta) return;
+    const z = gameState.camera.zoom || 1;
+    gameState.conquestEffects.push({ x: b.x2, y: b.y2 - 8 / z, baseX: b.x2,
+        text: (b.delta > 0 ? '+' : '') + b.delta, color: b.delta > 0 ? '#4ADE80' : '#F87171',
+        age: 0, maxAge: 0.9, petit: true });
+}
+
+/* L'APOCALYPSE : une sphere capitale s'ecrase sur un astre ou un soleil.
+   Eclair blanc, boule de feu, ondes de choc, gerbes d'etincelles, nuages de
+   gaz ejectes qui derivent et se dissipent, debris. Dessin seulement (hasard
+   du navigateur) : la partie, elle, a deja ete touchee. taille : le rayon de
+   la boule de feu au plus fort. */
+function lancerApocalypse(x, y, taille, accent, retard) {
+    if (!gameState._apocalypses) gameState._apocalypses = [];
+    const r = Math.random;
+    const etincelles = [], nuages = [], debris = [];
+    const feux = ['255,240,200', '255,190,90', '255,120,40', accent];
+    for (let k = 0; k < 160; k++) {
+        etincelles.push({ a: r() * Math.PI * 2, v: taille * (1.2 + r() * 3.8), vie: 0.8 + r() * 2.2,
+                          c: feux[Math.floor(r() * feux.length)], e: 0.6 + r() * 1.4 });
+    }
+    const gaz = ['255,140,50', '230,80,40', '160,70,200', '90,90,110', accent, '255,200,120'];
+    for (let k = 0; k < 42; k++) {
+        nuages.push({ a: r() * Math.PI * 2, v: taille * (0.15 + r() * 0.9), r0: taille * (0.25 + r() * 0.5),
+                      r1: taille * (0.9 + r() * 1.6), vie: 3.5 + r() * 4, c: gaz[Math.floor(r() * gaz.length)],
+                      tourne: (r() - 0.5) * 0.6 });
+    }
+    for (let k = 0; k < 36; k++) {
+        debris.push({ a: r() * Math.PI * 2, v: taille * (0.6 + r() * 2.2), vie: 2 + r() * 2.5,
+                      t: taille * (0.03 + r() * 0.06), rot: r() * 6, vr: (r() - 0.5) * 8 });
+    }
+    gameState._apocalypses.push({ x: x, y: y, t0: gameState.time + (retard || 0), taille: taille, accent: accent,
+                                  etincelles: etincelles, nuages: nuages, debris: debris, secoue: false });
+}
+
+function drawApocalypses(ctx) {
+    const L = gameState._apocalypses;
+    if (!L || !L.length) return;
+    const t = gameState.time;
+    const z = gameState.camera.zoom;
+    const px = 1 / z;
+    for (let i = L.length - 1; i >= 0; i--) {
+        const E = L[i];
+        const age = t - E.t0;
+        if (age < 0) continue;
+        if (age > 8) { L.splice(i, 1); continue; }
+        const T = E.taille;
+        if (!E.secoue) {
+            E.secoue = true;
+            if (aLEcran(E.x, E.y, T * 2)) secouerEcran(Math.min(60, 18 + T * z * 0.12));
+            if (typeof playCleanerSound === 'function') playCleanerSound(E.x, E.y);
+        }
+        if (!aLEcran(E.x, E.y, T * 6)) continue;
+        ctx.save();
+        /* Les nuages de gaz, derriere tout le reste : fumee sombre posee,
+           gaz chauds qui s'ajoutent a la lumiere. */
+        for (const N of E.nuages) {
+            if (age > N.vie) continue;
+            const f = age / N.vie;
+            const d = N.v * (1 - Math.pow(1 - Math.min(1, age / 3), 2)) * 3;
+            const a = N.a + N.tourne * age;
+            const cx = E.x + Math.cos(a) * d, cy = E.y + Math.sin(a) * d;
+            const rr = N.r0 + (N.r1 - N.r0) * Math.min(1, age / 2.5);
+            const al = (f < 0.15 ? f / 0.15 : 1) * (1 - f) * 0.55;
+            ctx.globalCompositeOperation = N.c === '90,90,110' ? 'source-over' : 'lighter';
+            const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
+            g.addColorStop(0, 'rgba(' + N.c + ',' + al + ')');
+            g.addColorStop(0.5, 'rgba(' + N.c + ',' + (al * 0.45) + ')');
+            g.addColorStop(1, 'rgba(' + N.c + ',0)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalCompositeOperation = 'lighter';
+        /* Eclair : tout blanc pendant un dixieme de seconde. */
+        if (age < 0.5) {
+            const f = age / 0.5;
+            const rr = T * (0.6 + f * 2.8);
+            const g = ctx.createRadialGradient(E.x, E.y, 0, E.x, E.y, rr);
+            g.addColorStop(0, 'rgba(255,255,255,' + (1 - f) + ')');
+            g.addColorStop(0.4, 'rgba(255,240,210,' + (0.7 * (1 - f)) + ')');
+            g.addColorStop(1, 'rgba(255,200,120,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(E.x, E.y, rr, 0, Math.PI * 2); ctx.fill();
+        }
+        /* Boule de feu : gonfle, rougit, s'eteint en 2,5 s. */
+        if (age < 2.5) {
+            const f = age / 2.5;
+            const rr = T * (0.3 + 0.9 * Math.sqrt(f));
+            const g = ctx.createRadialGradient(E.x, E.y, 0, E.x, E.y, rr);
+            g.addColorStop(0, 'rgba(255,250,220,' + (0.95 * (1 - f)) + ')');
+            g.addColorStop(0.35, 'rgba(255,170,60,' + (0.8 * (1 - f)) + ')');
+            g.addColorStop(0.7, 'rgba(220,60,30,' + (0.5 * (1 - f)) + ')');
+            g.addColorStop(1, 'rgba(120,20,20,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(E.x, E.y, rr, 0, Math.PI * 2); ctx.fill();
+        }
+        /* Trois ondes de choc, de plus en plus lentes. */
+        for (let k = 0; k < 3; k++) {
+            const a0 = k * 0.25, duree = 1.4 + k * 0.8;
+            const f = (age - a0) / duree;
+            if (f <= 0 || f >= 1) continue;
+            const rr = T * (0.5 + f * (4 + k * 1.5));
+            ctx.strokeStyle = 'rgba(' + (k === 1 ? E.accent : '255,210,150') + ',' + ((1 - f) * 0.7) + ')';
+            ctx.lineWidth = Math.max(2 * px, T * 0.08 * (1 - f));
+            ctx.beginPath(); ctx.arc(E.x, E.y, rr, 0, Math.PI * 2); ctx.stroke();
+        }
+        /* Etincelles : de longs traits qui ralentissent et tombent en braise. */
+        ctx.lineCap = 'round';
+        for (const S of E.etincelles) {
+            if (age > S.vie) continue;
+            const f = age / S.vie;
+            const d = S.v * (1 - Math.exp(-age * 1.6)) / 1.6;
+            const d0 = S.v * (1 - Math.exp(-Math.max(0, age - 0.08) * 1.6)) / 1.6;
+            const ca = Math.cos(S.a), sa = Math.sin(S.a);
+            ctx.strokeStyle = 'rgba(' + S.c + ',' + (1 - f) + ')';
+            ctx.lineWidth = Math.max(1.2 * px, T * 0.012 * S.e);
+            ctx.beginPath();
+            ctx.moveTo(E.x + ca * d0, E.y + sa * d0);
+            ctx.lineTo(E.x + ca * d, E.y + sa * d);
+            ctx.stroke();
+        }
+        /* Debris : eclats de blindage qui tournoient. */
+        ctx.globalCompositeOperation = 'source-over';
+        for (const D of E.debris) {
+            if (age > D.vie) continue;
+            const f = age / D.vie;
+            const d = D.v * (1 - Math.exp(-age * 1.1)) / 1.1;
+            ctx.save();
+            ctx.translate(E.x + Math.cos(D.a) * d, E.y + Math.sin(D.a) * d);
+            ctx.rotate(D.rot + D.vr * age);
+            ctx.fillStyle = 'rgba(70,65,70,' + (1 - f) + ')';
+            ctx.fillRect(-D.t, -D.t * 0.6, D.t * 2, D.t * 1.2);
+            ctx.strokeStyle = 'rgba(255,150,70,' + (0.8 * (1 - f)) + ')';
+            ctx.lineWidth = Math.max(px, D.t * 0.2);
+            ctx.strokeRect(-D.t, -D.t * 0.6, D.t * 2, D.t * 1.2);
+            ctx.restore();
+        }
+        ctx.restore();
+    }
 }
 
 /* LE DESSIN : plaques de blindage sur une sphere, quelques-unes manquantes
@@ -18357,7 +18544,16 @@ function drawCapitaux(ctx) {
         ctx.lineCap = 'round';
         for (let i = B.length - 1; i >= 0; i--) {
             const b = B[i], age = t - b.t0;
-            if (age > 0.35 || age < 0) { B.splice(i, 1); continue; }
+            if (age < 0) { B.splice(i, 1); continue; }
+            /* Le point d'impact suit l'astre : a sa surface, face au tireur. */
+            const A = b.astre;
+            const ang = Math.atan2(b.y1 - A.y, b.x1 - A.x) + b.ecart;
+            b.x2 = A.x + Math.cos(ang) * A.radius; b.y2 = A.y + Math.sin(ang) * A.radius;
+            if (age >= 0.35) {
+                B.splice(i, 1);
+                eclatBalle(b, ang);
+                continue;
+            }
             const f = age / 0.35;
             const x = b.x1 + (b.x2 - b.x1) * f, y = b.y1 + (b.y2 - b.y1) * f;
             const xq = b.x1 + (b.x2 - b.x1) * Math.max(0, f - 0.12), yq = b.y1 + (b.y2 - b.y1) * Math.max(0, f - 0.12);
