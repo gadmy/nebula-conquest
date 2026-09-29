@@ -1191,6 +1191,22 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        0,15 s) : 31 sur 120 prenaient. Maintenant l'astre sous le curseur
        a l'appui fait foi (un tir qui passe ne vole plus le clic) : 120 sur
        120, et 120 sur 120 avec un appui de 0,3 s et la souris qui bouge.
+     - SPHERES : capture remise a 20 000 spores en 30 s.
+     - SORTIE DU TROU NOIR : elles n'existent pas avant 3 min de jeu, puis
+       sortent l'une apres l'autre (3:00, 3:08, 3:16). 5 s avant, le trou
+       noir s'agite (bras de lumiere a leur couleur, lueur qui palpite) ;
+       puis eclair, deux ondes, jet de lumiere et particules, la sphere
+       grossit en s'eloignant (6 s), ecran qui tremble. Intouchable pendant
+       la sortie. Detruite, elle ressort de meme 3 min plus tard.
+     - PLUS D'ORBITE, UNE ROUTE : croisiere lente (40, 85 loin du but), cap
+       qui tourne doucement, s'ecarte des astres et du trou noir.
+       Verte : vers le joueur le plus faible ; noire : vers le meilleur
+       (astres, puis spores) ; elles gardent leur joueur tant qu'un autre
+       n'est pas nettement plus faible / plus fort (20-25 %), sinon demi-
+       tour toutes les 4 s entre deux joueurs egaux. Rouge : pres d'un
+       soleil, au point le plus eloigne des astres des joueurs.
+     - npm run lockstep sur 20 000 tours (sortie et routes comprises) :
+       identique.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -3413,9 +3429,9 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 
 <!-- SPHERES CAPITALES -->
 <p id="h-spheres" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🛸 SPHÈRES CAPITALES</p>
-<p style="margin-bottom:6px;">Trois sphères blindées, grandes comme des lunes, tournent lentement autour du trou noir : une <span style="color:#4ADE80;">verte</span>, une <span style="color:#A5A5C8;">noire</span>, une <span style="color:#EF4444;">rouge</span>. Elles ne dévient jamais de leur course. Quand elle frôle un astre, la verte le mitraille de paquets de <span style="color:#4ADE80;">+5 spores</span>, quel que soit son camp ; la noire, de tirs à <span style="color:#F87171;">−5 spores</span>. La rouge ne tire pas.</p>
-<p style="margin-bottom:6px;">Vos jets ne leur font aucun mal : seuls les <b>petits vaisseaux d'une autre couleur</b> peuvent les abattre, et elles ripostent. Une sphère détruite explose : les astres alentour tombent à <b>0 spore</b> et ne produisent plus rien pendant <b>1 minute</b>. Elle revient 3 minutes plus tard.</p>
-<p style="margin-bottom:16px;"><span style="color:#FFD27A;">LA CAPTURE.</span> Envoyez-lui <span style="color:#E9D5FF;">5 000 spores en moins de 30 s</span> (un anneau à votre couleur montre où vous en êtes) et vous la pilotez pendant <b>1 minute</b> avec <span style="color:#E9D5FF;">ZQSD</span>. Écrasée sur une planète ou une lune : tous ses bâtiments détruits, 0 spore et plus de production pendant 1 minute. Sur un soleil : <b>tout son système</b> subit le même sort. La sphère est perdue dans le choc.</p>
+<p style="margin-bottom:6px;">Après <b>3 minutes</b> de jeu, trois sphères blindées, grandes comme des lunes, sortent du trou noir l'une après l'autre : une <span style="color:#4ADE80;">verte</span>, une <span style="color:#A5A5C8;">noire</span>, une <span style="color:#EF4444;">rouge</span>. Elles avancent lentement : la verte rejoint le <b>joueur le plus faible</b>, la noire le <b>meilleur</b>, la rouge se tient près d'un soleil, le plus loin possible des joueurs. Quand elle frôle un astre, la verte le mitraille de paquets de <span style="color:#4ADE80;">+5 spores</span>, quel que soit son camp ; la noire, de tirs à <span style="color:#F87171;">−5 spores</span>. La rouge ne tire pas.</p>
+<p style="margin-bottom:6px;">Vos jets ne leur font aucun mal : seuls les <b>petits vaisseaux d'une autre couleur</b> peuvent les abattre, et elles ripostent. Une sphère détruite explose : les astres alentour tombent à <b>0 spore</b> et ne produisent plus rien pendant <b>1 minute</b>. Elle ressort du trou noir 3 minutes plus tard.</p>
+<p style="margin-bottom:16px;"><span style="color:#FFD27A;">LA CAPTURE.</span> Envoyez-lui <span style="color:#E9D5FF;">20 000 spores en moins de 30 s</span> (un anneau à votre couleur montre où vous en êtes) et vous la pilotez pendant <b>1 minute</b> avec <span style="color:#E9D5FF;">ZQSD</span>. Écrasée sur une planète ou une lune : tous ses bâtiments détruits, 0 spore et plus de production pendant 1 minute. Sur un soleil : <b>tout son système</b> subit le même sort. La sphère est perdue dans le choc.</p>
 
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
@@ -14496,7 +14512,7 @@ const EXECUTER_ORDRE = {
     /* Piloter la sphere capitale qu'on a capturee : une direction (ZQSD). */
     capital: function (slot, d) {
         const C = (gameState.capitaux || [])[d.k];
-        if (!C || C.mort || C.pilote !== slot) return;
+        if (!C || !capActive(C) || C.pilote !== slot) return;
         const lim = function (v) { v = Math.round(Number(v)); return v > 0 ? 1 : v < 0 ? -1 : 0; };
         C.cmdX = lim(d.dx); C.cmdY = lim(d.dy);
     },
@@ -17967,8 +17983,9 @@ function drawDuels(ctx) {
 // ─────────────────────────────────────────────
 /* Trois spheres blindees, grandes comme des lunes, laissees par une race
    ancienne : une verte, une noire, une rouge (les couleurs des petits
-   vaisseaux). Elles tournent tres lentement autour du trou noir sans jamais
-   devier de leur course.
+   vaisseaux). Elles sortent du trou noir apres 3 minutes de jeu et
+   avancent lentement : la verte vers le joueur le plus faible, la noire
+   vers le meilleur, la rouge pres d'un soleil, loin des joueurs.
    - Seuls les petits vaisseaux d'une AUTRE couleur les attaquent (et
      peuvent les detruire) ; la sphere riposte, sans quitter son orbite.
      Les tirs de spores ne l'abiment pas (ils servent a la capturer), et
@@ -17979,7 +17996,7 @@ function drawDuels(ctx) {
    - En passant pres d'un astre, la verte le mitraille de paquets de 5
      spores qui s'AJOUTENT (tous camps, neutres compris) ; la noire, de tirs
      qui en DETRUISENT 5. La rouge ne tire pas.
-   - CAPTURE : un joueur qui lui envoie 5 000 spores (20 000 a terme) en moins de 30 s en
+   - CAPTURE : un joueur qui lui envoie 20 000 spores en moins de 30 s en
      prend le controle 1 minute et la pilote (ZQSD, par des ordres : meme
      chose chez tous en reseau). Ecrasee sur une planete ou une lune : tous
      ses batiments detruits, zero spore et zero production pendant 1 min.
@@ -17988,7 +18005,12 @@ function drawDuels(ctx) {
    Tout ce qui compte pour la partie passe par gameRandom et l'horloge du
    jeu ; le hasard du navigateur ne sert qu'aux effets (balles, eclats). */
 const CAP_CFG = {
-    rayon: 40, pv: 4000, tourOrbite: 480, retour: 180,
+    rayon: 40, pv: 4000, retour: 180,
+    eveil: 180,                           /* elles sortent du trou noir apres 3 min de jeu */
+    emergence: 6,                         /* secondes pour sortir du trou noir */
+    presage: 5,                           /* secondes ou le trou noir s'agite avant */
+    vitesse: 40, virage: 0.35,            /* croisiere lente, cap qui tourne doucement (rad/s) */
+    vitesseLoin: 85,                      /* loin du but (plus de 600) : les planetes vont vite */
     engage: 250,                          /* un petit vaisseau attaque a cette distance du bord */
     /* Du spectacle : la sphere balaie les petits vaisseaux (2 ou 3 coups
        suffisent), eux l'egratignent a peine et elle se repare. Ce sont
@@ -17998,7 +18020,7 @@ const CAP_CFG = {
     reparation: 25,                       /* PV par seconde, 5 s apres la derniere attaque */
     explosion: { rayon: 700, duree: 60 },
     mitraille: { portee: 240, cadence: 0.12, paquet: 5 },
-    capture: { spores: 5000, fenetre: 30, duree: 60 },       /* 20 000 prevu, 5 000 pour les essais */
+    capture: { spores: 20000, fenetre: 30, duree: 60 },
     pilote: { vitesse: 130, inertie: 0.9 },
     panne: 60
 };
@@ -18009,30 +18031,170 @@ const CAP_TEINTES = {
 };
 
 /* A la creation de l'univers, apres les petits vaisseaux. Aucun tirage au
-   hasard ici : la suite de la partie reste la meme qu'avant. */
+   hasard ici : la suite de la partie reste la meme qu'avant. Elles dorment
+   dans le trou noir et n'en sortent qu'apres 3 minutes de jeu, l'une apres
+   l'autre (sortie). */
 function creerCapitaux() {
     gameState.capitaux = [];
     /* L'ancien multijoueur (serveur 2) ne les connait pas ; le tutoriel reste simple. */
     if (gameState.isMulti || gameState.isTutorial) return;
     const bh = gameState.blackHole;
-    let sMin = Infinity;
-    for (const s of gameState.suns) sMin = Math.min(sMin, s.orbitRadius);
-    if (!isFinite(sMin)) sMin = 1200;
-    const plancher = bh.radius + bh.dangerZone + CAP_CFG.rayon * 2;
     ['green', 'dark', 'red'].forEach(function (type, k) {
         gameState.capitaux.push({
-            type: type, angle: k * Math.PI * 2 / 3 + 0.5,
-            rOrbite: Math.max(plancher + k * 60, sMin * (0.62 + k * 0.08)),
-            x: 0, y: 0, rayon: CAP_CFG.rayon, pv: CAP_CFG.pv, mort: false, retour: 0,
+            type: type, angle: k * Math.PI * 2 / 3 + 0.5, rOrbite: 0,
+            x: bh.x, y: bh.y, rayon: CAP_CFG.rayon, pv: CAP_CFG.pv, mort: false, retour: 0,
+            sortie: CAP_CFG.eveil + k * 8, annonce: 0,
+            cap: k * Math.PI * 2 / 3 + 0.5, cible: '', cibleX: bh.x, cibleY: bh.y, decide: 0, joueur: -1,
             pilote: -1, piloteFin: 0, cmdX: 0, cmdY: 0, vx: 0, vy: 0,
             tirT: 0, riposteT: 0, apports: []
         });
     });
-    for (const C of gameState.capitaux) { C.x = bh.x + Math.cos(C.angle) * C.rOrbite; C.y = bh.y + Math.sin(C.angle) * C.rOrbite; }
 }
 
+/* En jeu pour de bon : ni detruite, ni encore dans le trou noir. */
+function capActive(C) {
+    return !C.mort && gameState.time >= C.sortie + CAP_CFG.emergence;
+}
 function capitauxVivants() {
-    return (gameState.capitaux || []).filter(function (C) { return !C.mort; });
+    return (gameState.capitaux || []).filter(capActive);
+}
+
+/* LA SORTIE DU TROU NOIR : elle part du centre et s'eloigne jusqu'a quitter
+   la zone dangereuse, en grossissant. Rien ne l'atteint pendant ce temps. */
+function sortieCapital(C) {
+    const bh = gameState.blackHole;
+    const f = Math.max(0, Math.min(1, (gameState.time - C.sortie) / CAP_CFG.emergence));
+    const e = 1 - Math.pow(1 - f, 3);
+    const d = (bh.radius + bh.dangerZone + C.rayon * 3) * e;
+    C.x = bh.x + Math.cos(C.angle) * d;
+    C.y = bh.y + Math.sin(C.angle) * d;
+    C.cap = C.angle;
+}
+
+/* OU VA-T-ELLE ? Revu toutes les 4 s, a partir de la seule partie (meme
+   choix chez tous les joueurs en reseau).
+   - verte : vers le joueur le plus faible, pour l'arroser de spores ;
+   - noire : vers le meilleur joueur, pour le saigner ;
+   - rouge : pres d'un soleil, au point le plus eloigne des astres tenus
+     par les joueurs. */
+function forceJoueur(j) {
+    let sp = 0;
+    for (const b of j.bodies) sp += b.spores || 0;
+    return j.bodies.length * 1e7 + sp;
+}
+function deciderCapital(C) {
+    C.decide = gameState.time + 4;
+    if (C.type === 'red') {
+        const tenus = gameState.allBodies.filter(function (b) { return b.type !== 'sun' && b.owner !== null && b.owner !== undefined && b.owner >= 0; });
+        let best = -1, bestS = 0, bestA = 0;
+        gameState.suns.forEach(function (s, i) {
+            for (let k = 0; k < 12; k++) {
+                const a = k * Math.PI / 6;
+                const px = s.x + Math.cos(a) * (s.radius + C.rayon + 220), py = s.y + Math.sin(a) * (s.radius + C.rayon + 220);
+                let m = 1e9;
+                for (const b of tenus) m = Math.min(m, Math.hypot(b.x - px, b.y - py));
+                /* Un peu de fidelite a son choix d'avant : elle ne zigzague pas. */
+                if (C.cible === 'soleil' + i + ':' + k) m *= 1.15;
+                if (m > best) { best = m; bestS = i; bestA = a; }
+            }
+        });
+        C.cible = 'soleil' + bestS + ':' + Math.round(bestA / (Math.PI / 6));
+        return;
+    }
+    const joueurs = gameState.players.filter(function (j) { return j.alive && j.bodies && j.bodies.length; });
+    if (!joueurs.length) { C.cible = ''; C.joueur = -1; return; }
+    let choisi = joueurs[0];
+    for (const j of joueurs) {
+        const d = forceJoueur(j) - forceJoueur(choisi);
+        if (C.type === 'green' ? d < 0 : d > 0) choisi = j;
+    }
+    /* De la suite dans les idees : elle garde le joueur qu'elle suit tant
+       qu'un autre n'est pas nettement plus faible (verte) ou plus fort
+       (noire). Sans cela, entre deux joueurs presque egaux, elle faisait
+       demi-tour toutes les 4 s. */
+    const actuel = gameState.players[C.joueur];
+    if (actuel && actuel.alive && actuel.bodies && actuel.bodies.length && actuel !== choisi) {
+        const fa = forceJoueur(actuel), fc = forceJoueur(choisi);
+        if (C.type === 'green' ? fc > fa * 0.8 : fc < fa * 1.25) choisi = actuel;
+    }
+    C.joueur = gameState.players.indexOf(choisi);
+    /* Et l'astre qu'elle vise, tant qu'il est encore a ce joueur. */
+    const garde = C.cible ? astreNomme(C.cible) : null;
+    if (garde && garde.owner === C.joueur) return;
+    let astre = null, bd = Infinity;
+    for (const b of choisi.bodies) {
+        const d = Math.hypot(b.x - C.x, b.y - C.y);
+        if (d < bd) { bd = d; astre = b; }
+    }
+    C.cible = astre ? astre.name : '';
+}
+
+/* Le point vise, recalcule a chaque tour : astres et soleils bougent. */
+function pointCible(C) {
+    if (C.cible.indexOf('soleil') === 0) {
+        const m = C.cible.slice(6).split(':');
+        const s = gameState.suns[+m[0]];
+        if (s) {
+            const a = (+m[1]) * Math.PI / 6;
+            return [s.x + Math.cos(a) * (s.radius + C.rayon + 220), s.y + Math.sin(a) * (s.radius + C.rayon + 220)];
+        }
+    }
+    const b = C.cible ? astreNomme(C.cible) : null;
+    if (b) {
+        /* Au large de l'astre, a portee de mitrailleuse, du cote ou elle arrive. */
+        const dx = C.x - b.x, dy = C.y - b.y, d = Math.hypot(dx, dy) || 1;
+        const r = b.radius + C.rayon + 140;
+        let px = b.x + dx / d * r, py = b.y + dy / d * r;
+        /* Hors de la zone de jeu (astre du bord) : on passe de l'autre cote. */
+        const R = (gameState._maxRangeCache || 2500) - C.rayon;
+        if (Math.hypot(px, py) > R) {
+            const ux = -b.x, uy = -b.y, un = Math.hypot(ux, uy) || 1;
+            px = b.x + ux / un * r; py = b.y + uy / un * r;
+        }
+        return [px, py];
+    }
+    const bh = gameState.blackHole;
+    const r = bh.radius + bh.dangerZone + 600;
+    return [bh.x + Math.cos(C.cap + 0.3) * r, bh.y + Math.sin(C.cap + 0.3) * r];
+}
+
+/* Un pas de route : cap qui tourne lentement vers le but, vitesse de
+   croisiere, et on s'ecarte des astres et du trou noir sans les toucher. */
+function naviguerCapital(C, dt) {
+    const t = gameState.time;
+    if (t >= C.decide) deciderCapital(C);
+    const P = pointCible(C);
+    C.cibleX = P[0]; C.cibleY = P[1];
+    let dx = P[0] - C.x, dy = P[1] - C.y;
+    const dist = Math.hypot(dx, dy);
+    let vit = (dist > 600 ? CAP_CFG.vitesseLoin : CAP_CFG.vitesse) * Math.min(1, dist / 250);
+    /* Ecartement : astres, soleils, trou noir. */
+    let ex = 0, ey = 0;
+    for (const b of [...gameState.suns, ...gameState.allBodies]) {
+        const bx = C.x - b.x, by = C.y - b.y, d = Math.hypot(bx, by) || 1;
+        const marge = b.radius + C.rayon + 60;
+        if (d < marge) { const k = (marge - d) / marge; ex += bx / d * k * 3; ey += by / d * k * 3; }
+    }
+    const bh = gameState.blackHole;
+    const hx = C.x - bh.x, hy = C.y - bh.y, hd = Math.hypot(hx, hy) || 1;
+    const hm = bh.radius + bh.dangerZone + C.rayon * 2;
+    if (hd < hm) { const k = (hm - hd) / hm; ex += hx / hd * k * 4; ey += hy / hd * k * 4; }
+    const n = Math.hypot(dx, dy) || 1;
+    dx = dx / n + ex; dy = dy / n + ey;
+    if (ex || ey) vit = Math.max(vit, CAP_CFG.vitesse * 0.6);
+    /* Le cap tourne vers la direction voulue, sans a-coup. */
+    const voulu = Math.atan2(dy, dx);
+    let ecart = voulu - C.cap;
+    while (ecart > Math.PI) ecart -= Math.PI * 2;
+    while (ecart < -Math.PI) ecart += Math.PI * 2;
+    const tour = CAP_CFG.virage * dt;
+    C.cap += Math.max(-tour, Math.min(tour, ecart));
+    if (C.cap > Math.PI) C.cap -= Math.PI * 2; else if (C.cap < -Math.PI) C.cap += Math.PI * 2;
+    C.x += Math.cos(C.cap) * vit * dt;
+    C.y += Math.sin(C.cap) * vit * dt;
+    const R = gameState._maxRangeCache || 2500;
+    const d = Math.hypot(C.x, C.y);
+    if (d > R) { C.x *= R / d; C.y *= R / d; }
 }
 
 /* Un tour de calcul. */
@@ -18040,12 +18202,18 @@ function majCapitaux(dt) {
     const L = gameState.capitaux;
     if (!L || !L.length) return;
     const t = gameState.time;
-    const bh = gameState.blackHole;
-    const vAng = Math.PI * 2 / CAP_CFG.tourOrbite;
     for (const C of L) {
-        C.angle += vAng * dt;
         if (C.mort) {
             if (t >= C.retour) reapparaitreCapital(C);
+            continue;
+        }
+        if (t < C.sortie) continue;
+        if (t < C.sortie + CAP_CFG.emergence) {
+            if (!C.annonce) {
+                C.annonce = 1;
+                addEvent('war', '🕳', 'La sphère ' + CAP_TEINTES[C.type].nom + ' sort du trou noir !', null, 'rgb(' + CAP_TEINTES[C.type].accent + ')');
+            }
+            sortieCapital(C);
             continue;
         }
         if (C.pilote >= 0 && t >= C.piloteFin) finPilotage(C);
@@ -18062,12 +18230,7 @@ function majCapitaux(dt) {
             if (d > R) { C.x *= R / d; C.y *= R / d; C.vx *= 0.5; C.vy *= 0.5; }
             if (collisionCapital(C)) continue;
         } else {
-            /* Sur son orbite ; apres un pilotage, elle la rejoint doucement. */
-            const ox = bh.x + Math.cos(C.angle) * C.rOrbite, oy = bh.y + Math.sin(C.angle) * C.rOrbite;
-            const dx = ox - C.x, dy = oy - C.y, d = Math.hypot(dx, dy);
-            const pas = 45 * dt;
-            if (d <= pas) { C.x = ox; C.y = oy; }
-            else { C.x += dx / d * pas; C.y += dy / d * pas; }
+            naviguerCapital(C, dt);
         }
         mitraillerCapital(C, dt);
     }
@@ -18166,7 +18329,7 @@ function tirContreCapitaux(jet) {
     const L = gameState.capitaux;
     if (!L || !L.length) return false;
     for (const C of L) {
-        if (C.mort) continue;
+        if (!capActive(C)) continue;
         if (Math.hypot(jet.x - C.x, jet.y - C.y) > C.rayon + 4) continue;
         jet.alive = false;
         spawnImpact(jet.x, jet.y, jet.color || '#FFFFFF');
@@ -18213,10 +18376,10 @@ function capturerCapital(C, slot) {
 }
 
 function finPilotage(C) {
+    /* Elle reprend sa route a partir de l'endroit ou on l'a laissee. */
+    if (C.vx || C.vy) C.cap = Math.atan2(C.vy, C.vx);
     C.pilote = -1; C.cmdX = 0; C.cmdY = 0; C.vx = 0; C.vy = 0; C.ignore = [];
-    /* Elle reprend son orbite a partir de l'endroit ou on l'a laissee. */
-    const bh = gameState.blackHole;
-    C.angle = Math.atan2(C.y - bh.y, C.x - bh.x);
+    C.decide = gameState.time;
 }
 
 /* Pilotee, elle s'ecrase sur ce qu'elle touche. Rend vrai si elle est detruite. */
@@ -18301,13 +18464,14 @@ function detruireCapital(C, abattue) {
     if (typeof playCleanerSound === 'function') playCleanerSound(C.x, C.y);
 }
 
+/* Detruite, elle renait dans le trou noir et en ressort. */
 function reapparaitreCapital(C) {
     const bh = gameState.blackHole;
     C.mort = false; C.pv = CAP_CFG.pv; C.pilote = -1; C.apports = [];
-    C.x = bh.x + Math.cos(C.angle) * C.rOrbite; C.y = bh.y + Math.sin(C.angle) * C.rOrbite;
-    C._avX = undefined;
-    if (!gameState._ondes) gameState._ondes = [];
-    gameState._ondes.push({ x: C.x, y: C.y, r0: C.rayon * 3, r1: C.rayon, age: 0, maxAge: 1.0, couleur: CAP_TEINTES[C.type].accent, ep: 3 });
+    C.sortie = gameState.time; C.annonce = 0;
+    C.angle += 2.4;
+    C.x = bh.x; C.y = bh.y;
+    C._avX = undefined; C._trace = [];
 }
 
 /* PILOTAGE AU CLAVIER : appele a chaque image par la camera clavier. Si le
@@ -18317,7 +18481,7 @@ function pilotageCapital(h, v) {
     const L = gameState.capitaux;
     if (!L || gameState.phase !== 'game' || gameState.isSpectator) return false;
     const moi = localSlot();
-    const k = L.findIndex(function (C) { return !C.mort && C.pilote === moi; });
+    const k = L.findIndex(function (C) { return capActive(C) && C.pilote === moi; });
     if (k < 0) return false;
     const C = L[k];
     if (!gameState._pilotage || gameState._pilotage.k !== k || gameState._pilotage.h !== h || gameState._pilotage.v !== v) {
@@ -18504,6 +18668,94 @@ function drawApocalypses(ctx) {
     ctx.globalCompositeOperation = op0;
 }
 
+/* LE PRESAGE : quelques secondes avant la sortie, le trou noir s'agite.
+   Bras de lumiere a la couleur de la sphere qui tournent de plus en plus
+   vite, lueur qui enfle et palpite. reste : secondes avant la sortie. */
+function dessinerPresage(ctx, C, reste, z) {
+    const bh = gameState.blackHole;
+    if (!aLEcran(bh.x, bh.y, bh.radius * 4)) return;
+    const T = CAP_TEINTES[C.type];
+    const f = 1 - reste / CAP_CFG.presage;              /* 0 -> 1 a l'approche */
+    const t = gameState.time;
+    const a0 = ctx.globalAlpha, op0 = ctx.globalCompositeOperation;
+    ctx.globalCompositeOperation = 'lighter';
+    const pouls = 0.6 + 0.4 * Math.sin(t * (4 + f * 14));
+    const rr = bh.radius * (0.9 + f * 1.2);
+    ctx.globalAlpha = 0.25 + 0.55 * f * pouls;
+    ctx.drawImage(tacheDouce(T.accent), bh.x - rr, bh.y - rr, rr * 2, rr * 2);
+    ctx.lineCap = 'round';
+    const rot = t * (0.8 + f * 5);
+    for (let k = 0; k < 4; k++) {
+        const a = rot + k * Math.PI / 2;
+        ctx.strokeStyle = 'rgba(' + T.accent + ',' + (0.25 + 0.6 * f) + ')';
+        ctx.lineWidth = Math.max(2 / z, bh.radius * 0.06 * (0.5 + f));
+        ctx.beginPath();
+        ctx.arc(bh.x, bh.y, bh.radius * (0.55 + 0.25 * Math.sin(t * 3 + k)), a, a + 0.9 + f * 0.8);
+        ctx.stroke();
+    }
+    ctx.globalAlpha = a0;
+    ctx.globalCompositeOperation = op0;
+}
+
+/* LA SORTIE : un eclair au coeur du trou noir, deux ondes, un jet de
+   lumiere qui relie le trou noir a la sphere et une gerbe de particules le
+   long du jet ; la sphere grossit en s'eloignant, drapee d'un halo. */
+function dessinerSortie(ctx, C, age, f, z) {
+    const bh = gameState.blackHole;
+    const T = CAP_TEINTES[C.type];
+    if (C._secoue !== C.sortie) {
+        C._secoue = C.sortie;
+        if (aLEcran(bh.x, bh.y, bh.radius * 3)) secouerEcran(22);
+        if (typeof playCleanerSound === 'function') playCleanerSound(bh.x, bh.y);
+    }
+    if (!aLEcran((bh.x + C.x) / 2, (bh.y + C.y) / 2, bh.radius * 4)) return;
+    const a0 = ctx.globalAlpha, op0 = ctx.globalCompositeOperation;
+    ctx.globalCompositeOperation = 'lighter';
+    /* Eclair et ondes au trou noir. */
+    if (age < 1) {
+        const rr = bh.radius * (0.8 + age * 2.5);
+        ctx.globalAlpha = 1 - age;
+        ctx.drawImage(tacheDouce('255,250,235'), bh.x - rr, bh.y - rr, rr * 2, rr * 2);
+    }
+    for (let k = 0; k < 2; k++) {
+        const g = (age - k * 0.35) / 1.8;
+        if (g <= 0 || g >= 1) continue;
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = 'rgba(' + T.accent + ',' + (0.8 * (1 - g)) + ')';
+        ctx.lineWidth = Math.max(2 / z, bh.radius * 0.07 * (1 - g));
+        ctx.beginPath(); ctx.arc(bh.x, bh.y, bh.radius * (0.6 + g * 3.5), 0, Math.PI * 2); ctx.stroke();
+    }
+    /* Le jet : large et vif au debut, il s'amincit et s'eteint. */
+    const v = 1 - f;
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.5 * v;
+    ctx.strokeStyle = 'rgb(' + T.accent + ')';
+    ctx.lineWidth = C.rayon * 1.6 * v + 2 / z;
+    ctx.beginPath(); ctx.moveTo(bh.x, bh.y); ctx.lineTo(C.x, C.y); ctx.stroke();
+    ctx.globalAlpha = 0.8 * v;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = C.rayon * 0.35 * v + 1 / z;
+    ctx.stroke();
+    /* Particules le long du jet (dessin seulement). */
+    ctx.globalAlpha = v;
+    ctx.fillStyle = 'rgb(' + T.accent + ')';
+    ctx.beginPath();
+    for (let k = 0; k < 24; k++) {
+        const u = Math.random(), ec = (Math.random() - 0.5) * C.rayon * 2.2;
+        const nx = -(C.y - bh.y), ny = C.x - bh.x, nn = Math.hypot(nx, ny) || 1;
+        const x = bh.x + (C.x - bh.x) * u + nx / nn * ec, y = bh.y + (C.y - bh.y) * u + ny / nn * ec;
+        const r = (1 + Math.random() * 2.5) / z;
+        ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
+    }
+    ctx.fill();
+    /* Halo autour de la sphere qui naît. */
+    const hr = C.rayon * (1.5 + 2.5 * v);
+    ctx.globalAlpha = 0.35 + 0.5 * v;
+    ctx.drawImage(tacheDouce(T.accent), C.x - hr, C.y - hr, hr * 2, hr * 2);
+    ctx.globalAlpha = a0;
+    ctx.globalCompositeOperation = op0;
+}
+
 /* LA TRAINEE d'une sphere pilotee : un sillage a la couleur du pilote,
    large et vif pres d'elle, qui s'amincit et s'efface en 2,5 s. Dessin
    seulement : les points se notent a l'image, pas dans la partie. */
@@ -18583,7 +18835,12 @@ function drawCapitaux(ctx) {
     for (const C of L) {
         if (C.mort) continue;
         const T = CAP_TEINTES[C.type];
-        const R = C.rayon;
+        /* Avant sa sortie, le trou noir s'agite ; pendant, elle en jaillit. */
+        const ageS = t - C.sortie;
+        if (ageS < 0) { if (ageS > -CAP_CFG.presage) dessinerPresage(ctx, C, -ageS, z); continue; }
+        const fS = Math.min(1, ageS / CAP_CFG.emergence);
+        if (fS < 1) dessinerSortie(ctx, C, ageS, fS, z);
+        const R = C.rayon * (fS < 1 ? 0.15 + 0.85 * (1 - Math.pow(1 - fS, 3)) : 1);
         dessinerTrainee(ctx, C, t, z);
         if (!aLEcran(C.x, C.y, C.rayon * 4)) continue;
         ctx.save();
@@ -18638,6 +18895,7 @@ function drawCapitaux(ctx) {
         ctx.lineWidth = Math.max(1.5 / z, C.pilote >= 0 ? R * 0.08 : R * 0.03);
         ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
+        if (fS < 1) continue;
 
         /* Vie, capture, pilotage : sous la sphere, a taille d'ecran constante. */
         const px = 1 / z;
