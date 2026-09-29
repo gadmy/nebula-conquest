@@ -1174,6 +1174,23 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        derivent 4 a 7 s, eclats de blindage, ecran qui tremble. Sur un
        soleil, chaque planete et lune du systeme s'embrase ensuite a son
        tour. Explosion aussi quand les petits vaisseaux l'abattent.
+     - EXPLOSION ALLEGEE (elle faisait ramer) : nuages et boule de feu
+       dessines a partir de taches preparees une fois (tacheDouce) au lieu
+       de degrades refaits a chaque image, etincelles et debris traces par
+       paquets, explosions secondaires du systeme en petit format. Mesure
+       sur un ecrasement de soleil : 3,6 ms par image en moyenne -> 0,4 ms,
+       16 ms au pire -> 5 ms.
+     - ASTRES PARALYSES SIGNALES : sol assombri, anneau rouge en pointille
+       qui tourne et palpite, et "PARALYSE 53 s" sous l'astre.
+     - TRAINEE derriere la sphere pilotee, a la couleur du pilote, qui
+       s'efface en 2,5 s.
+     - LA SELECTION D'UN ASTRE AU PREMIER CLIC, POUR DE BON. Des l'appui la
+       camera glisse vers l'astre ; au relacher (0,1 a 0,3 s plus tard) le
+       jeu recalculait ce qu'il y avait sous le curseur, tombait souvent
+       dans le vide et deselectionnait. Mesure avec de vrais clics (appui
+       0,15 s) : 31 sur 120 prenaient. Maintenant l'astre sous le curseur
+       a l'appui fait foi (un tir qui passe ne vole plus le clic) : 120 sur
+       120, et 120 sur 120 avec un appui de 0,3 s et la souris qui bouge.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -13891,10 +13908,17 @@ function setupInput() {
     }
 
     // ── Clic gauche ──
+    let _appui = null;          /* l'appui du clic gauche en cours (voir plus bas) */
     canvas.addEventListener('mousedown', (e) => {
         if (e.button !== 0 || gameState.phase !== 'game') return;
         if (gameState.isSpectator) return;
         const wp = _worldPos(e.clientX, e.clientY);
+        /* CE QUI EST SOUS LE CURSEUR A L'APPUI fait foi pour tout le clic.
+           Des l'appui la camera glisse vers l'astre choisi ; au relacher,
+           0,1 a 0,2 s plus tard, recalculer "ce qu'il y a sous le curseur"
+           tombait souvent dans le vide et deselectionnait : 31 clics sur
+           120 seulement prenaient du premier coup. */
+        _appui = { x: e.clientX, y: e.clientY, wx: wp.x, wy: wp.y, astre: findBodyAt(wp.x, wp.y) };
         /* Cliquer dans l'espace rend la main au jeu : le bouton ou le
            curseur touche juste avant ne garde plus le clavier (Espace, F, A,
            E... repartent au jeu). */
@@ -14136,11 +14160,23 @@ if (body && _pied && (e.button === 2)) {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
-        const worldX = (mx - gameState.width / 2) / cam.zoom + cam.x;
-        const worldY = (my - gameState.height / 2) / cam.zoom + cam.y;
+        let worldX = (mx - gameState.width / 2) / cam.zoom + cam.x;
+        let worldY = (my - gameState.height / 2) / cam.zoom + cam.y;
+        /* Un clic (pas un glisse) : on garde ce qui etait vise a l'appui. */
+        const appui = _appui;
+        _appui = null;
+        const clicNet = appui && Math.hypot(e.clientX - appui.x, e.clientY - appui.y) < 10;
+        if (clicNet && gameState.phase === 'game') { worldX = appui.wx; worldY = appui.wy; }
 
         if (gameState.phase === 'spawn' && !gameState._spawnLocked) {
             handleSpawnClick(worldX, worldY);
+        } else if (gameState.phase === 'game' && clicNet && appui.astre) {
+            /* Un astre sous le curseur a l'appui : c'est lui, meme si un tir
+               passait a cote. */
+            for (const jet of gameState.jets) jet.selected = false;
+            followingBody = appui.astre;
+            cam.x = appui.astre.x;
+            cam.y = appui.astre.y;
         } else if (gameState.phase === 'game') {
             // Chercher un jet sous le clic
             let clickedJet = false;
@@ -15944,6 +15980,7 @@ function render() {
 
     // ── Vaisseaux nettoyeurs, vaisseaux capitaux ──
     drawCleaners(ctx);
+    drawPannes(ctx);
     drawCapitaux(ctx);
     drawApocalypses(ctx);
 
@@ -18209,7 +18246,7 @@ function collisionCapital(C) {
             const ax = s.x + (C.x - s.x) * s.radius / (s.radius + C.rayon), ay = s.y + (C.y - s.y) * s.radius / (s.radius + C.rayon);
             lancerApocalypse(ax, ay, Math.max(260, s.radius * 2.6), CAP_TEINTES[C.type].accent, 0);
             touches.forEach(function (b, k) {
-                lancerApocalypse(b.x, b.y, Math.max(70, b.radius * 1.6), '255,160,80', 0.5 + Math.hypot(b.x - s.x, b.y - s.y) / 1400 + (k % 3) * 0.1);
+                lancerApocalypse(b.x, b.y, Math.max(70, b.radius * 1.6), '255,160,80', 0.5 + Math.hypot(b.x - s.x, b.y - s.y) / 1400 + (k % 3) * 0.1, true);
             });
             addEvent('war', '☀', 'La sphère ' + CAP_TEINTES[C.type].nom + ' s\'écrase sur ' + s.name + ' : tout le système est paralysé 1 min', s, '#FFB347');
             detruireCapital(C, false);
@@ -18316,27 +18353,51 @@ function eclatBalle(b, ang) {
    gaz ejectes qui derivent et se dissipent, debris. Dessin seulement (hasard
    du navigateur) : la partie, elle, a deja ete touchee. taille : le rayon de
    la boule de feu au plus fort. */
-function lancerApocalypse(x, y, taille, accent, retard) {
+/* Une tache lumineuse ronde et douce, dessinee une fois par couleur puis
+   reutilisee (drawImage) : creer des degrades a chaque image pour chaque
+   nuage coutait jusqu'a 16 ms par image pendant une explosion. */
+const _taches = {};
+function tacheDouce(c) {
+    if (_taches[c]) return _taches[c];
+    const n = 64, cv = document.createElement('canvas');
+    cv.width = cv.height = n * 2;
+    const x = cv.getContext('2d');
+    const g = x.createRadialGradient(n, n, 0, n, n, n);
+    g.addColorStop(0, 'rgba(' + c + ',1)');
+    g.addColorStop(0.45, 'rgba(' + c + ',0.45)');
+    g.addColorStop(1, 'rgba(' + c + ',0)');
+    x.fillStyle = g;
+    x.fillRect(0, 0, n * 2, n * 2);
+    _taches[c] = cv;
+    return cv;
+}
+
+function lancerApocalypse(x, y, taille, accent, retard, petite) {
     if (!gameState._apocalypses) gameState._apocalypses = [];
     const r = Math.random;
     const etincelles = [], nuages = [], debris = [];
     const feux = ['255,240,200', '255,190,90', '255,120,40', accent];
-    for (let k = 0; k < 160; k++) {
+    const nE = petite ? 24 : 110, nN = petite ? 4 : 18, nD = petite ? 5 : 20;
+    for (let k = 0; k < nE; k++) {
         etincelles.push({ a: r() * Math.PI * 2, v: taille * (1.2 + r() * 3.8), vie: 0.8 + r() * 2.2,
-                          c: feux[Math.floor(r() * feux.length)], e: 0.6 + r() * 1.4 });
+                          c: k % feux.length, e: 0.6 + r() * 1.4 });
     }
-    const gaz = ['255,140,50', '230,80,40', '160,70,200', '90,90,110', accent, '255,200,120'];
-    for (let k = 0; k < 42; k++) {
-        nuages.push({ a: r() * Math.PI * 2, v: taille * (0.15 + r() * 0.9), r0: taille * (0.25 + r() * 0.5),
-                      r1: taille * (0.9 + r() * 1.6), vie: 3.5 + r() * 4, c: gaz[Math.floor(r() * gaz.length)],
+    const gaz = ['255,140,50', '230,80,40', '160,70,200', accent, '255,200,120'];
+    for (let k = 0; k < nN; k++) {
+        nuages.push({ a: r() * Math.PI * 2, v: taille * (0.15 + r() * 0.9), r0: taille * (0.3 + r() * 0.5),
+                      r1: taille * (0.9 + r() * 1.3), vie: 3.5 + r() * 3.5, c: gaz[k % gaz.length],
                       tourne: (r() - 0.5) * 0.6 });
     }
-    for (let k = 0; k < 36; k++) {
+    for (let k = 0; k < nD; k++) {
         debris.push({ a: r() * Math.PI * 2, v: taille * (0.6 + r() * 2.2), vie: 2 + r() * 2.5,
                       t: taille * (0.03 + r() * 0.06), rot: r() * 6, vr: (r() - 0.5) * 8 });
     }
+    /* Les taches se preparent ici, pas a la premiere image de l'explosion. */
+    tacheDouce('255,250,235'); tacheDouce('255,160,60'); tacheDouce('255,245,210');
+    for (const c of gaz) tacheDouce(c);
     gameState._apocalypses.push({ x: x, y: y, t0: gameState.time + (retard || 0), taille: taille, accent: accent,
-                                  etincelles: etincelles, nuages: nuages, debris: debris, secoue: false });
+                                  feux: feux, etincelles: etincelles, nuages: nuages, debris: debris,
+                                  secoue: !!petite });
 }
 
 function drawApocalypses(ctx) {
@@ -18345,103 +18406,167 @@ function drawApocalypses(ctx) {
     const t = gameState.time;
     const z = gameState.camera.zoom;
     const px = 1 / z;
+    const a0 = ctx.globalAlpha, op0 = ctx.globalCompositeOperation;
     for (let i = L.length - 1; i >= 0; i--) {
         const E = L[i];
         const age = t - E.t0;
         if (age < 0) continue;
-        if (age > 8) { L.splice(i, 1); continue; }
+        if (age > 7) { L.splice(i, 1); continue; }
         const T = E.taille;
         if (!E.secoue) {
             E.secoue = true;
             if (aLEcran(E.x, E.y, T * 2)) secouerEcran(Math.min(60, 18 + T * z * 0.12));
             if (typeof playCleanerSound === 'function') playCleanerSound(E.x, E.y);
         }
-        if (!aLEcran(E.x, E.y, T * 6)) continue;
-        ctx.save();
-        /* Les nuages de gaz, derriere tout le reste : fumee sombre posee,
-           gaz chauds qui s'ajoutent a la lumiere. */
+        if (!aLEcran(E.x, E.y, T * 5)) continue;
+        ctx.globalCompositeOperation = 'lighter';
+        /* Nuages de gaz ejectes : ils filent, ralentissent, gonflent et se dissipent. */
         for (const N of E.nuages) {
             if (age > N.vie) continue;
             const f = age / N.vie;
             const d = N.v * (1 - Math.pow(1 - Math.min(1, age / 3), 2)) * 3;
             const a = N.a + N.tourne * age;
-            const cx = E.x + Math.cos(a) * d, cy = E.y + Math.sin(a) * d;
             const rr = N.r0 + (N.r1 - N.r0) * Math.min(1, age / 2.5);
-            const al = (f < 0.15 ? f / 0.15 : 1) * (1 - f) * 0.55;
-            ctx.globalCompositeOperation = N.c === '90,90,110' ? 'source-over' : 'lighter';
-            const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
-            g.addColorStop(0, 'rgba(' + N.c + ',' + al + ')');
-            g.addColorStop(0.5, 'rgba(' + N.c + ',' + (al * 0.45) + ')');
-            g.addColorStop(1, 'rgba(' + N.c + ',0)');
-            ctx.fillStyle = g;
-            ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = (f < 0.15 ? f / 0.15 : 1) * (1 - f) * 0.55;
+            ctx.drawImage(tacheDouce(N.c), E.x + Math.cos(a) * d - rr, E.y + Math.sin(a) * d - rr, rr * 2, rr * 2);
         }
-        ctx.globalCompositeOperation = 'lighter';
-        /* Eclair : tout blanc pendant un dixieme de seconde. */
+        /* Eclair blanc, puis boule de feu qui gonfle et s'eteint. */
         if (age < 0.5) {
-            const f = age / 0.5;
-            const rr = T * (0.6 + f * 2.8);
-            const g = ctx.createRadialGradient(E.x, E.y, 0, E.x, E.y, rr);
-            g.addColorStop(0, 'rgba(255,255,255,' + (1 - f) + ')');
-            g.addColorStop(0.4, 'rgba(255,240,210,' + (0.7 * (1 - f)) + ')');
-            g.addColorStop(1, 'rgba(255,200,120,0)');
-            ctx.fillStyle = g;
-            ctx.beginPath(); ctx.arc(E.x, E.y, rr, 0, Math.PI * 2); ctx.fill();
+            const f = age / 0.5, rr = T * (0.6 + f * 2.8);
+            ctx.globalAlpha = 1 - f;
+            ctx.drawImage(tacheDouce('255,250,235'), E.x - rr, E.y - rr, rr * 2, rr * 2);
         }
-        /* Boule de feu : gonfle, rougit, s'eteint en 2,5 s. */
         if (age < 2.5) {
-            const f = age / 2.5;
-            const rr = T * (0.3 + 0.9 * Math.sqrt(f));
-            const g = ctx.createRadialGradient(E.x, E.y, 0, E.x, E.y, rr);
-            g.addColorStop(0, 'rgba(255,250,220,' + (0.95 * (1 - f)) + ')');
-            g.addColorStop(0.35, 'rgba(255,170,60,' + (0.8 * (1 - f)) + ')');
-            g.addColorStop(0.7, 'rgba(220,60,30,' + (0.5 * (1 - f)) + ')');
-            g.addColorStop(1, 'rgba(120,20,20,0)');
-            ctx.fillStyle = g;
-            ctx.beginPath(); ctx.arc(E.x, E.y, rr, 0, Math.PI * 2); ctx.fill();
+            const f = age / 2.5, rr = T * (0.3 + 0.9 * Math.sqrt(f));
+            ctx.globalAlpha = 0.9 * (1 - f);
+            ctx.drawImage(tacheDouce('255,160,60'), E.x - rr, E.y - rr, rr * 2, rr * 2);
+            ctx.globalAlpha = 0.9 * (1 - f) * (1 - f);
+            ctx.drawImage(tacheDouce('255,245,210'), E.x - rr * 0.5, E.y - rr * 0.5, rr, rr);
         }
-        /* Trois ondes de choc, de plus en plus lentes. */
+        ctx.globalAlpha = 1;
+        /* Trois ondes de choc. */
         for (let k = 0; k < 3; k++) {
-            const a0 = k * 0.25, duree = 1.4 + k * 0.8;
-            const f = (age - a0) / duree;
+            const f = (age - k * 0.25) / (1.4 + k * 0.8);
             if (f <= 0 || f >= 1) continue;
-            const rr = T * (0.5 + f * (4 + k * 1.5));
             ctx.strokeStyle = 'rgba(' + (k === 1 ? E.accent : '255,210,150') + ',' + ((1 - f) * 0.7) + ')';
             ctx.lineWidth = Math.max(2 * px, T * 0.08 * (1 - f));
-            ctx.beginPath(); ctx.arc(E.x, E.y, rr, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(E.x, E.y, T * (0.5 + f * (4 + k * 1.5)), 0, Math.PI * 2); ctx.stroke();
         }
-        /* Etincelles : de longs traits qui ralentissent et tombent en braise. */
+        /* Etincelles : un seul trace par couleur et par palier d'eclat. */
         ctx.lineCap = 'round';
-        for (const S of E.etincelles) {
-            if (age > S.vie) continue;
-            const f = age / S.vie;
-            const d = S.v * (1 - Math.exp(-age * 1.6)) / 1.6;
-            const d0 = S.v * (1 - Math.exp(-Math.max(0, age - 0.08) * 1.6)) / 1.6;
-            const ca = Math.cos(S.a), sa = Math.sin(S.a);
-            ctx.strokeStyle = 'rgba(' + S.c + ',' + (1 - f) + ')';
-            ctx.lineWidth = Math.max(1.2 * px, T * 0.012 * S.e);
-            ctx.beginPath();
-            ctx.moveTo(E.x + ca * d0, E.y + sa * d0);
-            ctx.lineTo(E.x + ca * d, E.y + sa * d);
-            ctx.stroke();
+        ctx.lineWidth = Math.max(1.2 * px, T * 0.015);
+        for (let c = 0; c < E.feux.length; c++) {
+            for (let palier = 0; palier < 3; palier++) {
+                let n = 0;
+                ctx.beginPath();
+                for (const S of E.etincelles) {
+                    if (S.c !== c || age > S.vie) continue;
+                    if (Math.min(2, Math.floor(age / S.vie * 3)) !== palier) continue;
+                    const d = S.v * (1 - Math.exp(-age * 1.6)) / 1.6;
+                    const d0 = S.v * (1 - Math.exp(-Math.max(0, age - 0.08) * 1.6)) / 1.6;
+                    const ca = Math.cos(S.a), sa = Math.sin(S.a);
+                    ctx.moveTo(E.x + ca * d0, E.y + sa * d0);
+                    ctx.lineTo(E.x + ca * d, E.y + sa * d);
+                    n++;
+                }
+                if (!n) continue;
+                ctx.strokeStyle = 'rgba(' + E.feux[c] + ',' + (1 - (palier + 0.5) / 3) + ')';
+                ctx.stroke();
+            }
         }
-        /* Debris : eclats de blindage qui tournoient. */
+        /* Eclats de blindage : un seul trace pour tous. */
         ctx.globalCompositeOperation = 'source-over';
+        let nD = 0, fd = 0;
+        ctx.beginPath();
         for (const D of E.debris) {
             if (age > D.vie) continue;
-            const f = age / D.vie;
+            fd += age / D.vie; nD++;
             const d = D.v * (1 - Math.exp(-age * 1.1)) / 1.1;
-            ctx.save();
-            ctx.translate(E.x + Math.cos(D.a) * d, E.y + Math.sin(D.a) * d);
-            ctx.rotate(D.rot + D.vr * age);
-            ctx.fillStyle = 'rgba(70,65,70,' + (1 - f) + ')';
-            ctx.fillRect(-D.t, -D.t * 0.6, D.t * 2, D.t * 1.2);
-            ctx.strokeStyle = 'rgba(255,150,70,' + (0.8 * (1 - f)) + ')';
-            ctx.lineWidth = Math.max(px, D.t * 0.2);
-            ctx.strokeRect(-D.t, -D.t * 0.6, D.t * 2, D.t * 1.2);
-            ctx.restore();
+            const cx = E.x + Math.cos(D.a) * d, cy = E.y + Math.sin(D.a) * d;
+            const r = D.rot + D.vr * age, cr = Math.cos(r), sr = Math.sin(r);
+            const w = D.t, h = D.t * 0.6;
+            ctx.moveTo(cx + cr * w - sr * h, cy + sr * w + cr * h);
+            ctx.lineTo(cx - cr * w - sr * h, cy - sr * w + cr * h);
+            ctx.lineTo(cx - cr * w + sr * h, cy - sr * w - cr * h);
+            ctx.lineTo(cx + cr * w + sr * h, cy + sr * w - cr * h);
+            ctx.closePath();
         }
-        ctx.restore();
+        if (nD) {
+            const al = 1 - fd / nD;
+            ctx.fillStyle = 'rgba(70,65,70,' + al + ')';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,150,70,' + (0.8 * al) + ')';
+            ctx.lineWidth = Math.max(px, T * 0.01);
+            ctx.stroke();
+        }
+    }
+    ctx.globalAlpha = a0;
+    ctx.globalCompositeOperation = op0;
+}
+
+/* LA TRAINEE d'une sphere pilotee : un sillage a la couleur du pilote,
+   large et vif pres d'elle, qui s'amincit et s'efface en 2,5 s. Dessin
+   seulement : les points se notent a l'image, pas dans la partie. */
+function dessinerTrainee(ctx, C, t, z) {
+    if (!C._trace) C._trace = [];
+    const tr = C._trace;
+    if (C.pilote >= 0 && gameState.players[C.pilote]) {
+        C._traceCouleur = couleurHex(gameState.players[C.pilote].color);
+        const d = tr.length ? Math.hypot(C.x - tr[tr.length - 1].x, C.y - tr[tr.length - 1].y) : Infinity;
+        if (d > 6) tr.push({ x: C.x, y: C.y, t: t });
+    }
+    while (tr.length && (t - tr[0].t > 2.5 || tr[0].t > t)) tr.shift();
+    if (tr.length < 2) return;
+    const coul = C._traceCouleur || '#FFFFFF';
+    const acc = CAP_TEINTES[C.type].accent;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    for (let i = 1; i < tr.length; i++) {
+        const f = 1 - (t - tr[i].t) / 2.5;               /* 1 : tout frais, 0 : efface */
+        if (f <= 0) continue;
+        ctx.beginPath();
+        ctx.moveTo(tr[i - 1].x, tr[i - 1].y);
+        ctx.lineTo(i === tr.length - 1 ? C.x : tr[i].x, i === tr.length - 1 ? C.y : tr[i].y);
+        ctx.strokeStyle = coul + hexAlpha(0.45 * f);
+        ctx.lineWidth = C.rayon * 1.6 * f + 2 / z;
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(' + acc + ',' + (0.7 * f) + ')';
+        ctx.lineWidth = C.rayon * 0.5 * f + 1 / z;
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+/* LES ASTRES PARALYSES (explosion ou ecrasement d'une sphere) : sol calcine,
+   anneau rouge qui palpite, et le temps qu'il reste avant que la
+   production reparte. */
+function drawPannes(ctx) {
+    const t = gameState.time;
+    const z = gameState.camera.zoom;
+    const px = 1 / z;
+    for (const b of gameState.allBodies) {
+        if (!(b.panne > t) || b.type === 'sun') continue;
+        if (!aLEcran(b.x, b.y, b.radius * 2)) continue;
+        const reste = Math.ceil(b.panne - t);
+        const pouls = 0.5 + 0.5 * Math.sin(t * 5);
+        ctx.fillStyle = 'rgba(25,8,6,' + (0.35 + 0.1 * pouls) + ')';
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,80,40,' + (0.45 + 0.4 * pouls) + ')';
+        ctx.lineWidth = Math.max(2 * px, b.radius * 0.05);
+        ctx.setLineDash([b.radius * 0.18, b.radius * 0.12]);
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.radius * 1.12, t * 0.6, t * 0.6 + Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        const fs = 12 * px;
+        ctx.font = 'bold ' + fs + 'px Orbitron, sans-serif';
+        ctx.textAlign = 'center';
+        const txt = '☢ PARALYSÉ ' + reste + ' s';
+        const w = ctx.measureText(txt).width;
+        const y = b.y + b.radius * 1.12 + 20 * px;
+        ctx.fillStyle = 'rgba(30,6,6,0.8)';
+        ctx.fillRect(b.x - w / 2 - 5 * px, y - fs, w + 10 * px, fs * 1.4);
+        ctx.fillStyle = '#FF7A5A';
+        ctx.fillText(txt, b.x, y);
     }
 }
 
@@ -18457,9 +18582,10 @@ function drawCapitaux(ctx) {
     const t = gameState.time;
     for (const C of L) {
         if (C.mort) continue;
-        if (!aLEcran(C.x, C.y, C.rayon * 4)) continue;
         const T = CAP_TEINTES[C.type];
         const R = C.rayon;
+        dessinerTrainee(ctx, C, t, z);
+        if (!aLEcran(C.x, C.y, C.rayon * 4)) continue;
         ctx.save();
         ctx.translate(C.x, C.y);
         ctx.globalCompositeOperation = 'lighter';
