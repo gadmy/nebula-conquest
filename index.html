@@ -1142,7 +1142,8 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
      - Verte : +5 spores toutes les 0,12 s sur l'astre le plus proche
        (240 du bord), tous camps ; noire : -5. Rouge : rien.
      - Tirs de spores absorbes par les spheres ; 20 000 spores d'un meme
-       joueur en 30 s = capture, anneau de progression a sa couleur.
+       joueur en 30 s = capture (5 000 pour l'instant), anneau de
+       progression a sa couleur.
        Pilotage 1 min en ZQSD (ordre "capital", camera qui suit), lourd,
        ne sort pas de la zone de jeu. Planete ou lune touchee : batiments
        detruits, 0 spore, production coupee 1 min. Soleil : tout le
@@ -1153,6 +1154,14 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        capture, pilotage au clavier, ecrasement planete et soleil,
        explosion, retour ; npm run lockstep identique ; deux navigateurs
        en reseau, capture et pilotage ZQSD : empreintes identiques.
+     - CORRIGE : le jeu plantait a la capture d'une sphere. Prise en
+       frolant un astre, elle s'y ecrasait aussitot, et son explosion
+       passait une couleur "rgb(...)" a l'eclat d'impact, qui n'accepte
+       que "#RRGGBB" : erreur a chaque image. Les eclats convertissent
+       desormais toute couleur (couleurHex), et l'astre touche au moment
+       de la capture est ignore tant qu'on ne s'en est pas ecarte.
+     - Pilotee, la sphere n'est plus attaquee par les petits vaisseaux.
+     - Capture a 5 000 spores pour les essais (20 000 prevu).
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -3377,7 +3386,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <p id="h-spheres" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🛸 SPHÈRES CAPITALES</p>
 <p style="margin-bottom:6px;">Trois sphères blindées, grandes comme des lunes, tournent lentement autour du trou noir : une <span style="color:#4ADE80;">verte</span>, une <span style="color:#A5A5C8;">noire</span>, une <span style="color:#EF4444;">rouge</span>. Elles ne dévient jamais de leur course. Quand elle frôle un astre, la verte le mitraille de paquets de <span style="color:#4ADE80;">+5 spores</span>, quel que soit son camp ; la noire, de tirs à <span style="color:#F87171;">−5 spores</span>. La rouge ne tire pas.</p>
 <p style="margin-bottom:6px;">Vos jets ne leur font aucun mal : seuls les <b>petits vaisseaux d'une autre couleur</b> peuvent les abattre, et elles ripostent. Une sphère détruite explose : les astres alentour tombent à <b>0 spore</b> et ne produisent plus rien pendant <b>1 minute</b>. Elle revient 3 minutes plus tard.</p>
-<p style="margin-bottom:16px;"><span style="color:#FFD27A;">LA CAPTURE.</span> Envoyez-lui <span style="color:#E9D5FF;">20 000 spores en moins de 30 s</span> (un anneau à votre couleur montre où vous en êtes) et vous la pilotez pendant <b>1 minute</b> avec <span style="color:#E9D5FF;">ZQSD</span>. Écrasée sur une planète ou une lune : tous ses bâtiments détruits, 0 spore et plus de production pendant 1 minute. Sur un soleil : <b>tout son système</b> subit le même sort. La sphère est perdue dans le choc.</p>
+<p style="margin-bottom:16px;"><span style="color:#FFD27A;">LA CAPTURE.</span> Envoyez-lui <span style="color:#E9D5FF;">5 000 spores en moins de 30 s</span> (un anneau à votre couleur montre où vous en êtes) et vous la pilotez pendant <b>1 minute</b> avec <span style="color:#E9D5FF;">ZQSD</span>. Écrasée sur une planète ou une lune : tous ses bâtiments détruits, 0 spore et plus de production pendant 1 minute. Sur un soleil : <b>tout son système</b> subit le même sort. La sphère est perdue dans le choc.</p>
 
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
@@ -13576,6 +13585,31 @@ function drawJets(ctx) {
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 // Helper : alpha (0-1) → hex string 2 chars
+/* L'eclat d'impact ajoute sa transparence en fin de couleur ("#RRGGBB" +
+   "80") : il lui faut une couleur en #RRGGBB. Toute autre ecriture
+   ("rgb(...)", "#abc", un nom) faisait planter le dessin de toute l'image.
+   On la convertit ; une couleur illisible devient du blanc. */
+const _couleursHex = {};
+function couleurHex(c) {
+    if (typeof c !== 'string') return '#FFFFFF';
+    if (/^#[0-9a-f]{6}$/i.test(c)) return c;
+    if (_couleursHex[c]) return _couleursHex[c];
+    let h = '#FFFFFF';
+    const m = c.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if (m) h = '#' + [m[1], m[2], m[3]].map(function (v) { return Math.min(255, +v).toString(16).padStart(2, '0'); }).join('');
+    else if (/^#[0-9a-f]{3}$/i.test(c)) h = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+    else if (/^#[0-9a-f]{8}$/i.test(c)) h = c.slice(0, 7);
+    else {
+        try {
+            const t = document.createElement('canvas').getContext('2d');
+            t.fillStyle = '#FFFFFF'; t.fillStyle = c;
+            if (/^#[0-9a-f]{6}$/i.test(t.fillStyle)) h = t.fillStyle;
+        } catch (e) {}
+    }
+    _couleursHex[c] = h;
+    return h;
+}
+
 function hexAlpha(a) {
     return Math.floor(Math.min(1, Math.max(0, a)) * 255).toString(16).padStart(2, '0');
 }
@@ -15757,7 +15791,7 @@ function empreinteEtat(detail) {
         },
         vaisseaux: simples,
         cometes: simples,
-        capitaux: function (C) { return simples(C) + (C.apports || []).join('|'); },
+        capitaux: function (C) { return simples(C) + (C.apports || []).join('|') + '/' + (C.ignore || []).join(','); },
     };
     const listes = {
         astres: gameState.allBodies, jets: gameState.jets, joueurs: gameState.players,
@@ -17885,13 +17919,15 @@ function drawDuels(ctx) {
    devier de leur course.
    - Seuls les petits vaisseaux d'une AUTRE couleur les attaquent (et
      peuvent les detruire) ; la sphere riposte, sans quitter son orbite.
+     Les tirs de spores ne l'abiment pas (ils servent a la capturer), et
+     pilotee par un joueur elle n'est plus attaquee.
    - Detruite : enorme explosion, les astres alentour tombent a zero spore
      et ne produisent plus rien pendant une minute. Elle revient 3 min plus
      tard, sur son orbite.
    - En passant pres d'un astre, la verte le mitraille de paquets de 5
      spores qui s'AJOUTENT (tous camps, neutres compris) ; la noire, de tirs
      qui en DETRUISENT 5. La rouge ne tire pas.
-   - CAPTURE : un joueur qui lui envoie 20 000 spores en moins de 30 s en
+   - CAPTURE : un joueur qui lui envoie 5 000 spores (20 000 a terme) en moins de 30 s en
      prend le controle 1 minute et la pilote (ZQSD, par des ordres : meme
      chose chez tous en reseau). Ecrasee sur une planete ou une lune : tous
      ses batiments detruits, zero spore et zero production pendant 1 min.
@@ -17905,7 +17941,7 @@ const CAP_CFG = {
     riposte: { cadence: 0.8, dmgMin: 3, dmgMax: 6, precision: 0.5, portee: 520 },
     explosion: { rayon: 700, duree: 60 },
     mitraille: { portee: 240, cadence: 0.12, paquet: 5 },
-    capture: { spores: 20000, fenetre: 30, duree: 60 },
+    capture: { spores: 5000, fenetre: 30, duree: 60 },       /* 20 000 prevu, 5 000 pour les essais */
     pilote: { vitesse: 130, inertie: 0.9 },
     panne: 60
 };
@@ -17987,10 +18023,11 @@ function duelsCapitaux(dt) {
     for (const cl of gameState.cleaners) {
         if (cl.mort || cl._duel) { cl._cap = null; continue; }
         let C = cl._cap;
-        if (C && (C.mort || Math.hypot(C.x - cl.x, C.y - cl.y) > C.rayon + CAP_CFG.riposte.portee * 1.6)) C = cl._cap = null;
+        /* Pilotee par un joueur, elle n'est plus une cible. */
+        if (C && (C.mort || C.pilote >= 0 || Math.hypot(C.x - cl.x, C.y - cl.y) > C.rayon + CAP_CFG.riposte.portee * 1.6)) C = cl._cap = null;
         if (!C) {
             for (const K of caps) {
-                if (K.type === cl.type) continue;
+                if (K.type === cl.type || K.pilote >= 0) continue;
                 if (Math.hypot(K.x - cl.x, K.y - cl.y) < K.rayon + CAP_CFG.engage) { C = cl._cap = K; cl._tirT = DUEL_CFG.cadence * gameRandom(); break; }
             }
         }
@@ -18100,6 +18137,12 @@ function capturerCapital(C, slot) {
     C.piloteFin = gameState.time + CAP_CFG.capture.duree;
     C.cmdX = 0; C.cmdY = 0; C.vx = 0; C.vy = 0;
     C.apports = [];
+    /* Ce qu'elle touche deja au moment de la capture ne compte pas : sans
+       cela, prise en frolant une lune, elle s'y ecrasait aussitot. */
+    C.ignore = [];
+    for (const b of [...gameState.suns, ...gameState.allBodies]) {
+        if (Math.hypot(C.x - b.x, C.y - b.y) < b.radius + C.rayon + 10 && C.ignore.indexOf(b.name) < 0) C.ignore.push(b.name);
+    }
     addEvent('war', '🛸', j.name + ' prend le contrôle de la sphère ' + CAP_TEINTES[C.type].nom + ' !', null, j.color);
     if (!gameState._ondes) gameState._ondes = [];
     gameState._ondes.push({ x: C.x, y: C.y, r0: C.rayon, r1: C.rayon * 3, age: 0, maxAge: 0.9, couleur: _rgbDe(j.color || '#FFFFFF'), ep: 3 });
@@ -18107,7 +18150,7 @@ function capturerCapital(C, slot) {
 }
 
 function finPilotage(C) {
-    C.pilote = -1; C.cmdX = 0; C.cmdY = 0; C.vx = 0; C.vy = 0;
+    C.pilote = -1; C.cmdX = 0; C.cmdY = 0; C.vx = 0; C.vy = 0; C.ignore = [];
     /* Elle reprend son orbite a partir de l'endroit ou on l'a laissee. */
     const bh = gameState.blackHole;
     C.angle = Math.atan2(C.y - bh.y, C.x - bh.x);
@@ -18116,13 +18159,23 @@ function finPilotage(C) {
 /* Pilotee, elle s'ecrase sur ce qu'elle touche. Rend vrai si elle est detruite. */
 function collisionCapital(C) {
     const bh = gameState.blackHole;
+    /* Un astre ignore redevient un obstacle une fois qu'on s'en est ecarte. */
+    const touche = function (b) {
+        const dedans = Math.hypot(C.x - b.x, C.y - b.y) < b.radius + C.rayon;
+        const k = C.ignore ? C.ignore.indexOf(b.name) : -1;
+        if (k >= 0) {
+            if (Math.hypot(C.x - b.x, C.y - b.y) > b.radius + C.rayon + 20) C.ignore.splice(k, 1);
+            return false;
+        }
+        return dedans;
+    };
     if (Math.hypot(C.x - bh.x, C.y - bh.y) < bh.radius * 0.6 + C.rayon) {
         addEvent('neutral', '🕳', 'La sphère ' + CAP_TEINTES[C.type].nom + ' disparaît dans le trou noir', null, '#888888');
         detruireCapital(C, false);
         return true;
     }
     for (const s of gameState.suns) {
-        if (Math.hypot(C.x - s.x, C.y - s.y) < s.radius + C.rayon) {
+        if (touche(s)) {
             const touches = [];
             for (const p of (s.planets || [])) { touches.push(p); for (const m of (p.moons || [])) touches.push(m); }
             for (const b of touches) { b.spores = 0; b.panne = gameState.time + CAP_CFG.panne; }
@@ -18133,7 +18186,7 @@ function collisionCapital(C) {
     }
     for (const b of gameState.allBodies) {
         if (b.type === 'sun') continue;
-        if (Math.hypot(C.x - b.x, C.y - b.y) < b.radius + C.rayon) {
+        if (touche(b)) {
             for (const e of edifices(b)) effetDemolition(b, e);
             b.edifices = [];
             b.nids = 0; b.alveoles = 0; b.biomes = 0;
@@ -18171,7 +18224,7 @@ function detruireCapital(C, abattue) {
     gameState._ondes.push({ x: C.x, y: C.y, r0: 4, r1: C.rayon * 2.5, age: 0, maxAge: 0.6, couleur: '255,255,255', ep: 3 });
     for (let k = 0; k < 8; k++) {
         const a = k * Math.PI / 4;
-        spawnImpact(C.x + Math.cos(a) * C.rayon * 0.8, C.y + Math.sin(a) * C.rayon * 0.8, k % 2 ? '#FFB347' : 'rgb(' + c + ')');
+        spawnImpact(C.x + Math.cos(a) * C.rayon * 0.8, C.y + Math.sin(a) * C.rayon * 0.8, k % 2 ? '#FFB347' : couleurHex('rgb(' + c + ')'));
     }
     if (typeof playCleanerSound === 'function') playCleanerSound(C.x, C.y);
 }
@@ -18679,7 +18732,7 @@ function spawnImpact(x, y, color) {
         });
     }
     gameState.impactEffects.push({
-        x: x, y: y, color: color,
+        x: x, y: y, color: couleurHex(color),
         shockwave: 0,
         particles: particles,
         age: 0, maxAge: 1.2
