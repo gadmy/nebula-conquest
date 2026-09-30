@@ -1250,13 +1250,15 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        maintenant pour son pilote, a 350 au lieu de 240 : la verte n'arrose
        que ses astres, la noire ne ronge que ceux de ses adversaires. La
        rouge ne tire toujours pas. Verifie sur les 7 cas.
-     - SURCHARGE DE CHARGE : l'astre qui charge un tir peut monter jusqu'a
-       2 fois son maximum (SURCHARGE_MAX) ; chiffre dore avec un eclair.
+     - SURCHARGE DE CHARGE : l'astre qui charge un tir peut depasser son
+       maximum sans limite (tout ce que le groupe envoie s'accumule) ;
+       chiffre dore avec un eclair.
        Apres, le trop-plein s'evapore : 15 % de l'excedent par seconde
        (5 au moins), sauf tant qu'on le charge encore. Les renforts
        (jets amis, ondes solaires, debarquement) ne le ramenent plus d'un
-       coup au maximum (ajouterSpores). Mesure : lune de 2 000 chargee a
-       4 000, puis 3 136 a +2 s, 2 318 a +10 s, 2 000 a +30 s.
+       coup au maximum (ajouterSpores). Mesure (avec l'ancien plafond de 2
+       fois) : lune de 2 000 chargee a 4 000, puis 3 136 a +2 s, 2 318 a
+       +10 s, 2 000 a +30 s. Plafond retire ensuite.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -3435,7 +3437,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <p style="margin-bottom:16px;">Une <span style="color:#E9D5FF;">tête de pont ennemie ne casse pas un groupement</span> : un astre envahi à moins de la moitié compte toujours comme tenu. Au-delà de la moitié, il en sort.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ONDES SOLAIRES.</span> Un système entièrement tenu se met à vivre : son étoile s'embrase <span style="color:#E9D5FF;">toutes les 5 secondes</span> et envoie une onde qui balaie ses astres. Chacun la reçoit au passage du front, pas au départ — le système s'allume de l'intérieur vers l'extérieur.</p>
 <p style="margin-bottom:16px;">Ce que l'onde apporte dépend de votre stat <span style="color:#FBBF24;">Sensitivity</span> : <span style="color:#4ADE80;">+5 % de la capacité de l'astre par point</span>. À un point, une lune de 400 reçoit 20 spores.</p>
-<p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro. Il peut monter jusqu'à <b>2 fois son maximum</b> (chiffre doré ⚡) ; après le tir, le trop-plein s'évapore peu à peu.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro. Il peut dépasser son maximum <b>sans limite</b> (chiffre doré ⚡) ; après le tir, le trop-plein s'évapore peu à peu.</p>
 <p style="margin-bottom:16px;">On ne tire pas à travers une étoile ni un trou noir : ils détruisent les jets. Quand aucun de vos astres n'a la vue sur la cible, le trait de visée passe au <span style="color:#EF4444;">rouge</span>.</p>
 
 <!-- ÉVOLUTION -->
@@ -8255,10 +8257,10 @@ function finishStartGame() {
 const CHARGE_PAQUET = 100;
 const CHARGE_PERIODE = 0.35;   /* secondes entre deux paquets */
 /* SURCHARGE : pendant la charge d'un tir, l'astre qui va tirer peut monter
-   au-dessus de son maximum, jusqu'a SURCHARGE_MAX fois. Apres, le trop-plein
-   s'evapore : SURCHARGE_FUITE de l'excedent par seconde (plus au moins
-   SURCHARGE_FUITE_MIN), jusqu'a revenir au maximum. */
-const SURCHARGE_MAX = 2;
+   au-dessus de son maximum, sans limite : tout ce que le groupe lui envoie
+   s'accumule. Apres, le trop-plein s'evapore : SURCHARGE_FUITE de
+   l'excedent par seconde (plus au moins SURCHARGE_FUITE_MIN), jusqu'a
+   revenir au maximum. */
 const SURCHARGE_FUITE = 0.15;
 const SURCHARGE_FUITE_MIN = 5;
 
@@ -9103,8 +9105,8 @@ function majVisees(dt) {
         V.acc += dt;
         while (V.acc >= CHARGE_PERIODE) {
             V.acc -= CHARGE_PERIODE;
-            let place = lanceur.maxSpores * SURCHARGE_MAX - lanceur.spores;
-            if (place <= 1) break;
+            /* Pas de plafond : la charge s'accumule tant que le groupe donne. */
+            let place = Infinity;
             let envoye = 0;
             for (let i = 0; i < groupe.length && place > 1; i++) {
                 const b = groupe[i];
