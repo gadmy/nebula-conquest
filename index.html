@@ -1259,6 +1259,19 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        coup au maximum (ajouterSpores). Mesure (avec l'ancien plafond de 2
        fois) : lune de 2 000 chargee a 4 000, puis 3 136 a +2 s, 2 318 a
        +10 s, 2 000 a +30 s. Plafond retire ensuite.
+     - MISSION TUTORIEL "PREMIERS PAS" (bouton MISSION TUTORIEL de l'ecran
+       titre, et dans le livre des regles), a la place de l'ancien
+       tutoriel en bulles (en partie perime). 9 objectifs, chacun valide
+       quand le geste est vraiment fait : selectionner, regarder (ZQSD +
+       molette), part d'envoi a 70 %, conquerir une planete neutre, nid,
+       tir groupe (la planete de depart a peu de lunes, la mission les lui
+       donne toutes, batailles et faune effacees), rafale, boule, defi
+       final contre l'IA. L'astre vise est entoure ("ICI") ; l'IA dort
+       jusqu'au defi ; boutons Passer l'etape / Arreter ; ecran de fin.
+       Jouee de bout en bout dans le navigateur avec de vrais clics et de
+       vraies touches.
+     - TOUCHE K : tous les raccourcis en transparence par-dessus la partie
+       (clavier, souris, en visee), sans bloquer la souris ; K referme.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -3041,6 +3054,11 @@ input[type="radio"]:checked + .build-icon-btn {
 svg.ic-bat { display: inline-block; vertical-align: -0.22em; flex-shrink: 0; }
 i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 
+
+/* Touches du clavier (mission tutoriel, panneau des raccourcis K). */
+kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border-radius:4px;
+      border:1px solid rgba(196,181,253,0.5); border-bottom-width:2px; background:rgba(139,92,246,0.18);
+      color:#F5F3FF; font-family:Orbitron, sans-serif; font-size:0.82em; line-height:1.55; text-align:center; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -3080,6 +3098,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
     <button class="btn" id="btnReprendre" style="display:none; margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.5); color:#BBF7D0;">↩ REPRENDRE LA PARTIE</button>
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
     <button class="btn" id="btnCompetition" style="margin-top:8px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); color:#FFD700;">🏆 COMPÉTITION</button>
+    <button class="btn" id="btnMission" style="margin-top:8px; background:rgba(74,222,128,0.12); border:1px solid rgba(74,222,128,0.45); color:#86EFAC;">🎓 MISSION TUTORIEL</button>
     <button class="btn" id="btnHelp" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">AIDE</button>
     <div id="titlePseudo" style="margin-top:20px; font-family:'Orbitron',sans-serif; font-size:11px; color:rgba(200,170,255,0.5); letter-spacing:2px;"></div>
     <button id="btnLogout" style="margin-top:8px; background:none; border:none; color:rgba(200,170,255,0.3); font-family:'Exo 2',sans-serif; font-size:11px; cursor:pointer; letter-spacing:1px;">DÉCONNEXION</button>
@@ -3317,7 +3336,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <!-- ═══ ÉCRAN AIDE ═══ -->
 <div id="helpScreen" class="screen hidden">
     <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:12px; letter-spacing:3px;">LIVRE DES RÈGLES</h2>
-    <button class="btn" id="btnStartTutorial" style="margin-bottom:16px; background:rgba(34,197,94,0.2); border:1px solid rgba(34,197,94,0.5); color:#4ADE80; font-size:13px; padding:10px 28px; letter-spacing:2px;">🎮 LANCER LE TUTORIEL</button>
+    <button class="btn" id="btnStartTutorial" style="margin-bottom:16px; background:rgba(34,197,94,0.2); border:1px solid rgba(34,197,94,0.5); color:#4ADE80; font-size:13px; padding:10px 28px; letter-spacing:2px;">🎓 LANCER LA MISSION TUTORIEL</button>
     <div id="helpBook" style="background:rgba(15,23,42,0.92); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px 28px; max-width:620px; margin:0 auto; max-height:70vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(100,180,255,0.3) transparent; font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.85); line-height:1.6;">
 
 <!-- Navigation chapitres -->
@@ -3370,6 +3389,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#FFD27A;">R</b></td><td style="padding:3px 0;"><b style="color:#FFD27A;">Riposte</b> au pourcentage d'envoi — sur l'astre survolé, ou sur tous si la souris est dans le vide</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#93C5FD;">T</b></td><td style="padding:3px 0;"><b style="color:#93C5FD;">Arrêt</b> — vos zones cessent d'attaquer, sur l'astre survolé ou partout ; les spores engagées restent dans la zone</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">K</td><td style="padding:3px 0;">Affiche (ou cache) tous les raccourcis, en transparence par-dessus la partie</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Échap</td><td style="padding:3px 0;">Pause (le livre des règles s’ouvre)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">F3 puis D</td><td style="padding:3px 0;">Diagnostic de performance, puis détail du rendu</td></tr>
 </table>
@@ -3519,30 +3539,6 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 </div>
 
 <div id="gameTopBanner"></div>
-
-<!-- ═══ OVERLAY TUTORIEL ═══ -->
-<div id="tutorialOverlay" style="display:none; position:fixed; inset:0; z-index:500; pointer-events:none;">
-    <!-- Popup -->
-    <div id="tutorialPopup" style="position:absolute; background:rgba(10,15,35,0.97); border:2px solid rgba(100,180,255,0.6); border-radius:14px; padding:18px 22px; max-width:320px; box-shadow:0 0 30px rgba(100,180,255,0.3); pointer-events:auto;">
-        <div id="tutorialStep" style="font-family:'Orbitron',monospace; font-size:9px; color:rgba(100,180,255,0.5); letter-spacing:2px; margin-bottom:8px;"></div>
-        <div id="tutorialText" style="font-family:'Exo 2',sans-serif; font-size:14px; color:#E0E7FF; line-height:1.6; margin-bottom:14px;"></div>
-        <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button id="tutorialSkip" style="background:none; border:1px solid rgba(100,116,139,0.4); border-radius:6px; padding:6px 14px; color:#64748B; font-family:'Exo 2',sans-serif; font-size:12px; cursor:pointer; pointer-events:auto;">Passer</button>
-            <button id="tutorialNext" style="background:rgba(34,197,94,0.2); border:1px solid rgba(34,197,94,0.5); border-radius:6px; padding:6px 18px; color:#4ADE80; font-family:'Exo 2',sans-serif; font-size:13px; cursor:pointer; pointer-events:auto;">SUIVANT →</button>
-        </div>
-    </div>
-    <!-- Flèche SVG -->
-    <svg id="tutorialArrow" style="position:absolute; overflow:visible; pointer-events:none;" width="100" height="100">
-        <defs>
-            <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                <polygon points="0 0, 8 3, 0 6" fill="#4ADE80"/>
-            </marker>
-        </defs>
-        <line id="tutorialArrowLine" x1="0" y1="0" x2="0" y2="0" stroke="#4ADE80" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrowhead)"/>
-    </svg>
-    <!-- Highlight cercle -->
-    <div id="tutorialHighlight" style="position:absolute; border:2px solid rgba(34,197,94,0.8); border-radius:50%; box-shadow:0 0 20px rgba(34,197,94,0.4); transition:all 0.3s; pointer-events:none;"></div>
-</div>
 
 <!-- ═══ POPUP INVITATION ═══ -->
 <div id="invitePopup" class="hidden" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:200; background:rgba(10,15,35,0.95); border:2px solid rgba(100,180,255,0.6); border-radius:14px; padding:24px 32px; text-align:center; box-shadow:0 0 40px rgba(100,180,255,0.3); pointer-events:auto;">
@@ -16088,6 +16084,7 @@ function render() {
     drawPannes(ctx);
     drawCapitaux(ctx);
     drawApocalypses(ctx);
+    drawCibleTuto(ctx);
 
     // ── Jets de spores ──
     drawJets(ctx);
@@ -19126,6 +19123,8 @@ function drawCapitaux(ctx) {
 // INTELLIGENCE ARTIFICIELLE
 // ─────────────────────────────────────────────
 function updateAI(dt) {
+    /* Mission tutoriel : l'IA dort jusqu'au defi final. */
+    if (gameState.isTutorial && !gameState._tutoIA) return;
     const difficulty = gameState.config.difficulty;
 
     for (const player of gameState.players) {
@@ -23602,200 +23601,328 @@ document.getElementById('btnStartTutorial').addEventListener('click', () => {
     setPhase('title');
     setTimeout(() => startTutorial(), 100);
 });
+document.getElementById('btnMission').addEventListener('click', () => {
+    if (typeof ensureAudio === 'function') ensureAudio();
+    playClickSound();
+    startTutorial();
+});
 
-// ═══ TUTORIEL ═══
-const TUTORIAL_STEPS = [
-    {
-        text: "Bienvenue dans Nebula Conquest ! 🌌\nVotre planète de départ est mise en surbrillance. Elle produit des <b>spores</b> automatiquement grâce à sa <b>Flore</b>. Plus la Flore est élevée, plus la production est rapide.",
-        target: 'playerPlanet', popup: 'bottom-right'
-    },
-    {
-        text: "Faites un <b>clic droit</b> sur votre planète pour ouvrir le <b>menu radial</b>.",
-        target: 'playerPlanet', popup: 'bottom-right', waitFor: 'radialOpen'
-    },
-    {
-        text: "Le menu radial est ouvert !\n• <b>Centre</b> : tir Normal\n• <b>Couronne</b> : Parasite " + iconeBat('parasite', 14) + ", et les constructions Nid " + iconeBat('nid', 14) + ", Biome " + iconeBat('biome', 14) + ", Alvéole " + iconeBat('alveole', 14) + "\nCliquez sur le <b>centre ⚪</b> pour activer le mode visée. Raccourci : <b>Espace</b> sur l'astre sélectionné.",
-        target: 'canvas', popup: 'top-right', waitFor: 'aimMode'
-    },
-    {
-        text: "Le mode visée est actif — un <b>trait de trajectoire</b> apparaît, courbé par la gravité du trou noir. Faites un <b>clic gauche</b> pour tirer vers une planète neutre.",
-        target: 'canvas', popup: 'top-right', waitFor: 'jetFired'
-    },
-    {
-        text: "🎉 Vos spores voyagent ! Quand elles arrivent sur un astre neutre, vous le <b>conquérez</b>. Sur un astre ennemi, vos spores combattent les siennes — le plus nombreux gagne.",
-        target: 'canvas', popup: 'top-right'
-    },
-    {
-        text: "Le panneau <b>Mes Astres</b> (gauche) liste vos planètes et lunes par système solaire. Cliquez sur un soleil pour ouvrir/fermer le groupe.\nLa barre de boutons permet d'activer un mode de construction sur tout le système d'un coup.",
-        target: 'playerPlanet', popup: 'bottom-right'
-    },
-    {
-        text: "Lancez une <b>construction</b> : faites un clic droit sur une planète possédée, puis choisissez <b>" + iconeBat('nid', 14) + " Nid</b> dans la couronne du menu radial, ou utilisez la barre de boutons dans Mes Astres.\n• " + iconeBat('nid', 14) + " <b>Nid</b> : +2.5% production\n• " + iconeBat('biome', 14) + " <b>Biome</b> : +5% défense\n• " + iconeBat('alveole', 14) + " <b>Alvéole</b> : +5% stock max",
-        target: 'playerPlanet', popup: 'bottom-right', waitFor: 'buildStarted'
-    },
-    {
-        text: "Construction demandée ! Elle est <b>immédiate</b> : dès que l'astre a de quoi payer, le bâtiment sort et la production reprend.\nS'il n'a pas encore assez de spores, l'icône 🧬 clignote sous lui — il met de côté en attendant.\nRaccourcis : <b>1</b> alvéole · <b>2</b> nid · <b>3</b> biome.",
-        target: 'canvas', popup: 'top-right'
-    },
-    {
-        text: "Ouvrez le panneau <b>Évolution</b> en cliquant sur le bouton ⚗️ dans le HUD.\nSacrifiez une partie de votre production pour monter en <b>Multiplicité</b> — chaque palier vous donne +1 point de stat :\n• 🌱 <b>Croissance</b> : production\n• ⚡ <b>Vélocité</b> : vitesse des jets\n• 💎 <b>Densité</b> : puissance en combat",
-        target: 'evoPanel', popup: 'left', waitFor: 'evoOpen'
-    },
-    {
-        text: "La <b>Symbiose</b> augmente automatiquement avec le temps sur chaque astre possédé (0→100% en 10min pour les planètes, 5min pour les lunes).\nÀ 100% : <b>+20% de production</b> sur les planètes, <b>+10%</b> sur les lunes. Elle se remet à zéro si l'astre est conquis.",
-        target: 'canvas', popup: 'top-right'
-    },
-    {
-        text: "Méfiez-vous des <b>dangers</b> de la galaxie :\n• 🌑 <b>Trou noir</b> : courbe les jets, les détruit s'ils s'en approchent trop\n• ☄️ <b>Comètes</b> : détruisent toutes les spores d'un astre au contact\n• 🚀 <b>Vaisseaux nettoyeurs</b> : rouge (attaque jets), vert (double spores), noir (renvoie à la source)\n• ☄️ <b>Ceintures d'astéroïdes</b> : noir (÷2), rouge (déviation), vert (×5 spores)",
-        target: 'canvas', popup: 'top-right'
-    },
-    {
-        text: "🏆 <b>Objectif</b> : conquérir <b>80%</b> de tous les astres de la galaxie, ou être le dernier joueur en vie.\nSi vous conquérez un système solaire entier, un bonus <b>+3% de production</b> s'active sur tous vos astres du système.\nBonne chance, Commandant ! 🚀",
-        target: null, popup: 'center', isLast: true
-    },
+// ═══ MISSION TUTORIEL ═══
+/* MISSION « PREMIERS PAS » : on apprend en faisant. Une liste d'objectifs,
+   chacun valide seulement quand le joueur a vraiment fait le geste (verifie
+   toutes les 0,25 s). L'astre vise est entoure sur la carte. L'IA dort
+   jusqu'au defi final ; ni vaisseaux, ni cometes, ni spheres.
+   La touche K montre tous les raccourcis a tout moment. */
+const MISSION_TUTO = [
+    { titre: 'Sélectionner',
+      texte: "Clique sur <b>ta planète</b>, entourée en vert, pour la sélectionner.",
+      cible: function (M) { return M.planete; },
+      fait: function (M) { return followingBody === M.planete; } },
+    { titre: 'Regarder',
+      texte: "Déplace la vue avec <kbd>Z</kbd> <kbd>Q</kbd> <kbd>S</kbd> <kbd>D</kbd> (ou les flèches), et zoome avec la <b>molette</b>.",
+      debut: function (M) { const c = gameState.camera; M.cam0 = { x: c.x, y: c.y, z: c.zoom }; },
+      fait: function (M) {
+          const c = gameState.camera;
+          if (Math.hypot(c.x - M.cam0.x, c.y - M.cam0.y) > 250) M.bouge = true;
+          if (Math.abs(c.zoom - M.cam0.z) > 0.12) M.zoome = true;
+          return M.bouge && M.zoome;
+      } },
+    { titre: "Part d'envoi",
+      texte: "Chaque tir envoie une part des spores de l'astre. Monte-la à <b>70 %</b> ou plus avec <kbd>E</kbd> (et <kbd>A</kbd> pour baisser). Elle s'affiche en grand en bas de l'écran.",
+      fait: function () { return gameState.jetRatio >= 0.695; } },
+    { titre: 'Conquérir',
+      texte: "Sélectionne ta planète, appuie sur <kbd>Espace</kbd> pour viser, puis <b>clique</b> sur la planète neutre entourée. Tes spores s'y posent et la conquièrent. Si ça ne suffit pas, tire encore.",
+      debut: function (M) { M.planete.spores = Math.max(M.planete.spores, M.planete.maxSpores); },
+      cible: function (M) { return M.neutre; },
+      fait: function (M) { return M.neutre.owner === localSlot(); } },
+    { titre: 'Construire',
+      texte: "Construis un <b>nid</b> (+ production) : sélectionne un de tes astres et appuie sur <kbd>2</kbd> (<kbd>é</kbd> en azerty). <kbd>1</kbd> fait une alvéole, <kbd>3</kbd> un biome.",
+      debut: function (M) { M.planete.spores = Math.max(M.planete.spores, M.planete.maxSpores); },
+      fait: function () { return gameState.allBodies.some(function (b) { return b.owner === localSlot() && (b.nids || 0) > 0; }); } },
+    { titre: 'Tir groupé',
+      texte: "Une planète et <b>toutes</b> ses lunes forment un groupe. Vise depuis ta planète (<kbd>Espace</kbd>) vers la lune entourée, <b>sans cliquer</b> : l'astre le plus proche de la cible tirera, et les autres lui envoient leurs spores, au-delà de son maximum. Attends le <b>chiffre doré ⚡</b>.",
+      debut: function (M) {
+          /* Le groupe n'existe que si toutes les lunes sont a nous : on les donne. */
+          const moi = localSlot();
+          for (const L of (M.planete.moons || [])) {
+              if (L.owner !== moi) {
+                  if (L.owner !== null && gameState.players[L.owner]) gameState.players[L.owner].bodies = gameState.players[L.owner].bodies.filter(function (b) { return b !== L; });
+                  L.owner = moi; gameState.players[moi].bodies.push(L);
+                  addEvent('neutral', '🎓', L.name + ' vous rejoint pour l\'exercice', L, gameState.players[moi].color);
+              }
+              /* Comme une vraie conquete : plus de bataille en cours (un tir
+                 perdu a pu en ouvrir une), plus de faune sauvage. Sinon les
+                 spores de la charge partaient dans la bataille. */
+              L.lutte = null;
+              L.faune = 0;
+              L.spores = L.maxSpores;
+          }
+          marquerTerritoiresSales();
+          M.planete.spores = Math.max(M.planete.spores, M.planete.maxSpores * 0.9);
+      },
+      cible: function (M) { return M.lune; },
+      fait: function () {
+          return gameState._firePhase === 'aiming' && gameState.allBodies.some(function (b) {
+              return b.owner === localSlot() && b.spores > b.maxSpores * 1.05;
+          });
+      } },
+    { titre: 'Rafale',
+      texte: "<b>La rafale</b> : en visée (<kbd>Espace</kbd>), maintiens <kbd>Ctrl</kbd> + <b>clic gauche</b>. Des paquets de 10 spores partent en continu autour du curseur ; lâche pour arrêter.",
+      debut: function (M) { M.planete.spores = Math.max(M.planete.spores, M.planete.maxSpores); },
+      fait: function (M) { if (gameState._rafale) M.rafale = true; return !!M.rafale && !gameState._rafale; } },
+    { titre: 'Boule',
+      texte: "<b>La boule</b> : en visée, maintiens <kbd>Shift</kbd> pour l'agglutiner (500 spores au plus), puis relâche pour la lancer. Les vaisseaux rouges et noirs ne peuvent rien contre elle.",
+      debut: function (M) { M.planete.spores = Math.max(M.planete.spores, M.planete.maxSpores); },
+      fait: function () { return gameState.jets.some(function (j) { return j.alive && j.boule && j.owner === localSlot(); }); } },
+    { titre: 'Défi final',
+      texte: "<b>L'IA se réveille.</b> Prends-lui sa planète entourée ! Charge un tir groupé, ou arrose-la en rafale. Sur un astre ennemi, tes spores se battent à sa surface : le camp le plus nombreux gagne du terrain.",
+      debut: function (M) { gameState._tutoIA = true; addEvent('war', '⚔️', 'L\'IA se réveille !', M.ennemi, '#F87171'); },
+      cible: function (M) { return M.ennemi; },
+      fait: function (M) { return M.ennemi.owner === localSlot(); } },
 ];
 
-let _tutorialStep = 0;
-let _tutorialActive = false;
-let _tutorialWaitHandled = false;
+let _mission = null;
 
 function startTutorial() {
     gameState.isMulti = false;
     gameState.isTutorial = true;
-    _tutorialStep = 0;
-    _tutorialActive = true;
-    _tutorialWaitHandled = false;
-
-    // Utiliser la première carte de MAP_LIBRARY (Berceau Solaire — petite carte)
+    gameState._tutoIA = false;
+    /* Petite carte, une IA facile, rien d'autre. */
     const tutMapIdx = 0;
     gameState.config = {
-        mapIndex: tutMapIdx,
-        sunCount: MAP_LIBRARY[tutMapIdx].suns.length,
-        difficulty: 'easy',
-        useIA: true,
-        aiCount: 1,
-        fillIA: false,
-        cleanerCount: 0,
-        useComets: false,
-        useAsteroids: false,
-        playerCount: 2
+        mapIndex: tutMapIdx, sunCount: MAP_LIBRARY[tutMapIdx].suns.length,
+        difficulty: 'easy', useIA: true, aiCount: 1, fillIA: false,
+        cleanerCount: 0, useComets: false, useAsteroids: false, playerCount: 2
     };
-
-    // Simuler un clic sur "Nouvelle partie" avec cette config
+    _mission = { etape: 0, pret: false };
     document.getElementById('helpScreen').classList.add('hidden');
-    fadeTransition(() => {
+    document.getElementById('titleScreen').classList.add('hidden');
+    fadeTransition(function () {
         startGame();
-        setTimeout(() => showTutorialStep(0), 2000);
+        _missionPlacer();
     });
 }
 
-function showTutorialStep(idx) {
-    if (!_tutorialActive) return;
-    _tutorialStep = idx;
-    _tutorialWaitHandled = false;
-    const step = TUTORIAL_STEPS[idx];
-    const overlay = document.getElementById('tutorialOverlay');
-    const popup = document.getElementById('tutorialPopup');
-    const stepEl = document.getElementById('tutorialStep');
-    const textEl = document.getElementById('tutorialText');
-    const nextBtn = document.getElementById('tutorialNext');
-
-    overlay.style.display = 'block';
-    stepEl.textContent = 'ÉTAPE ' + (idx + 1) + ' / ' + TUTORIAL_STEPS.length;
-    textEl.innerHTML = step.text.replace(/\n/g, '<br>');
-    nextBtn.textContent = step.isLast ? '🚀 JOUER !' : 'SUIVANT →';
-
-    // Positionner le popup
-    _positionTutorialPopup(step.popup);
-
-    // Highlight + flèche si target
-    if (step.target === 'playerPlanet') {
-        const slot = localSlot();
-        const player = gameState.players[slot];
-        const planet = player?.bodies?.[0] || gameState.planets.find(p => p.owner === slot);
-        if (planet) _highlightBody(planet);
-    } else if (step.target === 'evoPanel') {
-        _highlightEl(document.getElementById('evoPanel'));
-    } else {
-        document.getElementById('tutorialHighlight').style.display = 'none';
-        document.getElementById('tutorialArrow').style.display = 'none';
-    }
-
-    // Auto-avance si pas de waitFor
-    if (!step.waitFor) {
-        nextBtn.onclick = () => {
-            if (step.isLast) { endTutorial(); } else { showTutorialStep(idx + 1); }
-        };
-    } else {
-        nextBtn.style.display = 'none';
-        _watchTutorialEvent(step.waitFor, idx);
-    }
-}
-
-function _watchTutorialEvent(event, idx) {
-    const check = setInterval(() => {
-        if (!_tutorialActive) { clearInterval(check); return; }
-        let triggered = false;
-        if (event === 'radialOpen' && gameState._firePhase === 'menu') triggered = true;
-        if (event === 'aimMode' && gameState._firePhase === 'aiming') triggered = true;
-        if (event === 'jetFired' && gameState.jets.length > 0) triggered = true;
-        if (event === 'buildStarted' && gameState.allBodies.some(b => b.owner === localSlot() && b.buildMode !== 'off')) triggered = true;
-        if (event === 'evoOpen' && document.getElementById('evoPanel')?.style.display !== 'none') triggered = true;
-        if (triggered && !_tutorialWaitHandled) {
-            _tutorialWaitHandled = true;
-            clearInterval(check);
-            document.getElementById('tutorialNext').style.display = 'inline-block';
-            setTimeout(() => showTutorialStep(idx + 1), 600);
+/* Le choix de la planete de depart est fait pour le joueur : une planete
+   avec une lune, et une planete neutre pas trop loin. */
+function _missionPlacer() {
+    if (!_mission) return;
+    if (gameState.phase !== 'spawn') { setTimeout(_missionPlacer, 200); return; }
+    /* De preference peu de lunes : le groupe de tir les demande toutes. */
+    const libres = gameState.planets.filter(function (p) { return p.owner === null && p.moons && p.moons.length; })
+        .sort(function (a, b) { return a.moons.length - b.moons.length; });
+    const depart = libres[0] || gameState.planets.find(function (p) { return p.owner === null; });
+    _spawnTarget = depart;
+    confirmSpawn();
+    const attendre = function () {
+        if (gameState.phase !== 'game') { setTimeout(attendre, 200); return; }
+        const moi = localSlot();
+        const M = _mission;
+        M.planete = gameState.players[moi].bodies[0] || depart;
+        M.lune = (M.planete.moons || [])[0] || null;
+        const ia = gameState.players.find(function (j) { return j.id !== moi && j.bodies.length; });
+        M.ennemi = ia ? ia.bodies.find(function (b) { return b.type === 'planet'; }) || ia.bodies[0] : null;
+        let best = null, bd = Infinity;
+        for (const p of gameState.planets) {
+            if (p.owner !== null || p === M.planete) continue;
+            const d = Math.hypot(p.x - M.planete.x, p.y - M.planete.y);
+            if (d < bd) { bd = d; best = p; }
         }
-    }, 300);
+        M.neutre = best;
+        M.pret = true;
+        _missionPanneau();
+        _missionEtape(0);
+        M.minuteur = setInterval(_missionVerifier, 250);
+    };
+    attendre();
 }
 
-function _positionTutorialPopup(pos) {
-    const popup = document.getElementById('tutorialPopup');
-    const W = window.innerWidth, H = window.innerHeight;
-    popup.style.left = popup.style.top = popup.style.right = popup.style.bottom = 'auto';
-    if (pos === 'center') { popup.style.left = (W/2 - 160) + 'px'; popup.style.top = (H/2 - 80) + 'px'; }
-    else if (pos === 'top-right') { popup.style.right = '20px'; popup.style.top = '80px'; }
-    else if (pos === 'top-left') { popup.style.left = '20px'; popup.style.top = '80px'; }
-    else if (pos === 'bottom-right') { popup.style.right = '20px'; popup.style.bottom = '100px'; }
-    else if (pos === 'left') { popup.style.left = '20px'; popup.style.top = (H/2 - 80) + 'px'; }
+function _missionEtape(k) {
+    const M = _mission;
+    if (!M) return;
+    M.etape = k;
+    const e = MISSION_TUTO[k];
+    if (e && e.debut) e.debut(M);
+    gameState._tutoCible = (e && e.cible) ? e.cible(M) : null;
+    _missionAfficher();
 }
 
-function _highlightBody(body) {
-    const canvas = document.getElementById('gameCanvas');
-    const rect = canvas.getBoundingClientRect();
-    const cam = gameState.camera;
-    const sx = (body.x - cam.x) * cam.zoom + rect.width / 2 + rect.left;
-    const sy = (body.y - cam.y) * cam.zoom + rect.height / 2 + rect.top;
-    const r = Math.max(30, body.radius * cam.zoom * 2);
-    const hl = document.getElementById('tutorialHighlight');
-    hl.style.display = 'block';
-    hl.style.width = hl.style.height = (r * 2) + 'px';
-    hl.style.left = (sx - r) + 'px';
-    hl.style.top = (sy - r) + 'px';
+function _missionVerifier() {
+    const M = _mission;
+    if (!M || !M.pret || gameState.phase === 'title') { if (M && gameState.phase === 'title') endTutorial(); return; }
+    const e = MISSION_TUTO[M.etape];
+    if (!e) return;
+    if (e.cible) gameState._tutoCible = e.cible(M);
+    if (!e.fait(M)) return;
+    if (typeof playFusionSound === 'function') playFusionSound();
+    if (M.etape + 1 < MISSION_TUTO.length) _missionEtape(M.etape + 1);
+    else _missionFin();
 }
 
-function _highlightEl(el) {
+function _missionPanneau() {
+    let el = document.getElementById('missionTuto');
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = 'missionTuto';
+    /* Sous les consignes du jeu (bandeau de visee, en haut au centre). */
+    el.style.cssText = 'position:fixed; top:92px; left:50%; transform:translateX(-50%); z-index:600; width:min(460px, calc(100vw - 32px));' +
+        'background:rgba(8,14,34,0.88); border:1px solid rgba(74,222,128,0.45); border-radius:12px; padding:12px 16px;' +
+        'font-family:"Exo 2",sans-serif; color:#E0E7FF; box-shadow:0 0 24px rgba(74,222,128,0.15); pointer-events:auto;';
+    el.innerHTML =
+        '<div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">' +
+        '<span style="font-family:Orbitron,sans-serif; font-size:11px; letter-spacing:2px; color:#4ADE80;">🎓 MISSION · PREMIERS PAS</span>' +
+        '<span id="missionCompte" style="font-family:Orbitron,sans-serif; font-size:11px; color:#94A3B8;"></span></div>' +
+        '<div id="missionBarre" style="height:3px; background:rgba(255,255,255,0.1); border-radius:2px; margin:8px 0 10px;"><div style="height:100%; width:0; background:#4ADE80; border-radius:2px; transition:width 0.4s;"></div></div>' +
+        '<div id="missionTitre" style="font-family:Orbitron,sans-serif; font-size:14px; letter-spacing:1px; margin-bottom:4px;"></div>' +
+        '<div id="missionTexte" style="font-size:13.5px; line-height:1.55; color:#CBD5E1;"></div>' +
+        '<div id="missionListe" style="display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:10px; font-size:11px; color:#64748B;"></div>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:8px;">' +
+        '<span style="font-size:11px; color:#94A3B8;"><kbd>K</kbd> tous les raccourcis</span>' +
+        '<span><button id="missionPasser" style="background:none; border:1px solid rgba(148,163,184,0.4); border-radius:6px; padding:4px 10px; color:#94A3B8; font-size:11px; cursor:pointer; margin-right:6px;">Passer l\'étape</button>' +
+        '<button id="missionQuitter" style="background:none; border:1px solid rgba(248,113,113,0.4); border-radius:6px; padding:4px 10px; color:#FCA5A5; font-size:11px; cursor:pointer;">Arrêter la mission</button></span></div>';
+    document.body.appendChild(el);
+    document.getElementById('missionPasser').addEventListener('click', function () {
+        const M = _mission;
+        if (!M) return;
+        if (M.etape + 1 < MISSION_TUTO.length) _missionEtape(M.etape + 1); else _missionFin();
+    });
+    document.getElementById('missionQuitter').addEventListener('click', function () { endTutorial(); });
+}
+
+function _missionAfficher() {
+    const M = _mission;
+    const e = MISSION_TUTO[M.etape];
+    if (!e || !document.getElementById('missionTuto')) return;
+    document.getElementById('missionCompte').textContent = (M.etape + 1) + ' / ' + MISSION_TUTO.length;
+    document.querySelector('#missionBarre > div').style.width = (M.etape / MISSION_TUTO.length * 100) + '%';
+    document.getElementById('missionTitre').textContent = e.titre.toUpperCase();
+    document.getElementById('missionTexte').innerHTML = e.texte;
+    document.getElementById('missionListe').innerHTML = MISSION_TUTO.map(function (x, i) {
+        const c = i < M.etape ? '#4ADE80' : i === M.etape ? '#E0E7FF' : '#64748B';
+        return '<span style="color:' + c + ';">' + (i < M.etape ? '✓ ' : i === M.etape ? '▸ ' : '') + x.titre + '</span>';
+    }).join('');
+}
+
+function _missionFin() {
+    const M = _mission;
+    if (!M) return;
+    clearInterval(M.minuteur);
+    gameState._tutoCible = null;
+    gameState._tutoIA = true;
+    const el = document.getElementById('missionTuto');
     if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const hl = document.getElementById('tutorialHighlight');
-    hl.style.display = 'block';
-    hl.style.borderRadius = '8px';
-    hl.style.width = rect.width + 'px';
-    hl.style.height = rect.height + 'px';
-    hl.style.left = rect.left + 'px';
-    hl.style.top = rect.top + 'px';
+    el.innerHTML =
+        '<div style="font-family:Orbitron,sans-serif; font-size:16px; letter-spacing:2px; color:#4ADE80; margin-bottom:6px;">MISSION ACCOMPLIE</div>' +
+        '<div style="font-size:13.5px; line-height:1.55; color:#CBD5E1;">Tu sais viser, conquérir, construire, charger un tir groupé, lancer la rafale et la boule. Pour gagner : <b>80 %</b> des astres, ou être le dernier en vie. Le <b>livre des règles</b> (Échap) explique tout le reste : batailles de surface, mutations, sphères capitales.</div>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;"><span style="font-size:11px; color:#94A3B8;"><kbd>K</kbd> tous les raccourcis</span>' +
+        '<button id="missionContinuer" style="background:rgba(74,222,128,0.18); border:1px solid rgba(74,222,128,0.5); border-radius:6px; padding:6px 14px; color:#4ADE80; font-size:12px; cursor:pointer;">Continuer la partie</button></div>';
+    document.getElementById('missionContinuer').addEventListener('click', function () { endTutorial(true); });
 }
 
-function endTutorial() {
-    _tutorialActive = false;
-    gameState.isTutorial = false;
-    document.getElementById('tutorialOverlay').style.display = 'none';
-    document.getElementById('tutorialHighlight').style.display = 'none';
+/* garderPartie : on finit la mission mais on continue de jouer. */
+function endTutorial(garderPartie) {
+    if (_mission && _mission.minuteur) clearInterval(_mission.minuteur);
+    _mission = null;
+    gameState._tutoCible = null;
+    gameState._tutoIA = true;
+    const el = document.getElementById('missionTuto');
+    if (el) el.remove();
+    if (!garderPartie) gameState.isTutorial = false;
 }
 
-document.getElementById('tutorialSkip').addEventListener('click', () => {
-    endTutorial();
+/* L'astre a viser, entoure sur la carte : anneau pointille qui tourne et
+   palpite, et "ICI" au-dessus. */
+function drawCibleTuto(ctx) {
+    const b = gameState._tutoCible;
+    if (!b || !_mission) return;
+    const t = gameState.time, z = gameState.camera.zoom;
+    const r = b.radius * 1.35 + 6 / z;
+    const p = 0.5 + 0.5 * Math.sin(t * 4);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(74,222,128,' + (0.55 + 0.4 * p) + ')';
+    ctx.lineWidth = Math.max(2 / z, b.radius * 0.05);
+    ctx.setLineDash([b.radius * 0.25, b.radius * 0.15]);
+    ctx.beginPath(); ctx.arc(b.x, b.y, r + p * 6 / z, t * 0.8, t * 0.8 + Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = 'bold ' + (13 / z) + 'px Orbitron, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#4ADE80';
+    ctx.fillText('ICI', b.x, b.y - r - 12 / z);
+    ctx.restore();
+}
+
+// ═══ TOUCHE K : TOUS LES RACCOURCIS ═══
+/* Un panneau transparent par-dessus la partie ; il ne bloque ni la souris
+   ni le jeu. K le montre ou le cache. */
+/* Entre crochets : une touche, dessinee comme telle. */
+const RACCOURCIS = [
+    ['CLAVIER', [
+        ['[Z] [Q] [S] [D] ou [flèches]', 'Déplacer la vue (piloter une sphère capturée)'],
+        ['[P] / [M]', 'Zoom avant / arrière'],
+        ['[Espace]', "Viser depuis l'astre sélectionné"],
+        ['[Tab]', 'Astre suivant'],
+        ['[1] [2] [3]', 'Construire alvéole · nid · biome'],
+        ['[A] / [E]', "Part d'envoi −5 % / +5 %"],
+        ['[F]', 'Armer le démolisseur (molette : bâtiment visé)'],
+        ['[R]', "Riposte (sur l'astre survolé, ou partout)"],
+        ['[T]', 'Arrêt des attaques'],
+        ['[K]', 'Afficher / cacher ces raccourcis'],
+        ['[Échap]', 'Pause et livre des règles'],
+        ['[F3] puis [D]', 'Diagnostic de performance']
+    ]],
+    ['SOURIS', [
+        ['Clic gauche', 'Sélectionner un astre (et une zone de tir)'],
+        ['Double-clic', "Plonger sur l'astre"],
+        ['Clic droit sur ton astre', 'Menu radial (tirs, bâtiments, codex)'],
+        ['Clic droit + glisser', 'Déplacer la vue'],
+        ['Molette', 'Zoom'],
+        ['Survol d\u2019un nombre', 'À qui sont ces spores']
+    ]],
+    ['EN VISÉE', [
+        ['Clic gauche', 'Tirer vers le curseur'],
+        ['Viser sans cliquer', "Tir groupé : l'astre qui tire se charge (⚡ au-delà du maximum)"],
+        ['Curseur sur ton disque', 'Tir de surface'],
+        ['[Ctrl] + clic maintenu', 'Rafale'],
+        ['[Shift] maintenu', 'Boule (relâcher pour lancer)'],
+        ['Clic droit', 'Annuler']
+    ]]
+];
+
+function basculerRaccourcis() {
+    let el = document.getElementById('panneauRaccourcis');
+    if (el) { el.remove(); return; }
+    el = document.createElement('div');
+    el.id = 'panneauRaccourcis';
+    el.style.cssText = 'position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:950; pointer-events:none;' +
+        'width:min(900px, calc(100vw - 32px)); max-height:calc(100vh - 40px); overflow:hidden;' +
+        'background:rgba(6,10,28,0.72); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);' +
+        'border:1px solid rgba(168,85,247,0.35); border-radius:14px; padding:16px 20px;' +
+        'font-family:"Exo 2",sans-serif; color:#E0E7FF;';
+    const kbd = function (s) {
+        return s.replace(/\[([^\]]+)\]/g, '<kbd>$1</kbd>');
+    };
+    el.innerHTML =
+        '<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">' +
+        '<span style="font-family:Orbitron,sans-serif; font-size:13px; letter-spacing:3px; color:#D8B4FE;">RACCOURCIS</span>' +
+        '<span style="font-size:11px; color:#94A3B8;"><kbd>K</kbd> pour fermer</span></div>' +
+        '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px 22px;">' +
+        RACCOURCIS.map(function (g) {
+            return '<div><div style="font-family:Orbitron,sans-serif; font-size:10px; letter-spacing:2px; color:#A78BFA; margin-bottom:6px;">' + g[0] + '</div>' +
+                g[1].map(function (l) {
+                    return '<div style="display:flex; gap:10px; align-items:baseline; padding:3px 0; border-bottom:1px solid rgba(148,163,184,0.1); font-size:12.5px;">' +
+                        '<span style="flex:0 0 42%; color:#F5F3FF;">' + kbd(l[0]) + '</span><span style="color:#CBD5E1;">' + l[1] + '</span></div>';
+                }).join('') + '</div>';
+        }).join('') + '</div>';
+    document.body.appendChild(el);
+}
+
+window.addEventListener('keydown', function (e) {
+    if (e.code !== 'KeyK' || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+    const a = document.activeElement;
+    if (a && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && !['range', 'checkbox', 'radio', 'button'].includes(a.type)))) return;
+    if (gameState.phase !== 'game' && gameState.phase !== 'paused' && gameState.phase !== 'spawn') return;
+    e.preventDefault();
+    basculerRaccourcis();
 });
 
 false && document.getElementById('btnLeaderboardBack_DEAD').addEventListener('click', () => {
