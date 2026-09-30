@@ -1282,8 +1282,10 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        planete contre planete 10 spores / 20 s, systeme planetaire 100 /
        30 s, systeme solaire 1 000 / 40 s. Chaque cote envoie une boule
        doree (15 s de voyage au plus) ; le don passe au-dela du maximum.
-       Fin apres 2 min ou a la premiere attaque entre les deux (fenetre
-       "Alliance arretee avec X"). L'IA refuse si on l'a attaquee dans la
+       Fin uniquement a la premiere attaque entre les deux (fenetre
+       "Alliance arretee avec X") ; pas de limite de duree. Un astre du
+       commerce perdu est remplace par un autre (fin s'il n'en reste
+       aucun). L'IA refuse si on l'a attaquee dans la
        minute ou si le demandeur est 2 fois plus fort. En reseau : ordres
        commerce / commerce_reponse (relais mis a jour), un humain accepte
        ou refuse dans une fenetre. Banc lockstep avec commerces : identique.
@@ -3473,7 +3475,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ONDES SOLAIRES.</span> Un système entièrement tenu se met à vivre : son étoile s'embrase <span style="color:#E9D5FF;">toutes les 5 secondes</span> et envoie une onde qui balaie ses astres. Chacun la reçoit au passage du front, pas au départ — le système s'allume de l'intérieur vers l'extérieur.</p>
 <p style="margin-bottom:16px;">Ce que l'onde apporte dépend de votre stat <span style="color:#FBBF24;">Sensitivity</span> : <span style="color:#4ADE80;">+5 % de la capacité de l'astre par point</span>. À un point, une lune de 400 reçoit 20 spores.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro. Il peut dépasser son maximum <b>sans limite</b> (chiffre doré ⚡) ; après le tir, le trop-plein s'évapore peu à peu.</p>
-<p style="margin-bottom:6px;"><span style="color:#FDE68A;">COMMERCE.</span> Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure 2 minutes et s'arrête à la première attaque entre vous. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
+<p style="margin-bottom:6px;"><span style="color:#FDE68A;">COMMERCE.</span> Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
 <p style="margin-bottom:16px;">On ne tire pas à travers une étoile ni un trou noir : ils détruisent les jets. Quand aucun de vos astres n'a la vue sur la cible, le trait de visée passe au <span style="color:#EF4444;">rouge</span>.</p>
 
 <!-- ÉVOLUTION -->
@@ -19249,8 +19251,9 @@ function drawCapitaux(ctx) {
      toutes ses lunes) : 100 spores / 30 s.
    - Niveau 3, systeme solaire contre systeme solaire (tout ce qui tourne
      autour d'un soleil) : 1 000 spores / 40 s.
-   Un astre ne sert qu'a un commerce a la fois. Le commerce dure 2 minutes,
-   et une attaque entre les deux joueurs le rompt. Une IA juge : elle refuse
+   Un astre ne sert qu'a un commerce a la fois. Le commerce dure tant
+   qu'aucun des deux n'attaque l'autre : seule une attaque le rompt (un
+   astre perdu est remplace par un autre, s'il en reste). Une IA juge : elle refuse
    si on l'a attaquee dans la derniere minute, ou si le demandeur est
    nettement plus fort qu'elle. Tout passe par des ordres : meme chose chez
    tous les joueurs en reseau. */
@@ -19260,7 +19263,6 @@ const COMMERCE_CFG = {
         2: { nom: 'Système planétaire', periode: 30, quantite: 100 },
         3: { nom: 'Système solaire', periode: 40, quantite: 1000 }
     },
-    duree: 120,
     vitesseBoule: 110,
     voyageMax: 15,             /* secondes de voyage au plus */
     rancune: 60,               /* secondes pendant lesquelles une attaque fait refuser */
@@ -19387,7 +19389,7 @@ function ouvrirCommerce(a, b, niveau) {
     const N = COMMERCE_CFG.niveaux[niveau];
     const t = gameState.time;
     const c = { id: ++gameState._commerceId, a: a, b: b, niveau: niveau, srcA: paire[0].name, srcB: paire[1].name,
-                debut: t, fin: t + COMMERCE_CFG.duree, prochain: t, periode: N.periode, quantite: N.quantite };
+                debut: t, prochain: t, periode: N.periode, quantite: N.quantite };
     gameState.commerces.push(c);
     const moi = localSlot();
     if (a === moi || b === moi) {
@@ -19401,14 +19403,13 @@ function finCommerce(c, raison, fautif) {
     const k = gameState.commerces.indexOf(c);
     if (k < 0) return;
     gameState.commerces.splice(k, 1);
-    /* Rompu par une attaque : les boules en route s'eteignent. Arrive a son
-       terme : elles finissent leur voyage. */
-    if (raison !== 'fin') gameState.orbesCommerce = gameState.orbesCommerce.filter(function (o) { return o.commerce !== c.id; });
+    /* Rompu : les boules en route s'eteignent. */
+    gameState.orbesCommerce = gameState.orbesCommerce.filter(function (o) { return o.commerce !== c.id; });
     const moi = localSlot();
     if (c.a === moi || c.b === moi) {
         const autre = gameState.players[c.a === moi ? c.b : c.a];
         const pourquoi = raison === 'attaque' ? (fautif === moi ? 'vous l\'avez attaqué' : 'il vous a attaqué')
-                       : raison === 'astre' ? 'un astre du commerce a changé de camp' : '2 minutes écoulées';
+                       : 'plus aucun astre à mettre en commerce';
         fenetreFinAlliance(autre, pourquoi);
     }
     addEvent('neutral', '✋', 'Fin du commerce entre ' + gameState.players[c.a].name + ' et ' + gameState.players[c.b].name, null, '#94A3B8');
@@ -19421,8 +19422,16 @@ function majCommerce(dt) {
     for (let i = P.length - 1; i >= 0; i--) if (t >= P[i].expire) P.splice(i, 1);
     for (const c of (gameState.commerces || []).slice()) {
         const A = astreNomme(c.srcA), B = astreNomme(c.srcB);
-        if (!A || !B || A.owner !== c.a || B.owner !== c.b) { finCommerce(c, 'astre'); continue; }
-        if (t >= c.fin) { finCommerce(c, 'fin'); continue; }
+        if (!A || !B || A.owner !== c.a || B.owner !== c.b) {
+            /* Un astre du commerce a change de camp : on en prend un autre. */
+            const k = gameState.commerces.indexOf(c);
+            gameState.commerces.splice(k, 1);
+            const paire = _paireCommerce(c.a, c.b, c.niveau);
+            gameState.commerces.splice(k, 0, c);
+            if (!paire) { finCommerce(c, 'astre'); continue; }
+            c.srcA = paire[0].name; c.srcB = paire[1].name;
+            continue;
+        }
         if (t >= c.prochain) {
             c.prochain += c.periode;
             /* Lente, mais jamais plus de 15 s de voyage, meme de loin. */
@@ -19616,7 +19625,7 @@ function fenetreInfoJoueur(slot) {
             ligne('Production', '+' + (Math.round(prod * 10) / 10).toLocaleString('fr-FR') + ' /s') +
             ligne('Commerces en cours', coms.length ? coms.map(function (c) {
                 const autre = gameState.players[c.a === slot ? c.b : c.a];
-                return '<span style="color:' + autre.color + ';">' + esc(autre.name) + '</span> (' + Math.max(0, Math.ceil(c.fin - gameState.time)) + ' s)';
+                return '<span style="color:' + autre.color + ';">' + esc(autre.name) + '</span> (depuis ' + Math.floor((gameState.time - c.debut) / 60) + ' min)';
             }).join('<br>') : 'aucun');
         el.querySelector('#infoJoueurFermer').addEventListener('click', function () { clearInterval(el._maj); el.remove(); });
     };
