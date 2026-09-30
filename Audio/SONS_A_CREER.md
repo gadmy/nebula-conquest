@@ -9,7 +9,7 @@ musiques d'ambiance actuelles ne durent que 27 à 31 secondes et tournent en
 boucle : on les entend se répéter, d'où les six nouvelles musiques plus
 longues. Les nouveautés (sphères capitales, duels de vaisseaux, démolitions,
 jeu en réseau) n'ont pas encore de son à elles : c'est l'objet des
-priorités 5 et 6.
+priorités 5 et 6. La priorité 7 redonne un rôle aux 7 fichiers inutilisés.
 
 ## Format commun
 
@@ -29,7 +29,6 @@ priorités 5 et 6.
 | `riposte.mp3` | Touche R : tes zones repartent à l'assaut | 0,8 à 1,2 s | Montée rapide puis élan, un « souffle » collectif |
 | `refus.mp3` | Action impossible (l'écran vibre) | 0,2 à 0,3 s | Petit « bonk » grave et étouffé, jamais agressif |
 | `astre_perdu.mp3` | Un de tes astres est conquis par l'ennemi | 1 à 1,5 s | Descendant, grave, un peu alarmant |
-| `alerte_attaque.mp3` | Un jet ennemi fonce sur un de tes astres | 0,6 à 1 s | Deux bips d'alerte discrets. Écoute d'abord `signal_v1.mp3` : il convient peut-être déjà |
 
 ## Priorité 2 — les récompenses et signaux
 
@@ -109,19 +108,22 @@ faible pour une apocalypse.
 | `tab.mp3` | Touche Tab, passage à l'astre suivant | 0,05 à 0,1 s | Tic très léger |
 | `envoi_reglage.mp3` | Touches A / E, changement du pourcentage d'envoi | 0,05 à 0,1 s | Cran de molette, légèrement plus aigu vers le haut |
 
-## Déjà dans le dossier mais jamais joués
+## Priorité 7 — les 7 sons déjà présents, à refaire
 
-Ces 7 fichiers sont chargés au démarrage sans jamais servir. Écoute-les
-et dis à Claude, pour chacun, à quel moment le jouer, ou s'il faut le
-supprimer. Propositions (entre parenthèses, la durée réelle du fichier) :
+Ces 7 fichiers sont dans le dossier mais le jeu ne les joue jamais, et
+certains ne correspondent plus à rien (les alliances n'existent plus). On
+les **garde sous le même nom** et on les refait pour un nouveau rôle : il
+suffira de remplacer les anciens fichiers par les nouveaux.
 
-- `Alliance_v1.mp3` (2 s) — un joueur revient dans la partie, en réseau ?
-- `Alliance_break_v1.mp3` (0,5 s) — la connexion est coupée, en réseau ?
-- `banner_v1.mp3` (1 s) — le bandeau de début de partie, ou le départ d'une partie en réseau ?
-- `signal_v1.mp3` (1 s) — une alerte : jet ennemi qui fonce sur toi, ou sphère lancée par une IA ?
-- `nidification.mp3` (2 s) — un nid construit ? (`build_complet_v1.mp3` joue déjà pour tous les bâtiments)
-- `trade_orb_v1.mp3` (3 s) — la capture d'une sphère ?
-- `intercept.mp3` (1 s) — un jet détruit par un vaisseau rouge ?
+| Fichier | Quand il joue | Durée | Ambiance |
+|---|---|---|---|
+| `banner_v1.mp3` | Début de partie : le choix des planètes est fini, la partie commence | 1,5 à 2 s | Ouverture ample et lumineuse, comme un rideau qui se lève sur la galaxie |
+| `signal_v1.mp3` | Un jet ennemi fonce sur un de tes astres (alerte) | 0,6 à 1 s | Deux bips d'alerte discrets et organiques, qu'on remarque sans sursauter. |
+| `intercept.mp3` | Un de tes jets est détruit en vol : vaisseau rouge, comète ou étoile | 0,4 à 0,7 s | Petit éclatement étouffé, une poignée de spores qui se disperse |
+| `nidification.mp3` | Un nid est construit. Le son général des bâtiments reste pour les alvéoles et les biomes | 1 à 1,5 s | Organique et chaleureux, quelque chose qui s'installe et commence à pousser |
+| `trade_orb_v1.mp3` | Achat d'une mutation : tête chercheuse, ténacité ou mimétisme | 1 à 1,5 s | Transformation : scintillement cristallin qui se referme, sensation de gain |
+| `Alliance_v1.mp3` | Tu prends tout un système solaire (bonus de système complet) | 1,5 à 2 s | Accord qui s'élève et s'accomplit, victoire à petite échelle |
+| `Alliance_break_v1.mp3` | Tu perds le bonus de système complet (un de ses astres t'échappe) | 0,5 à 1 s | Accord qui se défait, courte chute, sans dramatiser |
 
 Le fichier `tct` (qui ne contient que le mot « Audio ») semble être un reste :
 il peut être supprimé.
