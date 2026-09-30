@@ -3,6 +3,14 @@
 Dépose chaque fichier dans ce dossier `Audio/` avec **exactement** le nom indiqué,
 puis dis-le à Claude : il les branche dans le jeu.
 
+**Vérification du 30 septembre 2026** : les 27 fichiers actuels se chargent
+tous correctement. 7 d'entre eux ne sont jamais joués (voir en bas). Les
+musiques d'ambiance actuelles ne durent que 27 à 31 secondes et tournent en
+boucle : on les entend se répéter, d'où les six nouvelles musiques plus
+longues. Les nouveautés (sphères capitales, duels de vaisseaux, démolitions,
+jeu en réseau) n'ont pas encore de son à elles : c'est l'objet des
+priorités 5 et 6.
+
 ## Format commun
 
 - **MP3**, 44,1 kHz, mono suffit (stéréo accepté).
@@ -65,6 +73,35 @@ Format propre aux musiques (il remplace le format commun ci-dessus) :
 | `amb_espace_5.mp3` | Tempête de spores | Rapide (environ 115 BPM) | Batailles | Rythme régulier et organique, basses pulsées, montée continue |
 | `amb_espace_6.mp3` | L'éveil des sphères | Rapide (environ 130 BPM) | Grands moments : sortie des sphères, grosses batailles, fin de partie serrée | Percussions profondes et organiques, nappes amples et épiques, urgence sans agressivité |
 
+## Priorité 5 — les sphères capitales
+
+Elles n'ont aucun son à elles pour l'instant : leur sortie et leur
+explosion reprennent le petit son d'une seconde des vaisseaux, bien trop
+faible pour une apocalypse.
+
+| Fichier | Quand il joue | Durée | Ambiance |
+|---|---|---|---|
+| `sphere_presage.mp3` | 5 s avant qu'une sphère sorte du trou noir, pendant que le trou noir s'agite | 5 s | Grondement sourd qui monte, comme une masse qui remue au fond d'un puits |
+| `sphere_sortie.mp3` | La sphère jaillit du trou noir | 2 à 3 s | Déchirure puissante, souffle, puis longue résonance métallique grave |
+| `sphere_arrose.mp3` | Chaque balle de la sphère verte sur un astre (+5 spores) | 0,05 à 0,1 s | Petit « plic » cristallin, très discret : il peut sonner 8 fois par seconde |
+| `sphere_ronge.mp3` | Chaque balle de la sphère noire sur un astre (-5 spores) | 0,05 à 0,1 s | Petit « tac » sec et sombre, très discret : même fréquence |
+| `sphere_canon.mp3` | La sphère riposte contre un petit vaisseau | 0,3 à 0,5 s | Tir lourd et grave, un « boum » étouffé |
+| `sphere_capture.mp3` | Un joueur prend le contrôle d'une sphère | 1,5 à 2 s | Verrouillage, puis montée de puissance |
+| `sphere_moteur.mp3` | En boucle tant que tu pilotes une sphère | 2 à 3 s, **boucle** | Réacteur lourd et régulier, grave |
+| `sphere_apocalypse.mp3` | La sphère s'écrase sur une planète ou un soleil | 4 à 6 s | Énorme déflagration, souffle, débris qui retombent, grave qui s'éteint lentement |
+| `sphere_explosion.mp3` | La sphère est abattue par les petits vaisseaux | 2 à 3 s | Grosse explosion, un cran en dessous de l'apocalypse |
+| `alerte_sphere.mp3` | Une IA lance une sphère capturée sur un système | 1 à 1,5 s | Sirène grave de deux notes, inquiétante sans être stridente |
+
+## Priorité 6 — combats de vaisseaux, démolitions, réseau
+
+| Fichier | Quand il joue | Durée | Ambiance |
+|---|---|---|---|
+| `laser_duel.mp3` | Tir de laser entre deux petits vaisseaux de couleurs différentes | 0,2 à 0,3 s | Trait bref et léger, discret : il peut sonner souvent |
+| `demolition.mp3` | Un bâtiment est détruit (démolisseur, écrasement de sphère) | 0,5 à 0,8 s | Effondrement court, craquement organique |
+| `partie_trouvee.mp3` | Salon RÉSEAU : tous les joueurs sont là, la partie démarre | 1 à 1,5 s | Accord qui s'ouvre, promesse de départ |
+| `connexion_perdue.mp3` | Réseau : la connexion est coupée (le jeu tente de revenir) | 0,5 s | Deux notes descendantes, discrètes |
+| `joueur_revenu.mp3` | Réseau : un joueur revient dans la partie, ou ta reconnexion réussit | 0,5 s | Deux notes montantes, discrètes |
+
 ## Petits sons d'interface (facultatif)
 
 | Fichier | Quand il joue | Durée | Ambiance |
@@ -74,16 +111,17 @@ Format propre aux musiques (il remplace le format commun ci-dessus) :
 
 ## Déjà dans le dossier mais jamais joués
 
-Ces 7 fichiers sont chargés au démarrage sans jamais servir. Dis à Claude,
-pour chacun, à quel moment le jouer, ou s'il faut le supprimer :
+Ces 7 fichiers sont chargés au démarrage sans jamais servir. Écoute-les
+et dis à Claude, pour chacun, à quel moment le jouer, ou s'il faut le
+supprimer. Propositions (entre parenthèses, la durée réelle du fichier) :
 
-- `Alliance_v1.mp3` — une alliance se forme ?
-- `Alliance_break_v1.mp3` — une alliance se rompt ?
-- `banner_v1.mp3` — le bandeau de début de partie ?
-- `signal_v1.mp3` — une alerte (voir `alerte_attaque` plus haut) ?
-- `nidification.mp3` — un nid construit ? (`build_complet_v1.mp3` joue déjà pour tous les bâtiments)
-- `trade_orb_v1.mp3` — ?
-- `intercept.mp3` — un jet intercepté ?
+- `Alliance_v1.mp3` (2 s) — un joueur revient dans la partie, en réseau ?
+- `Alliance_break_v1.mp3` (0,5 s) — la connexion est coupée, en réseau ?
+- `banner_v1.mp3` (1 s) — le bandeau de début de partie, ou le départ d'une partie en réseau ?
+- `signal_v1.mp3` (1 s) — une alerte : jet ennemi qui fonce sur toi, ou sphère lancée par une IA ?
+- `nidification.mp3` (2 s) — un nid construit ? (`build_complet_v1.mp3` joue déjà pour tous les bâtiments)
+- `trade_orb_v1.mp3` (3 s) — la capture d'une sphère ?
+- `intercept.mp3` (1 s) — un jet détruit par un vaisseau rouge ?
 
 Le fichier `tct` (qui ne contient que le mot « Audio ») semble être un reste :
 il peut être supprimé.

@@ -1218,6 +1218,17 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        tous reussis ; la noire a portee du meilleur joueur 12 % du temps
        (presque tout le temps avant). Rouge inchangee.
      - npm run lockstep sur 30 000 tours : identique.
+     - VERIFICATION DES SONS : les 27 fichiers se chargent tous (verifie
+       dans le navigateur, durees relevees) ; 7 jamais joues ; musiques
+       d'ambiance de 27 a 31 s seulement (repetitives). CORRIGE : la
+       tension qui fait passer la musique en mode agite prenait le joueur
+       0 pour soi - en reseau, ses propres tirs agitaient la musique.
+       SONS_A_CREER : priorite 5 (10 sons des spheres : presage, sortie,
+       balles verte et noire, canon, capture, moteur en boucle,
+       apocalypse, explosion, alerte) et priorite 6 (laser des duels,
+       demolition, reseau : partie trouvee, connexion perdue, joueur
+       revenu) ; propositions pour les 7 fichiers inutilises ; PDF
+       regenere.
      - SONS : six musiques d'ambiance spatiale ajoutees a
        Audio/SONS_A_CREER.md, du plus lent au plus rapide (amb_espace_1 a
        6) ; PDF regenere.
@@ -1272,8 +1283,9 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
   🎯 Sons (à faire à la maison) : la liste precise est dans
      Audio/SONS_A_CREER.md (et .pdf) - 12 sons (noms de fichiers, moments,
      durees, ambiance), 6 musiques d'ambiance spatiale du plus lent au plus
-     rapide (amb_espace_1 a 6, 2 a 4 min en boucle), plus 7 fichiers deja
-     presents mais jamais joues a attribuer.
+     rapide (amb_espace_1 a 6, 2 a 4 min en boucle), 10 sons des spheres,
+     5 sons de duels / demolition / reseau, plus 7 fichiers deja presents
+     mais jamais joues a attribuer (propositions dans la liste).
   🎯 Page itch.io avec screenshots
   🎯 Au moment de publier : faire servir dist/ par l'hebergeur, apres
      npm install puis npm run brouiller - jamais le index.html du depot.
@@ -21785,8 +21797,11 @@ function updateAudioTension() {
     let tensionTarget = 0;
     const human = gameState.players[localSlot()];
     if (human) {
+        /* Les tirs des AUTRES : en reseau on n'est pas forcement le joueur 0,
+           et ses propres tirs faisaient passer la musique en mode agite. */
+        const moi = localSlot();
         for (const jet of gameState.jets) {
-            if (!jet.alive || jet.owner === 0) continue;
+            if (!jet.alive || jet.owner === moi) continue;
             for (const body of human.bodies) {
                 const dx = jet.x - body.x;
                 const dy = jet.y - body.y;
