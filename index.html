@@ -1289,6 +1289,29 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        minute ou si le demandeur est 2 fois plus fort. En reseau : ordres
        commerce / commerce_reponse (relais mis a jour), un humain accepte
        ou refuse dans une fenetre. Banc lockstep avec commerces : identique.
+     - GRAPHISMES REFAITS (montres avant / apres, valides) :
+       - planetes et lunes peintes pixel par pixel sur une vraie sphere
+         (bruit de Perlin 3D) : oceans (continents, cotes, nuages, poles),
+         deserts (dunes, canyons), gazeuses (bandes, tempete), glace
+         (failles), rocheuses et lunes (crateres a rebord, mers, rayons,
+         lave incandescente). Calque jour / nuit refait, lunes eclairees
+         (si assez grandes a l'ecran) ;
+       - soleils : granulation, taches, bord assombri ; couronne de jets
+         peinte dans le halo, qui tourne lentement (couche CSS) ;
+       - trou noir : disque d'accretion vu de biais, arriere devie
+         au-dessus du trou, anneau de photons ; deux images qui se
+         relaient (tourbillon), a la place des 3 ellipses ;
+       - fond : nebuleuse discrete (voiles violets et bleus) ;
+       - asteroides : rochers en relief peints d'avance, tournes vers leur
+         soleil.
+       Cout : rien de plus par image pour les textures (images toutes
+       faites, avec copies a la bonne taille) ; asteroides aussi rapides ou
+       plus ; planetes + lunes < 0,1 ms de plus a zoom moyen, plus rapides
+       en zoom fort. Chargement : version legere (1,2 px par unite, ~1 s
+       de dessin en tout), la haute definition se peint ensuite par petits
+       morceaux quand le navigateur est libre (requestIdleCallback), les
+       astres proches de la camera d'abord. Purement visuel : rien ne
+       change dans la partie (reseau identique).
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -4213,6 +4236,28 @@ function resizeCanvas() {
 // ─────────────────────────────────────────────
 // FOND SPATIAL (pré-rendu sur canvas hors-écran)
 // ─────────────────────────────────────────────
+function nebuleuseFond(S) {
+    const c = document.createElement('canvas');
+    c.width = c.height = S;
+    const x = c.getContext('2d');
+    const img = x.createImageData(S, S), D = img.data;
+    const N = _bruitPerlin(42), N2 = _bruitPerlin(4343);
+    for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+        const u = i / S * 2.6, v = j / S * 2.6;
+        const w = N.fbm(u * 0.8, v * 0.8, 1.3, 3) * 1.2;
+        const n1 = N.fbm(u + w, v - w, 0.5, 5);               /* voiles violets */
+        const n2 = N2.fbm(u * 1.2 - w, v * 1.2, 2.5, 5);      /* voiles bleus */
+        const pous = _lissePas(0.55, 0.8, N2.cretes(u * 1.4 + w, v * 1.4, 4.1, 3));
+        const a1 = _lissePas(0.0, 0.5, n1), a2 = _lissePas(-0.05, 0.45, n2);
+        const r = 14 + 28 * a1 * a1 + 5 * a2, g = 28 + 6 * a1 + 18 * a2 * a2, b = 60 + 24 * a1 + 28 * a2;
+        const k = 1 - pous * 0.22;
+        const q = (j * S + i) * 4;
+        D[q] = r * k; D[q + 1] = g * k; D[q + 2] = b * k; D[q + 3] = 255;
+    }
+    x.putImageData(img, 0, 0);
+    return c;
+}
+
 function generateBackground() {
     const rng = mulberry32(42);
     // ══ Fond bleu dégradé (canvas offscreen) ══
@@ -4220,35 +4265,13 @@ function generateBackground() {
     const bgC = document.createElement('canvas');
     bgC.width = bgW; bgC.height = bgH;
     const bgCtx = bgC.getContext('2d');
-    // Gradient de base : bleu profond
-    const gBase = bgCtx.createLinearGradient(0, 0, bgW, bgH);
-    gBase.addColorStop(0, '#0a1628');
-    gBase.addColorStop(0.3, '#0f2040');
-    gBase.addColorStop(0.5, '#162d50');
-    gBase.addColorStop(0.7, '#0d1a35');
-    gBase.addColorStop(1, '#081020');
-    bgCtx.fillStyle = gBase;
-    bgCtx.fillRect(0, 0, bgW, bgH);
-    // Taches lumineuses diffuses (blobs radial)
-    const blobColors = [
-        [20, 40, 80], [15, 50, 90], [25, 35, 70],
-        [10, 30, 65], [30, 50, 100], [18, 45, 85]
-    ];
-    for (let i = 0; i < 18; i++) {
-        const bx = rng() * bgW;
-        const by = rng() * bgH;
-        const br = 200 + rng() * 500;
-        const bc = blobColors[i % blobColors.length];
-        const ba = 0.08 + rng() * 0.12;
-        const g = bgCtx.createRadialGradient(bx, by, 0, bx, by, br);
-        g.addColorStop(0, `rgba(${bc[0]+20},${bc[1]+20},${bc[2]+30}, ${ba})`);
-        g.addColorStop(0.5, `rgba(${bc[0]},${bc[1]},${bc[2]}, ${ba * 0.5})`);
-        g.addColorStop(1, 'rgba(0,0,0,0)');
-        bgCtx.fillStyle = g;
-        bgCtx.beginPath();
-        bgCtx.arc(bx, by, br, 0, Math.PI * 2);
-        bgCtx.fill();
-    }
+    /* Une nebuleuse discrete : de grands voiles violets et bleus, a peine
+       plus clairs que le bleu nuit, et des filaments de poussiere un peu
+       plus sombres. Peinte petit (224 px) puis agrandie : ce fond est de
+       toute facon etire sur 60 000 unites, seuls les grands nuages se voient. */
+    bgCtx.imageSmoothingEnabled = true;
+    bgCtx.imageSmoothingQuality = 'high';
+    bgCtx.drawImage(nebuleuseFond(224), 0, 0, bgW, bgH);
     /* Le degrade et les taches sont trames par le navigateur : un bruit d'un
        ou deux niveaux, invisible a l'echelle 1. Mais ce canvas est etire d'un
        facteur 10 a 30 a l'ecran, et comme on l'affiche sans filtrage (voir
@@ -4399,7 +4422,33 @@ function generateBackground() {
    floute pour que le tramage du degrade ne ressorte pas en quadrillage une
    fois dessine sans filtrage (voir drawSuns). Le degrade est defini en
    proportions du sprite, donc le resultat ne depend plus du rayon du soleil. */
-const _HALO_SOLEIL_PX = 256;
+const _HALO_SOLEIL_PX = 384;
+
+/* Les jets de la couronne, pour un sprite de halo de S px (le disque du
+   soleil y fait un tiers du rayon). */
+function _couronneSoleil(sun, S) {
+    const c = document.createElement('canvas');
+    c.width = c.height = S;
+    const x = c.getContext('2d');
+    const img = x.createImageData(S, S), D = img.data;
+    const C = _hexRgb(sun.color);
+    const N = _bruitPerlin(99 + ((sun.name || '').charCodeAt(0) || 0));
+    const h = S / 2, r0 = S / 2 / 3;
+    const cr = Math.min(255, C[0] * 0.6 + 100), cg = Math.min(255, C[1] * 0.6 + 80), cb = Math.min(255, C[2] * 0.6 + 60);
+    for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+        const dx = i + 0.5 - h, dy = j + 0.5 - h, d = Math.sqrt(dx * dx + dy * dy) / r0;
+        if (d < 0.9 || d > 2.2) continue;
+        const a = Math.atan2(dy, dx), ca = Math.cos(a), sa = Math.sin(a);
+        const jets = 0.5 + 0.5 * N(ca * 7, sa * 7, d * 0.8);
+        const fil = Math.pow(0.5 + 0.5 * N(ca * 22, sa * 22, 3.3), 3);
+        const v = Math.pow(Math.max(0, 2.2 - d) / 1.2, 2.2) * (0.35 + 0.9 * jets * jets + 0.6 * fil) * _lissePas(0.9, 1.02, d);
+        const k = (j * S + i) * 4;
+        D[k] = cr; D[k + 1] = cg; D[k + 2] = cb;
+        D[k + 3] = Math.min(255, 255 * v * 0.5);
+    }
+    x.putImageData(img, 0, 0);
+    return c;
+}
 
 function buildSunHaloCache() {
     for (const sun of gameState.suns) {
@@ -4419,10 +4468,17 @@ function buildSunHaloCache() {
         bctx.arc(cx, cy, rr, 0, Math.PI * 2);
         bctx.fill();
 
+        /* La couronne : de longs jets de lumiere fins autour du disque,
+           peints dans le halo (rien de plus a poser pendant la partie). En
+           couche CSS, le halo tourne tres lentement (majHalosCss). */
+        bctx.globalCompositeOperation = 'lighter';
+        bctx.drawImage(_couronneSoleil(sun, dim), 0, 0);
+        bctx.globalCompositeOperation = 'source-over';
+
         const c = document.createElement('canvas');
         c.width = c.height = dim;
         const ctx = c.getContext('2d');
-        ctx.filter = 'blur(2px)';
+        ctx.filter = 'blur(1px)';
         ctx.drawImage(brut, 0, 0);
         ctx.filter = 'none';
 
@@ -4437,95 +4493,360 @@ function buildSunHaloCache() {
 // ─────────────────────────────────────────────
 // TEXTURES PROCÉDURALES (canvas hors-écran)
 // ─────────────────────────────────────────────
-function createPlanetTexture(planet) {
-    const size = Math.max(Math.floor(planet.radius * 2 * 3), 16);
+/* Les surfaces sont peintes pixel par pixel, UNE FOIS au chargement, sur une
+   vraie sphere : chaque pixel du disque retrouve son point de la sphere, et
+   la couleur vient d'un bruit 3D pris en ce point. Les motifs se courbent
+   donc vers le bord, sans couture ni etirement. Pendant la partie, rien ne
+   change : on pose une image deja faite (et sa copie a la bonne taille,
+   voir _niveauxTexture), exactement comme avant. L'eclairage (jour / nuit)
+   est un calque a part tourne vers le soleil (lumiereSprite) : les textures
+   n'ont qu'un assombrissement symetrique du bord. */
+
+/* Bruit de Perlin 3D, a graine : rend entre -1 et 1 environ. */
+function _bruitPerlin(seed) {
+    const rng = mulberry32(seed);
+    const P = new Uint8Array(512);
+    for (let i = 0; i < 256; i++) P[i] = i;
+    for (let i = 255; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = P[i]; P[i] = P[j]; P[j] = t; }
+    for (let i = 0; i < 256; i++) P[i + 256] = P[i];
+    const grad = function (h, x, y, z) {
+        switch (h & 15) {
+            case 0: return x + y; case 1: return -x + y; case 2: return x - y; case 3: return -x - y;
+            case 4: return x + z; case 5: return -x + z; case 6: return x - z; case 7: return -x - z;
+            case 8: return y + z; case 9: return -y + z; case 10: return y - z; case 11: return -y - z;
+            case 12: return x + y; case 13: return -x + y; case 14: return -y + z; default: return -y - z;
+        }
+    };
+    const n = function (x, y, z) {
+        const fx = Math.floor(x), fy = Math.floor(y), fz = Math.floor(z);
+        const X = fx & 255, Y = fy & 255, Z = fz & 255;
+        x -= fx; y -= fy; z -= fz;
+        const u = x * x * x * (x * (x * 6 - 15) + 10);
+        const v = y * y * y * (y * (y * 6 - 15) + 10);
+        const w = z * z * z * (z * (z * 6 - 15) + 10);
+        const A = P[X] + Y, AA = P[A] + Z, AB = P[A + 1] + Z;
+        const B = P[X + 1] + Y, BA = P[B] + Z, BB = P[B + 1] + Z;
+        const x1 = x - 1, y1 = y - 1, z1 = z - 1;
+        const g000 = grad(P[AA], x, y, z), g100 = grad(P[BA], x1, y, z);
+        const g010 = grad(P[AB], x, y1, z), g110 = grad(P[BB], x1, y1, z);
+        const g001 = grad(P[AA + 1], x, y, z1), g101 = grad(P[BA + 1], x1, y, z1);
+        const g011 = grad(P[AB + 1], x, y1, z1), g111 = grad(P[BB + 1], x1, y1, z1);
+        const a0 = g000 + u * (g100 - g000), a1 = g010 + u * (g110 - g010);
+        const b0 = g001 + u * (g101 - g001), b1 = g011 + u * (g111 - g011);
+        const c0 = a0 + v * (a1 - a0), c1 = b0 + v * (b1 - b0);
+        return c0 + w * (c1 - c0);
+    };
+    /* Somme d'octaves : les grandes formes, puis des details de plus en plus fins. */
+    n.fbm = function (x, y, z, oct) {
+        let s = 0, a = 0.5, f = 1;
+        for (let i = 0; i < oct; i++) { s += a * n(x * f, y * f, z * f); f *= 2.03; a *= 0.5; }
+        return s;
+    };
+    /* Cretes : des lignes fines (failles, fissures, chaines de montagnes). */
+    n.cretes = function (x, y, z, oct) {
+        let s = 0, a = 0.5, f = 1;
+        for (let i = 0; i < oct; i++) { const r = 1 - Math.abs(n(x * f, y * f, z * f)); s += a * r * r; f *= 2.1; a *= 0.5; }
+        return s;
+    };
+    return n;
+}
+
+/* Une rampe de couleurs [[t, r, g, b], ...] en table de 256 teintes. */
+function _rampe(points) {
+    const T = new Uint8ClampedArray(256 * 3);
+    for (let i = 0; i < 256; i++) {
+        const t = i / 255;
+        let k = 0;
+        while (k < points.length - 2 && t > points[k + 1][0]) k++;
+        const a = points[k], b = points[k + 1];
+        const f = Math.max(0, Math.min(1, (t - a[0]) / ((b[0] - a[0]) || 1)));
+        T[i * 3] = a[1] + (b[1] - a[1]) * f;
+        T[i * 3 + 1] = a[2] + (b[2] - a[2]) * f;
+        T[i * 3 + 2] = a[3] + (b[3] - a[3]) * f;
+    }
+    return T;
+}
+function _lissePas(a, b, x) { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+
+/* Des cratères poses sur la sphere : [x, y, z, rayon angulaire (cos), taille]. */
+function _crateres(rng, nb, tMin, tMax) {
+    const L = [];
+    for (let i = 0; i < nb; i++) {
+        const z = rng() * 2 - 1, a = rng() * Math.PI * 2, s = Math.sqrt(1 - z * z);
+        /* Beaucoup de petits, peu de grands. */
+        const t = tMin + (tMax - tMin) * Math.pow(rng(), 2.6);
+        L.push([s * Math.cos(a), s * Math.sin(a), z, t]);
+    }
+    return L;
+}
+/* Relief d'un cratere a la distance d (en rayons) de son centre :
+   fond creuse, rebord clair, ejectas qui s'estompent. */
+function _profilCratere(d) {
+    if (d < 0.8) return -0.35 + 0.15 * d * d;
+    if (d < 1.0) return -0.25 + (d - 0.8) * 3.3;           /* remontee vers le rebord */
+    if (d < 1.15) return 0.42 - (d - 1.0) * 2.4;            /* rebord */
+    if (d < 1.8) return 0.06 * (1.8 - d);                   /* ejectas */
+    return 0;
+}
+
+/* Un chantier de peinture d'une sphere : f(X, Y, Z, px, nz) ecrit la couleur
+   dans px[0..2] (0-255) pour le point (X, Y, Z) de la sphere, deja tournee
+   (nz : 1 au centre du disque, 0 au bord).
+   Bord adouci, bord assombri (limbe), teinte d'atmosphere au bord si
+   demande. Le chantier avance ligne par ligne : on peut le finir d'un coup,
+   ou par petits morceaux entre deux images (voir _peintreFond). */
+function _chantierSphere(size, seed, f, atmo, limbe) {
     const c = document.createElement('canvas');
-    c.width = size; c.height = size;
-    const cx = c.getContext('2d');
-    const half = size / 2;
-    const r = half - 1;
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(size, size);
+    const D = img.data;
+    const h = size / 2, r = h - 1;
+    /* Axe du globe un peu incline, different pour chaque astre. */
+    const rng = mulberry32(seed ^ 0x5bd1e995);
+    const ax = (rng() - 0.5) * 0.9, az = rng() * Math.PI * 2;
+    const cx = Math.cos(ax), sx = Math.sin(ax), cz = Math.cos(az), sz = Math.sin(az);
+    const px = [0, 0, 0];
+    const lim = limbe === undefined ? 0.55 : limbe;
+    let y = 0;
+    return {
+        /* Peint jusqu'a l'heure limite (ms, performance.now) ; rend la toile finie, ou null. */
+        avancer: function (limite) {
+            for (; y < size; y++) {
+                const ny = (y + 0.5 - h) / r;
+                for (let x = 0; x < size; x++) {
+                    const nx = (x + 0.5 - h) / r;
+                    const d2 = nx * nx + ny * ny;
+                    if (d2 > 1.02) continue;
+                    const nz = Math.sqrt(Math.max(0, 1 - d2));
+                    /* Rotation : autour de x (inclinaison), puis de l'axe (longitude). */
+                    const y1 = ny * cx - nz * sx, z1 = ny * sx + nz * cx;
+                    const X = nx * cz - z1 * sz, Z = nx * sz + z1 * cz, Y = y1;
+                    f(X, Y, Z, px, nz);
+                    /* Limbe : le bord recoit la lumiere de biais. */
+                    const k = (1 - lim) + lim * Math.pow(nz, 0.45);
+                    let R = px[0] * k, G = px[1] * k, B = px[2] * k;
+                    if (atmo) {
+                        const a = Math.pow(1 - nz, 2.2) * atmo[3];
+                        R += (atmo[0] - R) * a; G += (atmo[1] - G) * a; B += (atmo[2] - B) * a;
+                    }
+                    const i = (y * size + x) * 4;
+                    D[i] = R; D[i + 1] = G; D[i + 2] = B;
+                    /* Bord anticrenele sur un pixel et demi. */
+                    D[i + 3] = 255 * Math.max(0, Math.min(1, (1 - Math.sqrt(d2)) * r * 0.7 + 0.5));
+                }
+                if ((y & 3) === 3 && performance.now() > limite) { y++; return null; }
+            }
+            ctx.putImageData(img, 0, 0);
+            return c;
+        }
+    };
+}
+
+/* LA HAUTE DEFINITION EN ARRIERE-PLAN. Au chargement, chaque astre recoit
+   une texture legere (1,2 pixel par unite, vite peinte). La grande (3 pixels
+   par unite, pour plonger sur l'astre) se peint ensuite par petits morceaux,
+   seulement quand le navigateur n'a rien d'autre a faire : l'image suivante
+   n'attend jamais. Les astres proches de la camera passent d'abord. */
+const _fileHD = [];
+let _peintreActif = false;
+function _texturer(b, size, seed, f, atmo, limbe) {
+    const petit = Math.max(12, Math.min(size, Math.floor(b.radius * 1.2)));
+    const c = _chantierSphere(petit, seed, f, atmo, limbe).avancer(Infinity);
+    b._texture = c;
+    b._niveaux = _niveauxTexture(c);
+    if (size > petit) {
+        b._travailHD = { size: size, seed: seed, f: f, atmo: atmo, limbe: limbe, chantier: null };
+        if (_fileHD.indexOf(b) < 0) _fileHD.push(b);
+        _lancerPeintre();
+    } else b._travailHD = null;
+}
+function _lancerPeintre() {
+    if (_peintreActif || !_fileHD.length) return;
+    _peintreActif = true;
+    if (window.requestIdleCallback) requestIdleCallback(_peintreFond, { timeout: 2000 });
+    else setTimeout(_peintreFond, 40);
+}
+function _peintreFond(deadline) {
+    _peintreActif = false;
+    /* Un temps libre (6 ms au plus), ou 4 ms sans requestIdleCallback. */
+    const dispo = deadline && deadline.timeRemaining ? Math.min(6, deadline.timeRemaining()) : 4;
+    const limite = performance.now() + Math.max(1, dispo);
+    while (_fileHD.length && performance.now() < limite) {
+        /* Le plus proche de la camera d'abord (on garde celui entame). */
+        let k = _fileHD.findIndex(function (b) { return b._travailHD && b._travailHD.chantier; });
+        if (k < 0) {
+            const cam = gameState.camera;
+            let bd = Infinity;
+            for (let i = 0; i < _fileHD.length; i++) {
+                const d = cam ? Math.hypot(_fileHD[i].x - cam.x, _fileHD[i].y - cam.y) : i;
+                if (d < bd) { bd = d; k = i; }
+            }
+        }
+        const b = _fileHD[k], T = b._travailHD;
+        /* Astre d'une partie finie, ou texture refaite depuis : on laisse. */
+        if (!T || (gameState.planets.indexOf(b) < 0 && gameState.moons.indexOf(b) < 0 && gameState.suns.indexOf(b) < 0)) { _fileHD.splice(k, 1); continue; }
+        if (!T.chantier) T.chantier = _chantierSphere(T.size, T.seed, T.f, T.atmo, T.limbe);
+        const c = T.chantier.avancer(limite);
+        if (c) {
+            b._texture = c;
+            b._niveaux = _niveauxTexture(c);
+            b._travailHD = null;
+            _fileHD.splice(k, 1);
+        }
+    }
+    _lancerPeintre();
+}
+
+/* Copies de plus en plus petites, pour poser l'image a la bonne taille
+   (meme principe que les soleils) : moins cher et sans scintillement. */
+function _niveauxTexture(c) {
+    const niveaux = [c];
+    while (niveaux[niveaux.length - 1].width >= 48) {
+        const src = niveaux[niveaux.length - 1];
+        const d = document.createElement('canvas');
+        d.width = d.height = src.width >> 1;
+        d.getContext('2d').drawImage(src, 0, 0, d.width, d.height);
+        niveaux.push(d);
+    }
+    return niveaux;
+}
+/* Pose un astre avec la copie la plus proche de sa taille a l'ecran. */
+function poserTexture(ctx, b, pxParUnite) {
+    const niv = b._niveaux;
+    if (!niv) { ctx.drawImage(b._texture, b.x - b.radius, b.y - b.radius, b.radius * 2, b.radius * 2); return; }
+    const px = b.radius * 2 * pxParUnite;
+    let k = 0;
+    while (k + 1 < niv.length && niv[k + 1].width >= px) k++;
+    ctx.drawImage(niv[k], b.x - b.radius, b.y - b.radius, b.radius * 2, b.radius * 2);
+}
+
+function createPlanetTexture(planet) {
+    /* 3 pixels par unite (pour plonger sur l'astre), 640 au plus. */
+    const size = Math.min(640, Math.max(Math.floor(planet.radius * 2 * 3), 16));
 
     // Type de planète basé sur le nom (seed déterministe)
     const _pn = planet.name || '';
     const seed = (_pn.charCodeAt(0)||17) + (_pn.charCodeAt(1)||31) * 7 + Math.round((planet.orbitRadius||100) * 3 + (planet.radius||15) * 11);
     const types = ['rocky','ocean','desert','gas','ice'];
     planet.planetType = types[seed % types.length];
-
-    const palettes = {
-        rocky:  { base: '#8B7355', c1: '#6B5B45', c2: '#A09070', sea: null },
-        ocean:  { base: '#2266AA', c1: '#1B5090', c2: '#33AACC', sea: '#1A4477' },
-        desert: { base: '#C4A35A', c1: '#B8943F', c2: '#D4B870', sea: null },
-        gas:    { base: '#C9956B', c1: '#B07850', c2: '#DDB88A', sea: null },
-        ice:    { base: '#A0C4D8', c1: '#88B0CC', c2: '#C8E0F0', sea: '#7099B8' }
-    };
-    const pal = palettes[planet.planetType];
-
-    // Fond circulaire
-    cx.beginPath();
-    cx.arc(half, half, r, 0, Math.PI * 2);
-    cx.clip();
-
-    // Base
-    cx.fillStyle = pal.base;
-    cx.fillRect(0, 0, size, size);
-
-    // Bruit pseudo-aléatoire pour les continents/bandes
     const rng = mulberry32(seed);
+    const N = _bruitPerlin(seed);
+    const N2 = _bruitPerlin(seed + 7919);
+    const o = rng() * 100;                  /* decalage : deux planetes du meme type different */
+    let f, atmo = null, limbe = 0.55;
 
-    if (planet.planetType === 'gas') {
-        // Bandes horizontales pour gazeuses
-        for (let y = 0; y < size; y += 3) {
-            const intensity = Math.sin(y * 0.3 + rng() * 6) * 0.3;
-            cx.fillStyle = intensity > 0 ? pal.c2 + '80' : pal.c1 + '60';
-            cx.fillRect(0, y, size, 2);
-        }
-    } else {
-        // Continents / taches
-        const patches = 4 + Math.floor(rng() * 6);
-        for (let i = 0; i < patches; i++) {
-            const px = rng() * size;
-            const py = rng() * size;
-            const pr = rng() * r * 0.6 + r * 0.15;
-            const g = cx.createRadialGradient(px, py, 0, px, py, pr);
-            g.addColorStop(0, pal.c1 + 'AA');
-            g.addColorStop(0.6, pal.c2 + '66');
-            g.addColorStop(1, 'rgba(0,0,0,0)');
-            cx.fillStyle = g;
-            cx.beginPath();
-            cx.arc(px, py, pr, 0, Math.PI * 2);
-            cx.fill();
-        }
-
-        // Mers si applicable
-        if (pal.sea) {
-            const seaPatches = 2 + Math.floor(rng() * 3);
-            for (let i = 0; i < seaPatches; i++) {
-                const sx = rng() * size;
-                const sy = rng() * size;
-                const sr = rng() * r * 0.5 + r * 0.1;
-                const g = cx.createRadialGradient(sx, sy, 0, sx, sy, sr);
-                g.addColorStop(0, pal.sea + 'BB');
-                g.addColorStop(1, 'rgba(0,0,0,0)');
-                cx.fillStyle = g;
-                cx.beginPath();
-                cx.arc(sx, sy, sr, 0, Math.PI * 2);
-                cx.fill();
+    if (planet.planetType === 'ocean') {
+        const mer = _rampe([[0, 8, 26, 70], [0.55, 16, 62, 128], [0.85, 28, 112, 168], [1, 70, 170, 190]]);
+        const terre = _rampe([[0, 200, 184, 130], [0.06, 92, 140, 62], [0.3, 46, 100, 48], [0.55, 110, 98, 66], [0.78, 150, 140, 128], [0.9, 236, 240, 244], [1, 250, 252, 255]]);
+        const niveauMer = 0.02 + rng() * 0.08;
+        f = function (X, Y, Z, p) {
+            const qx = N2.fbm(X * 1.3 + o, Y * 1.3, Z * 1.3, 2) * 0.7;
+            const hgt = N.fbm(X * 1.9 + qx + o, Y * 1.9 + qx, Z * 1.9, 6);
+            let r, g, b;
+            if (hgt < niveauMer) {
+                const t = Math.max(0, Math.min(255, 255 + (hgt - niveauMer) * 900)) | 0;
+                r = mer[t * 3]; g = mer[t * 3 + 1]; b = mer[t * 3 + 2];
+            } else {
+                const t = Math.min(255, (hgt - niveauMer) * 560) | 0;
+                r = terre[t * 3]; g = terre[t * 3 + 1]; b = terre[t * 3 + 2];
             }
-        }
+            /* Calottes polaires. */
+            const pole = _lissePas(0.74, 0.86, Math.abs(Y) + N.fbm(X * 4, Y * 4, Z * 4, 3) * 0.12);
+            r += (238 - r) * pole; g += (244 - g) * pole; b += (250 - b) * pole;
+            /* Nuages, etires le long des paralleles. */
+            const nu = N2.fbm(X * 2.2 + o, Y * 5.5, Z * 2.2 + qx, 4);
+            const a = _lissePas(0.02, 0.32, nu) * 0.88;
+            p[0] = r + (245 - r) * a; p[1] = g + (248 - g) * a; p[2] = b + (252 - b) * a;
+        };
+        atmo = [90, 160, 255, 0.55];
+    } else if (planet.planetType === 'desert') {
+        const sable = _rampe([[0, 110, 60, 30], [0.35, 176, 118, 60], [0.65, 214, 168, 98], [1, 238, 210, 158]]);
+        f = function (X, Y, Z, p) {
+            const hgt = N.fbm(X * 1.6 + o, Y * 1.6, Z * 1.6, 5);
+            let t = Math.max(0, Math.min(255, (hgt * 0.9 + 0.5) * 255)) | 0;
+            let r = sable[t * 3], g = sable[t * 3 + 1], b = sable[t * 3 + 2];
+            /* Dunes : de fines ondulations qui suivent le vent. */
+            const du = Math.sin((X * 38 + Y * 12 + N2.fbm(X * 3, Y * 3, Z * 3, 3) * 9) ) * 0.5 + 0.5;
+            const kd = 0.92 + du * 0.1;
+            r *= kd; g *= kd; b *= kd;
+            /* Canyons sombres. */
+            const ca = _lissePas(0.7, 0.8, N2.cretes(X * 2.4 + o, Y * 2.4, Z * 2.4, 4));
+            r += (96 - r) * ca * 0.55; g += (52 - g) * ca * 0.55; b += (30 - b) * ca * 0.55;
+            const pole = _lissePas(0.86, 0.94, Math.abs(Y) + hgt * 0.1);
+            p[0] = r + (240 - r) * pole; p[1] = g + (232 - g) * pole; p[2] = b + (220 - b) * pole;
+        };
+        atmo = [230, 170, 110, 0.3];
+    } else if (planet.planetType === 'gas') {
+        /* Bandes irregulieres : un profil tire au hasard, deforme par la turbulence. */
+        const violet = rng() >= 0.5;
+        const pal = !violet
+            ? _rampe([[0, 120, 72, 42], [0.3, 176, 122, 78], [0.55, 222, 186, 140], [0.8, 240, 222, 190], [1, 196, 150, 104]])
+            : _rampe([[0, 90, 88, 120], [0.3, 150, 140, 170], [0.6, 210, 196, 206], [1, 170, 130, 150]]);
+        const profil = new Float32Array(64);
+        for (let i = 0; i < 64; i++) profil[i] = rng();
+        const tl = -0.25 - rng() * 0.3, tg = rng() * Math.PI * 2;   /* latitude, longitude de la tempete */
+        const tache = [Math.cos(tg) * Math.sqrt(1 - tl * tl), tl, Math.sin(tg) * Math.sqrt(1 - tl * tl)];
+        f = function (X, Y, Z, p) {
+            const tu = N.fbm(X * 2.5 + o, Y * 9, Z * 2.5, 4);
+            const lat = Y + tu * 0.06;
+            let bi = (lat * 0.5 + 0.5) * 22;
+            const i0 = Math.max(0, Math.min(63, Math.floor(bi))), i1 = Math.min(63, i0 + 1), fr = bi - Math.floor(bi);
+            let v = profil[i0] + (profil[i1] - profil[i0]) * fr * fr * (3 - 2 * fr);
+            v += N2.fbm(X * 6 + o, Y * 30, Z * 6, 3) * 0.12;
+            /* La grande tempete : un ovale tourbillonnant. */
+            /* Distance a la tempete, ecrasee en latitude : un ovale. */
+            const dy = (Y - tache[1]) * 2.2;
+            const dh = 1 - (X * tache[0] + Z * tache[2]) / (Math.sqrt(1 - tache[1] * tache[1]) * Math.sqrt(Math.max(1e-6, 1 - Y * Y)));
+            const dt = Math.sqrt(dy * dy + Math.max(0, dh) * 1.4);
+            const dx = Math.sqrt(Math.max(0, dh)) * Math.sign(X * tache[2] - Z * tache[0]);
+            if (dt < 0.28) {
+                const k = _lissePas(0.28, 0.1, dt);
+                v = v * (1 - k) + (0.1 + 0.08 * Math.sin(Math.atan2(dy, dx) * 3 + dt * 40)) * k;
+            }
+            const t = Math.max(0, Math.min(255, v * 255)) | 0;
+            p[0] = pal[t * 3]; p[1] = pal[t * 3 + 1]; p[2] = pal[t * 3 + 2];
+        };
+        atmo = violet ? [200, 190, 230, 0.25] : [220, 200, 170, 0.25];
+        limbe = 0.65;
+        planet._anneauViolet = violet;
+    } else if (planet.planetType === 'ice') {
+        const glace = _rampe([[0, 84, 128, 176], [0.35, 140, 182, 216], [0.7, 200, 224, 240], [1, 244, 250, 255]]);
+        f = function (X, Y, Z, p) {
+            const hgt = N.fbm(X * 1.7 + o, Y * 1.7, Z * 1.7, 5);
+            const t = Math.max(0, Math.min(255, (hgt * 1.1 + 0.5) * 255)) | 0;
+            let r = glace[t * 3], g = glace[t * 3 + 1], b = glace[t * 3 + 2];
+            /* Failles : de longues lignes bleu profond, et d'autres plus fines. */
+            const fa = _lissePas(0.76, 0.88, N2.cretes(X * 2 + o, Y * 2, Z * 2, 3));
+            const fb = _lissePas(0.8, 0.9, N.cretes(X * 5, Y * 5 + o, Z * 5, 2));
+            const k = Math.min(1, fa * 0.9 + fb * 0.5);
+            p[0] = r + (36 - r) * k; p[1] = g + (86 - g) * k; p[2] = b + (140 - b) * k;
+        };
+        atmo = [170, 220, 255, 0.45];
+    } else {
+        /* Rocheuse : plaines et hauts plateaux, montagnes et crateres. */
+        const roc = rng() < 0.5
+            ? _rampe([[0, 60, 38, 28], [0.4, 132, 84, 56], [0.7, 178, 122, 82], [1, 218, 176, 134]])
+            : _rampe([[0, 52, 48, 46], [0.4, 118, 104, 90], [0.7, 160, 144, 124], [1, 206, 194, 176]]);
+        const cr = _crateres(rng, 40, 0.025, 0.2);
+        f = function (X, Y, Z, p) {
+            let hgt = N.fbm(X * 1.8 + o, Y * 1.8, Z * 1.8, 6) * 0.9 + 0.5;
+            hgt += (N2.cretes(X * 3 + o, Y * 3, Z * 3, 4) - 0.5) * 0.25;
+            for (let i = 0; i < cr.length; i++) {
+                const q = cr[i];
+                const dd = 1 - (X * q[0] + Y * q[1] + Z * q[2]);      /* ~ angle^2 / 2 */
+                if (dd > q[3] * q[3] * 1.7) continue;
+                hgt += _profilCratere(Math.sqrt(dd * 2) / q[3]) * 0.8;
+            }
+            const t = Math.max(0, Math.min(255, hgt * 255)) | 0;
+            p[0] = roc[t * 3]; p[1] = roc[t * 3 + 1]; p[2] = roc[t * 3 + 2];
+        };
+        atmo = [200, 150, 110, 0.15];
     }
-
-    // Ombre sphérique (éclairage)
-    const gShade = cx.createRadialGradient(half * 0.7, half * 0.7, 0, half, half, r);
-    gShade.addColorStop(0, 'rgba(255,255,255,0.15)');
-    gShade.addColorStop(0.5, 'rgba(0,0,0,0)');
-    gShade.addColorStop(1, 'rgba(0,0,0,0.4)');
-    cx.fillStyle = gShade;
-    cx.fillRect(0, 0, size, size);
-
-    // Atmosphère (pour ocean, ice, gas)
+    _texturer(planet, size, seed, f, atmo, limbe);
     const atmoColors = {
-        ocean: 'rgba(60, 140, 255, 0.12)',
-        ice: 'rgba(150, 210, 255, 0.10)',
+        ocean: 'rgba(60, 140, 255, 0.14)',
+        ice: 'rgba(150, 210, 255, 0.12)',
         gas: 'rgba(200, 160, 100, 0.08)',
         rocky: null,
         desert: null
@@ -4535,198 +4856,132 @@ function createPlanetTexture(planet) {
         planet._hasAtmosphere = true;
         planet._atmoColor = atmoCol;
     }
-
     // Anneaux pour gazeuses
     if (planet.planetType === 'gas') {
         planet._hasRings = true;
-        planet._ringColor1 = pal.c2 + '40';
-        planet._ringColor2 = pal.c1 + '20';
+        const violet = planet._anneauViolet;
+        planet._ringColor1 = violet ? 'rgba(200,186,210,0.28)' : 'rgba(221,190,150,0.28)';
+        planet._ringColor2 = violet ? 'rgba(150,130,170,0.14)' : 'rgba(176,130,90,0.14)';
         planet._ringTilt = 0.3 + rng() * 0.4;
     }
-
-    planet._texture = c;
 }
 
 function createMoonTexture(moon) {
-    const size = Math.max(Math.floor(moon.radius * 2 * 3), 10);
-    const c = document.createElement('canvas');
-    c.width = size; c.height = size;
-    const cx = c.getContext('2d');
-    const half = size / 2;
-    const r = half - 1;
-
-    cx.beginPath();
-    cx.arc(half, half, r, 0, Math.PI * 2);
-    cx.clip();
-
+    const size = Math.min(400, Math.max(Math.floor(moon.radius * 2 * 3), 10));
     // Type de lune (seed déterministe)
     const _mn = moon.name || '';
     const seed = (_mn.charCodeAt(0)||13) + (_mn.charCodeAt(1)||29) * 3 + Math.round((moon.orbitRadius||50) * 5 + (moon.radius||8) * 17);
     const rng = mulberry32(seed);
     const moonTypes = ['rock', 'ice', 'dark', 'volcanic'];
     moon.moonType = moonTypes[seed % moonTypes.length];
-
-    const moonPalettes = {
-        rock:     { base: '#9A9AAA', crater: 'rgba(60,60,70,0.5)', highlight: 'rgba(255,255,255,0.12)' },
-        ice:      { base: '#B8D8E8', crater: 'rgba(80,100,120,0.4)', highlight: 'rgba(200,230,255,0.18)' },
-        dark:     { base: '#4A4A55', crater: 'rgba(20,20,30,0.6)', highlight: 'rgba(180,180,200,0.08)' },
-        volcanic: { base: '#6A4A3A', crater: 'rgba(200,60,20,0.5)', highlight: 'rgba(255,120,40,0.15)' }
-    };
-    const mp = moonPalettes[moon.moonType];
-
-    // Base
-    cx.fillStyle = mp.base;
-    cx.fillRect(0, 0, size, size);
-
-    // Variation de surface
-    for (let i = 0; i < 3; i++) {
-        const vx = rng() * size;
-        const vy = rng() * size;
-        const vr = rng() * r * 0.5 + r * 0.2;
-        const g = cx.createRadialGradient(vx, vy, 0, vx, vy, vr);
-        g.addColorStop(0, mp.base + '80');
-        g.addColorStop(1, 'rgba(0,0,0,0)');
-        cx.fillStyle = g;
-        cx.beginPath();
-        cx.arc(vx, vy, vr, 0, Math.PI * 2);
-        cx.fill();
-    }
-
-    // Cratères
-    const craters = 3 + Math.floor(rng() * 5);
-    for (let i = 0; i < craters; i++) {
-        const cx2 = rng() * size;
-        const cy2 = rng() * size;
-        const cr = rng() * r * 0.3 + 1;
-        const g = cx.createRadialGradient(cx2, cy2, 0, cx2, cy2, cr);
-        g.addColorStop(0, mp.crater);
-        g.addColorStop(0.7, mp.crater);
-        g.addColorStop(1, 'rgba(0,0,0,0)');
-        cx.fillStyle = g;
-        cx.beginPath();
-        cx.arc(cx2, cy2, cr, 0, Math.PI * 2);
-        cx.fill();
-
-        // Liseré de cratère (rebord lumineux)
-        cx.strokeStyle = mp.highlight;
-        cx.lineWidth = 0.5;
-        cx.beginPath();
-        cx.arc(cx2, cy2, cr, 0, Math.PI * 2);
-        cx.stroke();
-    }
-
-    // Points lumineux volcaniques
+    const N = _bruitPerlin(seed);
+    const o = rng() * 100;
+    let f;
     if (moon.moonType === 'volcanic') {
-    for (let i = 0; i < 2; i++) {
-            const lx = rng() * size;
-            const ly = rng() * size;
-            const lr = rng() * 2 + 0.5;
-            const g = cx.createRadialGradient(lx, ly, 0, lx, ly, lr * 2);
-            g.addColorStop(0, 'rgba(255, 80, 20, 0.6)');
-            g.addColorStop(0.5, 'rgba(255, 40, 0, 0.2)');
-            g.addColorStop(1, 'rgba(0,0,0,0)');
-            cx.fillStyle = g;
-            cx.beginPath();
-            cx.arc(lx, ly, lr * 2, 0, Math.PI * 2);
-            cx.fill();
-        }
+        /* Monde de lave : basalte sombre, fissures et lacs incandescents. */
+        const cr = _crateres(rng, 10, 0.05, 0.16);
+        f = function (X, Y, Z, p) {
+            const hgt = N.fbm(X * 2 + o, Y * 2, Z * 2, 5);
+            let v = 0.35 + hgt * 0.5;
+            let r = 70 + v * 60, g = 48 + v * 36, b = 38 + v * 26;
+            const fi = _lissePas(0.74, 0.88, N.cretes(X * 2.6, Y * 2.6 + o, Z * 2.6, 3));
+            let lave = fi;
+            for (let i = 0; i < cr.length; i++) {
+                const q = cr[i];
+                const dd = 1 - (X * q[0] + Y * q[1] + Z * q[2]);
+                if (dd > q[3] * q[3] * 0.9) continue;
+                lave = Math.max(lave, _lissePas(q[3] * q[3] * 0.9, q[3] * q[3] * 0.3, dd));
+            }
+            p[0] = r + (255 - r) * lave; p[1] = g + (130 - g) * lave * (0.6 + 0.4 * lave); p[2] = b + (30 - b) * lave;
+        };
+    } else if (moon.moonType === 'ice') {
+        /* Glace striee de longues lignes brun-rouge, peu de crateres. */
+        const cr = _crateres(rng, 6, 0.04, 0.12);
+        f = function (X, Y, Z, p) {
+            const hgt = N.fbm(X * 2 + o, Y * 2, Z * 2, 4);
+            let r = 196 + hgt * 50, g = 214 + hgt * 40, b = 230 + hgt * 30;
+            const li = _lissePas(0.78, 0.9, N.cretes(X * 2.2 + o, Y * 2.2, Z * 2.2, 3));
+            r += (150 - r) * li * 0.9; g += (86 - g) * li * 0.9; b += (70 - b) * li * 0.9;
+            let rel = 0;
+            for (let i = 0; i < cr.length; i++) {
+                const q = cr[i];
+                const dd = 1 - (X * q[0] + Y * q[1] + Z * q[2]);
+                if (dd > q[3] * q[3] * 1.7) continue;
+                rel += _profilCratere(Math.sqrt(dd * 2) / q[3]);
+            }
+            const k = 1 + rel * 0.4;
+            p[0] = r * k; p[1] = g * k; p[2] = b * k;
+        };
+    } else {
+        /* Roche (grise, mers sombres) ou sombre (charbon, crateres a rayons). */
+        const sombre = moon.moonType === 'dark';
+        const cr = _crateres(rng, sombre ? 22 : 34, 0.03, 0.22);
+        f = function (X, Y, Z, p) {
+            const hgt = N.fbm(X * 2.2 + o, Y * 2.2, Z * 2.2, 5);
+            const mer = sombre ? 0 : _lissePas(0.05, 0.2, N.fbm(X * 1.1, Y * 1.1 + o, Z * 1.1, 3));
+            let v = 0.55 + hgt * 0.35 - mer * 0.22;
+            let rayons = 0;
+            for (let i = 0; i < cr.length; i++) {
+                const q = cr[i];
+                const dd = 1 - (X * q[0] + Y * q[1] + Z * q[2]);
+                if (sombre && i < 3 && dd < q[3] * q[3] * 12) {
+                    /* Rayons clairs autour des plus jeunes crateres. */
+                    const ang = Math.atan2(Y - q[1], X - q[0]) * 7 + i;
+                    rayons += Math.max(0, Math.sin(ang) * Math.sin(ang * 2.3)) * (1 - dd / (q[3] * q[3] * 12)) * 0.5;
+                }
+                if (dd > q[3] * q[3] * 1.7) continue;
+                v += _profilCratere(Math.sqrt(dd * 2) / q[3]) * 0.5;
+            }
+            v += rayons;
+            v = Math.max(0, Math.min(1.1, v));
+            if (sombre) { p[0] = 34 + v * 80; p[1] = 34 + v * 78; p[2] = 40 + v * 84; }
+            else { p[0] = 50 + v * 150; p[1] = 50 + v * 148; p[2] = 56 + v * 150; }
+        };
     }
-
-    // Reflets glacés
-    if (moon.moonType === 'ice') {
-        for (let i = 0; i < 3; i++) {
-            const lx = rng() * size;
-            const ly = rng() * size;
-            const lr = rng() * r * 0.15 + 1;
-            cx.fillStyle = 'rgba(220, 240, 255, 0.15)';
-            cx.beginPath();
-            cx.arc(lx, ly, lr, 0, Math.PI * 2);
-            cx.fill();
-        }
-    }
-
-    // Ombre sphérique
-    const gShade = cx.createRadialGradient(half * 0.7, half * 0.7, 0, half, half, r);
-    gShade.addColorStop(0, mp.highlight);
-    gShade.addColorStop(0.5, 'rgba(0,0,0,0)');
-    gShade.addColorStop(1, 'rgba(0,0,0,0.35)');
-    cx.fillStyle = gShade;
-    cx.fillRect(0, 0, size, size);
-
-    moon._texture = c;
+    _texturer(moon, size, seed, f, null, 0.5);
 }
 
+function _hexRgb(h) {
+    h = (h || '#FFB830').replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+/* LA SURFACE D'UN SOLEIL, peinte une fois comme les planetes : granulation
+   (cellules de convection), quelques taches (ombre et penombre) entourees
+   de facules claires, centre presque blanc et bord plus sombre et plus
+   rouge. La granulation teinte au lieu de griser : le sombre tire vers le
+   rouge. Copies a la bonne taille (_niveaux) : voir drawSuns. */
 function createSunTexture(sun) {
-    const size = Math.floor(sun.radius * 2 * 3);
-    const c = document.createElement('canvas');
-    c.width = size; c.height = size;
-    const cx = c.getContext('2d');
-    const half = size / 2;
-    const r = half - 1;
-
-    cx.beginPath();
-    cx.arc(half, half, r, 0, Math.PI * 2);
-    cx.clip();
-
-    // Gradient de base
-    const sunCol = sun.color || '#FFB830';
-    const g = cx.createRadialGradient(half * 0.8, half * 0.8, 0, half, half, r);
-    /* Disque OPAQUE : la couleur finissait a 53 % d'opacite au bord, et tout
-       l'astre paraissait voile. La transparence est reservee au pourtour
-       (voir le fondu plus bas). */
-    g.addColorStop(0, '#FFFFFF');
-    g.addColorStop(0.2, sunCol);
-    g.addColorStop(1, sunCol);
-    cx.fillStyle = g;
-    cx.fillRect(0, 0, size, size);
-
-    // Taches solaires
+    const size = Math.min(900, Math.max(16, Math.floor(sun.radius * 2 * 3)));
     const seed = (sun.name && sun.name.length > 0) ? sun.name.charCodeAt(0) * 13 : 42;
+    const N = _bruitPerlin(seed), N2 = _bruitPerlin(seed + 101);
     const rng = mulberry32(seed);
-    for (let i = 0; i < 3; i++) {
-        const sx = half + (rng() - 0.5) * r;
-        const sy = half + (rng() - 0.5) * r;
-        const sr = rng() * r * 0.2 + 2;
-        const gs = cx.createRadialGradient(sx, sy, 0, sx, sy, sr);
-        gs.addColorStop(0, 'rgba(0,0,0,0.15)');
-        gs.addColorStop(1, 'rgba(0,0,0,0)');
-        cx.fillStyle = gs;
-        cx.beginPath();
-        cx.arc(sx, sy, sr, 0, Math.PI * 2);
-        cx.fill();
+    const C = _hexRgb(sun.color);
+    const taches = [];
+    for (let i = 0; i < 4; i++) {
+        const z = (rng() - 0.5) * 0.9, a = rng() * Math.PI * 2, s = Math.sqrt(1 - z * z);
+        taches.push([s * Math.cos(a), z, s * Math.sin(a), 0.03 + rng() * 0.05]);
     }
-
-    /* Le bord : un fin fondu vers l'exterieur, sur les 12 derniers % du
-       rayon - opaque dedans, le liseré se perd dans le halo. */
-    cx.globalCompositeOperation = 'destination-in';
-    const bord = cx.createRadialGradient(half, half, r * 0.88, half, half, r);
-    bord.addColorStop(0, 'rgba(0,0,0,1)');
-    bord.addColorStop(1, 'rgba(0,0,0,0.15)');
-    cx.fillStyle = bord;
-    cx.fillRect(0, 0, size, size);
-    cx.globalCompositeOperation = 'source-over';
-
-    sun._texture = c;
-
-    /* Copies de plus en plus petites (moitie, quart...), faites une fois ici.
-       Poser la grande texture de 1000 a 1500 px sur un soleil qui en fait
-       quelques centaines a l'ecran, avec lissage, coutait jusqu'a 3 ms par
-       image : c'etait le gros de drawSuns. drawSuns prend la plus petite
-       copie encore plus grande que le soleil a l'ecran et la pose sans
-       lissage - 4 a 8 fois moins cher, et plus fidele en dezoomant, chaque
-       copie etant reduite proprement depuis la precedente. */
-    const niveaux = [c];
-    while (niveaux[niveaux.length - 1].width >= 32) {
-        const src = niveaux[niveaux.length - 1];
-        const d = document.createElement('canvas');
-        d.width = d.height = src.width >> 1;
-        /* Reduire pile de moitie moyenne chaque carre de 4 pixels : le
-           lissage ordinaire suffit, la qualite 'high' coutait le double au
-           chargement pour un ecart de 0,15 sur 255. */
-        d.getContext('2d').drawImage(src, 0, 0, d.width, d.height);
-        niveaux.push(d);
-    }
-    sun._niveaux = niveaux;
+    const f = function (X, Y, Z, p, nz) {
+        const g = 1 - Math.abs(N(X * 48, Y * 48, Z * 48));
+        let k = 0.93 + 0.1 * g * g + N2.fbm(X * 4, Y * 4, Z * 4, 3) * 0.1 + N(X * 110, Y * 110, Z * 110) * 0.025;
+        for (let i = 0; i < taches.length; i++) {
+            const q = taches[i];
+            const dd = 1 - (X * q[0] + Y * q[1] + Z * q[2]);
+            if (dd < q[3] * q[3] * 2) {
+                const d = Math.sqrt(dd * 2) / q[3];
+                k *= d < 0.55 ? 0.32 : d < 1 ? 0.32 + (d - 0.55) * 1.2 : 1 + 0.12 * Math.max(0, 1.4 - d);
+            }
+        }
+        const mu = Math.pow(nz, 0.5);
+        const w = Math.pow(Math.max(0, mu - 0.4) / 0.6, 1.5);   /* blanchiment au centre */
+        const ld = 0.62 + 0.38 * mu;                          /* assombrissement du bord */
+        p[0] = (C[0] + (255 - C[0]) * w * 0.4) * ld * k;
+        p[1] = (C[1] + (248 - C[1]) * w * 0.38) * ld * (0.9 + 0.1 * mu) * Math.pow(k, 1.1);
+        p[2] = (C[2] + (236 - C[2]) * w * 0.3) * ld * (0.84 + 0.16 * mu) * Math.pow(k, 1.2);
+    };
+    _texturer(sun, size, seed, f, null, 0);
 }
 
 // PRNG global pour génération déterministe
@@ -8019,6 +8274,9 @@ if (gameState.isMulti && gameState._serverUniverse) {
                     setTimeout(() => {
                         updateLoadingBar(85, 'Textures des lunes...');
                         gameState.moons.forEach(m => createMoonTexture(m));
+                        /* Les rochers des ceintures, peints d'avance (pas au premier affichage). */
+                        for (const ty of ['dark', 'red', 'green']) for (let k = 0; k < 4; k++) spriteRoche(ty, k);
+                        preparerTrouNoir();
 
                         setTimeout(() => {
                             updateLoadingBar(92, 'Caches performances...');
@@ -13545,21 +13803,34 @@ function poserHalo(ctx, color, genre, cx, cy, r, alpha) {
 // DECALE vers l'etoile. On peint donc la lumiere venant de la gauche, une
 // fois pour toutes, et on fait tourner le sprite au trace.
 let _lumiereCache = null;
+/* LUMIERE : le calque jour / nuit pose sur chaque astre, tourne vers son
+   soleil (lumiere venant de la gauche dans le calque). Peint une fois, par
+   pixel : cote jour legerement dore, terminateur doux, cote nuit sombre. */
 function lumiereSprite() {
     if (_lumiereCache) return _lumiereCache;
-    const R = 64;
+    const R = 96, S = R * 2;
     const c = document.createElement('canvas');
-    c.width = c.height = R * 2;
+    c.width = c.height = S;
     const x = c.getContext('2d');
-    // source a 0.4 R vers la gauche, exactement comme l'original
-    const g = x.createRadialGradient(R - R * 0.4, R, 0, R, R, R);
-    g.addColorStop(0, 'rgba(255,255,200,0.35)');
-    g.addColorStop(0.5, 'rgba(0,0,0,0)');
-    g.addColorStop(1, 'rgba(0,0,20,0.30)');
-    x.fillStyle = g;
-    x.beginPath();
-    x.arc(R, R, R, 0, Math.PI * 2);
-    x.fill();
+    const img = x.createImageData(S, S), D = img.data;
+    const L = [-0.82, -0.12, 0.56];              /* vers le soleil : a gauche, un peu devant */
+    for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+        const nx = (i + 0.5 - R) / R, ny = (j + 0.5 - R) / R, d2 = nx * nx + ny * ny;
+        if (d2 > 1) continue;
+        const nz = Math.sqrt(1 - d2);
+        const l = nx * L[0] + ny * L[1] + nz * L[2];
+        const k = (j * S + i) * 4;
+        const bord = Math.max(0, Math.min(1, (1 - Math.sqrt(d2)) * R * 0.7 + 0.5));
+        if (l > 0.55) {
+            /* Reflet chaud, discret. */
+            D[k] = 255; D[k + 1] = 246; D[k + 2] = 214; D[k + 3] = 255 * 0.22 * Math.pow((l - 0.55) / 0.45, 2) * bord;
+        } else {
+            /* Terminateur doux puis nuit (jamais noire : les astres restent lisibles). */
+            const nuit = _lissePas(0.35, -0.25, l);
+            D[k] = 4; D[k + 1] = 6; D[k + 2] = 22; D[k + 3] = 255 * 0.68 * nuit * bord;
+        }
+    }
+    x.putImageData(img, 0, 0);
     _lumiereCache = c;
     return c;
 }
@@ -16344,8 +16615,11 @@ function majHalosCss() {
         const aff = vu ? '' : 'none';
         if (el.style.display !== aff) el.style.display = aff;
         if (!vu) continue;
+        /* La couronne tourne tres lentement autour du centre du soleil. */
+        const w2 = el.width / 2, rot = ((gameState.time || 0) * 0.6) % 360;
         el.style.transform = 'translate3d(' + sx.toFixed(1) + 'px,' +
-            sy.toFixed(1) + 'px,0) scale(' + (d / el.width).toFixed(4) + ')';
+            sy.toFixed(1) + 'px,0) scale(' + (d / el.width).toFixed(4) + ') translate(' + w2 + 'px,' + w2 + 'px) rotate(' +
+            rot.toFixed(2) + 'deg) translate(' + (-w2) + 'px,' + (-w2) + 'px)';
     }
 }
 
@@ -16479,10 +16753,78 @@ function aLEcran(x, y, r) {
     return x >= cam.x - hw && x <= cam.x + hw && y >= cam.y - hh && y <= cam.y + hh;
 }
 
+/* LE DISQUE D'ACCRETION, peint une fois : vu de biais, blanc et chaud pres
+   de l'horizon, violet vers l'exterieur, un cote plus brillant (il vient
+   vers nous). L'arriere du disque, devie par la gravite, passe au-dessus du
+   trou (comme dans Interstellar), et un fil de lumiere cerne l'horizon.
+   Deux images aux stries decalees (phase) se fondent l'une dans l'autre :
+   le disque semble tourbillonner. Le sprite couvre 3,5 rayons de chaque cote. */
+const _TN_ETENDUE = 3.5;
+function disqueTrouNoir(S, phase) {
+    const c = document.createElement('canvas');
+    c.width = c.height = S;
+    const x = c.getContext('2d');
+    const img = x.createImageData(S, S), D = img.data;
+    const N = _bruitPerlin(2024);
+    const h = S / 2, R = S / 2 / _TN_ETENDUE;
+    const incl = 0.28;
+    const chaud = [236, 226, 255], moyen = [170, 110, 255], froid = [80, 30, 150];
+    const col = [0, 0, 0];
+    const couleur = function (u) {
+        const A = u < 0.35 ? chaud : moyen, B = u < 0.35 ? moyen : froid, t = u < 0.35 ? u / 0.35 : (u - 0.35) / 0.65;
+        col[0] = A[0] + (B[0] - A[0]) * t; col[1] = A[1] + (B[1] - A[1]) * t; col[2] = A[2] + (B[2] - A[2]) * t;
+    };
+    const rIn = 1.5, rOut = 3.3;
+    for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+        const X = (i + 0.5 - h) / R, Y = (j + 0.5 - h) / R;
+        const d = Math.sqrt(X * X + Y * Y);
+        let rr = 0, gg = 0, bb = 0, aa = 0;
+        const rd = Math.sqrt(X * X + (Y / incl) * (Y / incl));
+        /* Derriere le trou, le disque est cache (avec un bord doux). */
+        const cache = Y > 0 ? 1 : _lissePas(1.0, 1.1, d);
+        if (rd > rIn && rd < rOut && cache > 0) {
+            const u = (rd - rIn) / (rOut - rIn);
+            const ang = Math.atan2(Y / incl, X) + phase;
+            const stries = 0.6 + 0.4 * N(rd * 6, Math.cos(ang) * 1.5, Math.sin(ang) * 1.5) + 0.25 * N(rd * 18, Math.cos(ang) * 3, Math.sin(ang) * 3);
+            const dop = 1 + 0.4 * Math.cos(ang - phase);
+            const e = cache * 1.25 * Math.pow(1 - u, 0.9) * stries * dop * _lissePas(rIn, rIn + 0.15, rd) * _lissePas(rOut, rOut - 0.7, rd);
+            couleur(u);
+            rr += col[0] * e; gg += col[1] * e; bb += col[2] * e; aa = Math.max(aa, Math.min(1, e));
+        }
+        if (d > 1.02) {
+            for (let k = 0; k < 2; k++) {
+                const ra = k ? 1.16 : 1.42, larg = k ? 0.18 : 0.7, cote = k ? 1 : -1;
+                /* Chaque arc s'efface en douceur vers l'horizontale. */
+                const fond = _lissePas(-0.1, 0.45, Y * cote);
+                if (fond <= 0) continue;
+                const e0 = Math.abs(d - ra) / (larg * 0.5);
+                if (e0 > 1) continue;
+                const ang = Math.atan2(Y, X);
+                const e = fond * (1 - e0 * e0) * 1.1 * (1 + 0.35 * Math.cos(ang)) * (0.7 + 0.3 * N(d * 10, Math.cos(ang + phase) * 3, Math.sin(ang + phase) * 3)) * (k ? 0.6 : 1);
+                couleur(0.15 + e0 * 0.3);
+                rr += col[0] * e; gg += col[1] * e; bb += col[2] * e; aa = Math.max(aa, Math.min(1, e));
+            }
+        }
+        const ph = Math.exp(-Math.pow((d - 1.04) / 0.018, 2)) * 0.9 + Math.exp(-Math.pow((d - 1.08) / 0.08, 2)) * 0.25;
+        rr += 255 * ph; gg += 240 * ph; bb += 230 * ph; aa = Math.max(aa, Math.min(1, ph));
+        if (aa <= 0.003) continue;
+        const q = (j * S + i) * 4;
+        D[q] = Math.min(255, rr); D[q + 1] = Math.min(255, gg); D[q + 2] = Math.min(255, bb); D[q + 3] = 255 * Math.min(1, aa);
+    }
+    x.putImageData(img, 0, 0);
+    return c;
+}
+/* Les deux images du disque, faites au chargement (pas a la premiere image). */
+function preparerTrouNoir() {
+    const bh = gameState.blackHole;
+    if (!bh || bh._disques) return;
+    bh._disques = [disqueTrouNoir(640, 0), disqueTrouNoir(640, 0.9)];
+}
+
 function drawBlackHole(ctx) {
     const bh = gameState.blackHole;
     if (!bh) return;
-    if (!aLEcran(bh.x, bh.y, bh.dangerZone)) return;
+    if (!aLEcran(bh.x, bh.y, Math.max(bh.dangerZone, bh.radius * _TN_ETENDUE))) return;
     const t = gameState.time;
     const bhLod = gameState.lod;
 
@@ -16517,21 +16859,6 @@ function drawBlackHole(ctx) {
     ctx.drawImage(bh._spriteDanger, -bh.dangerZone, -bh.dangerZone,
                   bh.dangerZone * 2, bh.dangerZone * 2);
     ctx.imageSmoothingEnabled = _lissBh0;
-
-    // Disque d'accrétion rotatif (LOD mid+)
-    if (bhLod >= 1) { ctx.save();
-    ctx.rotate(t * 0.3);
-    for (let i = 0; i < 3; i++) {
-        const discR = bh.radius * (2 + i * 0.6);
-        const alpha = 0.12 - i * 0.03;
-        ctx.strokeStyle = `rgba(160, 80, 255, ${alpha})`;
-        ctx.lineWidth = 3 - i * 0.8;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, discR, discR * 0.35, i * 0.4, 0, Math.PI * 2);
-        ctx.stroke();
-    }
-    ctx.restore();
-    }
 
     // Lueur pulsante (LOD mid+)
     /* La lueur pulsante recreait son degrade radial a chaque image, parce que
@@ -16579,18 +16906,27 @@ function drawBlackHole(ctx) {
     ctx.setLineDash([]);
     }
 
-    // Trou noir (noyau) — gradient caché
-    if (!bh._gCore) {
-        bh._gCore = ctx.createRadialGradient(0, 0, 0, 0, 0, bh.radius);
-        bh._gCore.addColorStop(0, '#000000');
-        bh._gCore.addColorStop(0.7, '#000000');
-        bh._gCore.addColorStop(1, 'rgba(80, 30, 140, 0.5)');
-    }
-    const gCore = bh._gCore;
-    ctx.fillStyle = gCore;
+    // Trou noir (noyau), puis le disque d'accretion par-dessus (en lumiere)
+    ctx.fillStyle = '#000000';
     ctx.beginPath();
     ctx.arc(0, 0, bh.radius, 0, Math.PI * 2);
     ctx.fill();
+    preparerTrouNoir();
+    {
+        const W = bh.radius * _TN_ETENDUE;
+        const op = ctx.globalCompositeOperation, a0 = ctx.globalAlpha;
+        ctx.globalCompositeOperation = 'lighter';
+        /* Les deux images se relaient : leur somme reste constante. */
+        const m = bhLod >= 1 ? 0.5 + 0.5 * Math.sin(t * 0.7) : 1;
+        ctx.globalAlpha = m;
+        ctx.drawImage(bh._disques[0], bh.x - W, bh.y - W, W * 2, W * 2);
+        if (bhLod >= 1) {
+            ctx.globalAlpha = 1 - m;
+            ctx.drawImage(bh._disques[1], bh.x - W, bh.y - W, W * 2, W * 2);
+        }
+        ctx.globalAlpha = a0;
+        ctx.globalCompositeOperation = op;
+    }
 
     if (bhLod >= 1) rayonnementHawking(ctx, bh, t);
 }
@@ -16650,6 +16986,55 @@ function rayonnementHawking(ctx, bh, t) {
 // ─────────────────────────────────────────────
 // DESSIN — Soleils
 // ─────────────────────────────────────────────
+/* ASTEROIDES : quelques rochers peints une fois (forme bosselee, crateres,
+   eclaires de la gauche), puis simplement poses et tournes vers le soleil. */
+const _ROCHES = {};
+function spriteRoche(type, k) {
+    const cle = type + k;
+    if (_ROCHES[cle]) return _ROCHES[cle];
+    const S = 48, h = S / 2;
+    const c = document.createElement('canvas');
+    c.width = c.height = S;
+    const x = c.getContext('2d');
+    const img = x.createImageData(S, S), D = img.data;
+    const seed = 977 * (k + 1) + (type === 'red' ? 31 : type === 'green' ? 67 : 5);
+    const N = _bruitPerlin(seed);
+    const rng = mulberry32(seed);
+    const base = type === 'red' ? [150, 84, 64] : type === 'green' ? [92, 124, 84] : [104, 96, 88];
+    const allonge = 0.65 + rng() * 0.35;
+    const L = [-0.8, -0.25, 0.55];
+    const cr = _crateres(rng, 5, 0.12, 0.35);
+    for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+        const nx0 = (i + 0.5 - h) / (h - 2), ny0 = (j + 0.5 - h) / (h - 2) / allonge;
+        const ang = Math.atan2(ny0, nx0);
+        /* Contour bossele : le rayon varie avec l'angle. */
+        const rb = 0.8 + 0.3 * N(Math.cos(ang) * 1.2, Math.sin(ang) * 1.2, 0.5) + 0.06 * N(Math.cos(ang) * 3, Math.sin(ang) * 3, 3);
+        const d = Math.sqrt(nx0 * nx0 + ny0 * ny0) / rb;
+        if (d > 1.03) continue;
+        const nx = nx0 / rb, ny = ny0 / rb;
+        const nz = Math.sqrt(Math.max(0, 1 - Math.min(1, nx * nx + ny * ny)));
+        /* Relief : bruit + crateres, qui penchent la normale. */
+        let rel = N.fbm(nx * 2, ny * 2, nz * 2, 3) * 0.4;
+        for (const q of cr) {
+            const dd = 1 - (nx * q[0] + ny * q[1] + nz * q[2]);
+            if (dd < q[3] * q[3] * 1.7) rel += _profilCratere(Math.sqrt(dd * 2) / q[3]) * 0.6;
+        }
+        const e = 0.02;
+        const gx = N.fbm((nx + e) * 1.5, ny * 1.5, nz * 1.5, 2) - N.fbm((nx - e) * 1.5, ny * 1.5, nz * 1.5, 2);
+        const gy = N.fbm(nx * 1.5, (ny + e) * 1.5, nz * 1.5, 2) - N.fbm(nx * 1.5, (ny - e) * 1.5, nz * 1.5, 2);
+        let mx = nx - gx * 4, my = ny - gy * 4, mz = nz + 0.1;
+        const mn = Math.sqrt(mx * mx + my * my + mz * mz); mx /= mn; my /= mn; mz /= mn;
+        const lam = Math.max(0, mx * L[0] + my * L[1] + mz * L[2]);
+        const lum = (0.18 + 1.05 * lam) * (0.85 + rel * 0.5);
+        const kk = (j * S + i) * 4;
+        D[kk] = base[0] * lum; D[kk + 1] = base[1] * lum; D[kk + 2] = base[2] * lum;
+        D[kk + 3] = 255 * Math.max(0, Math.min(1, (1 - d) * (h - 2) * 0.8 + 0.5));
+    }
+    x.putImageData(img, 0, 0);
+    _ROCHES[cle] = c;
+    return c;
+}
+
 function drawAsteroidBelts(ctx) {
     const t = gameState.time;
     const cam = gameState.camera;
@@ -16695,52 +17080,20 @@ function drawAsteroidBelts(ctx) {
                 continue;
             }
 
+            /* Des rochers peints d'avance (spriteRoche), eclaires de la
+               gauche : on les tourne vers le soleil, avec un leger balancement. */
             for (let si = 0; si < rock.subRocks.length; si++) {
                 const sr = rock.subRocks[si];
                 const rx = cx + sr.offX;
                 const ry = cy + sr.offY;
-                const sz = sr.size;
-
-                // LOD 1 : cercles simples
-                if (lod === 1) {
-                    ctx.fillStyle = sr.color;
-                    ctx.beginPath();
-                    ctx.arc(rx, ry, sz, 0, Math.PI * 2);
-                    ctx.fill();
-                    continue;
-                }
-
-                // LOD 2 : polygone complet
-                const rot = t * 0.3 + si * 1.7 + rock.angle * 5;
-                const sides = sr._sides || (sr._sides = 5 + Math.floor(Math.random() * 3));
-                const verts = sr._verts || (sr._verts = Array.from({length: sides}, () => 0.7 + Math.random() * 0.6));
-
-                ctx.save();
+                const sz = sr.size * 1.25;
+                const rot = a + 0.4 * Math.sin(t * 0.3 + si * 1.7 + rock.radiusOff);
+                const sp = spriteRoche(rock.type, (si + (rock.subRocks.length << 1)) & 3);
                 ctx.translate(rx, ry);
                 ctx.rotate(rot);
-
-                ctx.fillStyle = sr.color;
-                ctx.beginPath();
-                for (let v = 0; v < sides; v++) {
-                    const va = (v / sides) * Math.PI * 2;
-                    const vr = sz * verts[v];
-                    if (v === 0) ctx.moveTo(Math.cos(va) * vr, Math.sin(va) * vr);
-                    else ctx.lineTo(Math.cos(va) * vr, Math.sin(va) * vr);
-                }
-                ctx.closePath();
-                ctx.fill();
-
-                /* Le reflet est de la lumiere : il s'ajoute, sinon un
-                   blanc a 25 % s'efface sur un fond deja clair. */
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.globalAlpha = 0.25;
-                ctx.fillStyle = '#FFF';
-                ctx.beginPath();
-                ctx.arc(sz * -0.2, sz * -0.2, sz * 0.5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalAlpha = 1;
-
-                ctx.restore();
+                ctx.drawImage(sp, -sz, -sz, sz * 2, sz * 2);
+                ctx.rotate(-rot);
+                ctx.translate(-rx, -ry);
             }
 
             // Lueur de groupe (LOD high)
@@ -16905,6 +17258,7 @@ function eruptionsSolaires(ctx, sun, t) {
 // ─────────────────────────────────────────────
 function drawPlanets(ctx) {
     const cam = gameState.camera;
+    const pxParUnite = cam.zoom * echelleRendu();   // pixels reels du canevas
     const halfW = gameState.width / 2 / cam.zoom;
     const halfH = gameState.height / 2 / cam.zoom;
 
@@ -16926,9 +17280,7 @@ function drawPlanets(ctx) {
         }
 
         // Planète (texture cachée)
-        if (p._texture) {
-            ctx.drawImage(p._texture, p.x - p.radius, p.y - p.radius, p.radius * 2, p.radius * 2);
-        }
+        if (p._texture) poserTexture(ctx, p, pxParUnite);
         // Anneau de sélection
         if (gameState.selectedBody === p) {
             ctx.strokeStyle = 'rgba(255,255,255,0.9)';
@@ -17158,7 +17510,15 @@ function drawPlanets(ctx) {
 
             // Lune (texture cachée)
             if (m._texture) {
-                ctx.drawImage(m._texture, m.x - m.radius, m.y - m.radius, m.radius * 2, m.radius * 2);
+                poserTexture(ctx, m, pxParUnite);
+                /* Jour et nuit, tournes vers le soleil (comme les planetes). */
+                if (gameState.lod >= 2 && p.parent && m.radius * cam.zoom > 10) {
+                    ctx.save();
+                    ctx.translate(m.x, m.y);
+                    ctx.rotate(Math.atan2(p.parent.y - m.y, p.parent.x - m.x) + Math.PI);
+                    ctx.drawImage(lumiereSprite(), -m.radius, -m.radius, m.radius * 2, m.radius * 2);
+                    ctx.restore();
+                }
             } else {
                 ctx.fillStyle = 'rgba(180, 180, 200, 0.7)';
                 ctx.beginPath();
