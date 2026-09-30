@@ -1250,6 +1250,13 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        maintenant pour son pilote, a 350 au lieu de 240 : la verte n'arrose
        que ses astres, la noire ne ronge que ceux de ses adversaires. La
        rouge ne tire toujours pas. Verifie sur les 7 cas.
+     - SURCHARGE DE CHARGE : l'astre qui charge un tir peut monter jusqu'a
+       2 fois son maximum (SURCHARGE_MAX) ; chiffre dore avec un eclair.
+       Apres, le trop-plein s'evapore : 15 % de l'excedent par seconde
+       (5 au moins), sauf tant qu'on le charge encore. Les renforts
+       (jets amis, ondes solaires, debarquement) ne le ramenent plus d'un
+       coup au maximum (ajouterSpores). Mesure : lune de 2 000 chargee a
+       4 000, puis 3 136 a +2 s, 2 318 a +10 s, 2 000 a +30 s.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -3428,7 +3435,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <p style="margin-bottom:16px;">Une <span style="color:#E9D5FF;">tête de pont ennemie ne casse pas un groupement</span> : un astre envahi à moins de la moitié compte toujours comme tenu. Au-delà de la moitié, il en sort.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ONDES SOLAIRES.</span> Un système entièrement tenu se met à vivre : son étoile s'embrase <span style="color:#E9D5FF;">toutes les 5 secondes</span> et envoie une onde qui balaie ses astres. Chacun la reçoit au passage du front, pas au départ — le système s'allume de l'intérieur vers l'extérieur.</p>
 <p style="margin-bottom:16px;">Ce que l'onde apporte dépend de votre stat <span style="color:#FBBF24;">Sensitivity</span> : <span style="color:#4ADE80;">+5 % de la capacité de l'astre par point</span>. À un point, une lune de 400 reçoit 20 spores.</p>
-<p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro. Il peut monter jusqu'à <b>2 fois son maximum</b> (chiffre doré ⚡) ; après le tir, le trop-plein s'évapore peu à peu.</p>
 <p style="margin-bottom:16px;">On ne tire pas à travers une étoile ni un trou noir : ils détruisent les jets. Quand aucun de vos astres n'a la vue sur la cible, le trait de visée passe au <span style="color:#EF4444;">rouge</span>.</p>
 
 <!-- ÉVOLUTION -->
@@ -8247,6 +8254,27 @@ function finishStartGame() {
    ───────────────────────────────────────────── */
 const CHARGE_PAQUET = 100;
 const CHARGE_PERIODE = 0.35;   /* secondes entre deux paquets */
+/* SURCHARGE : pendant la charge d'un tir, l'astre qui va tirer peut monter
+   au-dessus de son maximum, jusqu'a SURCHARGE_MAX fois. Apres, le trop-plein
+   s'evapore : SURCHARGE_FUITE de l'excedent par seconde (plus au moins
+   SURCHARGE_FUITE_MIN), jusqu'a revenir au maximum. */
+const SURCHARGE_MAX = 2;
+const SURCHARGE_FUITE = 0.15;
+const SURCHARGE_FUITE_MIN = 5;
+
+/* Ajouter des spores sans depasser le maximum... ni faire fondre d'un coup
+   un astre deja en surcharge : il garde son trop-plein, qui s'evapore. */
+function ajouterSpores(body, gain) {
+    const avant = body.spores || 0;
+    body.spores = Math.max(avant, Math.min(body.maxSpores, avant + gain));
+    return body.spores - avant;
+}
+
+/* Un astre qu'un joueur est en train de charger pour un tir. */
+function astreEnCharge(body) {
+    for (const j of gameState.players) if (j.ordreVisee && j.ordreVisee.lanceur === body) return true;
+    return false;
+}
 
 function _groupeTir(src) {
     if (!src) return [];
@@ -9075,7 +9103,7 @@ function majVisees(dt) {
         V.acc += dt;
         while (V.acc >= CHARGE_PERIODE) {
             V.acc -= CHARGE_PERIODE;
-            let place = lanceur.maxSpores - lanceur.spores;
+            let place = lanceur.maxSpores * SURCHARGE_MAX - lanceur.spores;
             if (place <= 1) break;
             let envoye = 0;
             for (let i = 0; i < groupe.length && place > 1; i++) {
@@ -10747,6 +10775,12 @@ function drawCosmicEffects(ctx) {
 function updateSporeGeneration(dt) {
     const bodies = gameState.allBodies;
     for (const body of bodies) {
+        /* Trop-plein d'une charge : il s'evapore petit a petit, sauf tant
+           qu'on charge encore l'astre. */
+        if (body.spores > body.maxSpores && !astreEnCharge(body)) {
+            const ex = body.spores - body.maxSpores;
+            body.spores -= Math.min(ex, (ex * SURCHARGE_FUITE + SURCHARGE_FUITE_MIN) * dt);
+        }
         // Régénération de Faune sur astres neutres non conquis
         if (body.owner === null && body._baseFaune !== undefined && body.faune < body._baseFaune) {
             body.faune += 2 * dt; // régénération lente
@@ -10844,7 +10878,9 @@ function updateSporeGeneration(dt) {
                 }
             }
 
-            body.spores = Math.min(body.maxSpores, body.spores);
+            /* La production ne depasse pas le maximum ; un trop-plein de
+               charge, lui, reste et s'evapore (voir plus haut). */
+            if (body.spores > body.maxSpores && body.spores - produced <= body.maxSpores) body.spores = body.maxSpores;
 
             /* La construction vient APRES la production, et ne l'interrompt
                plus. Tant que l'astre n'a pas de quoi payer, il continue a
@@ -11455,7 +11491,7 @@ function checkJetCollision(jet) {
             if (body.owner === jet.owner) {
                 // Density bonus : +5% spores livrées par point
                 const densityBonus = 1 + (gameState.players[jet.owner]?.stats.density || 0) * 0.05;
-                body.spores = Math.min(body.maxSpores, body.spores + jet.spores * densityBonus);
+                ajouterSpores(body, jet.spores * densityBonus);
                 playFusionSound();
             } else {
                 const _ml = gameState.players[jet.owner]?.tech?.mimicry || 0;
@@ -11946,7 +11982,7 @@ function debarquerSurface(body, slot, spores, wx, wy) {
     _luttePrepare();
     const N = LUTTE_N;
     if (slot === body.owner && !body.lutte) {
-        body.spores = Math.min(body.maxSpores, (body.spores || 0) + spores);
+        ajouterSpores(body, spores);
         return;
     }
     naitreLutte(body);
@@ -13282,7 +13318,7 @@ function applyConquest(body, jet) {
     // Jet de drain parasite → atterrit sur planète alliée, renforce
     if (jet._parasiteDrain) {
         if (jet._targetBody && jet._targetBody === body) {
-            body.spores = Math.min(body.maxSpores, (body.spores || 0) + jet.spores);
+            ajouterSpores(body, jet.spores);
         }
         return;
     }
@@ -13319,7 +13355,7 @@ function applyConquest(body, jet) {
     // Jets sur planète alliée (mélange ADN) → renforcement
     if (body.owner !== null && body.owner !== jet.owner && _isAllied(jet.owner, body.owner)) {
         let _gain = 0;
-        _gain = Math.floor(jet.spores); body.spores = Math.min(body.maxSpores, (body.spores||0)+_gain);
+        _gain = Math.floor(ajouterSpores(body, Math.floor(jet.spores)));
         if (_gain > 0) gameState.conquestEffects.push({ x:body.x, y:body.y-body.radius-10, baseX:body.x, text:'+'+_gain, color:'#4ADE80', age:0, maxAge:2.5 });
         return;
     }
@@ -20240,7 +20276,7 @@ function majOndesSolaires(dt) {
             o.touches[k] = 1;
             const gain = gainOnde(b, o.slot);
             if (gain <= 0) continue;
-            b.spores = Math.min(b.maxSpores, (b.spores || 0) + gain);
+            ajouterSpores(b, gain);
             if (!gameState._ondes) gameState._ondes = [];
             gameState._ondes.push({ x: b.x, y: b.y, suit: b, r0: b.radius * 0.8, r1: b.radius * 2.4,
                                     age: 0, maxAge: 0.5, couleur: o.couleur, ep: 2.5 });
@@ -20721,8 +20757,11 @@ function drawSporeCountOnBodies(ctx) {
 
         if (body.spores >= 1) {
             ctx.font = 'bold ' + monde + 'px Orbitron';
-            const txt = _sp(body.spores);
-            _texteLisible(ctx, txt, body.x, ligne, col, Math.max(2, monde * 0.22));
+            /* En surcharge (charge d'un tir) : un chiffre dore, qui dit ce
+               qui s'evaporera. */
+            const surcharge = body.spores > body.maxSpores + 0.5;
+            const txt = _sp(body.spores) + (surcharge ? ' ⚡' : '');
+            _texteLisible(ctx, txt, body.x, ligne, surcharge ? '#FFD27A' : col, Math.max(2, monde * 0.22));
             _noterChiffre(body.x, ligne, ctx.measureText(txt).width, monde,
                           { slot: body.owner, valeur: body.spores, astre: body.name, role: 'tient' });
             ligne += monde * 1.05;
