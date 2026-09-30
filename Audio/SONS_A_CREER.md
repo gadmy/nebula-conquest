@@ -1,4 +1,4 @@
-# Sons à créer — Nebula Conquest (v9.7.6)
+# Sons à créer — Nebula Conquest (v9.7.9)
 
 Dépose chaque fichier dans ce dossier `Audio/` avec **exactement** le nom indiqué,
 puis dis-le à Claude : il les branche dans le jeu.
@@ -37,6 +37,33 @@ puis dis-le à Claude : il les branche dans le jeu.
 |---|---|---|---|
 | `charge_tir.mp3` | En boucle pendant la visée, quand les astres voisins alimentent le lanceur | 1 à 2 s, **boucle** | Bourdonnement qui monte légèrement, énergie qui s'accumule |
 | `front_bataille.mp3` | En boucle quand une bataille de surface est à l'écran | 2 à 3 s, **boucle** | Grignotement, fourmillement, très discret sous la musique |
+
+## Priorité 4 — six musiques d'ambiance spatiale
+
+Elles s'ajoutent aux 10 musiques déjà présentes (`amb_calm_1` à `5`,
+`amb_tense_1` à `5`). Le jeu choisit la musique selon la tension de la
+partie : les lentes quand tout est calme, les rapides pendant les grandes
+batailles et quand les sphères capitales sortent du trou noir.
+
+Format propre aux musiques (il remplace le format commun ci-dessus) :
+
+- **MP3 stéréo**, 44,1 kHz, 192 kbit/s ;
+- **2 à 4 minutes**, en **boucle** : la fin doit se raccorder au début sans
+  trou ni clic ;
+- **ni fondu d'entrée ni fondu de sortie** : c'est le jeu qui fait les fondus ;
+- même volume perçu pour les six (environ -14 LUFS), pour qu'aucune ne
+  saute aux oreilles ;
+- de l'espace et du souffle, sans mélodie trop présente : elles tournent
+  longtemps sous le jeu.
+
+| Fichier | Titre | Tempo | Quand | Ambiance |
+|---|---|---|---|---|
+| `amb_espace_1.mp3` | Vide intersidéral | Très lent, sans rythme (environ 60 BPM) | Début de partie, calme plat | Drone grave et profond, longues nappes froides, quelques éclats cristallins très espacés |
+| `amb_espace_2.mp3` | Nébuleuse | Lent (environ 70 BPM) | Calme | Nappe chaude qui respire, arpège doux et rare, brume lumineuse |
+| `amb_espace_3.mp3` | Dérive des soleils | Modéré (environ 85 BPM) | Calme, partie qui s'installe | Pulsation de basse légère, textures scintillantes, sensation de lent voyage |
+| `amb_espace_4.mp3` | Courants gravitationnels | Modéré (environ 100 BPM) | Premières escarmouches | Arpèges de synthé en boucle, percussion feutrée, légère tension |
+| `amb_espace_5.mp3` | Tempête de spores | Rapide (environ 115 BPM) | Batailles | Rythme régulier et organique, basses pulsées, montée continue |
+| `amb_espace_6.mp3` | L'éveil des sphères | Rapide (environ 130 BPM) | Grands moments : sortie des sphères, grosses batailles, fin de partie serrée | Percussions profondes et organiques, nappes amples et épiques, urgence sans agressivité |
 
 ## Petits sons d'interface (facultatif)
 
