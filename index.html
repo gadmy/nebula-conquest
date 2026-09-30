@@ -1245,6 +1245,11 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        Mesure : 50 a 85 % des spores tirees touchent la sphere ; en
        35 min, une capture sur deux parties (Nex, 29 min, 19 969 spores).
        npm run lockstep sur 24 000 tours : identique.
+     - SPHERE PILOTEE : elle tirait sur l'astre le plus proche, quel qu'il
+       soit (souvent un neutre, ou un astre du pilote). Pilotee, elle tire
+       maintenant pour son pilote, a 350 au lieu de 240 : la verte n'arrose
+       que ses astres, la noire ne ronge que ceux de ses adversaires. La
+       rouge ne tire toujours pas. Verifie sur les 7 cas.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -3476,7 +3481,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <p id="h-spheres" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🛸 SPHÈRES CAPITALES</p>
 <p style="margin-bottom:6px;">Après <b>3 minutes</b> de jeu, trois sphères blindées, grandes comme des lunes, sortent du trou noir l'une après l'autre : une <span style="color:#4ADE80;">verte</span>, une <span style="color:#A5A5C8;">noire</span>, une <span style="color:#EF4444;">rouge</span>. Elles errent lentement dans la galaxie ; de temps en temps, la verte <b>passe près du joueur le plus faible</b>, la noire <b>près du meilleur</b>, puis elles repartent. La rouge se tient près d'un soleil, le plus loin possible des joueurs. Quand elle frôle un astre, la verte le mitraille de paquets de <span style="color:#4ADE80;">+5 spores</span>, quel que soit son camp ; la noire, de tirs à <span style="color:#F87171;">−5 spores</span>. La rouge ne tire pas.</p>
 <p style="margin-bottom:6px;">Vos jets ne leur font aucun mal : seuls les <b>petits vaisseaux d'une autre couleur</b> peuvent les abattre, et elles ripostent. Une sphère détruite explose : les astres alentour tombent à <b>0 spore</b> et ne produisent plus rien pendant <b>1 minute</b>. Elle ressort du trou noir 3 minutes plus tard.</p>
-<p style="margin-bottom:16px;"><span style="color:#FFD27A;">LA CAPTURE.</span> Envoyez-lui <span style="color:#E9D5FF;">20 000 spores en moins de 30 s</span> (un anneau à votre couleur montre où vous en êtes) et vous la pilotez pendant <b>1 minute</b> avec <span style="color:#E9D5FF;">ZQSD</span>. Écrasée sur une planète ou une lune : tous ses bâtiments détruits, 0 spore et plus de production pendant 1 minute. Sur un soleil : <b>tout son système</b> subit le même sort. La sphère est perdue dans le choc.</p>
+<p style="margin-bottom:16px;"><span style="color:#FFD27A;">LA CAPTURE.</span> Envoyez-lui <span style="color:#E9D5FF;">20 000 spores en moins de 30 s</span> (un anneau à votre couleur montre où vous en êtes) et vous la pilotez pendant <b>1 minute</b> avec <span style="color:#E9D5FF;">ZQSD</span>. Pilotée, elle tire pour vous et plus loin : la verte n'arrose que <b>vos</b> astres, la noire ne ronge que ceux de vos <b>adversaires</b>. Écrasée sur une planète ou une lune : tous ses bâtiments détruits, 0 spore et plus de production pendant 1 minute. Sur un soleil : <b>tout son système</b> subit le même sort. La sphère est perdue dans le choc.</p>
 <p style="margin-bottom:16px;">Les <b>IA</b> aussi convoitent les sphères. Une IA assez grosse peut cesser d'attaquer pendant quelques minutes pour <b>économiser</b>, puis bombarder une sphère qui passe près de chez elle. Si elle la prend, elle la lance sur le système le plus riche de ses adversaires, et un message vous prévient.</p>
 
 <!-- MULTIJOUEUR -->
@@ -18072,7 +18077,7 @@ const CAP_CFG = {
     blindage: 0.2,                        /* part des degats des petits vaisseaux qui passe */
     reparation: 25,                       /* PV par seconde, 5 s apres la derniere attaque */
     explosion: { rayon: 700, duree: 60 },
-    mitraille: { portee: 240, cadence: 0.12, paquet: 5 },
+    mitraille: { portee: 240, portePilote: 350, cadence: 0.12, paquet: 5 },
     capture: { spores: 20000, fenetre: 30, duree: 60 },
     pilote: { vitesse: 130, inertie: 0.9 },
     panne: 60
@@ -18414,16 +18419,27 @@ function duelsCapitaux(dt) {
     }
 }
 
-/* Verte : +5 spores par balle ; noire : -5. Sur l'astre le plus proche a portee. */
+/* Verte : +5 spores par balle ; noire : -5. Sur l'astre le plus proche a
+   portee. PILOTEE, elle tire pour son pilote, et plus loin : la verte
+   n'arrose que ses astres, la noire ne ronge que ceux de ses adversaires
+   (avant, elle visait l'astre le plus proche, souvent un neutre ou un
+   astre du pilote lui-meme). */
 function mitraillerCapital(C, dt) {
     if (C.type === 'red') return;
     C.tirT -= dt;
     if (C.tirT > 0) return;
+    const pilote = C.pilote;
+    const portee = pilote >= 0 ? CAP_CFG.mitraille.portePilote : CAP_CFG.mitraille.portee;
     let cible = null, best = Infinity;
     for (const b of gameState.allBodies) {
         if (b.type === 'sun') continue;
+        if (pilote >= 0) {
+            const aLui = b.owner === pilote;
+            const adverse = b.owner !== null && b.owner !== undefined && b.owner >= 0 && !aLui;
+            if (C.type === 'green' ? !aLui : !adverse) continue;
+        }
         const d = Math.hypot(b.x - C.x, b.y - C.y) - b.radius - C.rayon;
-        if (d < CAP_CFG.mitraille.portee && d < best) { best = d; cible = b; }
+        if (d < portee && d < best) { best = d; cible = b; }
     }
     if (!cible) { C.tirT = 0; return; }
     C.tirT = CAP_CFG.mitraille.cadence;
