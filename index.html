@@ -1218,6 +1218,22 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        tous reussis ; la noire a portee du meilleur joueur 12 % du temps
        (presque tout le temps avant). Rouge inchangee.
      - npm run lockstep sur 30 000 tours : identique.
+     - SONS : six musiques d'ambiance spatiale ajoutees a
+       Audio/SONS_A_CREER.md, du plus lent au plus rapide (amb_espace_1 a
+       6) ; PDF regenere.
+     - LES IA CAPTURENT LES SPHERES. Toutes les 5 s, une IA dont les astres
+       peuvent contenir 26 000 spores peut se mettre a ECONOMISER (chance
+       selon la difficulte : 3 % facile, 12 % normal, 25-30 % difficile et
+       brutal ; une seule IA a la fois) : plus de tirs ni d'achats (chaque
+       achat de technologie vidait ses astres), 5 min au plus. Des qu'une
+       sphere libre passe avec 24 000 spores a portee (3 200), elle la
+       bombarde 30 s : jusqu'a 3 tirs toutes les 0,6 s, visee calculee sur
+       la vraie courbe des tirs et la route de la sphere, tir seulement si
+       le calcul touche. Capturee : elle la lance sur le systeme solaire
+       ou la planete adverse qui fera le plus de degats, message a tous.
+       Mesure : 50 a 85 % des spores tirees touchent la sphere ; en
+       35 min, une capture sur deux parties (Nex, 29 min, 19 969 spores).
+       npm run lockstep sur 24 000 tours : identique.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -1229,8 +1245,10 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
      - remplacer a terme le multijoueur actuel (serveur 2), puis l'arreter
        - un seul moteur de jeu au lieu de deux (index.html et gameLoop.js) ;
      - duree de partie a revoir pour les grandes parties (16 joueurs).
-  🎯 VAISSEAUX CAPITAUX : faits en v9.7.9 (spheres). Reste : l'IA ne
-     cherche pas encore a les capturer ; equilibrage a voir en partie.
+  🎯 VAISSEAUX CAPITAUX : faits en v9.7.9 (spheres), IA comprise.
+     Equilibrage a voir en partie : a 20 000 spores la capture est rare
+     (une IA y arrive vers 25-30 min) - 12 000 a 15 000 la rendrait plus
+     frequente pour tous.
      Idee d'origine : 3 grands vaisseaux, memes
      couleurs que les petits (vert, noir, rouge), qui tournent tres
      lentement autour du trou noir sans jamais devier de leur course.
@@ -3445,6 +3463,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 <p style="margin-bottom:6px;">Après <b>3 minutes</b> de jeu, trois sphères blindées, grandes comme des lunes, sortent du trou noir l'une après l'autre : une <span style="color:#4ADE80;">verte</span>, une <span style="color:#A5A5C8;">noire</span>, une <span style="color:#EF4444;">rouge</span>. Elles errent lentement dans la galaxie ; de temps en temps, la verte <b>passe près du joueur le plus faible</b>, la noire <b>près du meilleur</b>, puis elles repartent. La rouge se tient près d'un soleil, le plus loin possible des joueurs. Quand elle frôle un astre, la verte le mitraille de paquets de <span style="color:#4ADE80;">+5 spores</span>, quel que soit son camp ; la noire, de tirs à <span style="color:#F87171;">−5 spores</span>. La rouge ne tire pas.</p>
 <p style="margin-bottom:6px;">Vos jets ne leur font aucun mal : seuls les <b>petits vaisseaux d'une autre couleur</b> peuvent les abattre, et elles ripostent. Une sphère détruite explose : les astres alentour tombent à <b>0 spore</b> et ne produisent plus rien pendant <b>1 minute</b>. Elle ressort du trou noir 3 minutes plus tard.</p>
 <p style="margin-bottom:16px;"><span style="color:#FFD27A;">LA CAPTURE.</span> Envoyez-lui <span style="color:#E9D5FF;">20 000 spores en moins de 30 s</span> (un anneau à votre couleur montre où vous en êtes) et vous la pilotez pendant <b>1 minute</b> avec <span style="color:#E9D5FF;">ZQSD</span>. Écrasée sur une planète ou une lune : tous ses bâtiments détruits, 0 spore et plus de production pendant 1 minute. Sur un soleil : <b>tout son système</b> subit le même sort. La sphère est perdue dans le choc.</p>
+<p style="margin-bottom:16px;">Les <b>IA</b> aussi convoitent les sphères. Une IA assez grosse peut cesser d'attaquer pendant quelques minutes pour <b>économiser</b>, puis bombarder une sphère qui passe près de chez elle. Si elle la prend, elle la lance sur le système le plus riche de ses adversaires, et un message vous prévient.</p>
 
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
@@ -18271,8 +18290,9 @@ function naviguerCapital(C, dt) {
     const tour = CAP_CFG.virage * dt;
     C.cap += Math.max(-tour, Math.min(tour, ecart));
     if (C.cap > Math.PI) C.cap -= Math.PI * 2; else if (C.cap < -Math.PI) C.cap += Math.PI * 2;
-    C.x += Math.cos(C.cap) * vit * dt;
-    C.y += Math.sin(C.cap) * vit * dt;
+    C.vitX = Math.cos(C.cap) * vit; C.vitY = Math.sin(C.cap) * vit;
+    C.x += C.vitX * dt;
+    C.y += C.vitY * dt;
     const R = gameState._maxRangeCache || 2500;
     const d = Math.hypot(C.x, C.y);
     if (d > R) { C.x *= R / d; C.y *= R / d; }
@@ -18298,6 +18318,8 @@ function majCapitaux(dt) {
             continue;
         }
         if (C.pilote >= 0 && t >= C.piloteFin) finPilotage(C);
+        /* Tenue par une IA : c'est elle qui tient la barre. */
+        if (C.pilote >= 0 && gameState.players[C.pilote] && !gameState.players[C.pilote].isHuman) iaPiloteCapital(C);
         if (C.pilote >= 0) {
             /* Pilotee : lourde, elle prend son elan lentement. */
             const n = Math.hypot(C.cmdX, C.cmdY);
@@ -18444,6 +18466,7 @@ function capturerCapital(C, slot) {
     C.piloteFin = gameState.time + CAP_CFG.capture.duree;
     C.cmdX = 0; C.cmdY = 0; C.vx = 0; C.vy = 0;
     C.apports = [];
+    C.cibleIA = '';
     /* Ce qu'elle touche deja au moment de la capture ne compte pas : sans
        cela, prise en frolant une lune, elle s'y ecrasait aussitot. */
     C.ignore = [];
@@ -19046,7 +19069,9 @@ function updateAI(dt) {
             player.multiSacrifice = 15 + Math.floor(gameRandom() * 20);
         }
         // IA : achat tech
-        if (player.totalSpores > 2000 && gameRandom() < 0.03) {
+        /* Pas d'achat quand elle economise pour une sphere : chaque achat
+           vidait ses astres. */
+        if (player.totalSpores > 2000 && player.capPhase !== 'prepa' && gameRandom() < 0.03) {
             const _br = ['homing','tenacity','mimicry'][Math.floor(gameRandom()*3)];
             if (player.tech[_br] < 10) buyTech(player, _br);
         }
@@ -19059,6 +19084,11 @@ function updateAI(dt) {
         }
         /* Rafale et boule en cours : elles se jouent dans la duree. */
         aiArmes(player, dt);
+        /* Les spheres capitales : tenter une capture, ou la mener. */
+        if (gameState.capitaux && gameState.capitaux.length) {
+            if (player.capPhase) iaCampagneCapital(player, dt);
+            else iaExamenCapitaux(player);
+        }
 
         player.aiTimer -= dt;
         if (player.aiTimer > 0) continue;
@@ -19071,6 +19101,181 @@ function updateAI(dt) {
         else if (difficulty === 'normal') aiActionNormal(player);
         else aiActionBrutal(player);
     }
+}
+
+/* ─────────────────────────────────────────────
+   L'IA ET LES SPHERES CAPITALES
+   Une IA qui voit passer une sphere libre pres de chez elle, avec assez de
+   spores a portee, peut tenter de la capturer : elle la bombarde pendant
+   30 s au plus, en visant la ou la sphere sera quand le tir arrivera. Si
+   elle la prend, elle la jette sur le systeme ou la planete d'un adversaire
+   qui fera le plus de degats. Tout passe par le hasard de la partie :
+   meme decision chez tous les joueurs en reseau.
+   ───────────────────────────────────────────── */
+const IA_CAP = {
+    examen: 5,                 /* secondes entre deux examens */
+    portee: 3200,              /* astres de l'IA assez proches de la sphere pour tirer (un tir porte ~3 500) */
+    capacite: 1.3,             /* ses astres doivent pouvoir contenir 130 % de la capture */
+    reserve: 1.2,              /* on tire quand ceux a portee en contiennent 120 % (tirs perdus en route) */
+    preparation: 300,          /* secondes au plus pour economiser (une grosse IA produit ~70 spores/s) */
+    envie: { easy: 0.03, normal: 0.12, hard: 0.25, brutal: 0.3 },
+    cadence: 0.6,              /* secondes entre deux salves */
+    tirsParSalve: { easy: 1, normal: 2, hard: 3, brutal: 3 },
+    visee: { easy: 4, normal: 15, hard: 25, brutal: 30 },  /* essais de chaque cote du tir direct, tous les 0,02 rad */
+    repos: 90                  /* apres une tentative, on souffle */
+};
+
+/* La vitesse d'une sphere, pour prevoir ou elle sera. */
+function vitesseCapital(C) {
+    return C.pilote >= 0 ? [C.vx || 0, C.vy || 0] : [C.vitX || 0, C.vitY || 0];
+}
+
+/* Le meilleur cap de tir vers une sphere en mouvement : on essaie des
+   directions autour du tir direct, on suit la vraie courbe de chaque tir
+   (trou noir, soleils) et on garde celle qui passe au plus pres de la
+   sphere au bon moment. Rend [dx, dy, ecart] ou null. */
+function viserCapital(src, C, player) {
+    const speed = 20 + player.stats.velocity * 6;
+    const parPoint = 1 / (speed * 0.7);          /* secondes pour avancer d'un point de trajectoire */
+    const v = vitesseCapital(C);
+    const base = Math.atan2(C.y - src.y, C.x - src.x);
+    const n = IA_CAP.visee[gameState.config.difficulty] || 0;
+    let best = null;
+    for (let k = -n; k <= n; k++) {
+        const a = base + k * 0.02;
+        const dx = Math.cos(a), dy = Math.sin(a);
+        const traj = computeTrajectory(src.x, src.y, dx, dy, speed, 200);
+        let m = Infinity;
+        for (let i = 0; i < traj.length; i += 2) {
+            const t = i * parPoint;
+            const ex = traj[i].x - (C.x + v[0] * t), ey = traj[i].y - (C.y + v[1] * t);
+            const d = ex * ex + ey * ey;
+            if (d < m) m = d;
+        }
+        m = Math.sqrt(m);
+        if (!best || m < best[2]) best = [dx, dy, m];
+    }
+    return best;
+}
+
+/* Les spores (ou la place, max) des astres de l'IA ; C donne : seulement
+   ceux a portee de cette sphere. */
+function iaReserveCapital(player, C, max) {
+    let n = 0;
+    for (const b of player.bodies) {
+        if (b.lutte) continue;
+        if (C && Math.hypot(b.x - C.x, b.y - C.y) >= IA_CAP.portee) continue;
+        n += max ? (b.maxSpores || 0) : (b.spores || 0);
+    }
+    return n;
+}
+
+/* Pendant qu'elle economise, l'IA ne tire plus (sauf rafale ou boule deja
+   lancee) : c'est le prix de la sphere. */
+function iaGardeReserve(player, src) {
+    return player.capPhase === 'prepa';
+}
+
+/* La sphere libre la plus proche de ses astres, ou -1. */
+function iaSphereVisee(player) {
+    let k = -1, best = Infinity;
+    (gameState.capitaux || []).forEach(function (C, i) {
+        if (!capActive(C) || C.pilote >= 0) return;
+        /* Deux IA sur la meme sphere se gacheraient leurs spores. */
+        if (gameState.players.some(function (j) { return j !== player && j.capK === i; })) return;
+        for (const b of player.bodies) {
+            const d = Math.hypot(b.x - C.x, b.y - C.y);
+            if (d < best) { best = d; k = i; }
+        }
+    });
+    return k;
+}
+
+/* Une campagne de capture : economiser, puis une salve toutes les 0,6 s. */
+function iaCampagneCapital(player, dt) {
+    const t = gameState.time;
+    const fin = function () { player.capK = -1; player.capPhase = ''; player.capRepos = t + IA_CAP.repos; };
+    if (t >= player.capFin) { fin(); return; }
+    if (player.capPhase === 'prepa') {
+        /* De quoi faire, et une sphere libre a portee d'assez d'astres ? */
+        const k = iaSphereVisee(player);
+        if (k < 0) return;
+        if (iaReserveCapital(player, gameState.capitaux[k], false) < CAP_CFG.capture.spores * IA_CAP.reserve) return;
+        player.capK = k;
+        player.capPhase = 'tir';
+        player.capFin = t + CAP_CFG.capture.fenetre;
+        player.capTir = 0;
+    }
+    const C = (gameState.capitaux || [])[player.capK];
+    if (!C || !capActive(C) || C.pilote >= 0) { fin(); return; }
+    /* L'IA ne reflechit qu'un tour sur deux : on cadence sur l'horloge. */
+    if (t < (player.capTir || 0)) return;
+    player.capTir = t + IA_CAP.cadence;
+    const sources = player.bodies.filter(function (b) {
+        return !b.lutte && b.spores > 300 && Math.hypot(b.x - C.x, b.y - C.y) < IA_CAP.portee;
+    }).sort(function (a, b) { return b.spores - a.spores; });
+    const nb = IA_CAP.tirsParSalve[gameState.config.difficulty] || 1;
+    for (let k = 0; k < sources.length && k < nb; k++) {
+        /* On ne tire que si le calcul dit que ca touche. */
+        const vis = viserCapital(sources[k], C, player);
+        if (vis && vis[2] < C.rayon * 0.7) launchJet(sources[k], vis[0], vis[1], 'normal', player.id, { muet: true });
+    }
+}
+
+/* Toutes les 5 s : faut-il se mettre a economiser pour une sphere ? */
+function iaExamenCapitaux(player) {
+    const t = gameState.time;
+    if (t < (player.capExamen || 0)) return;
+    player.capExamen = t + IA_CAP.examen;
+    if (t < (player.capRepos || 0)) return;
+    const caps = gameState.capitaux || [];
+    if (caps.some(function (C) { return C.pilote === player.id; })) return;
+    if (!caps.some(function (C) { return capActive(C) && C.pilote < 0; })) return;
+    /* Une seule IA a la fois : sinon elles economisaient toutes en meme
+       temps et cessaient toutes d'attaquer. */
+    if (gameState.players.some(function (j) { return j !== player && j.capPhase; })) return;
+    /* Ses astres doivent pouvoir contenir la capture, et plus. */
+    if (iaReserveCapital(player, null, true) < CAP_CFG.capture.spores * IA_CAP.capacite) return;
+    if (gameRandom() >= (IA_CAP.envie[gameState.config.difficulty] || 0.12)) return;
+    player.capK = -1;
+    player.capPhase = 'prepa';
+    player.capFin = t + IA_CAP.preparation;
+}
+
+/* Une IA tient une sphere : elle choisit sa cible une fois, puis la
+   dirige dessus. Cible : le systeme solaire ou elle fera le plus de mal
+   (astres adverses, batiments) et le moins a elle-meme, sinon la planete
+   adverse la mieux batie. */
+function iaPiloteCapital(C) {
+    const player = gameState.players[C.pilote];
+    if (!player || player.isHuman) return;
+    let cible = C.cibleIA ? (gameState.suns.find(function (s) { return s.name === C.cibleIA; }) || astreNomme(C.cibleIA)) : null;
+    if (!cible) {
+        let best = null, bestS = 0;
+        const valeur = function (b) {
+            if (b.owner === null || b.owner === undefined || b.owner < 0) return 0;
+            const bat = (b.nids || 0) + (b.alveoles || 0) + (b.biomes || 0);
+            return b.owner === player.id ? -3 - bat : 2 + bat;
+        };
+        for (const s of gameState.suns) {
+            let sc = 0;
+            for (const p of (s.planets || [])) { sc += valeur(p); for (const m of (p.moons || [])) sc += valeur(m); }
+            if (sc > bestS) { bestS = sc; best = s; }
+        }
+        for (const b of gameState.allBodies) {
+            if (b.type === 'sun') continue;
+            const sc = valeur(b) * 1.5;
+            if (sc > bestS) { bestS = sc; best = b; }
+        }
+        if (!best) return;
+        cible = best;
+        C.cibleIA = best.name;
+        addEvent('war', '🛸', player.name + ' lance la sphère ' + CAP_TEINTES[C.type].nom + ' sur ' + best.name + ' !', best, player.color);
+    }
+    const dx = cible.x - C.x, dy = cible.y - C.y;
+    const d = Math.hypot(dx, dy) || 1;
+    C.cmdX = Math.abs(dx) / d > 0.38 ? Math.sign(dx) : 0;
+    C.cmdY = Math.abs(dy) / d > 0.38 ? Math.sign(dy) : 0;
 }
 
 // ── IA Facile : cible aléatoire, pas d'anticipation ──
@@ -19242,6 +19447,8 @@ function _aiBatimentsAdverses(target, slot) {
 }
 
 function aiTirer(src, target, player) {
+    /* Elle economise pour capturer une sphere : pas de tir depuis ces astres. */
+    if (iaGardeReserve(player, src)) return;
     const d = gameState.config.difficulty;
     const gout = d === 'easy' ? 0.15 : d === 'normal' ? 0.35 : 0.5;
     const chezElle = src.owner === player.id;
