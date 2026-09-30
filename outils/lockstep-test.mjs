@@ -150,6 +150,8 @@ async function jouer(navigateur, variante, ordres) {
         /* Un point a 600 unites de l'astre, dans la direction voulue. */
         const vers = (src, angle) => ({ tx: src.x + Math.cos(angle) * 600, ty: src.y + Math.sin(angle) * 600 });
         gameState.avantChaqueTour = function (tour) {
+            /* Toutes les 25 s, une proposition de commerce a une IA, a tour de role. */
+            if (tour % 1500 === 600) donner(tour, 'commerce', { cible: 1 + Math.floor(tour / 1500) % (gameState.players.length - 1), niveau: 1 });
             while (B.k < ordres.length && ordres[B.k].tour === tour) {
                 const o = ordres[B.k++];
                 if (o.suite) {

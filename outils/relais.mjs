@@ -85,7 +85,7 @@ async function verifierJeton(jeton) {
 /* Les ordres que le jeu connait (EXECUTER_ORDRE). Le reste est refuse. */
 const ORDRES = new Set(['part', 'zone', 'tir', 'tir_surface', 'riposte', 'arret', 'batiment',
     'sacrifice', 'stat', 'techno', 'colonie', 'demol', 'visee', 'visee_fin', 'rafale_debut',
-    'rafale_cible', 'rafale_fin', 'boule_debut', 'boule_cible', 'boule_fin', 'boule_lancer', 'capital']);
+    'rafale_cible', 'rafale_fin', 'boule_debut', 'boule_cible', 'boule_fin', 'boule_lancer', 'capital', 'commerce', 'commerce_reponse']);
 
 /* ── Le jeu, servi par le meme port ── */
 const RACINE = resolve('.');
