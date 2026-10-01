@@ -1384,7 +1384,15 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        seul moyen de partir est de devenir spore ; tous les partis
        politiques francais y transforment leurs adherents pour conquerir
        l'univers. 12 scenes (texte, prompt d'image, mouvement), images
-       sans logos ni drapeaux de vrais partis. Ordre 'regime'. En reseau 15 s,
+       sans logos ni drapeaux de vrais partis.
+     - HISTOIRE : bouton du menu (sous MISSION TUTORIEL) qui lance la
+       cinematique : les 12 images (Lore/*.png envoyees par le createur,
+       converties en JPG 1672 px, 34 Mo -> 5 Mo, assets/histoire/sceneNN.jpg)
+       se fondent l'une dans l'autre avec un lent zoom alterne ; titre et
+       texte de chaque scene en bas ; defilement seul (4 s + 55 ms par
+       lettre), clic / Espace / fleches / points pour naviguer, PASSER ou
+       Echap pour sortir ; ecran final NEBULA CONQUEST. La musique du titre
+       continue. Ordre 'regime'. En reseau 15 s,
          compteur "x / y joueurs ont choisi", hasard pour les retardataires ;
          les IA tirent le leur ;
        - PUIS LA PLANETE en 15 s pour tous : ordre 'reserver' (astre libre
@@ -1508,6 +1516,35 @@ canvas#gameCanvas {
 
 /* ── Halos des soleils : meme principe, une couche par soleil, au-dessus du
    fond (plus loin dans la page) et sous le canevas de jeu ── */
+/* La cinematique HISTOIRE : images qui se fondent, lent zoom, texte en bas. */
+#histoire { position: fixed; inset: 0; z-index: 2000; background: #000; overflow: hidden; cursor: pointer; opacity: 0; transition: opacity 0.45s; }
+#histoire.hi-visible { opacity: 1; }
+#histoire .hi-image { position: absolute; inset: -2%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.4s ease; }
+#histoire .hi-image.hi-active { opacity: 1; }
+#histoire .hi-zoom-a { animation: hiZoomA 16s ease-out forwards; }
+#histoire .hi-zoom-b { animation: hiZoomB 16s ease-out forwards; }
+@keyframes hiZoomA { from { transform: scale(1.0) translate(0, 0); } to { transform: scale(1.12) translate(-1.5%, -1%); } }
+@keyframes hiZoomB { from { transform: scale(1.12) translate(1.5%, 1%); } to { transform: scale(1.0) translate(0, 0); } }
+#histoire .hi-voile { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.82) 100%); pointer-events: none; }
+#histoire .hi-bas { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 16px 26px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+#histoire .hi-titre { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 3px; color: #FDE68A; text-transform: uppercase; margin-bottom: 8px;
+    opacity: 0; transform: translateY(8px); transition: opacity 0.8s 0.5s, transform 0.8s 0.5s; text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+#histoire .hi-texte { font-family: 'Exo 2', sans-serif; font-size: clamp(16px, 2.1vw, 23px); line-height: 1.5; color: #F8FAFC; max-width: 900px;
+    opacity: 0; transform: translateY(10px); transition: opacity 1s 0.9s, transform 1s 0.9s; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
+#histoire .hi-texte-visible .hi-titre, #histoire .hi-texte-visible .hi-texte { opacity: 1; transform: none; }
+#histoire .hi-points { display: flex; gap: 7px; margin-top: 16px; }
+#histoire .hi-points span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 0.3s, transform 0.3s; }
+#histoire .hi-points span.hi-on { background: #FDE68A; transform: scale(1.35); }
+#histoire .hi-passer { position: absolute; top: 16px; right: 16px; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.3); color: #E2E8F0;
+    font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 2px; padding: 7px 14px; border-radius: 6px; cursor: pointer; }
+#histoire .hi-fleche { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.3); border: none; color: rgba(255,255,255,0.7);
+    font-size: 34px; width: 44px; height: 64px; border-radius: 8px; cursor: pointer; }
+#histoire .hi-prec { left: 12px; } #histoire .hi-suiv { right: 12px; }
+#histoire .hi-fin { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: rgba(4,6,20,0.72); }
+#histoire.hi-fini .hi-fin { display: flex; }
+#histoire.hi-fini .hi-bas { opacity: 0; }
+#histoire .hi-fin-titre { font-family: 'Orbitron', sans-serif; font-size: clamp(26px, 5vw, 56px); letter-spacing: 8px; color: #E9D5FF; text-shadow: 0 0 30px rgba(168,85,247,0.7); }
+
 /* Le choix du regime politique : neuf cartes. */
 #ecranRegime { position: fixed; inset: 0; z-index: 990; background: rgba(5,8,25,0.9); overflow-y: auto;
     display: flex; flex-direction: column; align-items: center; padding: 22px 16px 30px; box-sizing: border-box; font-family: 'Exo 2', sans-serif; color: #E0E7FF; }
@@ -3254,6 +3291,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
     <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
     <button class="btn" id="btnCompetition" style="margin-top:8px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); color:#FFD700;">🏆 COMPÉTITION</button>
     <button class="btn" id="btnMission" style="margin-top:8px; background:rgba(74,222,128,0.12); border:1px solid rgba(74,222,128,0.45); color:#86EFAC;">🎓 MISSION TUTORIEL</button>
+    <button class="btn" id="btnHistoire" style="margin-top:8px; background:rgba(253,230,138,0.10); border:1px solid rgba(253,230,138,0.45); color:#FDE68A;">📜 HISTOIRE</button>
     <button class="btn" id="btnHelp" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">AIDE</button>
     <div id="titlePseudo" style="margin-top:20px; font-family:'Orbitron',sans-serif; font-size:11px; color:rgba(200,170,255,0.5); letter-spacing:2px;"></div>
     <button id="btnLogout" style="margin-top:8px; background:none; border:none; color:rgba(200,170,255,0.3); font-family:'Exo 2',sans-serif; font-size:11px; cursor:pointer; letter-spacing:1px;">DÉCONNEXION</button>
@@ -25142,6 +25180,106 @@ document.getElementById('btnStartTutorial').addEventListener('click', () => {
     setPhase('title');
     setTimeout(() => startTutorial(), 100);
 });
+// ─────────────────────────────────────────────
+// HISTOIRE : la cinématique du menu (La Chronique des Spores)
+// ─────────────────────────────────────────────
+/* Douze images (assets/histoire/sceneNN.jpg) qui se fondent l'une dans
+   l'autre, chacune avec un lent zoom (alterne d'une scene a l'autre), son
+   titre et son texte. Defile tout seul (le temps de lire), ou au clic,
+   Espace, fleches ; Echap ou PASSER pour sortir. Purement de l'affichage :
+   la musique du titre continue. Textes : Lore/HISTOIRE.md. */
+const HISTOIRE = [
+    ['Le futur radieux', "En 2387, la France avait tout inventé : les villes volantes, les robots serviables, le croissant éternel. Elle avait juste oublié une chose : la planète."],
+    ['La fin du monde', "La Terre était fichue. Et aucun vaisseau n'était assez léger pour emporter tout le monde."],
+    ['La découverte', "Puis un savant découvrit qu'un humain pouvait devenir spore. Légère, résistante, capable de traverser l'espace. Le seul moyen de partir."],
+    ["Les partis s'en emparent", "Les partis politiques comprirent tout de suite : l'univers était à prendre. Pour une fois, ils furent tous d'accord. Sur le départ. Pas sur le reste."],
+    ['Les adhérents font la queue', "Chaque parti construisit ses machines. Les adhérents firent la queue. Certains avaient même pris leur carte."],
+    ['Le grand départ', "Et des milliards de spores quittèrent la Terre, chacune aux couleurs de son camp. Tout le monde n'était pas aussi enthousiaste."],
+    ['La Nébuleuse', "Après un très long voyage, elles atteignirent la Nébuleuse. Des mondes à prendre… et, au cœur de tout, le Puits."],
+    ['La première colonie', "Une spore touche un monde, s'y accroche, et pousse. Puis une autre. Puis toute une section du parti."],
+    ['La guerre des partis', "Mais tous les partis avaient visé la même Nébuleuse. Le débat reprit. À coups de spores."],
+    ['Les Anciens', "Ils n'étaient pas les premiers. D'autres civilisations avaient fait le même voyage, il y a très longtemps. Le Puits les avait avalées. Parfois, il les rend."],
+    ["Les alliances d'or", "Certains partis passèrent des accords. Des alliances d'or, solides comme une promesse de campagne."],
+    ['À toi, Commandant', "Le parti qui tiendra la Nébuleuse écrira la Constitution de l'univers. À toi, Commandant."]
+];
+let _hist = null;
+function _imgHistoire(k) { return 'assets/histoire/scene' + String(k + 1).padStart(2, '0') + '.jpg'; }
+
+function ouvrirHistoire() {
+    if (_hist) return;
+    const el = document.createElement('div');
+    el.id = 'histoire';
+    let points = '';
+    for (let k = 0; k < HISTOIRE.length; k++) points += '<span data-k="' + k + '"></span>';
+    el.innerHTML = '<div class="hi-image"></div><div class="hi-image"></div><div class="hi-voile"></div>' +
+        '<div class="hi-bas"><div class="hi-titre"></div><div class="hi-texte"></div><div class="hi-points">' + points + '</div></div>' +
+        '<button class="hi-passer">PASSER ✕</button>' +
+        '<button class="hi-fleche hi-prec" aria-label="Scène précédente">‹</button><button class="hi-fleche hi-suiv" aria-label="Scène suivante">›</button>' +
+        '<div class="hi-fin"><div class="hi-fin-titre">NEBULA CONQUEST</div><button class="btn hi-jouer">FERMER</button></div>';
+    document.body.appendChild(el);
+    _hist = { el: el, k: -1, couche: 0, minuteur: null, touches: null };
+    /* Les images se chargent d'avance, dans l'ordre. */
+    _hist.prechargees = HISTOIRE.map(function (_, k) { const im = new Image(); im.src = _imgHistoire(k); return im; });
+    el.querySelector('.hi-passer').addEventListener('click', function (e) { e.stopPropagation(); fermerHistoire(); });
+    el.querySelector('.hi-jouer').addEventListener('click', function (e) { e.stopPropagation(); fermerHistoire(); });
+    el.querySelector('.hi-prec').addEventListener('click', function (e) { e.stopPropagation(); allerScene(_hist.k - 1); });
+    el.querySelector('.hi-suiv').addEventListener('click', function (e) { e.stopPropagation(); allerScene(_hist.k + 1); });
+    el.querySelectorAll('.hi-points span').forEach(function (p) {
+        p.addEventListener('click', function (e) { e.stopPropagation(); allerScene(+p.dataset.k); });
+    });
+    el.addEventListener('click', function () { allerScene(_hist.k + 1); });
+    _hist.touches = function (e) {
+        if (!_hist) return;
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermerHistoire(); }
+        else if (e.key === 'ArrowRight' || e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); allerScene(_hist.k + 1); }
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); allerScene(_hist.k - 1); }
+    };
+    document.addEventListener('keydown', _hist.touches, true);
+    requestAnimationFrame(function () { el.classList.add('hi-visible'); allerScene(0); });
+}
+
+function allerScene(k) {
+    const H = _hist;
+    if (!H) return;
+    clearTimeout(H.minuteur);
+    if (k < 0) k = 0;
+    if (k >= HISTOIRE.length) { H.el.classList.add('hi-fini'); H.k = HISTOIRE.length; return; }
+    H.el.classList.remove('hi-fini');
+    if (k === H.k) return;
+    const couches = H.el.querySelectorAll('.hi-image');
+    const neuve = couches[H.couche ^ 1], vieille = couches[H.couche];
+    H.couche ^= 1;
+    /* Le zoom repart de zero sur la nouvelle image, dans un sens ou l'autre. */
+    neuve.style.backgroundImage = 'url("' + _imgHistoire(k) + '")';
+    neuve.classList.remove('hi-zoom-a', 'hi-zoom-b', 'hi-active');
+    void neuve.offsetWidth;
+    neuve.classList.add(k % 2 ? 'hi-zoom-b' : 'hi-zoom-a', 'hi-active');
+    vieille.classList.remove('hi-active');
+    const bas = H.el.querySelector('.hi-bas');
+    bas.classList.remove('hi-texte-visible');
+    void bas.offsetWidth;
+    H.el.querySelector('.hi-titre').textContent = (k + 1) + ' · ' + HISTOIRE[k][0];
+    H.el.querySelector('.hi-texte').textContent = HISTOIRE[k][1];
+    bas.classList.add('hi-texte-visible');
+    H.el.querySelectorAll('.hi-points span').forEach(function (p, i) { p.classList.toggle('hi-on', i === k); });
+    H.k = k;
+    /* Le temps de lire : 4 s, plus un peu par lettre. */
+    const duree = 4000 + HISTOIRE[k][1].length * 55;
+    H.minuteur = setTimeout(function () { allerScene(k + 1); }, duree);
+}
+
+function fermerHistoire() {
+    const H = _hist;
+    if (!H) return;
+    clearTimeout(H.minuteur);
+    document.removeEventListener('keydown', H.touches, true);
+    H.el.classList.remove('hi-visible');
+    setTimeout(function () { H.el.remove(); }, 450);
+    _hist = null;
+}
+
+document.getElementById('btnHistoire').addEventListener('click', () => { playClickSound(); ouvrirHistoire(); });
+
 document.getElementById('btnMission').addEventListener('click', () => {
     if (typeof ensureAudio === 'function') ensureAudio();
     playClickSound();
