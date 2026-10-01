@@ -1,6 +1,6 @@
 # Images des régimes politiques
 
-Une image par régime, à déposer dans ce dossier avec exactement ces noms :
+Une image par régime, avec exactement ces noms. Les prompts pour les créer sont dans `Lore/PROMPTS_REGIMES.md`. Tu peux les déposer dans `Lore` (je les convertis et les place ici), ou directement ici en JPG :
 
 | Fichier | Régime |
 |---|---|
