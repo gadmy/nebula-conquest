@@ -1322,6 +1322,16 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        disparaitre. Haute definition : l'astre qu'on regarde de pres passe
        avant tout (8 ms par image jusqu'a ce qu'il soit net, ~1 s sur la
        machine d'essai), sinon 3 ms toutes les 0,4 s meme sans temps libre.
+     - MESURES D'OPTIMISATION (rien change, gains trop faibles) : textes a
+       l'ecran 0,15 ms par image ; empreinte reseau + detail ~1-2 ms une
+       fois par seconde sur une vraie machine ; simulation < 1 ms par tour
+       meme a 45 batailles (majLuttes = 40 %). Le reste du cout est cote
+       carte graphique : a mesurer chez le joueur avec F3 puis D.
+     - LORE : Lore/HISTOIRE.md (+ PDF), "La Chronique des Spores" en 12
+       scenes (texte a l'ecran, prompt d'image IA, mouvement), style commun,
+       couleurs ; les trois spheres deviennent les Jardiniers (verte), les
+       Niveleurs (noire) et les Veilleurs (rouge). A venir : bouton
+       HISTOIRE et cinematique dans le menu, quand les images seront faites.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
