@@ -1370,10 +1370,11 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        multijoueur gardent l'ancien) :
        - REGIME POLITIQUE d'abord : 9 cartes (image assets/regimes/<id>.jpg,
          icone tant qu'elle manque, nom, texte provisoire, stats en bas),
-         3 points d'evolution offerts : Democratie G1 V1 D1, Republique G1
-         D1 S1, Technocratie V1 D1 S1, Monarchie G1 D2, Empire V2 D1,
-         Dictature militaire V3, Theocratie G1 S2, Oligarchie marchande G2
-         S1, Commune agraire G3 (plafond 8). Ordre 'regime'. En reseau 15 s,
+         3 points d'evolution offerts. Regimes parodiques (noms voulus) :
+         Centre collaborateur G1 V1 D1, Gauche non solidaire G1 D1 S1,
+         Dictature eclairee V1 D1 S1, Royaute a plusieurs G1 D2, Fascisme
+         sympa V2 D1, Anarchie tres organisee V3, Ecolo mais pas trop G1
+         S2, Communisme neoliberal G2 S1, Droite proletaire G3 (plafond 8). Ordre 'regime'. En reseau 15 s,
          compteur "x / y joueurs ont choisi", hasard pour les retardataires ;
          les IA tirent le leur ;
        - PUIS LA PLANETE en 15 s pour tous : ordre 'reserver' (astre libre
@@ -3601,7 +3602,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ONDES SOLAIRES.</span> Un système entièrement tenu se met à vivre : son étoile s'embrase <span style="color:#E9D5FF;">toutes les 5 secondes</span> et envoie une onde qui balaie ses astres. Chacun la reçoit au passage du front, pas au départ — le système s'allume de l'intérieur vers l'extérieur.</p>
 <p style="margin-bottom:16px;">Ce que l'onde apporte dépend de votre stat <span style="color:#FBBF24;">Sensitivity</span> : <span style="color:#4ADE80;">+5 % de la capacité de l'astre par point</span>. À un point, une lune de 400 reçoit 20 spores.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro. Il peut dépasser son maximum <b>sans limite</b> (chiffre doré ⚡) ; après le tir, le trop-plein s'évapore peu à peu.</p>
-<p style="margin-bottom:6px;"><span style="color:#C4B5FD;">LE DÉPART.</span> Chaque partie commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Démocratie, République, Technocratie, Monarchie, Empire, Dictature militaire, Théocratie, Oligarchie marchande, Commune agraire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun s'installe ; sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
+<p style="margin-bottom:6px;"><span style="color:#C4B5FD;">LE DÉPART.</span> Chaque partie commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Centre collaborateur, Gauche non solidaire, Dictature éclairée, Royauté à plusieurs, Fascisme sympa, Anarchie très organisée, Écolo mais pas trop, Communisme néolibéral, Droite prolétaire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun s'installe ; sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
 <p style="margin-bottom:6px;"><span style="color:#FDE68A;">COMMERCE.</span> Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
 <p style="margin-bottom:16px;">On ne tire pas à travers une étoile ni un trou noir : ils détruisent les jets. Quand aucun de vos astres n'a la vue sur la cible, le trait de visée passe au <span style="color:#EF4444;">rouge</span>.</p>
 
@@ -10920,15 +10921,15 @@ function updateScoreBoard() {
    Tout passe par des ordres et se compte en tours : meme chose chez tous
    les joueurs en reseau. */
 const REGIMES = [
-    { id: 'democratie',   nom: 'Démocratie',          icone: '🗳️', stats: { growth: 1, velocity: 1, density: 1 },   texte: 'Le peuple décide : un peu de tout.' },
-    { id: 'republique',   nom: 'République',          icone: '🏛️', stats: { growth: 1, density: 1, sensitivity: 1 }, texte: 'Des lois solides et un œil sur les soleils.' },
-    { id: 'technocratie', nom: 'Technocratie',        icone: '⚙️', stats: { velocity: 1, density: 1, sensitivity: 1 }, texte: 'Les savants gouvernent : précision et efficacité.' },
-    { id: 'monarchie',    nom: 'Monarchie',           icone: '👑', stats: { growth: 1, density: 2 },               texte: 'Un trône, des remparts : chaque spore pèse plus lourd.' },
-    { id: 'empire',       nom: 'Empire',              icone: '🦅', stats: { velocity: 2, density: 1 },             texte: "L'expansion avant tout : frapper loin et fort." },
-    { id: 'dictature',    nom: 'Dictature militaire', icone: '⚔️', stats: { velocity: 3 },                         texte: 'La guerre éclair : des tirs plus rapides que tous.' },
-    { id: 'theocratie',   nom: 'Théocratie',          icone: '☀️', stats: { growth: 1, sensitivity: 2 },           texte: 'Le culte des soleils : leurs ondes vous nourrissent.' },
-    { id: 'oligarchie',   nom: 'Oligarchie marchande', icone: '💰', stats: { growth: 2, sensitivity: 1 },          texte: 'Les riches prospèrent : la production avant la guerre.' },
-    { id: 'commune',      nom: 'Commune agraire',     icone: '🌾', stats: { growth: 3 },                           texte: 'Tout pour la récolte : la plus forte croissance.' }
+    { id: 'centre_collaborateur',  nom: 'Centre collaborateur',   icone: '⚖️', stats: { growth: 1, velocity: 1, density: 1 },      texte: "D'accord avec tout le monde. Surtout avec le plus fort." },
+    { id: 'gauche_non_solidaire',  nom: 'Gauche non solidaire',   icone: '🌹', stats: { growth: 1, density: 1, sensitivity: 1 },    texte: 'Partager, oui. Mais chacun le sien.' },
+    { id: 'dictature_eclairee',    nom: 'Dictature éclairée',     icone: '💡', stats: { velocity: 1, density: 1, sensitivity: 1 },  texte: 'Un seul chef, mais il a lu des livres.' },
+    { id: 'royaute_plusieurs',     nom: 'Royauté à plusieurs',    icone: '👑', stats: { growth: 1, density: 2 },                    texte: 'Douze rois, un seul trône, beaucoup de réunions.' },
+    { id: 'fascisme_sympa',        nom: 'Fascisme sympa',         icone: '🎖️', stats: { velocity: 2, density: 1 },                  texte: 'On marche au pas, mais on dit merci.' },
+    { id: 'anarchie_organisee',    nom: 'Anarchie très organisée', icone: '🏴', stats: { velocity: 3 },                             texte: 'Pas de chef, mais un planning très strict.' },
+    { id: 'ecolo_pas_trop',        nom: 'Écolo mais pas trop',    icone: '🌿', stats: { growth: 1, sensitivity: 2 },                texte: 'On protège les soleils. Sauf le week-end.' },
+    { id: 'communisme_neoliberal', nom: 'Communisme néolibéral',  icone: '📈', stats: { growth: 2, sensitivity: 1 },                texte: 'Tout appartient à tous. Surtout aux actionnaires.' },
+    { id: 'droite_proletaire',     nom: 'Droite prolétaire',      icone: '🛠️', stats: { growth: 3 },                                texte: 'Travailler plus pour produire plus. Beaucoup plus.' }
 ];
 const STATS_REGIME = [
     { cle: 'growth', nom: 'Croissance', icone: '🌱', couleur: '#4ADE80' },
