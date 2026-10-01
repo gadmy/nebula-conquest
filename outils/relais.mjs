@@ -44,6 +44,7 @@ const opt = (nom, def) => {
 const PORT = opt('port', Number(process.env.PORT) || 8080);
 const LATENCE = opt('latence', 0);
 const GIGUE = opt('gigue', 0);
+const VERSION_DIFFERENTE = "un joueur n'a pas la meme version du jeu : rechargez tous la page (Ctrl+Maj+R)";
 const PERIODE = 50;                    /* ms entre deux paquets : 3 tours de 1/60 s */
 
 /* ── Les comptes (Supabase) ──
@@ -166,13 +167,16 @@ function nouvelleSalle(nom, m, options) {
 const dejaLa = (salle, compte) => !!compte && salle.clients.some(k => k.compte && k.compte.id === compte.id);
 
 function rejoindre(ws, m, compte) {
+    const version = String(m.version || '').slice(0, 16);
     let salle;
     if (m.public) {
         /* PARTIE RAPIDE : la premiere partie publique de cette taille qui
            attend encore, sinon une nouvelle. */
         const n = entier(m.joueurs, 2, JOUEURS_MAX, 2);
+        /* Seulement avec des joueurs qui ont la meme version du jeu. */
         for (const s of salles.values()) {
-            if (s.public && !s.lancee && s.reglages.joueurs === n && s.clients.length < n && !dejaLa(s, compte)) { salle = s; break; }
+            if (s.public && !s.lancee && s.reglages.joueurs === n && s.clients.length < n && !dejaLa(s, compte) &&
+                (s.version || '') === version) { salle = s; break; }
         }
         if (!salle) salle = nouvelleSalle('public-' + n + '-' + (++compteurPublic), { joueurs: n }, { public: true });
     } else if (m.creer) {
@@ -191,6 +195,14 @@ function rejoindre(ws, m, compte) {
         salle = salles.get(nom) || nouvelleSalle(nom, m, {});
     }
     const nom = salle.nom;
+    /* LA MEME VERSION POUR TOUS. Deux versions du jeu ne calculent pas la
+       meme partie : elles se separeraient au bout de quelques secondes. Le
+       premier arrive fixe la version de la salle. */
+    if (!salle.clients.length) salle.version = version;
+    else if ((salle.version || '') !== version) {
+        ws.send(JSON.stringify({ t: 'refus', raison: VERSION_DIFFERENTE }));
+        return null;
+    }
     if (salle.lancee || salle.clients.length >= salle.reglages.joueurs) {
         ws.send(JSON.stringify({ t: 'refus', raison: 'partie pleine ou deja lancee' }));
         return null;
@@ -240,6 +252,12 @@ function reprendre(ws, m) {
     const k = salle && salle.lancee ? salle.clients[slot] : null;
     if (!k || !k.jeton || k.jeton !== String(m.jeton || '')) {
         ws.send(JSON.stringify({ t: 'refus', raison: 'partie introuvable ou terminee', reprise: true }));
+        return null;
+    }
+    /* Page rechargee sur une version plus recente : elle ne pourrait pas
+       suivre la partie. */
+    if ((salle.version || '') !== String(m.version || '').slice(0, 16)) {
+        ws.send(JSON.stringify({ t: 'refus', raison: VERSION_DIFFERENTE, reprise: true }));
         return null;
     }
     const ancien = k.ws;

@@ -1343,6 +1343,14 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        - npm run lockstep sur 30 000 tours : identique.
        Tous les joueurs d'une partie doivent avoir la meme version (recharger
        la page) : l'empreinte a change de calcul.
+     - CONTROLE DE VERSION en reseau : le jeu calcule l'empreinte de son
+       propre code (versionJeu) et l'envoie en rejoignant ou en reprenant.
+       Le relais ne met ensemble que des joueurs de meme version (parties
+       rapides regroupees par version) ; sinon refus clair : "un joueur n'a
+       pas la meme version du jeu : rechargez tous la page (Ctrl+Maj+R)".
+       Reprise refusee aussi apres rechargement sur une nouvelle version.
+       Essais : relais seul (4 cas) et vraie partie a 2 navigateurs.
+       Le relais est modifie : a redeployer sur Railway.
      - LORE : Lore/HISTOIRE.md (+ PDF), "La Chronique des Spores" en 12
        scenes (texte a l'ecran, prompt d'image IA, mouvement), style commun,
        couleurs ; les trois spheres deviennent les Jardiniers (verte), les
@@ -15362,10 +15370,25 @@ function lockstepDepuisAdresse() {
     });
 }
 
+/* LA VERSION DU JEU : l'empreinte du code de la page, calculee une fois.
+   Le relais ne met ensemble que des joueurs qui ont la meme : deux versions
+   differentes ne calculeraient pas la meme partie. */
+let _versionJeu = null;
+function versionJeu() {
+    if (_versionJeu) return _versionJeu;
+    let h = 0x811c9dc5;
+    for (const sc of document.querySelectorAll('script:not([src])')) {
+        const t = sc.textContent;
+        for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); }
+    }
+    _versionJeu = (h >>> 0).toString(16);
+    return _versionJeu;
+}
+
 function rejoindreRelais(url, reglages) {
     const L = gameState.lockstep = { ws: null, url: url, slot: null, enJeu: false, joueurs: [], paquets: 0,
                                      tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null };
-    ouvrirRelais(L, function () { return Object.assign({ t: 'rejoindre' }, reglages); });
+    ouvrirRelais(L, function () { return Object.assign({ t: 'rejoindre', version: versionJeu() }, reglages); });
     afficherLockstep('Connexion au relais...');
 }
 
@@ -15373,7 +15396,7 @@ function rejoindreRelais(url, reglages) {
    et le premier paquet qui nous manque (0 : page rechargee, tout a
    rejouer). */
 function demandeReprise(L) {
-    return { t: 'reprendre', salle: L.salleNom, slot: L.slot, jeton: L.jeton, depuis: L.enJeu ? L.paquets : 0 };
+    return { t: 'reprendre', salle: L.salleNom, slot: L.slot, jeton: L.jeton, depuis: L.enJeu ? L.paquets : 0, version: versionJeu() };
 }
 
 /* Ouvre la connexion au relais ; premier() donne le premier message. */
@@ -15512,7 +15535,7 @@ function reprendrePartieReseau() {
                                      tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null,
                                      salleNom: g.salle, jeton: g.jeton, slotGarde: g.slot };
     ouvrirRelais(L, function () {
-        return { t: 'reprendre', salle: L.salleNom, slot: L.slotGarde, jeton: L.jeton, depuis: 0 };
+        return { t: 'reprendre', salle: L.salleNom, slot: L.slotGarde, jeton: L.jeton, depuis: 0, version: versionJeu() };
     });
     afficherLockstep('Reprise de la partie...');
 }
