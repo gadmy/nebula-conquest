@@ -30,7 +30,9 @@ Chaque prompt est **complet** : il suffit de le copier-coller tel quel dans ton 
 
 ## scene06 — Le grand départ
 
-`View from low orbit of a ruined brown Earth, from every continent countless streams of glowing colored spores rise into space like aurora ribbons, violet, red, green, orange and blue streams spiraling outward toward the stars, an epic exodus of billions, cinematic science fiction digital painting, deep navy blue space (#16264E), violet and teal haze, warm golden accents, soft volumetric light, painterly texture, highly detailed, 16:9, no text, no logos`
+`Cinematic ground-level shot at dusk under a blood red sky. In the foreground, a young mother walks quickly toward a long queue, beaming with joy, a huge excited smile, eyes shining, holding her small child in her arms; the child is crying loudly, tears on its cheeks, mouth wide open, arms reaching back toward home. Behind them, endless orderly queues of citizens with suitcases lead to giant futuristic machines bathed in violet, red, green, blue and orange light, and from these machines countless streams of glowing colored spores rise into the sky like aurora ribbons, an epic exodus of billions above a ruined city. Tragicomic mood, the contrast between the delighted mother and the sobbing child is the focus. Cinematic science fiction digital painting, shallow depth of field on the mother and child, warm golden rim light, violet and teal haze, soft volumetric light, painterly texture, highly detailed, dramatic composition, 16:9, no text, no logos, no flags`
+
+Astuce : si l'outil ne rend pas bien les deux expressions, ajoute à la fin `the mother is laughing with happiness, the child is crying`.
 
 ## scene07 — La Nébuleuse
 

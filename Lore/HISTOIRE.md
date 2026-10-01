@@ -85,13 +85,13 @@ Conseils pour que toutes les images se ressemblent :
 
 ## Scène 6 — Le grand départ
 
-**Image** : la Terre en ruine ; de partout, des nuées de spores colorées s'échappent vers l'espace comme des aurores.
+**Image** : vue au ras du sol, sous un ciel rouge. Au premier plan, une mère se dépêche de rejoindre la queue, rayonnante de bonheur, son enfant dans les bras qui pleure à chaudes larmes. Derrière, les files d'attente, les machines, et des nuées de spores colorées qui montent vers le ciel comme des aurores.
 
-**Texte à l'écran** : « Et des milliards de spores quittèrent la Terre, chacune aux couleurs de son camp. »
+**Texte à l'écran** : « Et des milliards de spores quittèrent la Terre, chacune aux couleurs de son camp. Tout le monde n'était pas aussi enthousiaste. »
 
-**Prompt IA** : `from a ruined Earth, countless streams of glowing colored spores rise into space from every continent like aurora ribbons, violet, red, green, orange and blue, epic exodus`
+**Prompt IA** : voir `PROMPTS_IMAGES.md`, scene06 (prompt complet).
 
-**Mouvement** : les nuées s'éloignent de la Terre vers la caméra.
+**Mouvement** : la mère avance vers la caméra, les nuées montent dans le ciel derrière elle.
 
 ## Scène 7 — La Nébuleuse
 
