@@ -263,6 +263,9 @@ function reprendre(ws, m) {
     const ancien = k.ws;
     k.ws = ws;
     k.dernierEnvoi = 0;
+    /* Un joueur revenu repart d'un etat neuf : sa reprise (photo ou partie
+       rejouee) sera de nouveau comparee a celle des autres. */
+    k.desync = false;
     if (ancien !== ws && ancien.readyState === 1) { try { ancien.close(); } catch (e) {} }
     if (salle.abandon) { clearTimeout(salle.abandon); salle.abandon = null; }
     const depuis = entier(m.depuis, 0, 1e9, 0);

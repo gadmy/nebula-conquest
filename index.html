@@ -1467,6 +1467,17 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        appel (moins de memoire a ramasser), resultat identique au bit pres
        (npm run lockstep : meme empreinte finale qu'avant, 8885b2d5).
        Mesures 16 joueurs, 6 min : calcul ~1 ms par tour, image ~2 ms.
+     - REPRISE INSTANTANEE (photo de la partie) : toutes les 30 s de jeu, le
+       navigateur range dans IndexedDB une photo de tout ce que le calcul
+       utilise (objets simples, tableaux, liens entre objets, etat du
+       hasard) ; ce qui est propre a l'ecran (taille, camera, son, visee,
+       textures) n'y entre jamais. REPRENDRE : la page refait la carte, pose
+       la photo par-dessus (les astres existants sont remplis, pas
+       remplaces : textures gardees) et ne demande au relais que les paquets
+       suivants. Filet : au moindre ecart d'empreinte, photo effacee et page
+       rechargee pour une reprise complete automatique. Relais : un joueur
+       revenu est de nouveau compare aux autres (a redeployer sur Railway).
+       Le generateur de hasard expose son etat (memes tirages).
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -3821,7 +3832,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;">Le bouton <span style="color:#E9D5FF;">MULTIJOUEUR</span> du menu propose deux façons de jouer :</p>
 <p style="margin-bottom:6px;"><span style="color:#4ADE80;">🎲 AU HASARD</span> : choisissez 2, 4, 8 ou 16 joueurs ; vous rejoignez une partie qui démarre dès qu'elle est pleine. Partie <b>classée (ELO)</b> si vous êtes connecté — le classement de chaque taille s'affiche en dessous.</p>
 <p style="margin-bottom:6px;"><span style="color:#FCD34D;">✉️ ENTRE AMIS</span> : choisissez le nombre de joueurs et d'IA, puis CRÉER. La partie affiche un <b>code</b> de 4 lettres et un bouton <b>COPIER LE LIEN D'INVITATION</b> : l'ami qui ouvre le lien arrive directement dans la partie ; il peut aussi taper le code puis REJOINDRE. Les places vides peuvent être prises par des IA.</p>
-<p style="margin-bottom:6px;">Tout le monde voit exactement la même partie. Il faut la <b>même version du jeu</b> : si un joueur a une ancienne version, il est prévenu et doit recharger la page. Si vous perdez la connexion, le bouton <span style="color:#E9D5FF;">REPRENDRE</span> du menu vous ramène dans la partie en cours.</p>
+<p style="margin-bottom:6px;">Tout le monde voit exactement la même partie. Il faut la <b>même version du jeu</b> : si un joueur a une ancienne version, il est prévenu et doit recharger la page. Si vous perdez la connexion ou rechargez la page, le bouton <span style="color:#E9D5FF;">REPRENDRE</span> du menu vous ramène dans la partie en cours, en quelques secondes : votre navigateur garde une photo de la partie toutes les 30 secondes de jeu.</p>
 <p style="margin-bottom:16px;">Les joueurs IA portent des noms générés (ex. [IA] Zyrex, [IA] Vorath…). En réseau, une partie se termine aussi à 80 % des astres ou quand il ne reste qu'un joueur en vie.</p>
 
 <!-- ASTUCES -->
@@ -5391,13 +5402,18 @@ let _nbAlea = 0;
 function gameRandom() { _nbAlea++; return _gameRng ? _gameRng() : Math.random(); }
 
 // PRNG déterministe (mulberry32)
+/* lire / ecrire : l'etat du generateur, pour la photo de la partie (reprise
+   instantanee en reseau). Les tirages sont inchanges. */
 function mulberry32(a) {
-    return function() {
+    const f = function() {
         a |= 0; a = a + 0x6D2B79F5 | 0;
         var t = Math.imul(a ^ a >>> 15, 1 | a);
         t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
         return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
+    f.lire = function () { return a; };
+    f.ecrire = function (v) { a = v; };
+    return f;
 }
 
 
@@ -15621,6 +15637,8 @@ function tourSimulation() {
             delete L.details[gameState.tour - 240];
         }
     }
+    /* La photo de la partie, pour une reprise instantanee. */
+    if (gameState.lockstep && gameState.tour % PHOTO_TOURS === 0 && !gameState._rejeu) prendrePhoto();
 }
 
 /* ─────────────────────────────────────────────
@@ -16214,6 +16232,8 @@ function ouvrirRelais(L, premier) {
         else if (m.t === 'desync') {
             if (L.desync !== null) return;           /* la premiere compte, les suivantes en decoulent */
             L.desync = m.tour;
+            /* Repris depuis une photo qui ne colle pas : reprise complete. */
+            if (L.depuisPhoto !== undefined) { repliRepriseComplete(); return; }
             /* Le detail de ce tour part au relais, qui notera dans son
                journal les premieres valeurs qui different. */
             const d = L.details && L.details[m.tour];
@@ -16258,6 +16278,7 @@ function noterPartieReseau(L) {
 }
 function oublierPartieReseau() {
     try { localStorage.removeItem('nc_partieReseau'); } catch (e) {}
+    photoEffacer();
 }
 /* Une partie quittee il y a moins de 30 minutes, sinon rien. */
 function partieReseauGardee() {
@@ -16270,14 +16291,218 @@ function partieReseauGardee() {
 
 function reprendrePartieReseau() {
     const g = partieReseauGardee();
-    if (!g || gameState.lockstep) return;
-    const L = gameState.lockstep = { ws: null, url: g.url, slot: null, enJeu: false, joueurs: [], paquets: 0,
-                                     tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null,
-                                     salleNom: g.salle, jeton: g.jeton, slotGarde: g.slot };
-    ouvrirRelais(L, function () {
-        return { t: 'reprendre', salle: L.salleNom, slot: L.slotGarde, jeton: L.jeton, depuis: 0, version: versionJeu() };
+    if (!g || gameState.lockstep || _repriseEnCours) return;
+    _repriseEnCours = true;
+    /* D'abord la photo de cette partie, si le navigateur en a une. */
+    photoLire(function (P) {
+        _repriseEnCours = false;
+        if (gameState.lockstep) return;
+        const bonne = P && P.salle === g.salle && P.slot === g.slot && P.version === versionJeu() && P.n0 > 0;
+        const L = gameState.lockstep = { ws: null, url: g.url, slot: null, enJeu: false, joueurs: [], paquets: 0,
+                                         tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null,
+                                         salleNom: g.salle, jeton: g.jeton, slotGarde: g.slot,
+                                         photo: bonne ? P : null };
+        ouvrirRelais(L, function () {
+            const depuis = L.enJeu ? L.paquets : (L.photo ? L.photo.n0 : 0);
+            return { t: 'reprendre', salle: L.salleNom, slot: L.slotGarde, jeton: L.jeton, depuis: depuis, version: versionJeu() };
+        });
+        afficherLockstep(bonne ? 'Reprise rapide de la partie...' : 'Reprise de la partie...');
     });
-    afficherLockstep('Reprise de la partie...');
+}
+let _repriseEnCours = false;
+
+/* ─────────────────────────────────────────────
+   LA PHOTO DE LA PARTIE (reprise instantanee)
+   REPRENDRE rejouait toute la partie depuis le premier tour : plus d'une
+   minute pour une partie de 20 minutes. Desormais, toutes les 30 s de jeu,
+   le navigateur range une PHOTO de la partie (IndexedDB) : tout ce que le
+   calcul utilise, astres, tirs, joueurs, vaisseaux, cometes, hasard. Au
+   retour, la page refait la carte, pose la photo par-dessus, et ne demande
+   au relais que les ordres posterieurs : quelques secondes a rattraper.
+   Ce qui est propre a cet ecran (taille, camera, son, visee en cours,
+   textures) n'est jamais dans la photo et n'est jamais ecrase.
+   Filet de securite : le relais compare toujours l'empreinte du joueur
+   revenu a celle des autres. Au moindre ecart, la photo est effacee et la
+   page se recharge pour une reprise complete, comme avant.
+   ───────────────────────────────────────────── */
+const PHOTO_TOURS = 1800;             /* une photo toutes les 30 s de jeu */
+const PHOTO_LOCAL_RACINE = new Set(['lockstep', 'avantChaqueTour', 'canvas', 'ctx', 'width', 'height', 'reso',
+    '_resoPalier', '_resoZoomVu', '_resoRepos', 'qualite', 'camera', 'running', 'lastTime', 'deltaTime', 'dt',
+    'input', 'lod', 'lodAutoTimer', 'lodFpsAccum', 'lodFpsSamples', 'fps', 'fpsFrames', 'fpsLastCheck', 'audio',
+    '_bgCanvas', '_starsCanvas', '_starsCanvas2', '_starsCanvas3', '_starsUrl', '_starsUrl2', '_starsUrl3',
+    '_fondCss', '_montrerReso', '_vraiTemps', 'mouseWorldX', 'mouseWorldY', 'codexOpen', 'selectedBody',
+    'launching', 'launchSource', 'launchPreview', '_firePhase', '_fireSource', '_fireType', '_fireCamZoom',
+    '_fireLanceur', '_fireGroupe', '_chargeAcc', '_filetsCharge', '_fireSurface', '_zoomCible', '_tirBloque',
+    '_popProdAstre', '_viseeOrdre', '_viseeEnvoi', 'cosmicDust', 'shootingStars', 'shootingStarTimer',
+    'foregroundDebris', 'playerStats', 'playerColor', 'journalOrdres', '_rejeu', '_rattrapage', '_zoneSel']);
+/* Les dessins et leurs caches, sur chaque objet : ceux de cette page restent. */
+const PHOTO_LOCAL_CLE = new Set(['_texture', '_niveaux', '_travailHD', '_hasAtmosphere', '_atmoColor',
+    '_haloCache', '_haloDim', '_haloR', '_spriteDanger', '_disques', '_sysCache', '_vraiX', '_vraiY']);
+const PHOTO_SAUTE = { s: 1 };
+/* Seuls les objets simples, tableaux et tableaux types entrent dans la
+   photo ; fonctions, canevas, sons, elements de la page restent dehors. */
+function _photoGardable(v) {
+    if (typeof v === 'function') return false;
+    if (!v || typeof v !== 'object') return true;
+    if (Array.isArray(v) || ArrayBuffer.isView(v)) return true;
+    const pr = Object.getPrototypeOf(v);
+    return pr === Object.prototype || pr === null;
+}
+
+/* La partie a plat : une liste de noeuds, les liens entre objets notes par
+   leur numero ({ r: n }) pour garder qui pointe vers qui. */
+function photographier() {
+    const ids = new Map(), noeuds = [];
+    const coder = function (v, racine) {
+        if (v === null || typeof v !== 'object') return typeof v === 'function' ? PHOTO_SAUTE : v;
+        if (!_photoGardable(v)) return PHOTO_SAUTE;
+        let id = ids.get(v);
+        if (id !== undefined) return { r: id };
+        id = noeuds.length;
+        ids.set(v, id);
+        noeuds.push(null);
+        let n;
+        if (ArrayBuffer.isView(v)) n = { k: 't', v: v.slice() };
+        else if (Array.isArray(v)) {
+            n = { k: 'a', v: new Array(v.length) };
+            for (let i = 0; i < v.length; i++) n.v[i] = coder(v[i], false);
+        } else {
+            n = { k: 'o', f: {} };
+            for (const k of Object.keys(v)) {
+                if ((racine && PHOTO_LOCAL_RACINE.has(k)) || PHOTO_LOCAL_CLE.has(k)) continue;
+                n.f[k] = coder(v[k], false);
+            }
+        }
+        noeuds[id] = n;
+        return { r: id };
+    };
+    coder(gameState, true);
+    return { noeuds: noeuds, tour: gameState.tour, alea: _gameRng.lire(), nbAlea: _nbAlea };
+}
+
+/* La photo reposee sur la partie fraichement creee. Les objets qui existent
+   deja a la meme place (astres, joueurs, ceinture...) sont REMPLIS, pas
+   remplaces : leurs textures et tout ce qui pointe vers eux restent bons. */
+function restaurerPhoto(P) {
+    const N = P.noeuds, objs = new Array(N.length), pris = new Set();
+    const estRef = function (e) { return e !== null && typeof e === 'object' && e.r !== undefined; };
+    const associer = function (id, ex) {
+        if (objs[id] !== undefined) return;
+        const n = N[id];
+        const libre = ex !== null && typeof ex === 'object' && !pris.has(ex);
+        let o;
+        if (n.k === 't') o = (libre && ex.constructor === n.v.constructor && ex.length === n.v.length) ? ex : new n.v.constructor(n.v.length);
+        else if (n.k === 'a') o = (libre && Array.isArray(ex)) ? ex : [];
+        else o = (libre && !Array.isArray(ex) && !ArrayBuffer.isView(ex) && _photoGardable(ex)) ? ex : {};
+        objs[id] = o;
+        pris.add(o);
+        const meme = o === ex;
+        if (n.k === 'a') { for (let i = 0; i < n.v.length; i++) if (estRef(n.v[i])) associer(n.v[i].r, meme ? ex[i] : undefined); }
+        else if (n.k === 'o') { for (const k in n.f) if (estRef(n.f[k])) associer(n.f[k].r, meme ? ex[k] : undefined); }
+    };
+    objs[0] = gameState;
+    pris.add(gameState);
+    const racine = N[0].f;
+    /* D'abord les listes qui fixent l'identite des objets, dans l'ordre. */
+    for (const k of ['allBodies', 'suns', 'planets', 'moons', 'blackHole', 'players', 'asteroidBelts', 'cleaners', 'capitaux', 'comets', 'jets']) {
+        if (estRef(racine[k])) associer(racine[k].r, gameState[k]);
+    }
+    for (const k in racine) if (estRef(racine[k])) associer(racine[k].r, gameState[k]);
+    const lire = function (e, ancien) {
+        if (e !== null && typeof e === 'object') return e.s ? ancien : objs[e.r];
+        return e;
+    };
+    for (let id = 0; id < N.length; id++) {
+        const n = N[id], o = objs[id];
+        if (n.k === 't') { o.set(n.v); continue; }
+        if (n.k === 'a') {
+            const avant = o.slice();
+            o.length = n.v.length;
+            for (let i = 0; i < n.v.length; i++) o[i] = lire(n.v[i], avant[i]);
+            continue;
+        }
+        for (const k of Object.keys(o)) {
+            if (k in n.f || PHOTO_LOCAL_CLE.has(k) || (id === 0 && PHOTO_LOCAL_RACINE.has(k))) continue;
+            if (!_photoGardable(o[k])) continue;
+            delete o[k];
+        }
+        for (const k in n.f) o[k] = lire(n.f[k], o[k]);
+    }
+    _gameRng.ecrire(P.alea);
+    _nbAlea = P.nbAlea;
+}
+
+/* Le rangement : IndexedDB, une seule photo (la derniere). */
+function _photoBase(suite) {
+    try {
+        const rq = indexedDB.open('nebulaConquest', 1);
+        rq.onupgradeneeded = function () { rq.result.createObjectStore('photos'); };
+        rq.onsuccess = function () { suite(rq.result); };
+        rq.onerror = function () { suite(null); };
+    } catch (e) { suite(null); }
+}
+function _photoAction(mode, faire, suite) {
+    _photoBase(function (db) {
+        if (!db) { if (suite) suite(null); return; }
+        try {
+            const tx = db.transaction('photos', mode);
+            const rq = faire(tx.objectStore('photos'));
+            tx.oncomplete = function () { db.close(); if (suite) suite(rq ? rq.result : null); };
+            tx.onerror = tx.onabort = function () { db.close(); if (suite) suite(null); };
+        } catch (e) { db.close(); if (suite) suite(null); }
+    });
+}
+function photoEnregistrer(P) { _photoAction('readwrite', function (st) { st.put(P, 'reseau'); return null; }); }
+function photoLire(suite) { _photoAction('readonly', function (st) { return st.get('reseau'); }, function (r) { suite(r || null); }); }
+function photoEffacer(suite) { _photoAction('readwrite', function (st) { st.delete('reseau'); return null; }, suite || null); }
+
+/* Toutes les 30 s de jeu (tourSimulation), en partie et a jour seulement. */
+function prendrePhoto() {
+    const L = gameState.lockstep;
+    if (!L || !L.enJeu || !L.jeton || L.desync !== null || gameState.phase !== 'game') return;
+    try {
+        const P = photographier();
+        P.salle = L.salleNom;
+        P.slot = L.slot;
+        P.version = versionJeu();
+        /* Le premier paquet dont les ordres tombent apres ce tour. */
+        P.n0 = gameState.tour / TOURS_PAR_PAQUET - PAQUETS_AVANCE;
+        P.date = Date.now();
+        photoEnregistrer(P);
+    } catch (e) { console.warn('[photo]', e); }
+}
+
+/* Au retour (lockstepPret) : la photo pose la partie au tour ou elle a ete
+   prise ; les paquets suivants, demandes au relais, font le reste. */
+function reprendreDepuisPhoto(L) {
+    const P = L.photo;
+    L.photo = null;
+    restaurerPhoto(P);
+    _ordresEnAttente = [];
+    L.paquets = P.n0;
+    L.tourPermis = P.tour;
+    L.details = {};
+    L.depuisPhoto = P.tour;
+    _ownerClustersCache = [];
+    _territoires = [];
+    _ancresGroupe = null;
+    _lastScoreHash = '';
+    marquerTerritoiresSales();
+    setPhase(gameState.phase === 'end' ? 'game' : gameState.phase);
+    const moi = gameState.players[L.slot];
+    const b = moi && moi.bodies && moi.bodies[0];
+    if (b) { gameState.camera.x = b.x; gameState.camera.y = b.y; }
+    afficherLockstep('Reprise depuis la photo du tour ' + P.tour);
+}
+
+/* La photo ne colle pas (le relais a vu un ecart) : on l'efface et on
+   recharge la page pour une reprise complete, depuis le premier tour. */
+function repliRepriseComplete() {
+    afficherLockstep('Reprise rapide impossible : reprise complete...', true);
+    photoEffacer(function () {
+        try { sessionStorage.setItem('nc_repriseComplete', '1'); } catch (e) {}
+        location.reload();
+    });
 }
 
 /* Le relais a reuni tout le monde : meme graine, meme carte, memes reglages
@@ -16341,6 +16566,10 @@ function preparerJoueursLockstep() {
 function lockstepPret() {
     const L = gameState.lockstep;
     L.enJeu = true;
+    if (L.photo) {
+        try { reprendreDepuisPhoto(L); }
+        catch (e) { console.warn('[photo]', e); repliRepriseComplete(); return; }
+    }
     if (L.aRejouer) { appliquerReprise(L, L.aRejouer); L.aRejouer = null; }
     envoyerAuRelais({ t: 'pret' });
     if (!L.affichage) L.affichage = setInterval(majBandeauLockstep, 500);
@@ -25595,6 +25824,15 @@ function histoirePremiereFois() {
     ouvrirHistoire();
 }
 _histGuet = setInterval(histoirePremiereFois, 800);
+
+/* Apres un repli (photo qui ne collait pas), la page rechargee reprend la
+   partie toute seule, depuis le debut. */
+function repriseCompleteAuto() {
+    let auto = false;
+    try { auto = sessionStorage.getItem('nc_repriseComplete') === '1'; sessionStorage.removeItem('nc_repriseComplete'); } catch (e) {}
+    if (auto) setTimeout(reprendrePartieReseau, 1200);
+}
+repriseCompleteAuto();
 
 document.getElementById('btnMission').addEventListener('click', () => {
     if (typeof ensureAudio === 'function') ensureAudio();
