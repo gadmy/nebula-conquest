@@ -1501,6 +1501,13 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        avant (?travailleur=1 pour le forcer quand meme). Et dessinerVisible :
        zoome tres fort, seule la partie a l'ecran d'un astre est posee
        (Firefox n'affichait plus les soleils quand l'image devenait immense).
+       Pas suffisant (la plupart des planetes disparaissaient encore) : la
+       vraie cause est le NOMBRE de grandes images (une par planete, plus de
+       150 sur une grande carte). HAUTE DEFINITION A LA DEMANDE (majHD) :
+       planetes et lunes gardent leur version legere, la grande ne se peint
+       que pour l'astre zoome (environ 1,5 s), 10 au plus, les plus
+       lointaines hors ecran repassent en legere. Memoire des textures :
+       56 Mo -> 7 Mo. Soleils inchanges. Modes ?tex= retires.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -4930,16 +4937,10 @@ function _peindreLignes(S, limite) {
     }
     return true;
 }
-/* Essai Firefox (?tex=logiciel) : canevas garde en memoire ordinaire, pas
-   sur la carte graphique. */
-function _ctxTex(c) {
-    return (typeof _essaiTex !== 'undefined' && _essaiTex.get('tex') === 'logiciel')
-        ? c.getContext('2d', { willReadFrequently: true }) : c.getContext('2d');
-}
 function _chantierSphere(size, seed, f, atmo, limbe) {
     const c = document.createElement('canvas');
     c.width = c.height = size;
-    const ctx = _ctxTex(c);
+    const ctx = c.getContext('2d');
     const img = ctx.createImageData(size, size);
     const S = _etatSphere(size, seed, f, atmo, limbe, img.data);
     return {
@@ -4970,11 +4971,59 @@ function _texturer(b, size, seed, f, atmo, limbe) {
        les planetes et les lunes, une seule image, comme avant : Firefox
        supporte mal des centaines de petits canevas (astres invisibles). */
     b._niveaux = b.type === 'sun' ? _niveauxTexture(c) : null;
+    b._recetteHD = null; b._petit = null; b._hd = false;
     if (size > petit && _essaiTex.get('hd') !== '0') {
-        b._travailHD = { size: size, seed: seed, f: f, atmo: atmo, limbe: limbe, chantier: null };
-        if (_fileHD.indexOf(b) < 0) _fileHD.push(b);
-        _lancerPeintre();
+        const R = { size: size, seed: seed, f: f, atmo: atmo, limbe: limbe };
+        if (b.type === 'sun') {
+            b._travailHD = Object.assign({ chantier: null }, R);
+            if (_fileHD.indexOf(b) < 0) _fileHD.push(b);
+            _lancerPeintre();
+        } else {
+            /* Planetes et lunes : la haute definition seulement quand on les
+               regarde de pres (majHD), la version legere gardee a cote. */
+            b._recetteHD = R;
+            b._petit = c;
+            b._travailHD = null;
+        }
     } else b._travailHD = null;
+}
+
+/* LA HAUTE DEFINITION A LA DEMANDE. Firefox n'affiche plus les astres quand
+   il y a trop de grandes images a la fois (une par planete : plus de 150
+   sur une grande carte ; signale par le createur, planetes qui
+   disparaissent une a une). La version legere suffit tant qu'on ne zoome
+   pas : la grande ne se peint que pour l'astre a l'ecran affiche plus grand
+   que sa version legere, et HD_MAX au plus sont gardees ; au-dela, celles
+   hors de l'ecran les plus lointaines repassent en legere. Moins de memoire
+   dans tous les navigateurs. */
+const HD_MAX = 10;
+let _hdTour = 0;
+function majHD() {
+    if (++_hdTour % 10) return;
+    const cam = gameState.camera;
+    if (!cam || !gameState.planets || gameState.phase === 'title') return;
+    const k = cam.zoom * echelleRendu();
+    const liste = gameState.planets.concat(gameState.moons);
+    let nbHD = 0;
+    for (const b of liste) {
+        if (b._hd) { nbHD++; continue; }
+        if (!b._recetteHD || b._travailHD || !b._petit) continue;
+        if (aLEcran(b.x, b.y, b.radius) && b.radius * 2 * k > b._petit.width * 1.3) {
+            b._travailHD = Object.assign({ chantier: null }, b._recetteHD);
+            if (_fileHD.indexOf(b) < 0) _fileHD.push(b);
+            _lancerPeintre();
+        }
+    }
+    if (nbHD <= HD_MAX) return;
+    const hd = [];
+    for (const b of liste) if (b._hd && !aLEcran(b.x, b.y, b.radius)) hd.push(b);
+    hd.sort(function (u, v) { return Math.hypot(v.x - cam.x, v.y - cam.y) - Math.hypot(u.x - cam.x, u.y - cam.y); });
+    for (let i = 0; i < hd.length && nbHD > HD_MAX; i++, nbHD--) {
+        const b = hd[i], t = b._texture;
+        b._texture = b._petit;
+        b._hd = false;
+        if (t && t !== b._petit) { t.width = 0; t.height = 0; }
+    }
 }
 /* LE TRAVAILLEUR. La haute definition se peint dans un Worker : un fil a
    part, qui tourne a cote du jeu sans jamais lui prendre une image. Il
@@ -5048,9 +5097,13 @@ function _poserHD(b, c) {
     b._travailHD = null;
     const k = _fileHD.indexOf(b);
     if (k >= 0) _fileHD.splice(k, 1);
-    /* ?tex=garder (essai Firefox) : on ne libere pas l'ancienne image. */
-    if (_essaiTex.get('tex') === 'garder') return;
-    if (ancien && ancien !== c) { if (ancien.close) ancien.close(); else { ancien.width = 0; ancien.height = 0; } }
+    /* Planete ou lune : la version legere reste (retour quand on s'eloigne). */
+    if (b._recetteHD) {
+        b._hd = true;
+        if (ancien && ancien !== c && ancien !== b._petit) { ancien.width = 0; ancien.height = 0; }
+        return;
+    }
+    if (ancien && ancien !== c) { ancien.width = 0; ancien.height = 0; }
     if (anciens) for (const n of anciens) if (n !== ancien && n !== c) { n.width = 0; n.height = 0; }
 }
 function _envoyerTravail() {
@@ -5072,19 +5125,9 @@ function _texRecue(e) {
     /* Texture refaite entre-temps, ou partie finie : on laisse. */
     if (b._travailHD === en.T && _astreEnJeu(b)) {
         try {
-            if (_essaiTex.get('tex') === 'bitmap') {
-                /* Essai Firefox : une ImageBitmap au lieu d'un canevas. */
-                const T = en.T, k = _fileHD.indexOf(b);
-                if (k >= 0) _fileHD.splice(k, 1);
-                createImageBitmap(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size)).then(function (bm) {
-                    if (b._travailHD === T && _astreEnJeu(b)) _poserHD(b, bm); else bm.close();
-                });
-                _lancerPeintre();
-                return;
-            }
             const c = document.createElement('canvas');
             c.width = c.height = m.size;
-            _ctxTex(c).putImageData(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size), 0, 0);
+            c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size), 0, 0);
             _poserHD(b, c);
         } catch (err) {
             b._travailHD = null;
@@ -16399,7 +16442,7 @@ const PHOTO_LOCAL_RACINE = new Set(['lockstep', 'avantChaqueTour', 'canvas', 'ct
     '_popProdAstre', '_viseeOrdre', '_viseeEnvoi', 'cosmicDust', 'shootingStars', 'shootingStarTimer',
     'foregroundDebris', 'playerStats', 'playerColor', 'journalOrdres', '_rejeu', '_rattrapage', '_zoneSel']);
 /* Les dessins et leurs caches, sur chaque objet : ceux de cette page restent. */
-const PHOTO_LOCAL_CLE = new Set(['_texture', '_niveaux', '_travailHD', '_hasAtmosphere', '_atmoColor',
+const PHOTO_LOCAL_CLE = new Set(['_texture', '_niveaux', '_travailHD', '_recetteHD', '_petit', '_hd', '_hasAtmosphere', '_atmoColor',
     '_haloCache', '_haloDim', '_haloR', '_spriteDanger', '_disques', '_sysCache', '_vraiX', '_vraiY']);
 const PHOTO_SAUTE = { s: 1 };
 /* Seuls les objets simples, tableaux et tableaux types entrent dans la
@@ -17537,6 +17580,7 @@ function empreinteEtat(detail) {
 function render() {
     const ctx = gameState.ctx;
     majUiDepart();
+    majHD();
     const cam = gameState.camera;
     const w = gameState.width;
     const h = gameState.height;
