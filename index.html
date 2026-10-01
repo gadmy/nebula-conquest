@@ -1478,6 +1478,16 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        rechargee pour une reprise complete automatique. Relais : un joueur
        revenu est de nouveau compare aux autres (a redeployer sur Railway).
        Le generateur de hasard expose son etat (memes tirages).
+       CORRIGE en essai : une page fraiche n'avait pas les grilles des
+       batailles de surface (preparees au premier combat) : le dessin
+       plantait apres la reprise ; elles sont preparees a la restauration.
+       Essais : banc photo -> rechargement -> reprise sur 9 parties de 5 a
+       12 min, valeur par valeur : identique ; reseau a 2 navigateurs,
+       7,2 min de partie reprises en 4,5 s (13,6 s pour 4 min avant), relais
+       "identiques" ensuite ; photo volontairement abimee : ecart vu au tour
+       suivant, rechargement et reprise complete automatiques, identiques
+       ensuite ; npm run lockstep identique (8885b2d5). Photo : ~3 000
+       objets, 3 ms, ~1 Mo.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -16430,6 +16440,9 @@ function restaurerPhoto(P) {
     }
     _gameRng.ecrire(P.alea);
     _nbAlea = P.nbAlea;
+    /* Les grilles des batailles de surface, preparees d'ordinaire au premier
+       combat : une page fraiche ne les a pas encore. */
+    _luttePrepare();
 }
 
 /* Le rangement : IndexedDB, une seule photo (la derniere). */
