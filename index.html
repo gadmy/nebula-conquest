@@ -1508,6 +1508,11 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        que pour l'astre zoome (environ 1,5 s), 10 au plus, les plus
        lointaines hors ecran repassent en legere. Memoire des textures :
        56 Mo -> 7 Mo. Soleils inchanges. Modes ?tex= retires.
+       Toujours pas (zoomer sur une planete fait tout disparaitre peu a
+       peu, alors que hd=0 va bien) : sous Firefox, les canevas des textures
+       sont crees en memoire ordinaire (willReadFrequently), pas sur la
+       carte graphique ; ?tex=gpu pour l'ancien comportement, ?tex=bitmap
+       pour essayer des ImageBitmap.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -4937,10 +4942,32 @@ function _peindreLignes(S, limite) {
     }
     return true;
 }
+/* FIREFOX : une seule grande image (128 pixels et plus) suffisait a faire
+   disparaitre peu a peu tous les astres (signale par le createur ; les
+   petites images, elles, vont tres bien). Firefox confie les grands canevas
+   a la carte graphique : on lui demande de garder ceux des textures en
+   memoire ordinaire, comme les petits (willReadFrequently). ?tex=gpu pour
+   revenir a l'ancien comportement. */
+/* Interrupteurs d'essai, dans l'adresse : ?travailleur=0 peint la haute
+   definition sans Worker ; ?hd=0 garde les textures legeres ;
+   ?tex=memoire / gpu / bitmap : ou vivent les grandes textures. */
+const _essaiTex = new URLSearchParams(location.search);
+const _texFirefox = /Firefox\//.test(navigator.userAgent);
+function _ctxTex(c) {
+    if ((_texFirefox || _essaiTex.get('tex') === 'memoire') && _essaiTex.get('tex') !== 'gpu') {
+        return c.getContext('2d', { willReadFrequently: true });
+    }
+    return c.getContext('2d');
+}
+/* Une image de texture rendue au navigateur (canevas ou ImageBitmap). */
+function _libererTex(t) {
+    if (!t) return;
+    if (t.close) t.close(); else { t.width = 0; t.height = 0; }
+}
 function _chantierSphere(size, seed, f, atmo, limbe) {
     const c = document.createElement('canvas');
     c.width = c.height = size;
-    const ctx = c.getContext('2d');
+    const ctx = _ctxTex(c);
     const img = ctx.createImageData(size, size);
     const S = _etatSphere(size, seed, f, atmo, limbe, img.data);
     return {
@@ -4960,9 +4987,6 @@ function _chantierSphere(size, seed, f, atmo, limbe) {
    n'attend jamais. Les astres proches de la camera passent d'abord. */
 const _fileHD = [];
 let _peintreActif = false;
-/* Interrupteurs d'essai, dans l'adresse : ?travailleur=0 peint la haute
-   definition sans Worker ; ?hd=0 garde les textures legeres. */
-const _essaiTex = new URLSearchParams(location.search);
 function _texturer(b, size, seed, f, atmo, limbe) {
     const petit = Math.max(12, Math.min(size, Math.floor(b.radius * 1.2)));
     const c = _chantierSphere(petit, seed, f, atmo, limbe).avancer(Infinity);
@@ -5022,7 +5046,7 @@ function majHD() {
         const b = hd[i], t = b._texture;
         b._texture = b._petit;
         b._hd = false;
-        if (t && t !== b._petit) { t.width = 0; t.height = 0; }
+        if (t && t !== b._petit) _libererTex(t);
     }
 }
 /* LE TRAVAILLEUR. La haute definition se peint dans un Worker : un fil a
@@ -5100,7 +5124,13 @@ function _poserHD(b, c) {
     /* Planete ou lune : la version legere reste (retour quand on s'eloigne). */
     if (b._recetteHD) {
         b._hd = true;
-        if (ancien && ancien !== c && ancien !== b._petit) { ancien.width = 0; ancien.height = 0; }
+        if (ancien && ancien !== c && ancien !== b._petit) _libererTex(ancien);
+        /* ?tex=bitmap (essai Firefox) : l'image devient une ImageBitmap. */
+        if (_essaiTex.get('tex') === 'bitmap' && window.createImageBitmap && c.getContext) {
+            createImageBitmap(c).then(function (bm) {
+                if (b._texture === c) { b._texture = bm; _libererTex(c); } else bm.close();
+            });
+        }
         return;
     }
     if (ancien && ancien !== c) { ancien.width = 0; ancien.height = 0; }
@@ -5127,7 +5157,7 @@ function _texRecue(e) {
         try {
             const c = document.createElement('canvas');
             c.width = c.height = m.size;
-            c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size), 0, 0);
+            _ctxTex(c).putImageData(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size), 0, 0);
             _poserHD(b, c);
         } catch (err) {
             b._travailHD = null;
