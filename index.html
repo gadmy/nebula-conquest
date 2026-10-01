@@ -1488,6 +1488,11 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        suivant, rechargement et reprise complete automatiques, identiques
        ensuite ; npm run lockstep identique (8885b2d5). Photo : ~3 000
        objets, 3 ms, ~1 Mo.
+     - FIREFOX : planetes qui disparaissent apres le choix du regime
+       (signale par le createur ; Chrome normal, Firefox introuvable ici).
+       Interrupteurs d'essai dans l'adresse pour trouver la cause :
+       ?travailleur=0 (haute definition sans Worker) et ?hd=0 (textures
+       legeres seulement).
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -4940,6 +4945,9 @@ function _chantierSphere(size, seed, f, atmo, limbe) {
    n'attend jamais. Les astres proches de la camera passent d'abord. */
 const _fileHD = [];
 let _peintreActif = false;
+/* Interrupteurs d'essai, dans l'adresse : ?travailleur=0 peint la haute
+   definition sans Worker ; ?hd=0 garde les textures legeres. */
+const _essaiTex = new URLSearchParams(location.search);
 function _texturer(b, size, seed, f, atmo, limbe) {
     const petit = Math.max(12, Math.min(size, Math.floor(b.radius * 1.2)));
     const c = _chantierSphere(petit, seed, f, atmo, limbe).avancer(Infinity);
@@ -4948,7 +4956,7 @@ function _texturer(b, size, seed, f, atmo, limbe) {
        les planetes et les lunes, une seule image, comme avant : Firefox
        supporte mal des centaines de petits canevas (astres invisibles). */
     b._niveaux = b.type === 'sun' ? _niveauxTexture(c) : null;
-    if (size > petit) {
+    if (size > petit && _essaiTex.get('hd') !== '0') {
         b._travailHD = { size: size, seed: seed, f: f, atmo: atmo, limbe: limbe, chantier: null };
         if (_fileHD.indexOf(b) < 0) _fileHD.push(b);
         _lancerPeintre();
@@ -4960,7 +4968,7 @@ function _texturer(b, size, seed, f, atmo, limbe) {
    _texturer y change, il retient la recette au lieu de peindre), refait la
    recette de l'astre et rend les pixels. Navigateur sans Worker, ou erreur :
    on repasse a la peinture par petits morceaux (_peintreFond). */
-let _travailleur = null, _travailleurKo = false, _tEnCours = null, _tNumero = 0;
+let _travailleur = null, _travailleurKo = _essaiTex.get('travailleur') === '0', _tEnCours = null, _tNumero = 0;
 function _texTravailleur() {
     if (_travailleur || _travailleurKo) return _travailleur;
     try {
