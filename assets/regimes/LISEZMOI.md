@@ -1,19 +1,17 @@
-# Images des régimes politiques
+# Logos des régimes politiques
 
-Une image par régime, avec exactement ces noms. Les prompts pour les créer sont dans `Lore/PROMPTS_REGIMES.md`. Tu peux les déposer dans `Lore` (je les convertis et les place ici), ou directement ici en JPG :
+Un logo par régime, dessiné en vectoriel (SVG : net à toutes les tailles, quelques Ko). La carte de régime l'affiche en entier, centré, en haut. Tant qu'un logo manque, la carte affiche l'icône du régime à la place.
 
 | Fichier | Régime |
 |---|---|
-| `centre_collaborateur.jpg` | Centre collaborateur |
-| `gauche_non_solidaire.jpg` | Gauche non solidaire |
-| `dictature_eclairee.jpg` | Dictature éclairée |
-| `royaute_plusieurs.jpg` | Royauté à plusieurs |
-| `fascisme_sympa.jpg` | Fascisme sympa |
-| `anarchie_organisee.jpg` | Anarchie très organisée |
-| `ecolo_pas_trop.jpg` | Écolo mais pas trop |
-| `communisme_neoliberal.jpg` | Communisme néolibéral |
-| `droite_proletaire.jpg` | Droite prolétaire |
+| `centre_collaborateur.svg` | Centre collaborateur : girouette à double flèche et poignée de main |
+| `gauche_non_solidaire.svg` | Gauche non solidaire : cœur cassé, une moitié = un cadenas |
+| `dictature_eclairee.svg` | Dictature éclairée : ampoule couronnée |
+| `royaute_plusieurs.svg` | Royauté à plusieurs : pile bancale de couronnes |
+| `fascisme_sympa.svg` | Fascisme sympa : botte souriante et marguerite |
+| `anarchie_organisee.svg` | Anarchie très organisée : gribouillis dans une grille de planning |
+| `ecolo_pas_trop.svg` | Écolo mais pas trop : feuille verte et petite usine qui fume |
+| `communisme_neoliberal.svg` | Communisme néolibéral : pièce d'or à casquette rouge, flèche qui monte |
+| `droite_proletaire.svg` | Droite prolétaire : clé à molette et cravate croisées |
 
-- Format : JPG, paysage, environ **600 × 320 pixels** (rapport proche de 2 pour 1). L'image est recadrée au centre pour remplir le haut de la carte.
-- Poids : moins de 150 Ko chacune si possible.
-- Tant qu'une image manque, la carte affiche l'icône du régime à la place.
+Pour remplacer un logo, garder exactement le même nom de fichier (format SVG carré).

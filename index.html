@@ -1441,6 +1441,13 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        graines). CORRIGE dans le banc lockstep : il choisissait un regime
        qui n'existe plus, la partie ne demarrait jamais (0 tir) ; il joue
        maintenant vraiment (719 tirs, 5 conquetes).
+     - LOGOS DES REGIMES : 9 logos ironiques dessines en vectoriel
+       (assets/regimes/<id>.svg, valides par le createur) : girouette a
+       poignee de main, coeur casse a cadenas, ampoule couronnee, pile de
+       couronnes, botte souriante a marguerite, gribouillis en grille,
+       feuille a usine, piece d'or a casquette, cle a molette et cravate.
+       Carte : logo entier et centre (plus de recadrage), l'icone se cache
+       quand il est charge. Serveurs locaux (relais, banc) : type SVG ajoute.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -1596,7 +1603,8 @@ canvas#gameCanvas {
 #ecranRegime .rg-carte.rg-choisie { border-color: #FDE68A; box-shadow: 0 0 0 2px #FDE68A, 0 0 28px rgba(253,230,138,0.35); }
 #ecranRegime .rg-image { position: relative; height: 118px; background: radial-gradient(circle at 50% 40%, rgba(139,92,246,0.35), rgba(15,12,40,0.9));
     display: flex; align-items: center; justify-content: center; }
-#ecranRegime .rg-image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#ecranRegime .rg-image img { position: absolute; inset: 6px 0; width: 100%; height: calc(100% - 12px); object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.45)); }
+#ecranRegime .rg-logo .rg-icone { visibility: hidden; }
 #ecranRegime .rg-icone { font-size: 46px; filter: drop-shadow(0 0 10px rgba(196,181,253,0.5)); }
 #ecranRegime .rg-nom { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 1.5px; color: #F5F3FF; padding: 10px 12px 4px; }
 #ecranRegime .rg-texte { font-size: 12px; color: #A5B4FC; padding: 0 12px 6px; line-height: 1.4; }
@@ -11209,7 +11217,7 @@ function ouvrirEcranRegime() {
         }
         cartes += '<div class="rg-carte" data-id="' + R.id + '">' +
             '<div class="rg-image"><span class="rg-icone">' + R.icone + '</span>' +
-            '<img src="assets/regimes/' + R.id + '.jpg" alt="" onerror="this.remove()"></div>' +
+            '<img src="assets/regimes/' + R.id + '.svg" alt="" onload="this.parentNode.classList.add(\'rg-logo\')" onerror="this.remove()"></div>' +
             '<div class="rg-nom">' + R.nom + '</div>' +
             '<div class="rg-texte">' + R.texte + '</div>' +
             '<div class="rg-pourquoi">' + (R.pourquoi || '') + '</div>' +

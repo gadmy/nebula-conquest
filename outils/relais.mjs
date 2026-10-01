@@ -91,7 +91,7 @@ const ORDRES = new Set(['part', 'zone', 'tir', 'tir_surface', 'riposte', 'arret'
 /* ── Le jeu, servi par le meme port ── */
 const RACINE = resolve('.');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.jpg': 'image/jpeg',
-                '.png': 'image/png', '.mp3': 'audio/mpeg', '.json': 'application/json' };
+                '.png': 'image/png', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.json': 'application/json' };
 const serveur = http.createServer(async (req, res) => {
     let chemin = decodeURIComponent(req.url.split('?')[0]);
     if (chemin === '/') chemin = '/index.html';

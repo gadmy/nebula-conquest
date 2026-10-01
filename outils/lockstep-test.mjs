@@ -54,7 +54,7 @@ async function chargerPlaywright() {
 /* Un petit serveur pour la page : le jeu charge ses images par http. */
 const RACINE = resolve('.');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.jpg': 'image/jpeg',
-                '.png': 'image/png', '.mp3': 'audio/mpeg', '.json': 'application/json' };
+                '.png': 'image/png', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.json': 'application/json' };
 const serveur = http.createServer(async (req, res) => {
     const chemin = join(RACINE, decodeURIComponent(req.url.split('?')[0]));
     if (!chemin.startsWith(RACINE)) { res.writeHead(403); res.end(); return; }
