@@ -1456,6 +1456,17 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        Growth +30 % par point, Velocity +6 de vitesse par point) ; clic
        droit sur un nom dans les controles ; mot sur l'HISTOIRE ; REGARDER
        en solo ; pied de page v9.7.9.
+     - REPRISE ACCELEREE (REPRENDRE rejoue la partie depuis le debut) : plus
+       de 10 s de retard, on ne dessine plus, 150 ms de calcul par image et
+       une barre "REPRISE DE LA PARTIE : x %" ; pendant ce rejeu, empreinte
+       toutes les 10 s seulement (le relais la compare toujours a celle des
+       autres) et pas de detail de diagnostic. Mesure en vrai (relais, 2
+       navigateurs, 6 IA) : 4,2 min de partie reprises en 13,6 s avant,
+       7,4 s apres ; aucune desynchronisation.
+       Maths identiques : sinus et cosinus sans petit tableau neuf a chaque
+       appel (moins de memoire a ramasser), resultat identique au bit pres
+       (npm run lockstep : meme empreinte finale qu'avant, 8885b2d5).
+       Mesures 16 joueurs, 6 min : calcul ~1 ms par tour, image ~2 ms.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -15594,15 +15605,21 @@ function tourSimulation() {
     update(TOUR_SIM);
     /* Une fois par seconde de jeu, l'empreinte part au relais, qui la
        compare a celle des autres joueurs. */
-    if (gameState.lockstep && gameState.tour % 60 === 0) {
+    /* Pendant une reprise (gameState._rejeu), les autres joueurs ont deja
+       valide ces tours : l'empreinte ne part que toutes les 10 s (le relais
+       la compare a la leur, un ecart se verrait encore), et le detail, qui
+       ne sert qu'a comparer les joueurs entre eux, n'est pas calcule. */
+    if (gameState.lockstep && gameState.tour % 60 === 0 && (!gameState._rejeu || gameState.tour % 600 === 0)) {
         const e = empreinteEtat(true);
         envoyerAuRelais({ t: 'empreinte', tour: gameState.tour, h: e.empreinte, p: e.parts });
         /* Le detail de la partie a ce tour, garde un moment : si le relais
            signale un ecart, on le lui enverra pour qu'il dise quoi. */
         const L = gameState.lockstep;
-        if (!L.details) L.details = {};
-        L.details[gameState.tour] = detailPartie();
-        delete L.details[gameState.tour - 240];
+        if (!gameState._rejeu) {
+            if (!L.details) L.details = {};
+            L.details[gameState.tour] = detailPartie();
+            delete L.details[gameState.tour - 240];
+        }
     }
 }
 
@@ -15925,22 +15942,28 @@ const MATHS_FIXES = (function () {
         const hz = 0.5 * z, w = 1 - hz;
         return w + (((1 - w) - hz) + z * r);
     };
-    /* x = n * pi/2 + y, avec y entre -pi/4 et pi/4. */
+    /* x = n * pi/2 + y, avec y entre -pi/4 et pi/4. Le quart (_q) et le reste
+       (_y) sont ranges dans deux variables plutot que dans un tableau neuf a
+       chaque appel : des centaines de milliers de petits tableaux par minute
+       en moins a ramasser. Meme calcul, meme resultat au bit pres. */
+    let _q = 0, _y = 0;
     const reduire = function (x) {
         const n = Math.round(x * INVPIO2);
-        const y = ((x - n * PIO2_1) - n * PIO2_2) - n * PIO2_2T;
-        return [((n % 4) + 4) % 4, y];
+        _y = ((x - n * PIO2_1) - n * PIO2_2) - n * PIO2_2T;
+        _q = ((n % 4) + 4) % 4;
     };
     const sin = function (x) {
         if (!isFinite(x)) return NaN;
         if (x > -0.7853981633974483 && x < 0.7853981633974483) return ksin(x);
-        const r = reduire(x), q = r[0], y = r[1];
+        reduire(x);
+        const q = _q, y = _y;
         return q === 0 ? ksin(y) : q === 1 ? kcos(y) : q === 2 ? -ksin(y) : -kcos(y);
     };
     const cos = function (x) {
         if (!isFinite(x)) return NaN;
         if (x > -0.7853981633974483 && x < 0.7853981633974483) return kcos(x);
-        const r = reduire(x), q = r[0], y = r[1];
+        reduire(x);
+        const q = _q, y = _y;
         return q === 0 ? kcos(y) : q === 1 ? -ksin(y) : q === 2 ? -kcos(y) : ksin(y);
     };
     const ATANHI = [4.63647609000806093515e-01, 7.85398163397448278999e-01,
@@ -16792,6 +16815,25 @@ function restaurerPositions() {
     gameState.time = gameState._vraiTemps;
 }
 
+/* La barre de la reprise acceleree (voir avancerImage). null : la cacher. */
+let _barreReprise = null;
+function majBarreReprise(L) {
+    if (!L) { if (_barreReprise) { _barreReprise.remove(); _barreReprise = null; } return; }
+    if (!_barreReprise) {
+        _barreReprise = document.createElement('div');
+        _barreReprise.id = 'barreReprise';
+        _barreReprise.style.cssText = 'position:fixed; inset:0; z-index:950; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:rgba(5,8,25,0.82); font-family:Orbitron,sans-serif; color:#E9D5FF; letter-spacing:2px; font-size:14px;';
+        _barreReprise.innerHTML = '<div>REPRISE DE LA PARTIE</div><div style="width:min(420px,80vw); height:10px; border-radius:5px; background:rgba(139,92,246,0.2); overflow:hidden;"><div class="br-plein" style="height:100%; width:0; background:linear-gradient(90deg,#8B5CF6,#4ADE80);"></div></div><div class="br-txt" style="font-size:12px; color:#A5B4FC;"></div>';
+        document.body.appendChild(_barreReprise);
+    }
+    const total = Math.max(1, L.tourPermis - (L.rejeuDebut || 0));
+    const fait = Math.max(0, gameState.tour - (L.rejeuDebut || 0));
+    const pct = Math.min(100, Math.round(100 * fait / total));
+    _barreReprise.querySelector('.br-plein').style.width = pct + '%';
+    const m = Math.floor(gameState.tour / 3600), sec = Math.floor(gameState.tour / 60) % 60;
+    _barreReprise.querySelector('.br-txt').textContent = pct + ' % \u00b7 ' + m + ' min ' + String(sec).padStart(2, '0') + ' de partie recalculées';
+}
+
 /* Une image : les tours dus depuis la precedente, puis le dessin. */
 function avancerImage(dt, timestamp) {
     const _t0 = performance.now();
@@ -16815,9 +16857,17 @@ function avancerImage(dt, timestamp) {
            image au plus, un retard de 4 minutes ne se rattrapait jamais. */
         const loin = ecart > cible + 4 * TOURS_PAR_PAQUET;
         gameState._rattrapage = ecart > 60;
+        /* LA REPRISE ACCELEREE. Plus de 10 s de retard (retour par
+           REPRENDRE, qui rejoue la partie depuis le debut) : on ne dessine
+           plus, on calcule 150 ms par image et une barre dit ou l'on en est.
+           Avant : 30 ms de calcul puis une image complete, deux fois moins
+           vite. */
+        const rejeu = ecart > 600;
+        gameState._rejeu = rejeu;
+        if (rejeu && L.rejeuDebut === undefined) L.rejeuDebut = gameState.tour;
         const debut = performance.now();
         while (gameState.tour < L.tourPermis
-               && (n < TOURS_MAX_PAR_IMAGE || (loin && performance.now() - debut < (ecart > 600 ? 30 : 10)))
+               && (n < TOURS_MAX_PAR_IMAGE || (loin && performance.now() - debut < (rejeu ? 150 : 10)))
                && (_accSim >= TOUR_SIM || L.tourPermis - gameState.tour > cible + 4 * TOURS_PAR_PAQUET)) {
             tourSimulation();
             _accSim = Math.max(0, _accSim - TOUR_SIM);
@@ -16832,6 +16882,13 @@ function avancerImage(dt, timestamp) {
             if (!L.figee && L.bonus !== undefined) { L.bonus = Math.min(6, L.bonus + 1); L.sansAccroc = performance.now(); }
         }
         L.figee = figee;
+        if (L.tourPermis - gameState.tour > 600) {
+            /* Toujours loin derriere : pas de dessin, seulement la barre. */
+            majBarreReprise(L);
+            _accSim = 0;
+            return;
+        }
+        if (L.rejeuDebut !== undefined) { L.rejeuDebut = undefined; majBarreReprise(null); }
     } else {
         _accSim += dt;
         while (_accSim >= TOUR_SIM && n < TOURS_MAX_PAR_IMAGE) {
