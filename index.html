@@ -1448,6 +1448,11 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        feuille a usine, piece d'or a casquette, cle a molette et cravate.
        Carte : logo entier et centre (plus de recadrage), l'icone se cache
        quand il est charge. Serveurs locaux (relais, banc) : type SVG ajoute.
+     - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
+       des que le menu principal est a l'ecran (apres connexion ou choix
+       hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
+       quand on arrive par un lien d'invitation. Une partie qui demarre la
+       ferme. Essai : navigateur neuf, Echap, deuxieme visite, invitation.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -8388,6 +8393,9 @@ function setPhase(phase) {
         && !['spawn', 'game', 'end'].includes(phase)) return;
     gameState.phase = phase;
     if (spawnCountdownInterval) { clearInterval(spawnCountdownInterval); spawnCountdownInterval = null; }
+
+    /* Une partie qui demarre ferme l'histoire si elle tournait encore. */
+    if (phase !== 'title') { try { fermerHistoire(); } catch (e) {} }
 
     // Cacher tous les écrans
     document.getElementById('authScreen').classList.add('hidden');
@@ -25491,6 +25499,28 @@ function fermerHistoire() {
 }
 
 document.getElementById('btnHistoire').addEventListener('click', () => { playClickSound(); ouvrirHistoire(); });
+
+/* AU PREMIER LANCEMENT, l'histoire se joue toute seule, des que le menu
+   principal est a l'ecran (apres la connexion ou le choix hors ligne).
+   Une seule fois par navigateur (nc_histoireVue). Pas quand on arrive par
+   un lien d'invitation : on rejoint d'abord la partie, l'histoire attendra
+   une prochaine visite. */
+const _histParInvitation = /[?&]partie=/.test(location.search);
+let _histGuet = null;
+function histoirePremiereFois() {
+    let vue = false;
+    try { vue = localStorage.getItem('nc_histoireVue') === '1'; } catch (e) { vue = true; }
+    if (vue || _histParInvitation) { clearInterval(_histGuet); return; }
+    if (gameState.phase !== 'title' || _hist) return;
+    const titre = document.getElementById('titleScreen'), auth = document.getElementById('authScreen');
+    if (!titre || titre.classList.contains('hidden') || (auth && !auth.classList.contains('hidden'))) return;
+    const salon = document.getElementById('salonReseau');
+    if (salon && salon.style.display === 'flex') return;
+    try { localStorage.setItem('nc_histoireVue', '1'); } catch (e) {}
+    clearInterval(_histGuet);
+    ouvrirHistoire();
+}
+_histGuet = setInterval(histoirePremiereFois, 800);
 
 document.getElementById('btnMission').addEventListener('click', () => {
     if (typeof ensureAudio === 'function') ensureAudio();
