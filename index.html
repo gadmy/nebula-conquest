@@ -1528,6 +1528,9 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        qui vibre, si une spore attend deja) ; G arme / desarme la spore
        parasitaire pendant la visee (armerParasite), le clic la lance.
        Regles, touche K et commentaires des touches mis a jour.
+     - MUTATIONS TROIS FOIS PLUS CHERES : 1re branche 3 000 + 300 par
+       niveau, 2e 6 000 + 600, 3e 9 000 + 900 (avant 1 000 / 2 000 / 3 000
+       et +100 / +200 / +300). Regles mises a jour.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -3833,7 +3836,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <tr><td style="padding:3px 0;color:#E9D5FF;">💪 Ténacité</td><td style="padding:3px 0;">Les jets éclatés par un astéroïde gardent plus de spores et sont redirigés vers les systèmes solaires.</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">🦎 Mimétisme</td><td style="padding:3px 0;">À la conquête d'une planète à lunes, le jet se scinde vers elles. Au niv. 10, 100 % des spores vont directement aux lunes.</td></tr>
 </table>
-<p style="margin-bottom:16px;">Coût des branches : 1<sup>re</sup> = 1 000 + 100/niv · 2<sup>e</sup> = 2 000 + 200/niv · 3<sup>e</sup> = 3 000 + 300/niv. Le total sacrifié est plafonné à 50 % de votre production.</p>
+<p style="margin-bottom:16px;">Coût des branches : 1<sup>re</sup> = 3 000 + 300/niv · 2<sup>e</sup> = 6 000 + 600/niv · 3<sup>e</sup> = 9 000 + 900/niv. Le total sacrifié est plafonné à 50 % de votre production.</p>
 
 <!-- ALERTES -->
 <p id="h-alertes" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🔔 ALERTES DIRECTIONNELLES</p>
@@ -10662,8 +10665,10 @@ function getTechCost(player, branch) {
     if (lvl >= 10) return Infinity;
     let order = tech._branchOrder.indexOf(branch);
     if (order === -1) order = tech._branchOrder.length;
-    const baseCost = [1000,2000,3000][Math.min(order,2)];
-    const increment = [100,200,300][Math.min(order,2)];
+    /* Triple depuis la v9.7.9 (choix du createur) : 3 000 / 6 000 / 9 000,
+       et 300 / 600 / 900 de plus par niveau. */
+    const baseCost = [3000,6000,9000][Math.min(order,2)];
+    const increment = [300,600,900][Math.min(order,2)];
     return baseCost + lvl * increment;
 }
 function buyTech(player, branch) {
