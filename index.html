@@ -1516,6 +1516,14 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        tient. CORRIGE : sous Firefox, chaque grande texture de planete ou de
        lune devient une ImageBitmap (?tex=canevas pour s'en passer). Les 4
        versions d'essai (essais/) sont retirees.
+     - UNE SEULE COURBE DE CROISSANCE (choix du createur) : les courbes par
+       regime sont retirees (cartes, panneau NAISSANCE, IA). Nouvelle courbe
+       a la facon d'OpenFront : (0,08 + remplissage^0,75) x (1 - remplissage),
+       pic vers 40 % (9/10 du pic des 22 % aux 57 %), puis ralentissement
+       jusqu'au plein. Puissance 0,75 par deux racines carrees : exacte
+       partout, identique en reseau. Plus genereuse que l'ancienne au milieu
+       (de 10 a 50 % : 2,5 fois plus vite). IA : tire au-dessus de 22 %,
+       batit au-dessus de 57 %. Regles mises a jour.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -1682,9 +1690,6 @@ canvas#gameCanvas {
 #ecranRegime .rg-nom { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 1.5px; color: #F5F3FF; padding: 10px 12px 4px; }
 #ecranRegime .rg-texte { font-size: 12px; color: #A5B4FC; padding: 0 12px 6px; line-height: 1.4; }
 #ecranRegime .rg-pourquoi { font-size: 11px; font-style: italic; color: #C4B5FD; opacity: 0.8; padding: 0 12px 10px; line-height: 1.4; flex: 1; }
-#ecranRegime .rg-courbe { padding: 0 12px 8px; }
-#ecranRegime .rg-courbe svg { display: block; width: 100%; height: 34px; border-bottom: 1px solid rgba(140,170,230,0.25); }
-#ecranRegime .rg-courbe span { display: block; font-size: 10px; color: #93C5FD; margin-top: 3px; }
 #ecranRegime .rg-stats { display: flex; justify-content: space-around; border-top: 1px solid rgba(139,92,246,0.25); padding: 8px 6px; background: rgba(0,0,0,0.25); }
 #ecranRegime .rg-stat { display: flex; flex-direction: column; align-items: center; font-size: 13px; gap: 1px; }
 #ecranRegime .rg-stat b { font-family: 'Orbitron', sans-serif; font-size: 12px; }
@@ -3705,7 +3710,6 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <!-- DEPART -->
 <p id="h-depart" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🏛 DÉPART &amp; RÉGIMES</p>
 <p style="margin-bottom:6px;">Chaque partie (solo et réseau ; pas le tutoriel) commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Centre collaborateur, Gauche non solidaire, Dictature éclairée, Royauté à plusieurs, Fascisme sympa, Anarchie très organisée, Écolo mais pas trop, Communisme néolibéral, Droite prolétaire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun s'installe ; sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
-<p style="margin-bottom:16px;">Chaque régime a aussi sa propre <span style="color:#4ADE80;">courbe de croissance</span>, dessinée sur sa carte : voir Production.</p>
 
 <!-- CONTRÔLES -->
 <p id="h-controles" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🕹 CONTRÔLES</p>
@@ -3744,16 +3748,15 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 
 <!-- PRODUCTION -->
 <p id="h-prod" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🧬 SPORES &amp; PRODUCTION</p>
-<p style="margin-bottom:6px;">Chaque astre a une <span style="color:#FFD700;">capacité</span> — le nombre de spores qu'il peut contenir — et se remplit tout seul. La vitesse de remplissage est une <span style="color:#C8A0FF;">part de cette capacité par seconde</span>, si bien qu'une géante et une petite lune mettent le même temps à se remplir : avec la courbe commune, environ 80 secondes pour le premier quart, trois minutes et demie pour le gros pic.</p>
-<p style="margin-bottom:6px;">Mais le rendement n'est pas constant : il suit une <span style="color:#4ADE80;">courbe</span>. Voici la courbe commune (celle du tutoriel) :</p>
+<p style="margin-bottom:6px;">Chaque astre a une <span style="color:#FFD700;">capacité</span> — le nombre de spores qu'il peut contenir — et se remplit tout seul. La vitesse de remplissage est une <span style="color:#C8A0FF;">part de cette capacité par seconde</span>, si bien qu'une géante et une petite lune mettent le même temps à se remplir : à la base, environ une minute pour le premier quart, une minute et demie pour atteindre le pic.</p>
+<p style="margin-bottom:6px;">Mais le rendement n'est pas constant : il suit une <span style="color:#4ADE80;">courbe</span>, la même pour tous (comme dans OpenFront) : plus il y a de spores, plus elles se reproduisent, mais plus elles manquent de place.</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:32%;">Presque vide</td><td style="padding:3px 0;">Rendement faible — il n'y a personne pour se reproduire</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Au quart plein</td><td style="padding:3px 0;">Première bosse, modeste mais facile à tenir</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">À moitié plein</td><td style="padding:3px 0;">Creux — rester là est la pire position</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;">Aux sept dixièmes</td><td style="padding:3px 0;color:#4ADE80;">LE PIC — le meilleur rendement du jeu</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:32%;">Presque vide</td><td style="padding:3px 0;">Rendement faible — il n'y a presque personne pour se reproduire</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Au quart plein</td><td style="padding:3px 0;">Déjà bon (9/10 du pic)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Vers 40 %</td><td style="padding:3px 0;color:#4ADE80;">LE PIC — le meilleur rendement</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Aux trois quarts</td><td style="padding:3px 0;">Ça ralentit nettement (6/10 du pic)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">Plein à ras bord</td><td style="padding:3px 0;">Extinction : un astre saturé ne produit plus rien</td></tr>
 </table>
-<p style="margin-bottom:6px;"><span style="color:#FFD700;">CHAQUE RÉGIME A SA COURBE.</span> Le tableau ci-dessus est la courbe commune (tutoriel). En partie, votre <span style="color:#E9D5FF;">régime politique</span> a sa propre courbe, dessinée sur sa carte au moment du choix : la Droite prolétaire donne tout presque vide, la Dictature éclairée a un pic très haut mais étroit vers 85 %, l'Anarchie très organisée cinq pics réguliers, le Communisme néolibéral exige de presque tout remplir… Le panneau <span style="color:#FFD700;">NAISSANCE</span> montre toujours la courbe du propriétaire de l'astre, et les IA visent le meilleur niveau de la leur.</p>
 <p style="margin-bottom:6px;">Le rendement du moment s'affiche au-dessus de l'astre sélectionné, en vert, jaune ou rouge. Tout le reste <span style="color:#E9D5FF;">multiplie</span> cette courbe : la <span style="color:#4ADE80;">Flore</span> de l'astre, la <span style="color:#22C55E;">Symbiose</span> qui monte avec le temps (jusqu'à +20 % sur une planète, +10 % sur une lune), vos <span style="color:#E9D5FF;">nids</span> et votre stat <span style="color:#4ADE80;">Growth</span>.</p>
 <p style="margin-bottom:16px;">Une <span style="color:#EAB308;">alvéole</span> augmente la capacité, donc aussi la production : un plus grand silo nourrit plus de monde. Attention, elle décale aussi le pic.</p>
 <p style="margin-bottom:16px;">Deux types de jets partent du menu radial : <span style="color:#E9D5FF;">⚪ Spores</span>, qui colonisent et attaquent, et <span style="color:#E9D5FF;"><i class="ic-bat" data-g="parasite"></i> Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent).</p>
@@ -3875,7 +3878,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 
 <!-- ASTUCES -->
 <p style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">💡 ASTUCES</p>
-<p style="margin-bottom:6px;">Ne laissez pas un astre <span style="color:#EF4444;">plein à ras bord</span> : il ne produit plus. Tirez pour le redescendre vers le pic de votre courbe, là où il rapporte le plus.</p>
+<p style="margin-bottom:6px;">Ne laissez pas un astre <span style="color:#EF4444;">plein à ras bord</span> : il ne produit plus. Tirez pour le redescendre vers 40 %, là où il rapporte le plus.</p>
 <p style="margin-bottom:6px;">Un astre <span style="color:#EF4444;">vidé</span> remonte lentement. Gardez toujours de quoi relancer.</p>
 <p style="margin-bottom:6px;">La touche <span style="color:#FFD27A;">R</span> est faite pour ça : souris dans le vide, elle nettoie d'un coup tout ce qui peut l'être ; souris sur un astre, elle concentre l'effort sur lui seul et vous gardez vos réserves ailleurs.</p>
 <p style="margin-bottom:6px;">Une tête de pont chez l'ennemi produit, construit et tire. Dix cases bien placées valent mieux qu'une attaque ratée.</p>
@@ -10978,7 +10981,7 @@ function majFiche() {
         g += _fCase('Rempli', Math.round(part * 100) + ' %', part >= PART_SATUREE ? 'neg' : '');
         const debit = debitAstre(b);
         g += _fCase('Production', debit > 0 ? '+' + _sp(debit) + '/s' : '—', debit > 0 ? 'pos' : '');
-        g += _fCase('Rendement', Math.round(courbeCroissance(part, b.owner) * 100) + ' %');
+        g += _fCase('Rendement', Math.round(courbeCroissance(part) * 100) + ' %');
         g += _fCase('Flore', Math.round(b.flore || 0));
         g += _fCase('Faune', Math.round(b.faune || 0));
         g += _fCase('Symbiose', Math.round(b.symbiosis || 0) + ' %');
@@ -11240,15 +11243,15 @@ function updateScoreBoard() {
    Tout passe par des ordres et se compte en tours : meme chose chez tous
    les joueurs en reseau. */
 const REGIMES = [
-    { id: 'centre_collaborateur',  nom: 'Centre collaborateur',   icone: '⚖️', stats: { growth: 1, velocity: 1, density: 1 },      texte: "D'accord avec tout le monde. Surtout avec le plus fort.", pourquoi: "La Terre était fichue : ils ont attendu de voir ce que faisaient les autres partis, puis ils ont suivi.", courbe: "Tiède du début à la fin." },
-    { id: 'gauche_non_solidaire',  nom: 'Gauche non solidaire',   icone: '🌹', stats: { growth: 1, density: 1, sensitivity: 1 },    texte: 'Partager, oui. Mais chacun le sien.', pourquoi: "Un grand vaisseau pour tous ? Non : une spore chacun, et chacun sa planète.", courbe: "Au top quand presque vide." },
-    { id: 'dictature_eclairee',    nom: 'Dictature éclairée',     icone: '💡', stats: { velocity: 1, density: 1, sensitivity: 1 },  texte: 'Un seul chef, mais il a lu des livres.', pourquoi: "Le chef a calculé qu'une spore ne vote jamais contre lui. Le départ a été voté à 100 %.", courbe: "Pic très haut, mais étroit, vers 85 %." },
-    { id: 'royaute_plusieurs',     nom: 'Royauté à plusieurs',    icone: '👑', stats: { growth: 1, density: 2 },                    texte: 'Douze rois, un seul trône, beaucoup de réunions.', pourquoi: "La Terre détruite ne suffisait plus à tous ces rois : il leur fallait chacun un royaume.", courbe: "Trois bosses égales, de 20 à 70 % plein." },
-    { id: 'fascisme_sympa',        nom: 'Fascisme sympa',         icone: '🎖️', stats: { velocity: 2, density: 1 },                  texte: 'On marche au pas, mais on dit merci.', pourquoi: "Partir en rangs serrés de spores, au pas, vers des planètes à conquérir. Poliment.", courbe: "Mou au début, puis au pas de 60 à 90 %." },
-    { id: 'anarchie_organisee',    nom: 'Anarchie très organisée', icone: '🏴', stats: { velocity: 3 },                             texte: 'Pas de chef, mais un planning très strict.', pourquoi: "La fin du monde était au planning. Le départ en spores aussi : mardi, 14 h.", courbe: "Cinq pics réguliers, très hauts." },
-    { id: 'ecolo_pas_trop',        nom: 'Écolo mais pas trop',    icone: '🌿', stats: { growth: 1, sensitivity: 2 },                texte: 'On protège les soleils. Sauf le week-end.', pourquoi: "Ils avaient prévenu que la planète finirait détruite. Ils partent quand même les premiers.", courbe: "Une douce bosse à mi-chemin." },
-    { id: 'communisme_neoliberal', nom: 'Communisme néolibéral',  icone: '📈', stats: { growth: 2, sensitivity: 1 },                texte: 'Tout appartient à tous. Surtout aux actionnaires.', pourquoi: "Des millions d'adhérents en spores, sans salaire ni congés : la conquête la plus rentable de l'histoire.", courbe: "Il faut presque tout remplir." },
-    { id: 'droite_proletaire',     nom: 'Droite prolétaire',      icone: '🛠️', stats: { growth: 3 },                                texte: 'Travailler plus pour produire plus. Beaucoup plus.', pourquoi: "Le travail ne s'arrête pas pour une fin du monde : on part en spores et on reprend ailleurs.", courbe: "Fonce dès le début, puis ralentit." }
+    { id: 'centre_collaborateur',  nom: 'Centre collaborateur',   icone: '⚖️', stats: { growth: 1, velocity: 1, density: 1 },      texte: "D'accord avec tout le monde. Surtout avec le plus fort.", pourquoi: "La Terre était fichue : ils ont attendu de voir ce que faisaient les autres partis, puis ils ont suivi." },
+    { id: 'gauche_non_solidaire',  nom: 'Gauche non solidaire',   icone: '🌹', stats: { growth: 1, density: 1, sensitivity: 1 },    texte: 'Partager, oui. Mais chacun le sien.', pourquoi: "Un grand vaisseau pour tous ? Non : une spore chacun, et chacun sa planète." },
+    { id: 'dictature_eclairee',    nom: 'Dictature éclairée',     icone: '💡', stats: { velocity: 1, density: 1, sensitivity: 1 },  texte: 'Un seul chef, mais il a lu des livres.', pourquoi: "Le chef a calculé qu'une spore ne vote jamais contre lui. Le départ a été voté à 100 %." },
+    { id: 'royaute_plusieurs',     nom: 'Royauté à plusieurs',    icone: '👑', stats: { growth: 1, density: 2 },                    texte: 'Douze rois, un seul trône, beaucoup de réunions.', pourquoi: "La Terre détruite ne suffisait plus à tous ces rois : il leur fallait chacun un royaume." },
+    { id: 'fascisme_sympa',        nom: 'Fascisme sympa',         icone: '🎖️', stats: { velocity: 2, density: 1 },                  texte: 'On marche au pas, mais on dit merci.', pourquoi: "Partir en rangs serrés de spores, au pas, vers des planètes à conquérir. Poliment." },
+    { id: 'anarchie_organisee',    nom: 'Anarchie très organisée', icone: '🏴', stats: { velocity: 3 },                             texte: 'Pas de chef, mais un planning très strict.', pourquoi: "La fin du monde était au planning. Le départ en spores aussi : mardi, 14 h." },
+    { id: 'ecolo_pas_trop',        nom: 'Écolo mais pas trop',    icone: '🌿', stats: { growth: 1, sensitivity: 2 },                texte: 'On protège les soleils. Sauf le week-end.', pourquoi: "Ils avaient prévenu que la planète finirait détruite. Ils partent quand même les premiers." },
+    { id: 'communisme_neoliberal', nom: 'Communisme néolibéral',  icone: '📈', stats: { growth: 2, sensitivity: 1 },                texte: 'Tout appartient à tous. Surtout aux actionnaires.', pourquoi: "Des millions d'adhérents en spores, sans salaire ni congés : la conquête la plus rentable de l'histoire." },
+    { id: 'droite_proletaire',     nom: 'Droite prolétaire',      icone: '🛠️', stats: { growth: 3 },                                texte: 'Travailler plus pour produire plus. Beaucoup plus.', pourquoi: "Le travail ne s'arrête pas pour une fin du monde : on part en spores et on reprend ailleurs." }
 ];
 const STATS_REGIME = [
     { cle: 'growth', nom: 'Croissance', icone: '🌱', couleur: '#4ADE80' },
@@ -11384,21 +11387,6 @@ function finirDepart() {
 
 // ── L'écran des régimes (cartes) ──
 let _ecranRegime = null, _regimeClique = null;
-/* La petite courbe de croissance du parti, sur sa carte (meme echelle pour
-   tous : le haut vaut 1,25, le plus haut pic). */
-function _carteCourbe(R) {
-    const C = COURBES_REGIME[R.id];
-    if (!C) return '';
-    let ligne = '';
-    for (let i = 0; i <= 50; i++) {
-        const v = courbeRegime(i / 50, C);
-        ligne += (i ? ' L' : 'M') + (i * 2) + ' ' + (29 - Math.min(1.25, v) / 1.25 * 27).toFixed(1);
-    }
-    return '<div class="rg-courbe"><svg viewBox="0 0 100 30" preserveAspectRatio="none">' +
-        '<path d="' + ligne + ' L100 30 L0 30 Z" fill="rgba(120,170,255,0.18)"/>' +
-        '<path d="' + ligne + '" fill="none" stroke="#A5C8FF" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>' +
-        '</svg><span>' + (R.courbe || '') + '</span></div>';
-}
 function ouvrirEcranRegime() {
     if (_ecranRegime) return;
     const el = document.createElement('div');
@@ -11416,7 +11404,6 @@ function ouvrirEcranRegime() {
             '<div class="rg-nom">' + R.nom + '</div>' +
             '<div class="rg-texte">' + R.texte + '</div>' +
             '<div class="rg-pourquoi">' + (R.pourquoi || '') + '</div>' +
-            _carteCourbe(R) +
             '<div class="rg-stats">' + stats + '</div></div>';
     }
     el.innerHTML = '<div class="rg-titre">CHOISISSEZ VOTRE RÉGIME</div>' +
@@ -11980,7 +11967,7 @@ function updateSporeGeneration(dt) {
         const rate = Math.max(1, body.maxSpores) * TAUX_PROD
                    * (0.4 + (body.flore / 100) * 0.6) * (1 + player.stats.growth * 0.3)
                    * symBonus * nidBonus * sysBonus
-                   * courbeCroissance(body.spores / Math.max(1, body.maxSpores), body.owner);
+                   * courbeCroissance(body.spores / Math.max(1, body.maxSpores));
 
         if (body.buildMode === 'parasite') {
             // Accumulation parasite : durée fixe 120s (indépendant du rate)
@@ -12768,13 +12755,14 @@ function devisAttaque(src, cible) {
    desormais aussi la production - un plus grand silo nourrit plus de monde. */
 const TAUX_PROD = 0.006;
 
-/* COURBE DE PRODUCTION. Deux regimes plutot qu'un seul sommet : une bosse
-   modeste au quart de la capacite, un creux a mi-chemin, un PIC franc aux
-   sept dixiemes, puis l'extinction quand la zone sature - une population qui
-   n'a plus de place ne se reproduit plus. Il y a donc deux rendements a
-   connaitre : le petit, precoce et facile a tenir, et le gros, qui demande de
-   rester juste sous le plafond au risque qu'un renfort vous y pousse et vous
-   coupe tout. Le creux central, lui, punit qui reste a moitie plein.
+/* COURBE DE PRODUCTION, a la facon d'OpenFront : une population pousse
+   d'autant plus qu'elle est nombreuse (spores ^ 0,75), et d'autant moins
+   qu'elle manque de place (1 - remplissage). Le produit monte vite, culmine
+   vers 40 % de la capacite, puis ralentit de plus en plus jusqu'au plein,
+   ou il s'eteint. Un petit plancher (0,08) fait repartir un astre vide.
+   Une seule courbe pour tous (les courbes par regime ont ete retirees).
+   La puissance 0,75 se calcule avec deux racines carrees : exactes dans
+   tous les navigateurs, donc identiques en reseau.
 
    La courbe multiplie le reste - flore, growth, symbiose, nids, systeme
    complet, sacrifice - qui continuent donc de compter exactement pareil.
@@ -12785,54 +12773,17 @@ const TAUX_PROD = 0.006;
    rien d'utile. Un seul chiffre pour le panneau NAISSANCE et pour les
    etincelles, sinon l'un dirait "sature" quand l'autre ne montre rien. */
 const PART_SATUREE = 0.985;
+const COURBE_PLANCHER = 0.08, COURBE_MAX = 0.349849;
+/* La bande ou le rendement depasse 90 % du pic : les IA y gardent leurs
+   astres (tirer au-dessus, laisser pousser en dessous). */
+const ZONE_RENDEMENT = [0.225, 0.574];
+function zoneBonRendement() { return ZONE_RENDEMENT; }
 
-/* LES COURBES DES REGIMES. Chaque parti a sa propre facon de faire pousser
-   ses spores : une somme de bosses (centre c, largeur w, hauteur h), ramenee
-   a un plancher de 0,2 et a un pic propre (pic), puis l'extinction pres du
-   plein (k : plus il est grand, plus elle est tardive et brutale). 'max'
-   ramene la forme brute a 1. Sans regime (tutoriel, ancien multijoueur) :
-   la courbe commune ci-dessous. Calculee a chaque appel avec Math.* :
-   aucune table precalculee, pour rester identique en reseau.
-   'zone' : la bande ou le rendement depasse 90 % du pic (calculee une fois
-   pour toutes, en dur) ; les IA y gardent leurs astres. */
-const COURBES_REGIME = {
-    centre_collaborateur:  { k: 10, pic: 0.8,  max: 0.15,     b: [[0.5, 0.35, 0.15]], zone: [0.37, 0.625] },
-    gauche_non_solidaire:  { k: 8,  pic: 1,    max: 0.900676, b: [[0.2, 0.12, 0.9], [0.65, 0.18, 0.35]], zone: [0.16, 0.24] },
-    dictature_eclairee:    { k: 14, pic: 1.25, max: 1.256539, b: [[0.85, 0.06, 1.2], [0.5, 0.3, 0.22]], zone: [0.825, 0.865] },
-    royaute_plusieurs:     { k: 8,  pic: 0.95, max: 0.500003, b: [[0.2, 0.07, 0.5], [0.45, 0.07, 0.5], [0.7, 0.07, 0.5]], zone: [0.175, 0.71] },
-    fascisme_sympa:        { k: 30, pic: 1,    max: 0.630066, b: [[0.6, 0.07, 0.5], [0.7, 0.07, 0.5], [0.8, 0.07, 0.5], [0.9, 0.07, 0.5]], zone: [0.6, 0.89] },
-    anarchie_organisee:    { k: 8,  pic: 1.15, max: 0.8,      b: [[0.1, 0.04, 0.8], [0.3, 0.04, 0.8], [0.5, 0.04, 0.8], [0.7, 0.04, 0.8], [0.9, 0.04, 0.8]], zone: [0.09, 0.705] },
-    ecolo_pas_trop:        { k: 7,  pic: 0.95, max: 0.8,      b: [[0.5, 0.24, 0.8]], zone: [0.41, 0.58] },
-    communisme_neoliberal: { k: 30, pic: 1.05, max: 1,        b: [[0.92, 0.32, 1]], zone: [0.79, 0.93] },
-    droite_proletaire:     { k: 6,  pic: 1,    max: 1.13158,  b: [[0.12, 0.12, 1], [0.5, 0.35, 0.42]], zone: [0.08, 0.17] }
-};
-function courbeDuSlot(slot) {
-    const p = (slot !== undefined && slot !== null) ? gameState.players[slot] : null;
-    return (p && p.regime && COURBES_REGIME[p.regime]) || null;
-}
-/* La bande de bon rendement d'un joueur (courbe commune : 0,66 a 0,73). */
-function zoneRegime(slot) {
-    const C = courbeDuSlot(slot);
-    return C ? C.zone : ZONE_DEFAUT;
-}
-const ZONE_DEFAUT = [0.66, 0.73];
-function courbeRegime(part, C) {
+function courbeCroissance(part) {
     if (!(part > 0)) part = 0;
     if (part >= 1) return 0;
-    let s = 0;
-    for (const q of C.b) { const a = (part - q[0]) / q[1]; s += q[2] * Math.exp(-a * a); }
-    return (0.2 + s / C.max * (C.pic - 0.2)) * (1 - Math.pow(part, C.k));
-}
-
-function courbeCroissance(part, slot) {
-    const C = courbeDuSlot(slot);
-    if (C) return courbeRegime(part, C);
-    if (!(part > 0)) part = 0;
-    if (part >= 1) return 0;
-    const a = (part - 0.25) / 0.13;
-    const b = (part - 0.70) / 0.10;
-    return (0.20 + 0.32 * Math.exp(-a * a) + 0.80 * Math.exp(-b * b))
-           * (1 - Math.pow(part, 8)) / 0.9437;
+    const r = Math.sqrt(part);
+    return (COURBE_PLANCHER + r * Math.sqrt(r)) * (1 - part) / COURBE_MAX;
 }
 
 let _lutteMasque = null, _lutteVoisins = null, _lutteVoisins8 = null;
@@ -13752,7 +13703,7 @@ function majLutte(body, pas) {
         const slot = (z.v === 0) ? body.owner : z.v - 1;
         z.plafond = body.maxSpores * (z.n / total);
         if (slot === null || slot === undefined) { z.debit = 0; z.rendement = 0; continue; }
-        z.rendement = courbeCroissance(z.spores / Math.max(1, z.plafond), slot);
+        z.rendement = courbeCroissance(z.spores / Math.max(1, z.plafond));
         z.debit = debitPour(body, slot) * (z.n / total) * z.rendement;
         if (z.spores < z.plafond) z.spores = Math.min(z.plafond, z.spores + z.debit * pas);
     }
@@ -14227,44 +14178,36 @@ function drawLuttes(ctx) {
 }
 
 /* LA COURBE DE NAISSANCE. Le rendement d'une zone ne depend que de son taux
-   de remplissage, et cette relation n'a rien d'intuitif : une bosse au quart,
-   un creux a mi-chemin, le grand pic aux sept dixiemes, puis l'extinction.
+   de remplissage : une montee rapide, le pic vers 40 %, puis un
+   ralentissement jusqu'a l'extinction.
    Plutot que de le faire deviner, on dessine la courbe et on y pose un point
    - vous etes ici. */
 /* LE PANNEAU NAISSANCE. Le rendement d'une zone ne depend que de son taux de
-   remplissage, et cette relation n'a rien d'intuitif : une bosse au quart, un
-   creux a mi-chemin, le grand pic aux sept dixiemes, puis l'extinction. On
-   dessine donc la courbe en entier et on y pose un point - vous etes ici. */
-/* Une courbe par regime : les points et le pic sont gardes par regime. */
-function _cleCourbe(slot) {
-    const p = (slot !== undefined && slot !== null) ? gameState.players[slot] : null;
-    return (p && p.regime && COURBES_REGIME[p.regime]) ? p.regime : 'defaut';
-}
-const _naissancePts = {};
-function _pointsNaissance(slot) {
-    const cle = _cleCourbe(slot);
-    if (_naissancePts[cle]) return _naissancePts[cle];
-    const pts = [];
+   remplissage : une montee rapide, le pic vers 40 %, puis un ralentissement
+   jusqu'au plein. On dessine donc la courbe en entier et on y pose un point
+   - vous etes ici. */
+let _naissancePts = null;
+function _pointsNaissance() {
+    if (_naissancePts) return _naissancePts;
+    _naissancePts = [];
     for (let i = 0; i <= 64; i++) {
         const t = i / 64;
-        pts.push([t, courbeCroissance(t, slot)]);
+        _naissancePts.push([t, courbeCroissance(t)]);
     }
-    _naissancePts[cle] = pts;
-    return pts;
+    return _naissancePts;
 }
 
 /* LE PIC DE LA COURBE, trouve une fois pour toutes : c'est vers lui qu'on
    veut savoir combien de temps il reste. */
-const _picNaissance = {};
-function picNaissance(slot) {
-    const cle = _cleCourbe(slot);
-    if (_picNaissance[cle] !== undefined) return _picNaissance[cle];
+let _picNaissance = -1;
+function picNaissance() {
+    if (_picNaissance >= 0) return _picNaissance;
     let best = 0, bv = -1;
     for (let i = 0; i <= 200; i++) {
-        const t = i / 200, v = courbeCroissance(t, slot);
+        const t = i / 200, v = courbeCroissance(t);
         if (v > bv) { bv = v; best = t; }
     }
-    _picNaissance[cle] = best;
+    _picNaissance = best;
     return best;
 }
 
@@ -14273,13 +14216,13 @@ function picNaissance(slot) {
    le deviner d'une regle de trois. On integre donc la montee pas a pas :
    a chaque cran, la vitesse est le debit de base fois le rendement du moment.
    Renvoie des secondes, ou null si l'on n'y arrivera jamais. */
-function tempsJusqua(depart, cible, debitPlein, plafond, slot) {
+function tempsJusqua(depart, cible, debitPlein, plafond) {
     if (!(debitPlein > 0) || !(plafond > 0)) return 'arret';   /* rien ne pousse */
     if (cible <= depart) return 0;
     let t = 0, part = depart;
     const N = 400, pas = (cible - depart) / N;
     for (let i = 0; i < N; i++) {
-        const r = courbeCroissance(part + pas / 2, slot);
+        const r = courbeCroissance(part + pas / 2);
         if (r < 1e-4) return 'long';            /* le rendement s'eteint */
         t += (pas * plafond) / (debitPlein * r);
         part += pas;
@@ -14318,7 +14261,7 @@ function majPanneauNaissance() {
        panneau, alors qu'un astre tranquille suit exactement la meme courbe.
        On prend donc la zone choisie quand il y en a une, et a defaut l'astre
        selectionne, avec sa reserve et sa capacite. */
-    let titre = null, part = 0, plafond = 0, debitPlein = 0, qui = null;
+    let titre = null, part = 0, plafond = 0, debitPlein = 0;
     const moi = localSlot();
     const sel = zoneChoisie(moi);
     const zb = sel && sel.body;
@@ -14332,7 +14275,6 @@ function majPanneauNaissance() {
         const tot = casesAstre(zb);
         const slot = (z.v === 0) ? zb.owner : z.v - 1;
         debitPlein = debitPour(zb, slot) * (z.n / Math.max(1, tot));
-        qui = slot;
     } else {
         const a = (typeof followingBody !== 'undefined' && followingBody)
                 ? followingBody : gameState.selectedBody;
@@ -14341,7 +14283,6 @@ function majPanneauNaissance() {
             plafond = Math.max(1, a.maxSpores || 1);
             part = (a.spores || 0) / plafond;
             debitPlein = debitPour(a, a.owner);
-            qui = a.owner;
         }
     }
 
@@ -14352,11 +14293,8 @@ function majPanneauNaissance() {
     if (!E.panneau.classList.contains('actif')) E.panneau.classList.add('actif');
 
     part = Math.max(0, Math.min(1, part));
-    const rend = courbeCroissance(part, qui);
-    /* La couleur se juge par rapport au pic de SA courbe : 0,8 est excellent
-       pour le Centre, moyen pour la Dictature. */
-    const haut = courbeCroissance(picNaissance(qui), qui) || 1;
-    const teinte = rend >= 0.85 * haut ? '#4ADE80' : rend >= 0.5 * haut ? '#FACC15' : '#F87171';
+    const rend = courbeCroissance(part);
+    const teinte = rend >= 0.85 ? '#4ADE80' : rend >= 0.5 ? '#FACC15' : '#F87171';
 
     E.zone.textContent = titre;
     E.plein.textContent = Math.round(part * 100) + '% plein';
@@ -14368,9 +14306,9 @@ function majPanneauNaissance() {
        apres on annonce la saturation - le moment ou l'astre cesse de
        produire, et ou il vaut mieux avoir tire. */
     if (E.quand) {
-        const pic = picNaissance(qui);
+        const pic = picNaissance();
         const avant = part < pic - 0.005;
-        const t = (part < PART_SATUREE) ? tempsJusqua(part, avant ? pic : PART_SATUREE, debitPlein, plafond, qui) : null;
+        const t = (part < PART_SATUREE) ? tempsJusqua(part, avant ? pic : PART_SATUREE, debitPlein, plafond) : null;
         let txt;
         if (part >= PART_SATUREE) txt = '\u26A0 saturé — ne produit plus';
         else if (t === 'arret') txt = 'production à l\'arrêt';
@@ -14386,9 +14324,7 @@ function majPanneauNaissance() {
 
     const m = 6, gx = m, gw = W - m * 2, gy = m, gh = H - m * 2;
     const px = t => gx + t * gw;
-    /* Le haut du graphique : 1,25, le plus haut pic de tous les regimes, pour
-       que les courbes se comparent d'une partie a l'autre. */
-    const py = v => gy + gh - Math.max(0, Math.min(1.25, v)) / 1.25 * gh;
+    const py = v => gy + gh - Math.max(0, Math.min(1, v)) * gh;
 
     // La ligne de sol
     x.strokeStyle = 'rgba(140,170,230,0.20)';
@@ -14396,7 +14332,7 @@ function majPanneauNaissance() {
     x.beginPath(); x.moveTo(gx, gy + gh); x.lineTo(gx + gw, gy + gh); x.stroke();
 
     // La courbe, remplie dessous pour qu'on lise la forme d'un coup d'oeil
-    const pts = _pointsNaissance(qui);
+    const pts = _pointsNaissance();
     x.beginPath();
     x.moveTo(px(0), py(pts[0][1]));
     for (let i = 1; i < pts.length; i++) x.lineTo(px(pts[i][0]), py(pts[i][1]));
@@ -21375,9 +21311,9 @@ function updateAI(dt) {
 
         // IA : batiments (verifie a chaque frame, pas seulement au timer)
         for (const body of player.bodies) {
-            if (body.buildMode === 'off' && body.spores > body.maxSpores * zoneRegime(player.id)[1]) {
-                /* Elle batit avec ce qui depasse le haut de sa bande de bon
-                   rendement (0,73 pour la courbe commune). */
+            if (body.buildMode === 'off' && body.spores > body.maxSpores * zoneBonRendement()[1]) {
+                /* Elle batit avec ce qui depasse le haut de la bande de bon
+                   rendement (57 % de remplissage). */
                 body.buildMode = aiChoixBatiment(player, body);
             }
         }
@@ -21583,12 +21519,12 @@ function iaPiloteCapital(C) {
 function iaSourcePrete(b, min) {
     if (!(b.spores > min)) return false;
     if (b.lutte) return true;
-    return b.spores >= Math.max(1, b.maxSpores) * zoneRegime(b.owner)[0];
+    return b.spores >= Math.max(1, b.maxSpores) * zoneBonRendement()[0];
 }
 
 /* Les spores d'un joueur au-dessus du bas de sa bande de bon rendement. */
 function iaSurplus(player) {
-    const bas = zoneRegime(player.id)[0];
+    const bas = zoneBonRendement()[0];
     let n = 0;
     for (const b of player.bodies) n += Math.max(0, (b.spores || 0) - Math.max(1, b.maxSpores) * bas);
     return n;
@@ -22445,7 +22381,7 @@ function debitAstre(body) {
     return Math.max(1, body.maxSpores) * TAUX_PROD
            * (0.4 + (body.flore / 100) * 0.6) * (1 + joueur.stats.growth * 0.3)
            * sym * nid * sys * part
-           * courbeCroissance((body.spores || 0) / Math.max(1, body.maxSpores || 1), body.owner);
+           * courbeCroissance((body.spores || 0) / Math.max(1, body.maxSpores || 1));
 }
 
 /* ─────────────────────────────────────────────
@@ -22777,7 +22713,7 @@ function drawDebitAstre(ctx) {
     const d = (astre.spores < astre.maxSpores) ? debitAstre(astre) : 0;
     /* Le rendement du moment, en pour cent de ce que l'astre donnerait a
        mi-capacite : c'est la lecture de cette courbe qui fait jouer juste. */
-    const rend = Math.round(courbeCroissance(astre.spores / Math.max(1, astre.maxSpores), astre.owner) * 100);
+    const rend = Math.round(courbeCroissance(astre.spores / Math.max(1, astre.maxSpores)) * 100);
     /* Au-dessus de l'etiquette du pseudo, qui occupe deja le bord haut de
        l'astre : sans ce decalage les deux se superposent. */
     const etiquette = Math.max(9 / z, Math.min(16 / z, astre.radius * 0.45));
