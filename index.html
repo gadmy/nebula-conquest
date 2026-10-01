@@ -1448,6 +1448,14 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        feuille a usine, piece d'or a casquette, cle a molette et cravate.
        Carte : logo entier et centre (plus de recadrage), l'icone se cache
        quand il est charge. Serveurs locaux (relais, banc) : type SVG ajoute.
+     - LIVRE DES REGLES REMIS A JOUR : sections DEPART & REGIMES et
+       COMMERCE & ALLIANCES (avant, caches dans Territoires) ; MULTIJOUEUR
+       reecrit (AU HASARD classe, ENTRE AMIS avec code et lien, meme version
+       exigee, REPRENDRE ; les anciens modes, guildes et equipes retires) ;
+       Evolution corrigee (depart 3/4/2/1 + 3 points du regime, 8 max ;
+       Growth +30 % par point, Velocity +6 de vitesse par point) ; clic
+       droit sur un nom dans les controles ; mot sur l'HISTOIRE ; REGARDER
+       en solo ; pied de page v9.7.9.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -3612,6 +3620,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <!-- Navigation chapitres -->
 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(100,180,255,0.15);">
   <a href="#h-objectif" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🎯 Objectif</a>
+  <a href="#h-depart" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🏛 Départ</a>
   <a href="#h-controles" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🕹 Contrôles</a>
   <a href="#h-prod" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🧬 Production</a>
   <a href="#h-bataille" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚔ Bataille</a>
@@ -3623,13 +3632,20 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <a href="#h-alertes" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🔔 Alertes</a>
   <a href="#h-dangers" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚠️ Dangers</a>
   <a href="#h-spheres" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🛸 Sphères</a>
+  <a href="#h-commerce" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🤝 Commerce</a>
   <a href="#h-multi" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🌐 Multi</a>
 </div>
 
 <!-- OBJECTIF -->
 <p id="h-objectif" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🎯 OBJECTIF</p>
-<p style="margin-bottom:6px;">Conquérir <span style="color:#FFD700;">80%</span> de tous les astres de la galaxie (planètes + lunes). Dès ce seuil atteint, la victoire est déclarée immédiatement.</p>
-<p style="margin-bottom:16px;">Chaque astre possédé génère des <span style="color:#C8A0FF;">spores</span> en continu. Plus vous en contrôlez, plus vite vous produisez — et plus vous êtes difficile à battre.</p>
+<p style="margin-bottom:6px;">Conquérir <span style="color:#FFD700;">80%</span> de tous les astres de la galaxie (planètes + lunes). Dès ce seuil atteint, la victoire est déclarée immédiatement. En solo, si vous êtes éliminé, le bouton <span style="color:#A5B4FC;">REGARDER</span> de l'écran de défaite permet de suivre la fin de la partie.</p>
+<p style="margin-bottom:6px;">Chaque astre possédé génère des <span style="color:#C8A0FF;">spores</span> en continu. Plus vous en contrôlez, plus vite vous produisez — et plus vous êtes difficile à battre.</p>
+<p style="margin-bottom:16px;">Pourquoi des spores ? Le bouton <span style="color:#E9D5FF;">HISTOIRE</span> du menu le raconte : la Terre est détruite, et les partis politiques y ont transformé leurs adhérents en spores pour conquérir l'univers.</p>
+
+<!-- DEPART -->
+<p id="h-depart" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🏛 DÉPART &amp; RÉGIMES</p>
+<p style="margin-bottom:6px;">Chaque partie (solo et réseau ; pas le tutoriel) commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Centre collaborateur, Gauche non solidaire, Dictature éclairée, Royauté à plusieurs, Fascisme sympa, Anarchie très organisée, Écolo mais pas trop, Communisme néolibéral, Droite prolétaire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun s'installe ; sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
+<p style="margin-bottom:16px;">Chaque régime a aussi sa propre <span style="color:#4ADE80;">courbe de croissance</span>, dessinée sur sa carte : voir Production.</p>
 
 <!-- CONTRÔLES -->
 <p id="h-controles" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🕹 CONTRÔLES</p>
@@ -3644,6 +3660,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Ctrl + clic gauche maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Rafale</b> — paquets de 10 spores, 8 par seconde, arrosés autour du curseur ; lâcher pour arrêter</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Shift maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Boule</b> — charge 25 spores/s (jusqu'à 500, coût double) qui tournent lentement vers la souris ; lâcher Shift la lance</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur un astre</td><td style="padding:3px 0;">Le devis : combien de cases votre envoi y achètera, et à quel prix</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un nom (liste des joueurs)</td><td style="padding:3px 0;">Info sur ce joueur, ou proposition de Commerce</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur fond vide + glisser</td><td style="padding:3px 0;">Déplace la caméra</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Survol d'un nombre de spores</td><td style="padding:3px 0;">Nomme le joueur à qui il appartient, et dit s'il tient l'astre ou l'assaille</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Molette</td><td style="padding:3px 0;">Zoom / dézoom (ne fait pas défiler les panneaux quand la souris est dessus)</td></tr>
@@ -3667,8 +3684,8 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 
 <!-- PRODUCTION -->
 <p id="h-prod" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🧬 SPORES &amp; PRODUCTION</p>
-<p style="margin-bottom:6px;">Chaque astre a une <span style="color:#FFD700;">capacité</span> — le nombre de spores qu'il peut contenir — et se remplit tout seul. La vitesse de remplissage est une <span style="color:#C8A0FF;">part de cette capacité par seconde</span>, si bien qu'une géante et une petite lune mettent le même temps à se remplir : environ 80 secondes pour le premier quart, trois minutes et demie pour le gros pic.</p>
-<p style="margin-bottom:6px;">Mais le rendement n'est pas constant : il suit une <span style="color:#4ADE80;">courbe à deux régimes</span>.</p>
+<p style="margin-bottom:6px;">Chaque astre a une <span style="color:#FFD700;">capacité</span> — le nombre de spores qu'il peut contenir — et se remplit tout seul. La vitesse de remplissage est une <span style="color:#C8A0FF;">part de cette capacité par seconde</span>, si bien qu'une géante et une petite lune mettent le même temps à se remplir : avec la courbe commune, environ 80 secondes pour le premier quart, trois minutes et demie pour le gros pic.</p>
+<p style="margin-bottom:6px;">Mais le rendement n'est pas constant : il suit une <span style="color:#4ADE80;">courbe</span>. Voici la courbe commune (celle du tutoriel) :</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
   <tr><td style="padding:3px 0;color:#E9D5FF;width:32%;">Presque vide</td><td style="padding:3px 0;">Rendement faible — il n'y a personne pour se reproduire</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">Au quart plein</td><td style="padding:3px 0;">Première bosse, modeste mais facile à tenir</td></tr>
@@ -3729,16 +3746,14 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ONDES SOLAIRES.</span> Un système entièrement tenu se met à vivre : son étoile s'embrase <span style="color:#E9D5FF;">toutes les 5 secondes</span> et envoie une onde qui balaie ses astres. Chacun la reçoit au passage du front, pas au départ — le système s'allume de l'intérieur vers l'extérieur.</p>
 <p style="margin-bottom:16px;">Ce que l'onde apporte dépend de votre stat <span style="color:#FBBF24;">Sensitivity</span> : <span style="color:#4ADE80;">+5 % de la capacité de l'astre par point</span>. À un point, une lune de 400 reçoit 20 spores.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro. Il peut dépasser son maximum <b>sans limite</b> (chiffre doré ⚡) ; après le tir, le trop-plein s'évapore peu à peu.</p>
-<p style="margin-bottom:6px;"><span style="color:#C4B5FD;">LE DÉPART.</span> Chaque partie commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Centre collaborateur, Gauche non solidaire, Dictature éclairée, Royauté à plusieurs, Fascisme sympa, Anarchie très organisée, Écolo mais pas trop, Communisme néolibéral, Droite prolétaire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun s'installe ; sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
-<p style="margin-bottom:6px;"><span style="color:#FDE68A;">COMMERCE.</span> Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
 <p style="margin-bottom:16px;">On ne tire pas à travers une étoile ni un trou noir : ils détruisent les jets. Quand aucun de vos astres n'a la vue sur la cible, le trait de visée passe au <span style="color:#EF4444;">rouge</span>.</p>
 
 <!-- ÉVOLUTION -->
 <p id="h-evolution" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">✦ ÉVOLUTION &amp; MUTATIONS</p>
-<p style="margin-bottom:6px;">Quatre voies, 10 points à répartir avant la partie :</p>
+<p style="margin-bottom:6px;">Quatre voies. Vous partez avec 3 Growth, 4 Velocity, 2 Density et 1 Sensitivity, plus les <b>3 points offerts par votre régime</b> ; 8 au maximum par voie.</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
-  <tr><td style="padding:3px 0;color:#4ADE80;width:26%;">🌱 Growth</td><td style="padding:3px 0;">+5 % de production de spores par point, sur tous vos astres</td></tr>
-  <tr><td style="padding:3px 0;color:#60A5FA;">⚡ Velocity</td><td style="padding:3px 0;">+5 % de vitesse des jets par point</td></tr>
+  <tr><td style="padding:3px 0;color:#4ADE80;width:26%;">🌱 Growth</td><td style="padding:3px 0;">+30 % de production de spores par point, sur tous vos astres</td></tr>
+  <tr><td style="padding:3px 0;color:#60A5FA;">⚡ Velocity</td><td style="padding:3px 0;">+6 de vitesse des jets par point (vitesse de base : 20)</td></tr>
   <tr><td style="padding:3px 0;color:#F472B6;">💎 Density</td><td style="padding:3px 0;">+5 % de puissance à l'impact par point</td></tr>
   <tr><td style="padding:3px 0;color:#FBBF24;">☀ Sensitivity</td><td style="padding:3px 0;">+5 % de la capacité de l'astre par point, à chaque onde solaire</td></tr>
 </table>
@@ -3786,15 +3801,17 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:16px;"><span style="color:#FFD27A;">LA CAPTURE.</span> Envoyez-lui <span style="color:#E9D5FF;">20 000 spores en moins de 30 s</span> (un anneau à votre couleur montre où vous en êtes) et vous la pilotez pendant <b>1 minute</b> avec <span style="color:#E9D5FF;">ZQSD</span>. Pilotée, elle tire pour vous et plus loin : la verte n'arrose que <b>vos</b> astres, la noire ne ronge que ceux de vos <b>adversaires</b>. Écrasée sur une planète ou une lune : tous ses bâtiments détruits, 0 spore et plus de production pendant 1 minute. Sur un soleil : <b>tout son système</b> subit le même sort. La sphère est perdue dans le choc.</p>
 <p style="margin-bottom:16px;">Les <b>IA</b> aussi convoitent les sphères. Une IA assez grosse peut cesser d'attaquer pendant quelques minutes pour <b>économiser</b>, puis bombarder une sphère qui passe près de chez elle. Si elle la prend, elle la lance sur le système le plus riche de ses adversaires, et un message vous prévient.</p>
 
+<!-- COMMERCE -->
+<p id="h-commerce" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🤝 COMMERCE &amp; ALLIANCES</p>
+<p style="margin-bottom:16px;">Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
+
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
-<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Rejoindre</span> : depuis le menu principal, "REJOINDRE" vous place dans la prochaine partie disponible. Deux variantes : <span style="color:#4ADE80;">▶ REJOINDRE</span> (chacun pour soi) et <span style="color:#FCD34D;">🤖 REJOINDRE (OK POUR BOTS)</span> qui vote pour compléter avec des IA si la majorité est d'accord.</p>
-<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Créer une partie</span> : choisissez la carte, ajoutez des IA, invitez des amis par pseudo ou une guilde entière par tag. Option "Compléter par IA" pour remplir les slots vides au lancement. Option <span style="color:#60A5FA;">Mode équipes</span> : 2, 3 ou 4 équipes réparties aléatoirement. En mode équipes, vos jets vers les coéquipiers les renforcent — impossible de trahir. Les noms au-dessus des planètes affichent la couleur de l'équipe.</p>
-<p style="margin-bottom:6px;">Les joueurs IA portent des noms générés aléatoirement (ex. [IA] Zyrex, [IA] Vorath…). En mode équipes, les IA jouent dans leur équipe assignée.</p>
-<p style="margin-bottom:6px;">Le nombre maximum de joueurs est calculé selon la carte : <span style="color:#FFD700;">≤ 10 planètes → max = nb planètes · > 10 planètes → max = nb planètes + 5</span>. En mode équipes, ce nombre est forcément pair.</p>
-<p style="margin-bottom:6px;"><span style="color:#A5B4FC;">👁 Spectateur</span> : si vous êtes éliminé, le bouton <span style="color:#A5B4FC;">REGARDER</span> apparaît sur l'écran de défaite pour observer la suite sans interagir.</p>
-<p style="margin-bottom:6px;"><span style="color:#FB923C;">⚔️ Guildes</span> : créez ou rejoignez une guilde depuis le menu principal. Votre tag s'affiche après votre pseudo <span style="color:#FB923C;">[TAG]</span>. Les guildes ont leur propre classement ELO. Invitez une guilde entière dans une partie via son tag — tous les membres reçoivent l'invitation.</p>
-<p style="margin-bottom:16px;">Les scores et l'ELO sont mis à jour automatiquement après chaque partie multi (minimum 2 joueurs humains).</p>
+<p style="margin-bottom:6px;">Le bouton <span style="color:#E9D5FF;">MULTIJOUEUR</span> du menu propose deux façons de jouer :</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">🎲 AU HASARD</span> : choisissez 2, 4, 8 ou 16 joueurs ; vous rejoignez une partie qui démarre dès qu'elle est pleine. Partie <b>classée (ELO)</b> si vous êtes connecté — le classement de chaque taille s'affiche en dessous.</p>
+<p style="margin-bottom:6px;"><span style="color:#FCD34D;">✉️ ENTRE AMIS</span> : choisissez le nombre de joueurs et d'IA, puis CRÉER. La partie affiche un <b>code</b> de 4 lettres et un bouton <b>COPIER LE LIEN D'INVITATION</b> : l'ami qui ouvre le lien arrive directement dans la partie ; il peut aussi taper le code puis REJOINDRE. Les places vides peuvent être prises par des IA.</p>
+<p style="margin-bottom:6px;">Tout le monde voit exactement la même partie. Il faut la <b>même version du jeu</b> : si un joueur a une ancienne version, il est prévenu et doit recharger la page. Si vous perdez la connexion, le bouton <span style="color:#E9D5FF;">REPRENDRE</span> du menu vous ramène dans la partie en cours.</p>
+<p style="margin-bottom:16px;">Les joueurs IA portent des noms générés (ex. [IA] Zyrex, [IA] Vorath…). En réseau, une partie se termine aussi à 80 % des astres ou quand il ne reste qu'un joueur en vie.</p>
 
 <!-- ASTUCES -->
 <p style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">💡 ASTUCES</p>
@@ -3806,7 +3823,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">F3</span> affiche les images par seconde, puis <span style="color:#E9D5FF;">D</span> détaille ce qui coûte cher à dessiner — utile si le jeu rame.</p>
 <p style="margin-bottom:16px;"><span style="color:#FFD700;">Si ça rame</span>, le réglage <span style="color:#E9D5FF;">GRAPH</span> en haut à droite fait peindre le jeu plus petit avant de l'agrandir : la carte y perd un peu de netteté, jamais les panneaux ni le texte. La finesse baisse déjà toute seule quand vous dézoomez — mesuré, une image complète passe de 9,1 à 5,6 ms — et ce réglage décale toute l'échelle vers le bas. En <span style="color:#E9D5FF;">Bas</span>, les scintillements et la brume des jets sont coupés en prime.</p>
 
-<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.8</p>
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.9</p>
     </div>
     <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
 </div>
