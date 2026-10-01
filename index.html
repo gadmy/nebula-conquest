@@ -1524,6 +1524,10 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        partout, identique en reseau. Plus genereuse que l'ancienne au milieu
        (de 10 a 50 % : 2,5 fois plus vite). IA : tire au-dessus de 22 %,
        batit au-dessus de 57 %. Regles mises a jour.
+     - RACCOURCIS DU PARASITE : 4 construit un foyer putride (refuse, ecran
+       qui vibre, si une spore attend deja) ; G arme / desarme la spore
+       parasitaire pendant la visee (armerParasite), le clic la lance.
+       Regles, touche K et commentaires des touches mis a jour.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -3735,8 +3739,10 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">P / M</td><td style="padding:3px 0;">Zoom avant / arrière</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;">Passe en mode tir depuis l'astre sélectionné : vers un autre astre, ou sur son propre sol (curseur sur son disque). Sans Espace, aucun tir</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">F</td><td style="padding:3px 0;"><b style="color:#FF8A3D;">Démolisseur</b> — arme le tir (le trait rougeoie) ; la molette choisit le bâtiment <i class="ic-bat" data-g="alveole"></i> <i class="ic-bat" data-g="nid"></i> <i class="ic-bat" data-g="biome"></i> ; le clic tire 250 spores, plus lentes, qui en détruisent un de ce type. F à nouveau : désarme</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">G</td><td style="padding:3px 0;"><b style="color:#4ADE80;">Spore parasitaire</b> — l'arme depuis l'astre choisi (il faut qu'elle soit prête) ; le clic la lance. G à nouveau : désarme</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans Mes Astres — le bouton ⇄ choisit : de planète en planète, ou d'astre en astre (lunes comprises)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">4 <span style="color:rgba(200,210,230,0.45)">(&nbsp;'&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire un <i class="ic-bat" data-g="parasite"></i> foyer putride : une spore parasitaire en 2 minutes</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#FFD27A;">R</b></td><td style="padding:3px 0;"><b style="color:#FFD27A;">Riposte</b> au pourcentage d'envoi — sur l'astre survolé, ou sur tous si la souris est dans le vide</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#93C5FD;">T</b></td><td style="padding:3px 0;"><b style="color:#93C5FD;">Arrêt</b> — vos zones cessent d'attaquer, sur l'astre survolé ou partout ; les spores engagées restent dans la zone</td></tr>
@@ -3759,7 +3765,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 </table>
 <p style="margin-bottom:6px;">Le rendement du moment s'affiche au-dessus de l'astre sélectionné, en vert, jaune ou rouge. Tout le reste <span style="color:#E9D5FF;">multiplie</span> cette courbe : la <span style="color:#4ADE80;">Flore</span> de l'astre, la <span style="color:#22C55E;">Symbiose</span> qui monte avec le temps (jusqu'à +20 % sur une planète, +10 % sur une lune), vos <span style="color:#E9D5FF;">nids</span> et votre stat <span style="color:#4ADE80;">Growth</span>.</p>
 <p style="margin-bottom:16px;">Une <span style="color:#EAB308;">alvéole</span> augmente la capacité, donc aussi la production : un plus grand silo nourrit plus de monde. Attention, elle décale aussi le pic.</p>
-<p style="margin-bottom:16px;">Deux types de jets partent du menu radial : <span style="color:#E9D5FF;">⚪ Spores</span>, qui colonisent et attaquent, et <span style="color:#E9D5FF;"><i class="ic-bat" data-g="parasite"></i> Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent).</p>
+<p style="margin-bottom:16px;">Deux types de jets partent du menu radial : <span style="color:#E9D5FF;">⚪ Spores</span>, qui colonisent et attaquent, et <span style="color:#E9D5FF;"><i class="ic-bat" data-g="parasite"></i> Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent). Raccourcis : <b>4</b> construit le foyer putride qui la prépare, <b>G</b> l'arme pendant la visée.</p>
 <!-- BATAILLE -->
 <p id="h-bataille" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚔ BATAILLE DE SURFACE</p>
 <p style="margin-bottom:6px;">Une conquête ne se joue plus en un choc. Les spores qui touchent un astre y <span style="color:#FFD700;">prennent pied sur une case</span>, du côté d'où vient le tir, et s'étalent sur le disque en lobes irréguliers. Chaque camp a sa couleur ; le sol que personne ne tient est gris.</p>
@@ -7859,6 +7865,8 @@ function setupUI() {
                construction du panneau.
        Espace : passer en visee depuis l'astre choisi.
        F      : armer le demolisseur (voir armerDemolisseur).
+       G      : armer la spore parasitaire (voir armerParasite).
+       4      : construire un foyer putride (spore parasitaire en 2 min).
        Tab    : amener la camera sur l'entree suivante de la liste de gauche.
        ───────────────────────────────────────────── */
     function _astreActif() {
@@ -8012,14 +8020,22 @@ function setupUI() {
             /* Rangee du haut, quel que soit le clavier : en azerty ces touches
                sortent & é " sans majuscule, on lit donc leur position et non
                le caractere. Le pave numerique et un vrai 1 2 3 marchent aussi. */
-            const _rang = { Digit1: 'alveole', Digit2: 'nid', Digit3: 'biome',
-                            Numpad1: 'alveole', Numpad2: 'nid', Numpad3: 'biome' };
-            const _bat = _rang[e.code] || ({ '1': 'alveole', '2': 'nid', '3': 'biome' })[e.key];
-            if (_bat) { e.preventDefault(); _construire(_bat); return; }
+            const _rang = { Digit1: 'alveole', Digit2: 'nid', Digit3: 'biome', Digit4: 'parasite',
+                            Numpad1: 'alveole', Numpad2: 'nid', Numpad3: 'biome', Numpad4: 'parasite' };
+            const _bat = _rang[e.code] || ({ '1': 'alveole', '2': 'nid', '3': 'biome', '4': 'parasite' })[e.key];
+            if (_bat) {
+                e.preventDefault();
+                /* 4 : le foyer putride. Inutile si une spore parasitaire attend deja. */
+                const _a = _astreActif();
+                if (_bat === 'parasite' && _a && (_a.parasiteSpore || 0) >= 1) { secouerEcran(8); return; }
+                _construire(_bat);
+                return;
+            }
             /* Espace : viser depuis l'astre choisi. F arme (ou desarme) le
                DEMOLISSEUR : voir armerDemolisseur. */
             if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) viserDepuisSelection(); return; }
             if (e.code === 'KeyF')  { e.preventDefault(); if (!e.repeat) armerDemolisseur(); return; }
+            if (e.code === 'KeyG')  { e.preventDefault(); if (!e.repeat) armerParasite(); return; }
             if (e.key === 'Tab')    { e.preventDefault(); _astreSuivant();    return; }
             if (_camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
             /* La souris designe la cible : sur un astre, la riposte s'y
@@ -9537,6 +9553,26 @@ function armerDemolisseur() {
     }
     if (!gameState._demolGenre) gameState._demolGenre = 'nid';
     gameState._demol = true;
+}
+
+/* G : armer (ou desarmer) la SPORE PARASITAIRE. Il en faut une prete sur
+   l'astre d'ou l'on vise (foyer putride, touche 4) ; sans visee en cours, on
+   vise d'abord depuis l'astre choisi. Le clic suivant la lance. */
+function armerParasite() {
+    if (gameState.phase !== 'game' || gameState.isSpectator) return;
+    if (gameState._boule || gameState._rafale) return;
+    if (gameState._firePhase === 'aiming' && gameState._fireType === 'parasite') { gameState._fireType = 'normal'; return; }
+    const moi = localSlot();
+    const src = (gameState._firePhase === 'aiming' && gameState._fireSource) ? gameState._fireSource
+              : ((typeof followingBody !== 'undefined' && followingBody) ? followingBody : gameState.selectedBody);
+    if (!src || src.owner !== moi || (src.parasiteSpore || 0) < 1) { secouerEcran(8); return; }
+    _closeSporMenu();
+    gameState._demol = false;
+    if (gameState._fireSource !== src) gameState._fireLanceur = null;
+    followingBody = src;
+    gameState._fireSource = src;
+    gameState._fireType = 'parasite';
+    gameState._firePhase = 'aiming';
 }
 
 /* Molette pendant que le demolisseur est arme : le genre suivant. */
@@ -26178,8 +26214,10 @@ const RACCOURCIS = [
         ['[Espace]', "Viser depuis l'astre sélectionné"],
         ['[Tab]', 'Astre suivant'],
         ['[1] [2] [3]', 'Construire alvéole · nid · biome'],
+        ['[4]', 'Construire un foyer putride (spore parasitaire)'],
         ['[A] / [E]', "Part d'envoi −5 % / +5 %"],
         ['[F]', 'Armer le démolisseur (molette : bâtiment visé)'],
+        ['[G]', 'Armer la spore parasitaire'],
         ['[R]', "Riposte (sur l'astre survolé, ou partout)"],
         ['[T]', 'Arrêt des attaques'],
         ['[K]', 'Afficher / cacher ces raccourcis'],
