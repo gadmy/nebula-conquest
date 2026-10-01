@@ -1376,7 +1376,15 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
          sympa V2 D1, Anarchie tres organisee V3, Ecolo mais pas trop G1
          S2, Communisme neoliberal G2 S1, Droite proletaire G3 (plafond 8).
          Chaque carte dit aussi, en italique, pourquoi ce regime a dissous
-         ses adherents en spores pour conquerir l'univers. Ordre 'regime'. En reseau 15 s,
+         ses adherents en spores pour conquerir l'univers ; le sous-titre
+         rappelle le lore (la Terre detruite, seules des spores peuvent
+         partir).
+     - LORE REECRIT (Lore/HISTOIRE.md + PDF) d'apres l'idee de depart : en
+       2387 la technologie est fantastique mais la Terre est detruite ; le
+       seul moyen de partir est de devenir spore ; tous les partis
+       politiques francais y transforment leurs adherents pour conquerir
+       l'univers. 12 scenes (texte, prompt d'image, mouvement), images
+       sans logos ni drapeaux de vrais partis. Ordre 'regime'. En reseau 15 s,
          compteur "x / y joueurs ont choisi", hasard pour les retardataires ;
          les IA tirent le leur ;
        - PUIS LA PLANETE en 15 s pour tous : ordre 'reserver' (astre libre
@@ -1504,7 +1512,7 @@ canvas#gameCanvas {
 #ecranRegime { position: fixed; inset: 0; z-index: 990; background: rgba(5,8,25,0.9); overflow-y: auto;
     display: flex; flex-direction: column; align-items: center; padding: 22px 16px 30px; box-sizing: border-box; font-family: 'Exo 2', sans-serif; color: #E0E7FF; }
 #ecranRegime .rg-titre { font-family: 'Orbitron', sans-serif; font-size: 22px; letter-spacing: 4px; color: #E9D5FF; text-shadow: 0 0 18px rgba(168,85,247,0.5); text-align: center; }
-#ecranRegime .rg-sous { font-size: 13px; color: #A5B4FC; margin-top: 4px; text-align: center; }
+#ecranRegime .rg-sous { font-size: 13px; color: #A5B4FC; margin-top: 6px; text-align: center; max-width: 640px; line-height: 1.5; }
 #ecranRegime .rg-info { font-family: 'Orbitron', sans-serif; font-size: 12px; color: #FDE68A; min-height: 18px; margin: 8px 0 12px; text-align: center; }
 #ecranRegime .rg-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 220px)); gap: 14px; justify-content: center; width: 100%; }
 @media (max-width: 760px) { #ecranRegime .rg-grille { grid-template-columns: repeat(2, minmax(0, 220px)); } }
@@ -10924,15 +10932,15 @@ function updateScoreBoard() {
    Tout passe par des ordres et se compte en tours : meme chose chez tous
    les joueurs en reseau. */
 const REGIMES = [
-    { id: 'centre_collaborateur',  nom: 'Centre collaborateur',   icone: '⚖️', stats: { growth: 1, velocity: 1, density: 1 },      texte: "D'accord avec tout le monde. Surtout avec le plus fort.", pourquoi: "Tout le monde partait en spores : ils ont suivi le mouvement." },
-    { id: 'gauche_non_solidaire',  nom: 'Gauche non solidaire',   icone: '🌹', stats: { growth: 1, density: 1, sensitivity: 1 },    texte: 'Partager, oui. Mais chacun le sien.', pourquoi: "Chaque adhérent voulait sa planète à lui. Une spore chacun, c'est plus juste." },
-    { id: 'dictature_eclairee',    nom: 'Dictature éclairée',     icone: '💡', stats: { velocity: 1, density: 1, sensitivity: 1 },  texte: 'Un seul chef, mais il a lu des livres.', pourquoi: "Le chef a lu qu'une spore n'est jamais en désaccord. Il a été convaincu tout de suite." },
-    { id: 'royaute_plusieurs',     nom: 'Royauté à plusieurs',    icone: '👑', stats: { growth: 1, density: 2 },                    texte: 'Douze rois, un seul trône, beaucoup de réunions.', pourquoi: "Il n'y avait plus assez de trônes : il fallait plus de planètes." },
-    { id: 'fascisme_sympa',        nom: 'Fascisme sympa',         icone: '🎖️', stats: { velocity: 2, density: 1 },                  texte: 'On marche au pas, mais on dit merci.', pourquoi: "Des milliards de spores qui marchent au pas : le rêve. Poliment." },
-    { id: 'anarchie_organisee',    nom: 'Anarchie très organisée', icone: '🏴', stats: { velocity: 3 },                             texte: 'Pas de chef, mais un planning très strict.', pourquoi: "Le planning prévoyait la conquête de l'univers pour mardi." },
-    { id: 'ecolo_pas_trop',        nom: 'Écolo mais pas trop',    icone: '🌿', stats: { growth: 1, sensitivity: 2 },                texte: 'On protège les soleils. Sauf le week-end.', pourquoi: "Une spore ne pollue pas. Et elle voyage sans avion." },
-    { id: 'communisme_neoliberal', nom: 'Communisme néolibéral',  icone: '📈', stats: { growth: 2, sensitivity: 1 },                texte: 'Tout appartient à tous. Surtout aux actionnaires.', pourquoi: "Une spore ne réclame ni salaire ni congés : rentabilité maximale." },
-    { id: 'droite_proletaire',     nom: 'Droite prolétaire',      icone: '🛠️', stats: { growth: 3 },                                texte: 'Travailler plus pour produire plus. Beaucoup plus.', pourquoi: "Une spore ne fait jamais grève." }
+    { id: 'centre_collaborateur',  nom: 'Centre collaborateur',   icone: '⚖️', stats: { growth: 1, velocity: 1, density: 1 },      texte: "D'accord avec tout le monde. Surtout avec le plus fort.", pourquoi: "La Terre était fichue : ils ont attendu de voir ce que faisaient les autres partis, puis ils ont suivi." },
+    { id: 'gauche_non_solidaire',  nom: 'Gauche non solidaire',   icone: '🌹', stats: { growth: 1, density: 1, sensitivity: 1 },    texte: 'Partager, oui. Mais chacun le sien.', pourquoi: "Un grand vaisseau pour tous ? Non : une spore chacun, et chacun sa planète." },
+    { id: 'dictature_eclairee',    nom: 'Dictature éclairée',     icone: '💡', stats: { velocity: 1, density: 1, sensitivity: 1 },  texte: 'Un seul chef, mais il a lu des livres.', pourquoi: "Le chef a calculé qu'une spore ne vote jamais contre lui. Le départ a été voté à 100 %." },
+    { id: 'royaute_plusieurs',     nom: 'Royauté à plusieurs',    icone: '👑', stats: { growth: 1, density: 2 },                    texte: 'Douze rois, un seul trône, beaucoup de réunions.', pourquoi: "La Terre détruite ne suffisait plus à tous ces rois : il leur fallait chacun un royaume." },
+    { id: 'fascisme_sympa',        nom: 'Fascisme sympa',         icone: '🎖️', stats: { velocity: 2, density: 1 },                  texte: 'On marche au pas, mais on dit merci.', pourquoi: "Partir en rangs serrés de spores, au pas, vers des planètes à conquérir. Poliment." },
+    { id: 'anarchie_organisee',    nom: 'Anarchie très organisée', icone: '🏴', stats: { velocity: 3 },                             texte: 'Pas de chef, mais un planning très strict.', pourquoi: "La fin du monde était au planning. Le départ en spores aussi : mardi, 14 h." },
+    { id: 'ecolo_pas_trop',        nom: 'Écolo mais pas trop',    icone: '🌿', stats: { growth: 1, sensitivity: 2 },                texte: 'On protège les soleils. Sauf le week-end.', pourquoi: "Ils avaient prévenu que la planète finirait détruite. Ils partent quand même les premiers." },
+    { id: 'communisme_neoliberal', nom: 'Communisme néolibéral',  icone: '📈', stats: { growth: 2, sensitivity: 1 },                texte: 'Tout appartient à tous. Surtout aux actionnaires.', pourquoi: "Des millions d'adhérents en spores, sans salaire ni congés : la conquête la plus rentable de l'histoire." },
+    { id: 'droite_proletaire',     nom: 'Droite prolétaire',      icone: '🛠️', stats: { growth: 3 },                                texte: 'Travailler plus pour produire plus. Beaucoup plus.', pourquoi: "Le travail ne s'arrête pas pour une fin du monde : on part en spores et on reprend ailleurs." }
 ];
 const STATS_REGIME = [
     { cle: 'growth', nom: 'Croissance', icone: '🌱', couleur: '#4ADE80' },
@@ -11088,7 +11096,7 @@ function ouvrirEcranRegime() {
             '<div class="rg-stats">' + stats + '</div></div>';
     }
     el.innerHTML = '<div class="rg-titre">CHOISISSEZ VOTRE RÉGIME</div>' +
-        '<div class="rg-sous">3 points d\'évolution offerts, répartis selon le régime</div>' +
+        '<div class="rg-sous">La Terre est détruite. Seules des spores peuvent la quitter : votre parti y transforme ses adhérents pour conquérir l\'univers.<br>3 points d\'évolution offerts, répartis selon le régime.</div>' +
         '<div class="rg-info" id="rgInfo"></div>' +
         '<div class="rg-grille">' + cartes + '</div>';
     el.querySelectorAll('.rg-carte').forEach(function (c) {

@@ -1,6 +1,6 @@
 # NEBULA CONQUEST — La Chronique des Spores
 
-Première version de l'histoire du jeu, à corriger librement. Elle s'appuie sur ce qui existe déjà dans la partie : les spores, le trou noir au centre, la symbiose et le pic de production, les petits vaisseaux, les trois sphères capitales, le commerce, l'apocalypse et la victoire à 80 %.
+L'histoire du jeu, d'après ton idée : la technologie est devenue fantastique, mais la Terre est détruite. Le seul moyen de la quitter est de voyager sous forme de spores. Alors tous les partis politiques français transforment leurs adhérents en spores pour conquérir l'univers. Le ton : des images épiques, un texte qui garde un peu d'humour.
 
 Durée visée : environ 2 minutes, 12 scènes de 8 à 12 secondes. Chaque scène a :
 
@@ -11,151 +11,156 @@ Durée visée : environ 2 minutes, 12 scènes de 8 à 12 secondes. Chaque scène
 
 ## Bloc de style commun (à ajouter à chaque prompt)
 
-`cinematic digital painting, epic space opera, deep navy blue background (#16264E), violet and teal nebula haze, warm golden accents, soft volumetric light, painterly texture, highly detailed, dramatic composition, 16:9, no text, no letters, no watermark`
+`cinematic digital painting, epic science fiction, deep navy blue night (#16264E), violet and teal haze, warm golden accents, soft volumetric light, painterly texture, highly detailed, dramatic composition, 16:9, no text, no letters, no logos, no flags, no watermark`
 
 Conseils pour que toutes les images se ressemblent :
 
 - Toujours le même bloc de style, et le même outil du début à la fin.
 - Format **16:9** (paysage), au moins 1920 × 1080.
 - Si ton outil le permet, garde la même « graine » (seed) ou utilise la première image réussie comme **référence de style** pour les suivantes.
-- Pas de texte dans les images : c'est le jeu qui l'affichera, net et traduisible.
-- Les spores ont toujours le même aspect : de minuscules grains lumineux, vivants, comme du pollen phosphorescent.
+- Pas de texte, pas de logos ni de drapeaux de vrais partis dans les images : c'est le jeu qui affichera les noms, et on évite d'imiter de vrais emblèmes.
+- Les spores ont toujours le même aspect : de minuscules grains lumineux, vivants, comme du pollen phosphorescent, chacun à la couleur de son parti.
 
 ## Les couleurs de l'histoire
 
 | Élément | Couleur | Rôle |
 |---|---|---|
-| Le Puits (trou noir) | noir, disque violet | origine et fin de toute chose |
-| Les spores | blanc-bleu phosphorescent | la vie qui conquiert |
-| Les Jardiniers (sphère verte) | vert | protègent les plus faibles |
+| La Terre détruite | rouille, cendre | le point de départ |
+| Les spores | blanc-bleu, teintées de la couleur de leur parti | les adhérents en voyage |
+| Le Puits (trou noir) | noir, disque violet | au cœur de la Nébuleuse |
+| Les Jardiniers (sphère verte) | vert | aident les plus faibles |
 | Les Niveleurs (sphère noire) | noir, gris acier | abattent les plus forts |
 | Les Veilleurs (sphère rouge) | rouge braise | gardent les soleils |
 | Le commerce | or | les alliances fragiles |
 
-## Scène 1 — Le silence
+## Scène 1 — Le futur radieux
 
-**Image** : la nébuleuse immense et vide, des soleils lointains, au centre un point noir cerclé d'un disque violet.
+**Image** : une ville du futur magnifique, tours de verre, véhicules volants, lumières partout… mais le ciel est rouge et le sol craquelé.
 
-**Texte à l'écran** : « Au commencement, il n'y avait que la Nébuleuse. Des soleils, des mondes stériles… et au cœur de tout, le Puits. »
+**Texte à l'écran** : « En 2387, la France avait tout inventé : les villes volantes, les robots serviables, le croissant éternel. Elle avait juste oublié une chose : la planète. »
 
-**Prompt IA** : `a vast empty nebula seen from afar, scattered distant suns, barren planets, at the center a small black hole with a thin glowing violet accretion disk, sense of silence and scale`
+**Prompt IA** : `a breathtaking futuristic city with glass towers and flying vehicles, glowing lights everywhere, but the sky is blood red, the ground is cracked and dry, dust storms on the horizon, beauty and ruin together`
 
-**Mouvement** : lente avancée vers le centre, le disque du trou noir tourne doucement.
+**Mouvement** : lente avancée au-dessus de la ville, la poussière se lève.
 
-## Scène 2 — Le Puits respire
+## Scène 2 — La fin du monde
 
-**Image** : gros plan sur le trou noir ; de son bord s'échappent des grains de lumière, comme des étincelles.
+**Image** : la Terre vue de l'espace, brunâtre, océans asséchés, nuages de cendre.
 
-**Texte à l'écran** : « Le Puits dévore la lumière depuis toujours. Mais parfois, il en rend un peu. Et ce qu'il rend… est vivant. »
+**Texte à l'écran** : « La Terre était fichue. Et aucun vaisseau n'était assez léger pour emporter tout le monde. »
 
-**Prompt IA** : `close-up of a black hole with a tilted violet and white accretion disk, gravitational lensing arc above it, tiny glowing particles escaping from the edge of the event horizon like sparks, mysterious and beautiful`
+**Prompt IA** : `planet Earth seen from orbit, dying, brown and rust colored, dried up oceans, ash clouds, a few abandoned space stations around it, melancholic`
 
-**Mouvement** : les grains s'échappent et dérivent vers la caméra.
+**Mouvement** : lente rotation de la planète, la cendre tourbillonne.
 
-## Scène 3 — La première pluie
+## Scène 3 — La découverte
 
-**Image** : une nuée de spores lumineuses tombe sur une petite lune glacée et s'y pose comme de la neige qui brille.
+**Image** : un laboratoire high-tech ; au centre, une capsule de verre où un humain se dissout doucement en milliers de grains lumineux.
 
-**Texte à l'écran** : « Les premières spores dérivèrent longtemps. Puis l'une d'elles toucha une lune de glace… et s'y accrocha. »
+**Texte à l'écran** : « Puis un savant découvrit qu'un humain pouvait devenir spore. Légère, résistante, capable de traverser l'espace. Le seul moyen de partir. »
 
-**Prompt IA** : `a cloud of tiny phosphorescent blue-white spores drifting through space and settling on the surface of a small icy moon, glowing like luminous snow, the moon's surface starting to shimmer with life`
+**Prompt IA** : `a high-tech laboratory, in the center a tall glass capsule where a human silhouette gently dissolves into thousands of tiny glowing spores, scientists watching in awe, blue and violet light`
 
-**Mouvement** : la nuée descend lentement, la surface s'illumine par endroits.
+**Mouvement** : la silhouette se dissout, les spores montent.
 
-## Scène 4 — La symbiose
+## Scène 4 — Les partis s'en emparent
 
-**Image** : la surface d'une planète couverte de réseaux lumineux, de petites structures organiques (nids, alvéoles), la vie qui pousse.
+**Image** : un hémicycle futuriste en pleine pagaille : des groupes aux couleurs différentes se lèvent, gesticulent, brandissent des tablettes lumineuses.
 
-**Texte à l'écran** : « Elles apprirent à vivre avec leur monde. À croître, sans l'étouffer. Car un monde trop plein ne donne plus rien. »
+**Texte à l'écran** : « Les partis politiques comprirent tout de suite : l'univers était à prendre. Pour une fois, ils furent tous d'accord. Sur le départ. Pas sur le reste. »
 
-**Prompt IA** : `macro view of an alien planet surface covered with glowing bioluminescent networks, organic hive-like structures and honeycomb silos, spores pulsing with light, symbiosis between life and planet, lush yet strange`
+**Prompt IA** : `a futuristic parliament hemicycle in total chaos, groups of politicians in different colored outfits standing, arguing and gesturing, holographic screens floating, dramatic and slightly comical`
+
+**Mouvement** : la caméra balaie l'hémicycle agité.
+
+## Scène 5 — Les adhérents font la queue
+
+**Image** : d'immenses files d'attente de citoyens devant des machines géantes, chacune baignée d'une couleur différente, d'où s'élèvent des colonnes de spores.
+
+**Texte à l'écran** : « Chaque parti construisit ses machines. Les adhérents firent la queue. Certains avaient même pris leur carte. »
+
+**Prompt IA** : `huge queues of citizens waiting in front of giant futuristic machines, each machine bathed in a different color light (violet, red, green, blue, orange), columns of glowing spores rising from them into the red sky`
+
+**Mouvement** : les colonnes de spores montent vers le ciel.
+
+## Scène 6 — Le grand départ
+
+**Image** : la Terre en ruine ; de partout, des nuées de spores colorées s'échappent vers l'espace comme des aurores.
+
+**Texte à l'écran** : « Et des milliards de spores quittèrent la Terre, chacune aux couleurs de son camp. »
+
+**Prompt IA** : `from a ruined Earth, countless streams of glowing colored spores rise into space from every continent like aurora ribbons, violet, red, green, orange and blue, epic exodus`
+
+**Mouvement** : les nuées s'éloignent de la Terre vers la caméra.
+
+## Scène 7 — La Nébuleuse
+
+**Image** : les nuées arrivent dans une immense nébuleuse : des soleils, des planètes, et au centre un trou noir au disque violet.
+
+**Texte à l'écran** : « Après un très long voyage, elles atteignirent la Nébuleuse. Des mondes à prendre… et, au cœur de tout, le Puits. »
+
+**Prompt IA** : `streams of glowing colored spores arriving into a vast nebula, distant suns and planets, at the center a black hole with a tilted violet accretion disk and a lensed arc of light, sense of wonder and scale`
+
+**Mouvement** : lente avancée vers le centre, le disque du trou noir tourne.
+
+## Scène 8 — La première colonie
+
+**Image** : une nuée de spores se pose sur une lune glacée ; la surface s'illumine de réseaux lumineux.
+
+**Texte à l'écran** : « Une spore touche un monde, s'y accroche, et pousse. Puis une autre. Puis toute une section du parti. »
+
+**Prompt IA** : `a cloud of phosphorescent spores settling on the surface of an icy moon like glowing snow, bioluminescent networks spreading across the surface, organic hive-like structures growing`
 
 **Mouvement** : les réseaux s'allument les uns après les autres.
 
-## Scène 5 — Les Lignées
+## Scène 9 — La guerre des partis
 
-**Image** : plusieurs planètes, chacune enveloppée d'une lueur de couleur différente (violet, rose, orange, jaune), comme des drapeaux vivants.
+**Image** : des traînées de spores de couleurs différentes se croisent entre les planètes ; sur une surface, deux territoires de couleurs se disputent le sol.
 
-**Texte à l'écran** : « Chaque colonie devint une Lignée, avec sa couleur et sa volonté. Et chaque Lignée voulut plus. »
+**Texte à l'écran** : « Mais tous les partis avaient visé la même Nébuleuse. Le débat reprit. À coups de spores. »
 
-**Prompt IA** : `several planets in a star system, each one surrounded by a glowing aura of a different color (violet, pink, orange, yellow), as if each world had its own living will, rivalry in the air`
-
-**Mouvement** : les auras pulsent, la caméra passe d'une planète à l'autre.
-
-## Scène 6 — La première guerre
-
-**Image** : des traînées de spores lumineuses jaillissent d'une planète et s'écrasent sur une autre ; la surface touchée se couvre de taches de deux couleurs qui se disputent le sol.
-
-**Texte à l'écran** : « Elles apprirent à se lancer d'un monde à l'autre. Et chaque sol se gagna, case après case. »
-
-**Prompt IA** : `streams of glowing spores launched from one planet arcing through space and impacting another planet, on the impacted surface two colored living territories (violet and orange) fight for ground in irregular patches, epic battle`
+**Prompt IA** : `streams of glowing spores launched between planets, crossing each other, on a planet surface two colored living territories (violet and orange) fight for ground in irregular patches, epic space battle`
 
 **Mouvement** : les traînées partent et frappent, les taches de couleur avancent.
 
-## Scène 7 — Les Anciens
+## Scène 10 — Les Anciens
 
-**Image** : trois immenses sphères de pierre gravée, grandes comme des lunes, une verte, une noire, une rouge, flottant dans la pénombre ; on devine qu'elles sont très vieilles.
+**Image** : trois immenses sphères de pierre gravée, grandes comme des lunes, une verte, une noire, une rouge, qui sortent du trou noir.
 
-**Texte à l'écran** : « Bien avant elles, d'autres spores avaient tout conquis. Elles étaient devenues des races. Le Puits les avait avalées. »
+**Texte à l'écran** : « Ils n'étaient pas les premiers. D'autres civilisations avaient fait le même voyage, il y a très longtemps. Le Puits les avait avalées. Parfois, il les rend. »
 
-**Prompt IA** : `three colossal ancient spheres the size of moons, made of engraved dark stone with glowing veins, one with green light, one with steel grey light, one with ember red light, floating in shadow, ancient and majestic, sense of a lost civilization`
+**Prompt IA** : `three colossal ancient spheres the size of moons, made of engraved dark stone with glowing veins, one green, one steel grey, one ember red, emerging from a black hole with a violet accretion disk, ancient and majestic`
 
-**Mouvement** : les veines de lumière s'allument une à une.
+**Mouvement** : les sphères sortent lentement du trou noir.
 
-## Scène 8 — Les Jardiniers, les Niveleurs, les Veilleurs
+## Scène 11 — Les alliances d'or
 
-**Image** : un triptyque. À gauche, la sphère verte qui arrose de lumière une petite planète. Au centre, la sphère noire qui ronge une grande planète. À droite, la sphère rouge qui tourne près d'un soleil.
+**Image** : entre deux planètes aux auras de couleurs différentes, de petites orbes dorées voyagent dans les deux sens ; l'une se brise.
 
-**Texte à l'écran** : « Les Jardiniers soutiennent les faibles. Les Niveleurs abattent les puissants. Les Veilleurs gardent le feu des soleils. »
+**Texte à l'écran** : « Certains partis passèrent des accords. Des alliances d'or, solides comme une promesse de campagne. »
 
-**Prompt IA** : `triptych composition: left, a green glowing ancient sphere showering healing light on a small planet; center, a black stone sphere draining a large bright planet with dark beams; right, a red ember sphere orbiting close to a blazing sun`
-
-**Mouvement** : chaque panneau s'anime à son tour.
-
-## Scène 9 — Le retour
-
-**Image** : le trou noir ; une sphère en sort, déchirant le disque violet, dans un éclat de lumière.
-
-**Texte à l'écran** : « Mais le Puits ne garde rien pour toujours. Un jour, les Anciens reviennent. »
-
-**Prompt IA** : `a giant ancient stone sphere emerging from a black hole, tearing through the violet accretion disk, blinding burst of light, debris and spores swirling, awe-inspiring moment`
-
-**Mouvement** : la sphère sort lentement du trou noir, la lumière éclate.
-
-## Scène 10 — Les alliances
-
-**Image** : entre deux planètes de couleurs différentes, de petites orbes dorées voyagent dans les deux sens, comme des lanternes.
-
-**Texte à l'écran** : « Certaines Lignées choisirent l'échange plutôt que la guerre. Des alliances d'or… qui ne survivent jamais à la première trahison. »
-
-**Prompt IA** : `two planets with different colored auras (violet and teal) exchanging small glowing golden orbs traveling slowly in both directions like lanterns across space, peaceful but fragile alliance`
+**Prompt IA** : `two planets with different colored auras (violet and teal) exchanging small glowing golden orbs traveling slowly in both directions like lanterns across space, one orb cracking apart, fragile alliance`
 
 **Mouvement** : les orbes voyagent ; à la fin, l'une se brise.
 
-## Scène 11 — L'apocalypse
-
-**Image** : une sphère des Anciens explose ; une onde de choc blanche et violette balaie un système solaire entier.
-
-**Texte à l'écran** : « Quand un Ancien tombe, sa chute stérilise des mondes entiers. Tout est à reconquérir. »
-
-**Prompt IA** : `a colossal stone sphere exploding in space, a massive white and violet shockwave sweeping across an entire star system, planets lit by the blast, apocalyptic and beautiful`
-
-**Mouvement** : l'onde de choc s'étend vers la caméra.
-
 ## Scène 12 — À toi, Commandant
 
-**Image** : vue d'ensemble de la nébuleuse, des dizaines de mondes aux couleurs mêlées, le trou noir au centre ; au premier plan, une planète qui s'illumine.
+**Image** : vue d'ensemble de la Nébuleuse, des dizaines de mondes aux couleurs mêlées, le trou noir au centre ; au premier plan, une planète qui s'illumine.
 
-**Texte à l'écran** : « Celle qui tiendra la Nébuleuse deviendra la prochaine race. Les autres retourneront au Puits. À toi, Commandant. »
+**Texte à l'écran** : « Le parti qui tiendra la Nébuleuse écrira la Constitution de l'univers. À toi, Commandant. »
 
-**Prompt IA** : `panoramic view of a living nebula with dozens of worlds glowing in mixed colors, a black hole with violet disk at the center, in the foreground one planet lighting up with a bright violet aura, hopeful and epic, call to adventure`
+**Prompt IA** : `panoramic view of a living nebula with dozens of worlds glowing in mixed colors, a black hole with violet disk at the center, in the foreground one planet lighting up with a bright aura, hopeful and epic, call to adventure`
 
-**Mouvement** : lent recul qui révèle toute la nébuleuse, puis le titre du jeu (ajouté par le jeu).
+**Mouvement** : lent recul qui révèle toute la Nébuleuse, puis le titre du jeu (ajouté par le jeu).
 
 ## Musique et son
 
-- Musique : `amb_espace_2.mp3` (Nébuleuse) pour les scènes 1 à 5, puis `amb_espace_5.mp3` ou une piste épique pour les scènes 6 à 12 (voir `Audio/SONS_A_CREER.md`).
-- Voix off possible : le texte de chaque scène, lu lentement (environ 8 à 10 s par scène).
+- Musique : `amb_espace_2.mp3` (Nébuleuse) pour les scènes 1 à 6, puis `amb_espace_5.mp3` ou une piste épique pour les scènes 7 à 12 (voir `Audio/SONS_A_CREER.md`).
+- Voix off possible : le texte de chaque scène, lu lentement (environ 8 à 10 s par scène). Un ton de documentaire sérieux rend l'humour encore plus drôle.
+
+## Les régimes et l'histoire
+
+Les neuf régimes du jeu sont ces partis partis de la Terre. Sur chaque carte, la phrase en italique dit pourquoi le parti a choisi de transformer ses adhérents en spores.
 
 ## Ensuite
 
