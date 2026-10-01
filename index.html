@@ -1351,6 +1351,13 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        Reprise refusee aussi apres rechargement sur une nouvelle version.
        Essais : relais seul (4 cas) et vraie partie a 2 navigateurs.
        Le relais est modifie : a redeployer sur Railway.
+     - HAUTE DEFINITION DANS UN WORKER : les textures HD se peignent dans
+       un fil a part (le code des recettes lui est passe tel quel, seul
+       _texturer y retient la recette au lieu de peindre) ; le jeu n'est
+       plus interrompu du tout. Repli automatique sur la peinture par petits
+       morceaux si le navigateur refuse. Essai de zoom sur 12 planetes :
+       toutes nettes (11 restaient floues avant) ; copie publiee (dist,
+       compactee) verifiee aussi.
      - LORE : Lore/HISTOIRE.md (+ PDF), "La Chronique des Spores" en 12
        scenes (texte a l'ecran, prompt d'image IA, mouvement), style commun,
        couleurs ; les trois spheres deviennent les Jardiniers (verte), les
@@ -4639,48 +4646,57 @@ function _profilCratere(d) {
    Bord adouci, bord assombri (limbe), teinte d'atmosphere au bord si
    demande. Le chantier avance ligne par ligne : on peut le finir d'un coup,
    ou par petits morceaux entre deux images (voir _peintreFond). */
+function _etatSphere(size, seed, f, atmo, limbe, D) {
+    const h = size / 2;
+    /* Axe du globe un peu incline, different pour chaque astre. */
+    const rng = mulberry32(seed ^ 0x5bd1e995);
+    const ax = (rng() - 0.5) * 0.9, az = rng() * Math.PI * 2;
+    return { size: size, f: f, atmo: atmo, D: D, h: h, r: h - 1, y: 0, px: [0, 0, 0],
+             cx: Math.cos(ax), sx: Math.sin(ax), cz: Math.cos(az), sz: Math.sin(az),
+             lim: limbe === undefined ? 0.55 : limbe };
+}
+/* Peint des lignes jusqu'a l'heure limite (ms, performance.now) ; vrai quand c'est fini. */
+function _peindreLignes(S, limite) {
+    const size = S.size, h = S.h, r = S.r, D = S.D, f = S.f, atmo = S.atmo, px = S.px, lim = S.lim;
+    const cx = S.cx, sx = S.sx, cz = S.cz, sz = S.sz;
+    for (; S.y < size; S.y++) {
+        const y = S.y;
+        const ny = (y + 0.5 - h) / r;
+        for (let x = 0; x < size; x++) {
+            const nx = (x + 0.5 - h) / r;
+            const d2 = nx * nx + ny * ny;
+            if (d2 > 1.02) continue;
+            const nz = Math.sqrt(Math.max(0, 1 - d2));
+            /* Rotation : autour de x (inclinaison), puis de l'axe (longitude). */
+            const y1 = ny * cx - nz * sx, z1 = ny * sx + nz * cx;
+            const X = nx * cz - z1 * sz, Z = nx * sz + z1 * cz, Y = y1;
+            f(X, Y, Z, px, nz);
+            /* Limbe : le bord recoit la lumiere de biais. */
+            const k = (1 - lim) + lim * Math.pow(nz, 0.45);
+            let R = px[0] * k, G = px[1] * k, B = px[2] * k;
+            if (atmo) {
+                const a = Math.pow(1 - nz, 2.2) * atmo[3];
+                R += (atmo[0] - R) * a; G += (atmo[1] - G) * a; B += (atmo[2] - B) * a;
+            }
+            const i = (y * size + x) * 4;
+            D[i] = R; D[i + 1] = G; D[i + 2] = B;
+            /* Bord anticrenele sur un pixel et demi. */
+            D[i + 3] = 255 * Math.max(0, Math.min(1, (1 - Math.sqrt(d2)) * r * 0.7 + 0.5));
+        }
+        if ((y & 3) === 3 && performance.now() > limite) { S.y++; return false; }
+    }
+    return true;
+}
 function _chantierSphere(size, seed, f, atmo, limbe) {
     const c = document.createElement('canvas');
     c.width = c.height = size;
     const ctx = c.getContext('2d');
     const img = ctx.createImageData(size, size);
-    const D = img.data;
-    const h = size / 2, r = h - 1;
-    /* Axe du globe un peu incline, different pour chaque astre. */
-    const rng = mulberry32(seed ^ 0x5bd1e995);
-    const ax = (rng() - 0.5) * 0.9, az = rng() * Math.PI * 2;
-    const cx = Math.cos(ax), sx = Math.sin(ax), cz = Math.cos(az), sz = Math.sin(az);
-    const px = [0, 0, 0];
-    const lim = limbe === undefined ? 0.55 : limbe;
-    let y = 0;
+    const S = _etatSphere(size, seed, f, atmo, limbe, img.data);
     return {
-        /* Peint jusqu'a l'heure limite (ms, performance.now) ; rend la toile finie, ou null. */
+        /* Peint jusqu'a l'heure limite ; rend la toile finie, ou null. */
         avancer: function (limite) {
-            for (; y < size; y++) {
-                const ny = (y + 0.5 - h) / r;
-                for (let x = 0; x < size; x++) {
-                    const nx = (x + 0.5 - h) / r;
-                    const d2 = nx * nx + ny * ny;
-                    if (d2 > 1.02) continue;
-                    const nz = Math.sqrt(Math.max(0, 1 - d2));
-                    /* Rotation : autour de x (inclinaison), puis de l'axe (longitude). */
-                    const y1 = ny * cx - nz * sx, z1 = ny * sx + nz * cx;
-                    const X = nx * cz - z1 * sz, Z = nx * sz + z1 * cz, Y = y1;
-                    f(X, Y, Z, px, nz);
-                    /* Limbe : le bord recoit la lumiere de biais. */
-                    const k = (1 - lim) + lim * Math.pow(nz, 0.45);
-                    let R = px[0] * k, G = px[1] * k, B = px[2] * k;
-                    if (atmo) {
-                        const a = Math.pow(1 - nz, 2.2) * atmo[3];
-                        R += (atmo[0] - R) * a; G += (atmo[1] - G) * a; B += (atmo[2] - B) * a;
-                    }
-                    const i = (y * size + x) * 4;
-                    D[i] = R; D[i + 1] = G; D[i + 2] = B;
-                    /* Bord anticrenele sur un pixel et demi. */
-                    D[i + 3] = 255 * Math.max(0, Math.min(1, (1 - Math.sqrt(d2)) * r * 0.7 + 0.5));
-                }
-                if ((y & 3) === 3 && performance.now() > limite) { y++; return null; }
-            }
+            if (!_peindreLignes(S, limite)) return null;
             ctx.putImageData(img, 0, 0);
             return c;
         }
@@ -4708,6 +4724,108 @@ function _texturer(b, size, seed, f, atmo, limbe) {
         _lancerPeintre();
     } else b._travailHD = null;
 }
+/* LE TRAVAILLEUR. La haute definition se peint dans un Worker : un fil a
+   part, qui tourne a cote du jeu sans jamais lui prendre une image. Il
+   recoit le code des recettes (createPlanetTexture & co, tels quels : seul
+   _texturer y change, il retient la recette au lieu de peindre), refait la
+   recette de l'astre et rend les pixels. Navigateur sans Worker, ou erreur :
+   on repasse a la peinture par petits morceaux (_peintreFond). */
+let _travailleur = null, _travailleurKo = false, _tEnCours = null, _tNumero = 0;
+function _texTravailleur() {
+    if (_travailleur || _travailleurKo) return _travailleur;
+    try {
+        const outils = [mulberry32, _bruitPerlin, _rampe, _lissePas, _crateres, _profilCratere, _hexRgb,
+                        _etatSphere, _peindreLignes, createPlanetTexture, createMoonTexture, createSunTexture];
+        const src = outils.map(String).join('\n') + `
+let _recette = null;
+function _texturer(b, size, seed, f, atmo, limbe) { _recette = { size: size, seed: seed, f: f, atmo: atmo, limbe: limbe }; }
+onmessage = function (e) {
+    const m = e.data, b = m.astre;
+    _recette = null;
+    if (b.type === 'sun') createSunTexture(b); else if (b.type === 'moon') createMoonTexture(b); else createPlanetTexture(b);
+    const R = _recette, D = new Uint8ClampedArray(R.size * R.size * 4);
+    _peindreLignes(_etatSphere(R.size, R.seed, R.f, R.atmo, R.limbe, D), Infinity);
+    postMessage({ id: m.id, size: R.size, data: D.buffer }, [D.buffer]);
+};`;
+        const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+        _travailleur = new Worker(url);
+        _travailleur.onmessage = _texRecue;
+        _travailleur.onerror = function () {
+            _travailleurKo = true;
+            try { _travailleur.terminate(); } catch (e) {}
+            _travailleur = null; _tEnCours = null;
+            _lancerPeintre();
+        };
+    } catch (e) { _travailleurKo = true; _travailleur = null; }
+    return _travailleur;
+}
+/* Le prochain astre a peindre : celui qu'on regarde de pres (le plus grand
+   a l'ecran), puis celui deja entame, puis le plus proche de la camera. */
+function _choisirTravail(urgent) {
+    let k = -1;
+    if (urgent.length) {
+        let best = null;
+        for (const b of urgent) if (_fileHD.indexOf(b) >= 0 && (!best || b.radius > best.radius)) best = b;
+        k = best ? _fileHD.indexOf(best) : -1;
+    }
+    if (k < 0) k = _fileHD.findIndex(function (b) { return b._travailHD && b._travailHD.chantier; });
+    if (k < 0) {
+        const cam = gameState.camera;
+        let bd = Infinity;
+        for (let i = 0; i < _fileHD.length; i++) {
+            const d = cam ? Math.hypot(_fileHD[i].x - cam.x, _fileHD[i].y - cam.y) : i;
+            if (d < bd) { bd = d; k = i; }
+        }
+    }
+    return k;
+}
+function _astreEnJeu(b) {
+    return gameState.planets.indexOf(b) >= 0 || gameState.moons.indexOf(b) >= 0 || gameState.suns.indexOf(b) >= 0;
+}
+/* La haute definition arrive : elle remplace la version legere, rendue
+   aussitot au navigateur. */
+function _poserHD(b, c) {
+    const ancien = b._texture, anciens = b._niveaux;
+    b._texture = c;
+    b._niveaux = b.type === 'sun' ? _niveauxTexture(c) : null;
+    b._travailHD = null;
+    const k = _fileHD.indexOf(b);
+    if (k >= 0) _fileHD.splice(k, 1);
+    if (ancien && ancien !== c) { ancien.width = 0; ancien.height = 0; }
+    if (anciens) for (const n of anciens) if (n !== ancien && n !== c) { n.width = 0; n.height = 0; }
+}
+function _envoyerTravail() {
+    while (_fileHD.length) {
+        const k = _choisirTravail(_fileHD.filter(_texUrgente));
+        const b = _fileHD[k];
+        if (!b._travailHD || !_astreEnJeu(b)) { _fileHD.splice(k, 1); continue; }
+        const id = ++_tNumero;
+        _tEnCours = { id: id, b: b, T: b._travailHD };
+        _travailleur.postMessage({ id: id, astre: { type: b.type, name: b.name, radius: b.radius, orbitRadius: b.orbitRadius, color: b.color } });
+        return;
+    }
+}
+function _texRecue(e) {
+    const m = e.data, en = _tEnCours;
+    if (!en || en.id !== m.id) return;
+    _tEnCours = null;
+    const b = en.b;
+    /* Texture refaite entre-temps, ou partie finie : on laisse. */
+    if (b._travailHD === en.T && _astreEnJeu(b)) {
+        try {
+            const c = document.createElement('canvas');
+            c.width = c.height = m.size;
+            c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size), 0, 0);
+            _poserHD(b, c);
+        } catch (err) {
+            b._travailHD = null;
+            const k = _fileHD.indexOf(b);
+            if (k >= 0) _fileHD.splice(k, 1);
+        }
+    }
+    _lancerPeintre();
+}
+
 /* Un astre a l'ecran, affiche nettement plus grand que sa texture : on le
    regarde de pres, il passe avant tout le reste. */
 function _texUrgente(b) {
@@ -4716,7 +4834,9 @@ function _texUrgente(b) {
     return aLEcran(b.x, b.y, b.radius) && b.radius * 2 * cam.zoom * echelleRendu() > b._texture.width * 1.3;
 }
 function _lancerPeintre() {
-    if (_peintreActif || !_fileHD.length) return;
+    if (!_fileHD.length) return;
+    if (_texTravailleur()) { if (!_tEnCours) _envoyerTravail(); return; }
+    if (_peintreActif) return;
     _peintreActif = true;
     /* Un astre regarde de pres attend : on revient a l'image suivante. */
     if (_fileHD.some(_texUrgente)) setTimeout(_peintreFond, 16);
@@ -4733,24 +4853,10 @@ function _peintreFond(deadline) {
     while (_fileHD.length && performance.now() < limite) {
         /* D'abord l'astre regarde de pres (le plus grand a l'ecran), puis
            celui deja entame, puis le plus proche de la camera. */
-        let k = -1;
-        if (urgent.length) {
-            let best = null;
-            for (const b of urgent) if (_fileHD.indexOf(b) >= 0 && (!best || b.radius > best.radius)) best = b;
-            k = best ? _fileHD.indexOf(best) : -1;
-        }
-        if (k < 0) k = _fileHD.findIndex(function (b) { return b._travailHD && b._travailHD.chantier; });
-        if (k < 0) {
-            const cam = gameState.camera;
-            let bd = Infinity;
-            for (let i = 0; i < _fileHD.length; i++) {
-                const d = cam ? Math.hypot(_fileHD[i].x - cam.x, _fileHD[i].y - cam.y) : i;
-                if (d < bd) { bd = d; k = i; }
-            }
-        }
+        const k = _choisirTravail(urgent);
         const b = _fileHD[k], T = b._travailHD;
         /* Astre d'une partie finie, ou texture refaite depuis : on laisse. */
-        if (!T || (gameState.planets.indexOf(b) < 0 && gameState.moons.indexOf(b) < 0 && gameState.suns.indexOf(b) < 0)) { _fileHD.splice(k, 1); continue; }
+        if (!T || !_astreEnJeu(b)) { _fileHD.splice(k, 1); continue; }
         let c = null;
         try {
             if (!T.chantier) T.chantier = _chantierSphere(T.size, T.seed, T.f, T.atmo, T.limbe);
@@ -4761,16 +4867,7 @@ function _peintreFond(deadline) {
             _fileHD.splice(k, 1);
             continue;
         }
-        if (c) {
-            const ancien = b._texture, anciens = b._niveaux;
-            b._texture = c;
-            b._niveaux = b.type === 'sun' ? _niveauxTexture(c) : null;
-            b._travailHD = null;
-            _fileHD.splice(k, 1);
-            /* La version legere est rendue tout de suite au navigateur. */
-            if (ancien && ancien !== c) { ancien.width = 0; ancien.height = 0; }
-            if (anciens) for (const n of anciens) if (n !== ancien && n !== c) { n.width = 0; n.height = 0; }
-        }
+        if (c) _poserHD(b, c);
     }
     _lancerPeintre();
 }
