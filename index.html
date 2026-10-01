@@ -1531,6 +1531,11 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
      - MUTATIONS TROIS FOIS PLUS CHERES : 1re branche 3 000 + 300 par
        niveau, 2e 6 000 + 600, 3e 9 000 + 900 (avant 1 000 / 2 000 / 3 000
        et +100 / +200 / +300). Regles mises a jour.
+     - CLIC DROIT SUR UN ASTRE = SA FICHE : le menu radial est retire (tout
+       passe par les touches : Espace, 1 a 4, F, G, R, T) ; en visee, le
+       clic droit annule toujours. La fiche (INFOS) montre en plus les
+       batiments de l'astre : alveoles, nids, biomes, et le parasite (pret
+       ou en cours), mise a jour en direct. Regles et touche K a jour.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -3723,7 +3728,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;color:rgba(200,210,230,0.55);font-size:11px;letter-spacing:1px;">SOURIS</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche sur un astre</td><td style="padding:3px 0;">Le sélectionne et centre la caméra dessus</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un astre possédé</td><td style="padding:3px 0;">Menu radial : ⚪ Spores · <i class="ic-bat" data-g="parasite"></i> Parasite · <i class="ic-bat" data-g="alveole"></i> Alvéole · <i class="ic-bat" data-g="nid"></i> Nid · <i class="ic-bat" data-g="biome"></i> Biome · 📖 Codex</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un astre</td><td style="padding:3px 0;">Sa fiche : type, flore, faune, propriétaire, spores et <b>bâtiments</b> <i class="ic-bat" data-g="alveole"></i> <i class="ic-bat" data-g="nid"></i> <i class="ic-bat" data-g="biome"></i>. Tirs et constructions passent par les touches (Espace, 1 à 4, F, G)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche maintenu → relâcher</td><td style="padding:3px 0;">En mode visée : tire un jet de spores dans la direction pointée</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic sur une zone de la planète</td><td style="padding:3px 0;">Choisit la zone d'où partira le tir — elle se cerne d'un trait double et d'un « TIR »</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Double-clic sur un astre</td><td style="padding:3px 0;">Plonge dessus (cadrage) ; Espace ensuite pour tirer</td></tr>
@@ -3768,7 +3773,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 </table>
 <p style="margin-bottom:6px;">Le rendement du moment s'affiche au-dessus de l'astre sélectionné, en vert, jaune ou rouge. Tout le reste <span style="color:#E9D5FF;">multiplie</span> cette courbe : la <span style="color:#4ADE80;">Flore</span> de l'astre, la <span style="color:#22C55E;">Symbiose</span> qui monte avec le temps (jusqu'à +20 % sur une planète, +10 % sur une lune), vos <span style="color:#E9D5FF;">nids</span> et votre stat <span style="color:#4ADE80;">Growth</span>.</p>
 <p style="margin-bottom:16px;">Une <span style="color:#EAB308;">alvéole</span> augmente la capacité, donc aussi la production : un plus grand silo nourrit plus de monde. Attention, elle décale aussi le pic.</p>
-<p style="margin-bottom:16px;">Deux types de jets partent du menu radial : <span style="color:#E9D5FF;">⚪ Spores</span>, qui colonisent et attaquent, et <span style="color:#E9D5FF;"><i class="ic-bat" data-g="parasite"></i> Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent). Raccourcis : <b>4</b> construit le foyer putride qui la prépare, <b>G</b> l'arme pendant la visée.</p>
+<p style="margin-bottom:16px;">Deux types de jets : <span style="color:#E9D5FF;">⚪ Spores</span> (Espace, puis clic), qui colonisent et attaquent, et <span style="color:#E9D5FF;"><i class="ic-bat" data-g="parasite"></i> Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent). Raccourcis : <b>4</b> construit le foyer putride qui la prépare, <b>G</b> l'arme pendant la visée.</p>
 <!-- BATAILLE -->
 <p id="h-bataille" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚔ BATAILLE DE SURFACE</p>
 <p style="margin-bottom:6px;">Une conquête ne se joue plus en un choc. Les spores qui touchent un astre y <span style="color:#FFD700;">prennent pied sur une case</span>, du côté d'où vient le tir, et s'étalent sur le disque en lobes irréguliers. Chaque camp a sa couleur ; le sol que personne ne tient est gris.</p>
@@ -3798,7 +3803,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 
 <!-- BÂTIMENTS -->
 <p id="h-batiments" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;"><i class="ic-bat" data-g="alveole"></i><i class="ic-bat" data-g="nid"></i><i class="ic-bat" data-g="biome"></i> BÂTIMENTS</p>
-<p style="margin-bottom:6px;">Par la couronne extérieure du menu radial, ou aux touches <span style="color:#E9D5FF;">1 2 3</span>. La construction est <span style="color:#4ADE80;">immédiate</span> : si l'astre ne peut pas payer, elle est refusée sur-le-champ et l'écran vibre.</p>
+<p style="margin-bottom:6px;">Aux touches <span style="color:#E9D5FF;">1 2 3</span> (4 pour le foyer putride), ou dans l'onglet BÂTIMENTS de la fiche (clic droit sur l'astre). La construction est <span style="color:#4ADE80;">immédiate</span> : si l'astre ne peut pas payer, elle est refusée sur-le-champ et l'écran vibre.</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
   <tr style="color:rgba(200,210,230,0.5);"><td style="padding:3px 0;width:26%;">Bâtiment</td><td style="padding:3px 0;width:22%;">Coût</td><td style="padding:3px 0;">Gains successifs</td></tr>
   <tr><td style="padding:3px 0;"><i class="ic-bat" data-g="alveole"></i> Alvéole</td><td style="padding:3px 0;color:#FFD700;">10 % du stock max</td><td style="padding:3px 0;">capacité : +20 %, +15 %, +10 %, puis +5 %</td></tr>
@@ -3806,7 +3811,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <tr><td style="padding:3px 0;"><i class="ic-bat" data-g="biome"></i> Biome</td><td style="padding:3px 0;color:#FFD700;">20 % du stock max</td><td style="padding:3px 0;">défense : +20 %, +15 %, +10 %, puis +5 %</td></tr>
   <tr><td colspan="3" style="padding:6px 0;color:rgba(200,210,230,0.6);font-size:11px;">À partir du quatrième d'un même genre, le coût monte de <b>10 %</b> à chaque fois. Le nid rapporte une fois et demie plus que les autres, à coût égal.</td></tr>
 </table>
-<p style="margin-bottom:6px;"><span style="color:#FFD700;">UNE ICÔNE PAR BÂTIMENT, PARTOUT LA MÊME.</span> <i class="ic-bat" data-g="alveole"></i> le rayon de miel pour l'alvéole, <i class="ic-bat" data-g="nid"></i> l'œuf dans son nid pour le nid, <i class="ic-bat" data-g="biome"></i> le dôme de vie pour le biome, et <i class="ic-bat" data-g="parasite"></i> la spore infectée pour le parasite. Ce sont les mêmes sur les astres, dans le menu radial, la barre de construction, la liste de gauche, la fiche et le journal. De très près, un <span style="color:#4ADE80;">nid qui produit crache ses spores</span> en petits jets.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">UNE ICÔNE PAR BÂTIMENT, PARTOUT LA MÊME.</span> <i class="ic-bat" data-g="alveole"></i> le rayon de miel pour l'alvéole, <i class="ic-bat" data-g="nid"></i> l'œuf dans son nid pour le nid, <i class="ic-bat" data-g="biome"></i> le dôme de vie pour le biome, et <i class="ic-bat" data-g="parasite"></i> la spore infectée pour le parasite. Ce sont les mêmes sur les astres, la barre de construction, la liste de gauche, la fiche et le journal. De très près, un <span style="color:#4ADE80;">nid qui produit crache ses spores</span> en petits jets.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">LES BÂTIMENTS SONT POSÉS SUR LE SOL.</span> Chacun occupe une case de la surface : on le voit là où il est. Vous pouvez bâtir sur une simple tête de pont chez l'ennemi, payée par la réserve que vous avez sur place.</p>
 <p style="margin-bottom:16px;">Quand la frontière passe dessus, le bâtiment <span style="color:#4ADE80;">change de mains avec le terrain</span> : la conquête ne détruit rien, elle récupère — seul le <span style="color:#FF8A3D;">démolisseur</span> (F) fait exploser un bâtiment. Seuls comptent les nids que vous tenez, et les biomes qui défendent sont ceux que l'assaillant ne tient pas.</p>
 <p style="margin-bottom:16px;"><span style="color:#FFD700;">Système solaire entier conquis</span> → +3 % de production sur tous ses astres, et les ondes solaires se déclenchent (voir Territoires).</p>
@@ -4187,6 +4192,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
         <div class="codex-row" title="Défense naturelle contre les conquêtes"><span>Faune</span><span class="codex-val" id="codexFaune">—</span></div>
         <div class="codex-row"><span>Propriétaire</span><span class="codex-val" id="codexOwner">—</span></div>
         <div class="codex-row" title="Spores stockées sur cet astre"><span>Spores</span><span class="codex-val" id="codexSpores">—</span></div>
+        <div class="codex-row" title="Alvéoles, nids et biomes posés sur cet astre (tous camps confondus)"><span>Bâtiments</span><span class="codex-val" id="codexBat">—</span></div>
         <div class="codex-symbiose" id="codexSymbiose" style="display:none;">
             <div class="sym-label" title="+20% prod planètes, +10% lunes à 100%"><span>Symbiose</span><span class="sym-val" id="codexSymVal">0%</span></div>
             <div class="sym-bar-bg"><div class="sym-bar" id="codexSymBar" style="width:0%"></div></div>
@@ -10710,6 +10716,17 @@ function updateTechPanel() {
 // CODEX — Panneau latéral
 // ─────────────────────────────────────────────
 
+/* Le nombre de batiments de l'astre, dans la fiche (clic droit). */
+function _codexBatiments(b) {
+    const el = document.getElementById('codexBat');
+    if (!el) return;
+    if (b.type === 'sun') { el.textContent = '—'; return; }
+    let h = iconeBat('alveole', 12) + ' ' + (b.alveoles || 0) + ' &nbsp;' + iconeBat('nid', 12) + ' ' + (b.nids || 0)
+          + ' &nbsp;' + iconeBat('biome', 12) + ' ' + (b.biomes || 0);
+    if ((b.parasiteSpore || 0) >= 1) h += ' &nbsp;' + iconeBat('parasite', 12) + ' prête';
+    else if (b.buildMode === 'parasite') h += ' &nbsp;' + iconeBat('parasite', 12) + ' en cours';
+    if (el._h !== h) { el.innerHTML = h; el._h = h; }
+}
 function openCodex(body) {
     gameState.selectedBody = body;
     gameState.codexOpen = true;
@@ -10738,6 +10755,7 @@ function openCodex(body) {
         : 'Neutre';
     document.getElementById('codexOwner').textContent = owner;
     document.getElementById('codexSpores').textContent = body.spores !== undefined ? _sp(body.spores) : '—';
+    _codexBatiments(body);
 
     // Symbiose
     const symEl = document.getElementById('codexSymbiose');
@@ -11229,6 +11247,7 @@ function updateHUD() {
     if (gameState.codexOpen && gameState.selectedBody) {
         const _b = gameState.selectedBody;
         document.getElementById('codexSpores').textContent = _b.spores !== undefined ? _sp(_b.spores) : '—';
+        _codexBatiments(_b);
         if (_b.owner !== null && _b.symbiosis !== undefined) {
             const pct = Math.floor(_b.symbiosis);
             document.getElementById('codexSymVal').textContent = pct + '%';
@@ -15398,19 +15417,11 @@ function setupInput() {
             if (gameState.phase === 'game') {
                 const wp = _worldPos(e.clientX, e.clientY);
                 const body = _bodyAt(wp.x, wp.y);
-/* On tire depuis chez soi, mais aussi depuis le bout de sol qu'on tient
-   chez l'autre : un astre a moitie conquis peut envoyer des spores
-   ailleurs, il n'a pas a etre pris en entier pour servir. */
-const _pied = body && peutTirerSurface(body, localSlot());
-if (body && _pied && (e.button === 2)) {
-                    if (gameState.phase === 'spawn') return;
-                    followingBody = body;
-                    gameState._firePhase = 'menu';
-                    gameState._fireSource = body;
-                    _stmOpen(body, e.clientX, e.clientY);
-                    return;
-                }
-                if (body && body.owner !== null && body.owner !== localSlot() && body.owner >= 0 && (e.button === 2)) {
+                /* CLIC DROIT : en visee, il annule ; sur un astre, il ouvre sa
+                   fiche (infos et batiments). Le menu radial a ete retire :
+                   tout passe par les touches (Espace, 1 a 4, F, G, R, T). */
+                if (e.button === 2 && gameState._firePhase) { _cancelFire(); return; }
+                if (body && e.button === 2) {
                     if (!gameState._spawnLocked) openCodex(body);
                     return;
                 }
@@ -26232,7 +26243,7 @@ const RACCOURCIS = [
     ['SOURIS', [
         ['Clic gauche', 'Sélectionner un astre (et une zone de tir)'],
         ['Double-clic', "Plonger sur l'astre"],
-        ['Clic droit sur ton astre', 'Menu radial (tirs, bâtiments, codex)'],
+        ['Clic droit sur un astre', 'Sa fiche (infos et bâtiments)'],
         ['Clic droit + glisser', 'Déplacer la vue'],
         ['Molette', 'Zoom'],
         ['Survol d\u2019un nombre', 'À qui sont ces spores'],
