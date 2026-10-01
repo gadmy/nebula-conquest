@@ -1495,7 +1495,12 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        legeres seulement). Resultat Firefox : hd=0 bon, travailleur=0 non
        (la cause n'est pas le Worker). Puis ?tex=logiciel / bitmap / garder,
        et 4 anciennes versions publiees dans essais/1 a 4 pour trouver le
-       patch fautif (a retirer ensuite).
+       patch fautif (a retirer ensuite). Bilan : version 1 (avant le Worker)
+       bonne, versions 2 a 4 (Worker) mauvaises. CORRIGE : sous Firefox, pas
+       de Worker, la haute definition se peint par petits morceaux comme
+       avant (?travailleur=1 pour le forcer quand meme). Et dessinerVisible :
+       zoome tres fort, seule la partie a l'ecran d'un astre est posee
+       (Firefox n'affichait plus les soleils quand l'image devenait immense).
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -4980,6 +4985,11 @@ function _texturer(b, size, seed, f, atmo, limbe) {
 let _travailleur = null, _travailleurKo = _essaiTex.get('travailleur') === '0', _tEnCours = null, _tNumero = 0;
 function _texTravailleur() {
     if (_travailleur || _travailleurKo) return _travailleur;
+    /* FIREFOX : les textures venues du Worker n'y apparaissent pas (astres
+       qui disparaissent un par un, signale par le createur ; avant le
+       Worker, tout allait bien). On y garde la peinture par petits morceaux,
+       comme avant. */
+    if (/Firefox\//.test(navigator.userAgent) && _essaiTex.get('travailleur') !== '1') { _travailleurKo = true; return null; }
     try {
         const outils = [mulberry32, _bruitPerlin, _rampe, _lissePas, _crateres, _profilCratere, _hexRgb,
                         _etatSphere, _peindreLignes, createPlanetTexture, createMoonTexture, createSunTexture];
@@ -5147,6 +5157,20 @@ function _niveauxTexture(c) {
 /* Pose un astre avec la copie la plus proche de sa taille a l'ecran. */
 const _TEINTE_ASTRE = { ocean: '#2A5F9E', desert: '#C49A5A', gas: '#C9A27A', ice: '#B8D4E8', rocky: '#8B7355',
                         rock: '#9A9AAA', dark: '#4A4A55', volcanic: '#6A4A3A' };
+/* Une image posee sur le rectangle (x, y, w, h) du monde, en ne gardant que
+   la partie a l'ecran quand elle devient immense : zoome tres fort sur un
+   soleil, Firefox n'affichait plus rien. */
+function dessinerVisible(ctx, img, x, y, w, h) {
+    const m = ctx.getTransform();
+    if (Math.abs(w * m.a) < 3000 || m.b !== 0 || m.c !== 0) { ctx.drawImage(img, x, y, w, h); return; }
+    const W = ctx.canvas.width, H = ctx.canvas.height;
+    const x0 = Math.max(x, -m.e / m.a), x1 = Math.min(x + w, (W - m.e) / m.a);
+    const y0 = Math.max(y, -m.f / m.d), y1 = Math.min(y + h, (H - m.f) / m.d);
+    if (x1 <= x0 || y1 <= y0) return;
+    const iw = img.width, ih = img.height;
+    const u0 = (x0 - x) / w * iw, u1 = (x1 - x) / w * iw, v0 = (y0 - y) / h * ih, v1 = (y1 - y) / h * ih;
+    ctx.drawImage(img, u0, v0, Math.max(0.01, u1 - u0), Math.max(0.01, v1 - v0), x0, y0, x1 - x0, y1 - y0);
+}
 function poserTexture(ctx, b, pxParUnite) {
     let img = b._texture;
     const niv = b._niveaux;
@@ -5158,7 +5182,7 @@ function poserTexture(ctx, b, pxParUnite) {
     }
     try {
         if (!img || !img.width) throw 0;
-        ctx.drawImage(img, b.x - b.radius, b.y - b.radius, b.radius * 2, b.radius * 2);
+        dessinerVisible(ctx, img, b.x - b.radius, b.y - b.radius, b.radius * 2, b.radius * 2);
     } catch (e) {
         /* Image indisponible : l'astre reste visible, en couleur unie. */
         ctx.fillStyle = _TEINTE_ASTRE[b.planetType || b.moonType] || '#8888AA';
@@ -18387,7 +18411,7 @@ function drawSuns(ctx) {
                agrandir, et la le lissage reste necessaire. */
             const _liss = ctx.imageSmoothingEnabled;
             ctx.imageSmoothingEnabled = px > niv[0].width;
-            ctx.drawImage(niv[k], sun.x - sun.radius, sun.y - sun.radius, sun.radius * 2, sun.radius * 2);
+            dessinerVisible(ctx, niv[k], sun.x - sun.radius, sun.y - sun.radius, sun.radius * 2, sun.radius * 2);
             ctx.imageSmoothingEnabled = _liss;
         }
         if (gameState.lod >= 1) eruptionsSolaires(ctx, sun, t);
