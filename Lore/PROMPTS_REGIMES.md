@@ -1,43 +1,43 @@
-# NEBULA CONQUEST — 9 prompts pour les régimes
+# NEBULA CONQUEST — 9 logos ironiques pour les régimes
 
-Un seul personnage par parti, **très exagéré**, en caricature. Copie-colle chaque prompt tel quel.
+Un logo de parti inventé et ironique par régime. Les logos marchent bien avec les outils d'images : une forme simple, centrée, peu de couleurs. Aucun ne reprend un vrai emblème de parti.
 
-- **Format** : 16:9. Avec Midjourney, ajoute `--ar 16:9`.
+- **Format** : carré (1:1). Avec Midjourney, ajoute `--ar 1:1`. La carte affichera le logo au centre.
 - **Nom du fichier** : indiqué au-dessus de chaque prompt. Dépose les images dans `Lore`.
-- **À éviter** (si ton outil a une case pour ça) : `text, logo, flag, real person, celebrity`
+- **À éviter** (si ton outil a une case pour ça) : `text, letters, words, real political logo, flag, photo`
 
 ## centre_collaborateur
 
-`Caricature of a grinning politician in a grey suit, shaking two hands at once, a weathervane on his head, very exaggerated, funny, colorful digital painting, space background`
+`Flat vector logo, circular badge: a weathervane whose arrow is a handshake, pointing both ways, grey and soft blue, bold simple shapes, dark navy background, no text`
 
 ## gauche_non_solidaire
 
-`Caricature of a grumpy activist with a red rose, hugging a tiny planet just for himself, refusing to share, very exaggerated, funny, colorful digital painting, space background`
+`Flat vector logo, circular badge: a red heart cut in two halves, each half locked with its own small padlock, red and pink, bold simple shapes, dark navy background, no text`
 
 ## dictature_eclairee
 
-`Caricature of a tiny dictator with huge round glasses on a giant throne of books, holding a glowing light bulb, very exaggerated, funny, colorful digital painting, space background`
+`Flat vector logo, circular badge: a glowing light bulb wearing a tiny golden crown, sun rays around it, yellow and gold, bold simple shapes, dark navy background, no text`
 
 ## royaute_plusieurs
 
-`Caricature of a fat king wearing a dozen crowns stacked on his head, all wobbling, very exaggerated, funny, colorful digital painting, space background`
+`Flat vector logo, circular badge: a wobbly tower of twelve small golden crowns stacked on top of each other, gold and purple, bold simple shapes, dark navy background, no text`
 
 ## fascisme_sympa
 
-`Caricature of a stiff general with a giant mustache, marching proudly while offering croissants and flowers with a huge friendly smile, no insignia, very exaggerated, funny, colorful digital painting, space background`
+`Flat vector logo, circular badge: a shiny black marching boot with a cute daisy growing out of it and a smiley face, black, white and yellow, bold simple shapes, dark navy background, no text, no insignia`
 
 ## anarchie_organisee
 
-`Caricature of a punk with a giant colorful mohawk, carefully checking a huge planner covered in sticky notes, very exaggerated, funny, colorful digital painting, space background`
+`Flat vector logo, circular badge: a messy scribble neatly framed inside a perfectly tidy grid of squares like a planner, black and orange, bold simple shapes, dark navy background, no text`
 
 ## ecolo_pas_trop
 
-`Caricature of a hippie with a crown of leaves, watering a tiny plant while a huge smoking rocket launches behind him, very exaggerated, funny, colorful digital painting, space background`
+`Flat vector logo, circular badge: a big green leaf with a small smoking factory chimney on top, green and grey, bold simple shapes, dark navy background, no text`
 
 ## communisme_neoliberal
 
-`Caricature of a worker in red overalls and a fur hat, wearing gold chains and counting a pile of gold coins, very exaggerated, funny, colorful digital painting, space background`
+`Flat vector logo, circular badge: a shiny gold coin wearing a red worker's cap, with an arrow going up, red and gold, bold simple shapes, dark navy background, no text`
 
 ## droite_proletaire
 
-`Caricature of an exhausted but proud worker in blue overalls and a hard hat, holding a giant wrench, huge dark circles under his eyes, very exaggerated, funny, colorful digital painting, space background`
+`Flat vector logo, circular badge: a big wrench crossed with an elegant necktie, blue and gold, bold simple shapes, dark navy background, no text`
