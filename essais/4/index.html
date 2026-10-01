@@ -1448,54 +1448,6 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        feuille a usine, piece d'or a casquette, cle a molette et cravate.
        Carte : logo entier et centre (plus de recadrage), l'icone se cache
        quand il est charge. Serveurs locaux (relais, banc) : type SVG ajoute.
-     - LIVRE DES REGLES REMIS A JOUR : sections DEPART & REGIMES et
-       COMMERCE & ALLIANCES (avant, caches dans Territoires) ; MULTIJOUEUR
-       reecrit (AU HASARD classe, ENTRE AMIS avec code et lien, meme version
-       exigee, REPRENDRE ; les anciens modes, guildes et equipes retires) ;
-       Evolution corrigee (depart 3/4/2/1 + 3 points du regime, 8 max ;
-       Growth +30 % par point, Velocity +6 de vitesse par point) ; clic
-       droit sur un nom dans les controles ; mot sur l'HISTOIRE ; REGARDER
-       en solo ; pied de page v9.7.9.
-     - REPRISE ACCELEREE (REPRENDRE rejoue la partie depuis le debut) : plus
-       de 10 s de retard, on ne dessine plus, 150 ms de calcul par image et
-       une barre "REPRISE DE LA PARTIE : x %" ; pendant ce rejeu, empreinte
-       toutes les 10 s seulement (le relais la compare toujours a celle des
-       autres) et pas de detail de diagnostic. Mesure en vrai (relais, 2
-       navigateurs, 6 IA) : 4,2 min de partie reprises en 13,6 s avant,
-       7,4 s apres ; aucune desynchronisation.
-       Maths identiques : sinus et cosinus sans petit tableau neuf a chaque
-       appel (moins de memoire a ramasser), resultat identique au bit pres
-       (npm run lockstep : meme empreinte finale qu'avant, 8885b2d5).
-       Mesures 16 joueurs, 6 min : calcul ~1 ms par tour, image ~2 ms.
-     - REPRISE INSTANTANEE (photo de la partie) : toutes les 30 s de jeu, le
-       navigateur range dans IndexedDB une photo de tout ce que le calcul
-       utilise (objets simples, tableaux, liens entre objets, etat du
-       hasard) ; ce qui est propre a l'ecran (taille, camera, son, visee,
-       textures) n'y entre jamais. REPRENDRE : la page refait la carte, pose
-       la photo par-dessus (les astres existants sont remplis, pas
-       remplaces : textures gardees) et ne demande au relais que les paquets
-       suivants. Filet : au moindre ecart d'empreinte, photo effacee et page
-       rechargee pour une reprise complete automatique. Relais : un joueur
-       revenu est de nouveau compare aux autres (a redeployer sur Railway).
-       Le generateur de hasard expose son etat (memes tirages).
-       CORRIGE en essai : une page fraiche n'avait pas les grilles des
-       batailles de surface (preparees au premier combat) : le dessin
-       plantait apres la reprise ; elles sont preparees a la restauration.
-       Essais : banc photo -> rechargement -> reprise sur 9 parties de 5 a
-       12 min, valeur par valeur : identique ; reseau a 2 navigateurs,
-       7,2 min de partie reprises en 4,5 s (13,6 s pour 4 min avant), relais
-       "identiques" ensuite ; photo volontairement abimee : ecart vu au tour
-       suivant, rechargement et reprise complete automatiques, identiques
-       ensuite ; npm run lockstep identique (8885b2d5). Photo : ~3 000
-       objets, 3 ms, ~1 Mo.
-     - FIREFOX : planetes qui disparaissent apres le choix du regime
-       (signale par le createur ; Chrome normal, Firefox introuvable ici).
-       Interrupteurs d'essai dans l'adresse pour trouver la cause :
-       ?travailleur=0 (haute definition sans Worker) et ?hd=0 (textures
-       legeres seulement). Resultat Firefox : hd=0 bon, travailleur=0 non
-       (la cause n'est pas le Worker). Puis ?tex=logiciel / bitmap / garder,
-       et 4 anciennes versions publiees dans essais/1 a 4 pour trouver le
-       patch fautif (a retirer ensuite).
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -1554,6 +1506,7 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<base href="../../">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nebula Conquest</title>
@@ -3660,7 +3613,6 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <!-- Navigation chapitres -->
 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(100,180,255,0.15);">
   <a href="#h-objectif" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🎯 Objectif</a>
-  <a href="#h-depart" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🏛 Départ</a>
   <a href="#h-controles" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🕹 Contrôles</a>
   <a href="#h-prod" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🧬 Production</a>
   <a href="#h-bataille" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚔ Bataille</a>
@@ -3672,20 +3624,13 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <a href="#h-alertes" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🔔 Alertes</a>
   <a href="#h-dangers" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚠️ Dangers</a>
   <a href="#h-spheres" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🛸 Sphères</a>
-  <a href="#h-commerce" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🤝 Commerce</a>
   <a href="#h-multi" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🌐 Multi</a>
 </div>
 
 <!-- OBJECTIF -->
 <p id="h-objectif" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🎯 OBJECTIF</p>
-<p style="margin-bottom:6px;">Conquérir <span style="color:#FFD700;">80%</span> de tous les astres de la galaxie (planètes + lunes). Dès ce seuil atteint, la victoire est déclarée immédiatement. En solo, si vous êtes éliminé, le bouton <span style="color:#A5B4FC;">REGARDER</span> de l'écran de défaite permet de suivre la fin de la partie.</p>
-<p style="margin-bottom:6px;">Chaque astre possédé génère des <span style="color:#C8A0FF;">spores</span> en continu. Plus vous en contrôlez, plus vite vous produisez — et plus vous êtes difficile à battre.</p>
-<p style="margin-bottom:16px;">Pourquoi des spores ? Le bouton <span style="color:#E9D5FF;">HISTOIRE</span> du menu le raconte : la Terre est détruite, et les partis politiques y ont transformé leurs adhérents en spores pour conquérir l'univers.</p>
-
-<!-- DEPART -->
-<p id="h-depart" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🏛 DÉPART &amp; RÉGIMES</p>
-<p style="margin-bottom:6px;">Chaque partie (solo et réseau ; pas le tutoriel) commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Centre collaborateur, Gauche non solidaire, Dictature éclairée, Royauté à plusieurs, Fascisme sympa, Anarchie très organisée, Écolo mais pas trop, Communisme néolibéral, Droite prolétaire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun s'installe ; sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
-<p style="margin-bottom:16px;">Chaque régime a aussi sa propre <span style="color:#4ADE80;">courbe de croissance</span>, dessinée sur sa carte : voir Production.</p>
+<p style="margin-bottom:6px;">Conquérir <span style="color:#FFD700;">80%</span> de tous les astres de la galaxie (planètes + lunes). Dès ce seuil atteint, la victoire est déclarée immédiatement.</p>
+<p style="margin-bottom:16px;">Chaque astre possédé génère des <span style="color:#C8A0FF;">spores</span> en continu. Plus vous en contrôlez, plus vite vous produisez — et plus vous êtes difficile à battre.</p>
 
 <!-- CONTRÔLES -->
 <p id="h-controles" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🕹 CONTRÔLES</p>
@@ -3700,7 +3645,6 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Ctrl + clic gauche maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Rafale</b> — paquets de 10 spores, 8 par seconde, arrosés autour du curseur ; lâcher pour arrêter</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Shift maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Boule</b> — charge 25 spores/s (jusqu'à 500, coût double) qui tournent lentement vers la souris ; lâcher Shift la lance</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur un astre</td><td style="padding:3px 0;">Le devis : combien de cases votre envoi y achètera, et à quel prix</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un nom (liste des joueurs)</td><td style="padding:3px 0;">Info sur ce joueur, ou proposition de Commerce</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur fond vide + glisser</td><td style="padding:3px 0;">Déplace la caméra</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Survol d'un nombre de spores</td><td style="padding:3px 0;">Nomme le joueur à qui il appartient, et dit s'il tient l'astre ou l'assaille</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Molette</td><td style="padding:3px 0;">Zoom / dézoom (ne fait pas défiler les panneaux quand la souris est dessus)</td></tr>
@@ -3724,8 +3668,8 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 
 <!-- PRODUCTION -->
 <p id="h-prod" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🧬 SPORES &amp; PRODUCTION</p>
-<p style="margin-bottom:6px;">Chaque astre a une <span style="color:#FFD700;">capacité</span> — le nombre de spores qu'il peut contenir — et se remplit tout seul. La vitesse de remplissage est une <span style="color:#C8A0FF;">part de cette capacité par seconde</span>, si bien qu'une géante et une petite lune mettent le même temps à se remplir : avec la courbe commune, environ 80 secondes pour le premier quart, trois minutes et demie pour le gros pic.</p>
-<p style="margin-bottom:6px;">Mais le rendement n'est pas constant : il suit une <span style="color:#4ADE80;">courbe</span>. Voici la courbe commune (celle du tutoriel) :</p>
+<p style="margin-bottom:6px;">Chaque astre a une <span style="color:#FFD700;">capacité</span> — le nombre de spores qu'il peut contenir — et se remplit tout seul. La vitesse de remplissage est une <span style="color:#C8A0FF;">part de cette capacité par seconde</span>, si bien qu'une géante et une petite lune mettent le même temps à se remplir : environ 80 secondes pour le premier quart, trois minutes et demie pour le gros pic.</p>
+<p style="margin-bottom:6px;">Mais le rendement n'est pas constant : il suit une <span style="color:#4ADE80;">courbe à deux régimes</span>.</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
   <tr><td style="padding:3px 0;color:#E9D5FF;width:32%;">Presque vide</td><td style="padding:3px 0;">Rendement faible — il n'y a personne pour se reproduire</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">Au quart plein</td><td style="padding:3px 0;">Première bosse, modeste mais facile à tenir</td></tr>
@@ -3786,14 +3730,16 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ONDES SOLAIRES.</span> Un système entièrement tenu se met à vivre : son étoile s'embrase <span style="color:#E9D5FF;">toutes les 5 secondes</span> et envoie une onde qui balaie ses astres. Chacun la reçoit au passage du front, pas au départ — le système s'allume de l'intérieur vers l'extérieur.</p>
 <p style="margin-bottom:16px;">Ce que l'onde apporte dépend de votre stat <span style="color:#FBBF24;">Sensitivity</span> : <span style="color:#4ADE80;">+5 % de la capacité de l'astre par point</span>. À un point, une lune de 400 reçoit 20 spores.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro. Il peut dépasser son maximum <b>sans limite</b> (chiffre doré ⚡) ; après le tir, le trop-plein s'évapore peu à peu.</p>
+<p style="margin-bottom:6px;"><span style="color:#C4B5FD;">LE DÉPART.</span> Chaque partie commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Centre collaborateur, Gauche non solidaire, Dictature éclairée, Royauté à plusieurs, Fascisme sympa, Anarchie très organisée, Écolo mais pas trop, Communisme néolibéral, Droite prolétaire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun s'installe ; sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
+<p style="margin-bottom:6px;"><span style="color:#FDE68A;">COMMERCE.</span> Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
 <p style="margin-bottom:16px;">On ne tire pas à travers une étoile ni un trou noir : ils détruisent les jets. Quand aucun de vos astres n'a la vue sur la cible, le trait de visée passe au <span style="color:#EF4444;">rouge</span>.</p>
 
 <!-- ÉVOLUTION -->
 <p id="h-evolution" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">✦ ÉVOLUTION &amp; MUTATIONS</p>
-<p style="margin-bottom:6px;">Quatre voies. Vous partez avec 3 Growth, 4 Velocity, 2 Density et 1 Sensitivity, plus les <b>3 points offerts par votre régime</b> ; 8 au maximum par voie.</p>
+<p style="margin-bottom:6px;">Quatre voies, 10 points à répartir avant la partie :</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
-  <tr><td style="padding:3px 0;color:#4ADE80;width:26%;">🌱 Growth</td><td style="padding:3px 0;">+30 % de production de spores par point, sur tous vos astres</td></tr>
-  <tr><td style="padding:3px 0;color:#60A5FA;">⚡ Velocity</td><td style="padding:3px 0;">+6 de vitesse des jets par point (vitesse de base : 20)</td></tr>
+  <tr><td style="padding:3px 0;color:#4ADE80;width:26%;">🌱 Growth</td><td style="padding:3px 0;">+5 % de production de spores par point, sur tous vos astres</td></tr>
+  <tr><td style="padding:3px 0;color:#60A5FA;">⚡ Velocity</td><td style="padding:3px 0;">+5 % de vitesse des jets par point</td></tr>
   <tr><td style="padding:3px 0;color:#F472B6;">💎 Density</td><td style="padding:3px 0;">+5 % de puissance à l'impact par point</td></tr>
   <tr><td style="padding:3px 0;color:#FBBF24;">☀ Sensitivity</td><td style="padding:3px 0;">+5 % de la capacité de l'astre par point, à chaque onde solaire</td></tr>
 </table>
@@ -3841,17 +3787,15 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:16px;"><span style="color:#FFD27A;">LA CAPTURE.</span> Envoyez-lui <span style="color:#E9D5FF;">20 000 spores en moins de 30 s</span> (un anneau à votre couleur montre où vous en êtes) et vous la pilotez pendant <b>1 minute</b> avec <span style="color:#E9D5FF;">ZQSD</span>. Pilotée, elle tire pour vous et plus loin : la verte n'arrose que <b>vos</b> astres, la noire ne ronge que ceux de vos <b>adversaires</b>. Écrasée sur une planète ou une lune : tous ses bâtiments détruits, 0 spore et plus de production pendant 1 minute. Sur un soleil : <b>tout son système</b> subit le même sort. La sphère est perdue dans le choc.</p>
 <p style="margin-bottom:16px;">Les <b>IA</b> aussi convoitent les sphères. Une IA assez grosse peut cesser d'attaquer pendant quelques minutes pour <b>économiser</b>, puis bombarder une sphère qui passe près de chez elle. Si elle la prend, elle la lance sur le système le plus riche de ses adversaires, et un message vous prévient.</p>
 
-<!-- COMMERCE -->
-<p id="h-commerce" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🤝 COMMERCE &amp; ALLIANCES</p>
-<p style="margin-bottom:16px;">Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
-
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
-<p style="margin-bottom:6px;">Le bouton <span style="color:#E9D5FF;">MULTIJOUEUR</span> du menu propose deux façons de jouer :</p>
-<p style="margin-bottom:6px;"><span style="color:#4ADE80;">🎲 AU HASARD</span> : choisissez 2, 4, 8 ou 16 joueurs ; vous rejoignez une partie qui démarre dès qu'elle est pleine. Partie <b>classée (ELO)</b> si vous êtes connecté — le classement de chaque taille s'affiche en dessous.</p>
-<p style="margin-bottom:6px;"><span style="color:#FCD34D;">✉️ ENTRE AMIS</span> : choisissez le nombre de joueurs et d'IA, puis CRÉER. La partie affiche un <b>code</b> de 4 lettres et un bouton <b>COPIER LE LIEN D'INVITATION</b> : l'ami qui ouvre le lien arrive directement dans la partie ; il peut aussi taper le code puis REJOINDRE. Les places vides peuvent être prises par des IA.</p>
-<p style="margin-bottom:6px;">Tout le monde voit exactement la même partie. Il faut la <b>même version du jeu</b> : si un joueur a une ancienne version, il est prévenu et doit recharger la page. Si vous perdez la connexion ou rechargez la page, le bouton <span style="color:#E9D5FF;">REPRENDRE</span> du menu vous ramène dans la partie en cours, en quelques secondes : votre navigateur garde une photo de la partie toutes les 30 secondes de jeu.</p>
-<p style="margin-bottom:16px;">Les joueurs IA portent des noms générés (ex. [IA] Zyrex, [IA] Vorath…). En réseau, une partie se termine aussi à 80 % des astres ou quand il ne reste qu'un joueur en vie.</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Rejoindre</span> : depuis le menu principal, "REJOINDRE" vous place dans la prochaine partie disponible. Deux variantes : <span style="color:#4ADE80;">▶ REJOINDRE</span> (chacun pour soi) et <span style="color:#FCD34D;">🤖 REJOINDRE (OK POUR BOTS)</span> qui vote pour compléter avec des IA si la majorité est d'accord.</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Créer une partie</span> : choisissez la carte, ajoutez des IA, invitez des amis par pseudo ou une guilde entière par tag. Option "Compléter par IA" pour remplir les slots vides au lancement. Option <span style="color:#60A5FA;">Mode équipes</span> : 2, 3 ou 4 équipes réparties aléatoirement. En mode équipes, vos jets vers les coéquipiers les renforcent — impossible de trahir. Les noms au-dessus des planètes affichent la couleur de l'équipe.</p>
+<p style="margin-bottom:6px;">Les joueurs IA portent des noms générés aléatoirement (ex. [IA] Zyrex, [IA] Vorath…). En mode équipes, les IA jouent dans leur équipe assignée.</p>
+<p style="margin-bottom:6px;">Le nombre maximum de joueurs est calculé selon la carte : <span style="color:#FFD700;">≤ 10 planètes → max = nb planètes · > 10 planètes → max = nb planètes + 5</span>. En mode équipes, ce nombre est forcément pair.</p>
+<p style="margin-bottom:6px;"><span style="color:#A5B4FC;">👁 Spectateur</span> : si vous êtes éliminé, le bouton <span style="color:#A5B4FC;">REGARDER</span> apparaît sur l'écran de défaite pour observer la suite sans interagir.</p>
+<p style="margin-bottom:6px;"><span style="color:#FB923C;">⚔️ Guildes</span> : créez ou rejoignez une guilde depuis le menu principal. Votre tag s'affiche après votre pseudo <span style="color:#FB923C;">[TAG]</span>. Les guildes ont leur propre classement ELO. Invitez une guilde entière dans une partie via son tag — tous les membres reçoivent l'invitation.</p>
+<p style="margin-bottom:16px;">Les scores et l'ELO sont mis à jour automatiquement après chaque partie multi (minimum 2 joueurs humains).</p>
 
 <!-- ASTUCES -->
 <p style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">💡 ASTUCES</p>
@@ -3863,7 +3807,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">F3</span> affiche les images par seconde, puis <span style="color:#E9D5FF;">D</span> détaille ce qui coûte cher à dessiner — utile si le jeu rame.</p>
 <p style="margin-bottom:16px;"><span style="color:#FFD700;">Si ça rame</span>, le réglage <span style="color:#E9D5FF;">GRAPH</span> en haut à droite fait peindre le jeu plus petit avant de l'agrandir : la carte y perd un peu de netteté, jamais les panneaux ni le texte. La finesse baisse déjà toute seule quand vous dézoomez — mesuré, une image complète passe de 9,1 à 5,6 ms — et ce réglage décale toute l'échelle vers le bas. En <span style="color:#E9D5FF;">Bas</span>, les scintillements et la brume des jets sont coupés en prime.</p>
 
-<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.9</p>
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.8</p>
     </div>
     <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
 </div>
@@ -4925,16 +4869,10 @@ function _peindreLignes(S, limite) {
     }
     return true;
 }
-/* Essai Firefox (?tex=logiciel) : canevas garde en memoire ordinaire, pas
-   sur la carte graphique. */
-function _ctxTex(c) {
-    return (typeof _essaiTex !== 'undefined' && _essaiTex.get('tex') === 'logiciel')
-        ? c.getContext('2d', { willReadFrequently: true }) : c.getContext('2d');
-}
 function _chantierSphere(size, seed, f, atmo, limbe) {
     const c = document.createElement('canvas');
     c.width = c.height = size;
-    const ctx = _ctxTex(c);
+    const ctx = c.getContext('2d');
     const img = ctx.createImageData(size, size);
     const S = _etatSphere(size, seed, f, atmo, limbe, img.data);
     return {
@@ -4954,9 +4892,6 @@ function _chantierSphere(size, seed, f, atmo, limbe) {
    n'attend jamais. Les astres proches de la camera passent d'abord. */
 const _fileHD = [];
 let _peintreActif = false;
-/* Interrupteurs d'essai, dans l'adresse : ?travailleur=0 peint la haute
-   definition sans Worker ; ?hd=0 garde les textures legeres. */
-const _essaiTex = new URLSearchParams(location.search);
 function _texturer(b, size, seed, f, atmo, limbe) {
     const petit = Math.max(12, Math.min(size, Math.floor(b.radius * 1.2)));
     const c = _chantierSphere(petit, seed, f, atmo, limbe).avancer(Infinity);
@@ -4965,7 +4900,7 @@ function _texturer(b, size, seed, f, atmo, limbe) {
        les planetes et les lunes, une seule image, comme avant : Firefox
        supporte mal des centaines de petits canevas (astres invisibles). */
     b._niveaux = b.type === 'sun' ? _niveauxTexture(c) : null;
-    if (size > petit && _essaiTex.get('hd') !== '0') {
+    if (size > petit) {
         b._travailHD = { size: size, seed: seed, f: f, atmo: atmo, limbe: limbe, chantier: null };
         if (_fileHD.indexOf(b) < 0) _fileHD.push(b);
         _lancerPeintre();
@@ -4977,7 +4912,7 @@ function _texturer(b, size, seed, f, atmo, limbe) {
    _texturer y change, il retient la recette au lieu de peindre), refait la
    recette de l'astre et rend les pixels. Navigateur sans Worker, ou erreur :
    on repasse a la peinture par petits morceaux (_peintreFond). */
-let _travailleur = null, _travailleurKo = _essaiTex.get('travailleur') === '0', _tEnCours = null, _tNumero = 0;
+let _travailleur = null, _travailleurKo = false, _tEnCours = null, _tNumero = 0;
 function _texTravailleur() {
     if (_travailleur || _travailleurKo) return _travailleur;
     try {
@@ -5038,9 +4973,7 @@ function _poserHD(b, c) {
     b._travailHD = null;
     const k = _fileHD.indexOf(b);
     if (k >= 0) _fileHD.splice(k, 1);
-    /* ?tex=garder (essai Firefox) : on ne libere pas l'ancienne image. */
-    if (_essaiTex.get('tex') === 'garder') return;
-    if (ancien && ancien !== c) { if (ancien.close) ancien.close(); else { ancien.width = 0; ancien.height = 0; } }
+    if (ancien && ancien !== c) { ancien.width = 0; ancien.height = 0; }
     if (anciens) for (const n of anciens) if (n !== ancien && n !== c) { n.width = 0; n.height = 0; }
 }
 function _envoyerTravail() {
@@ -5062,19 +4995,9 @@ function _texRecue(e) {
     /* Texture refaite entre-temps, ou partie finie : on laisse. */
     if (b._travailHD === en.T && _astreEnJeu(b)) {
         try {
-            if (_essaiTex.get('tex') === 'bitmap') {
-                /* Essai Firefox : une ImageBitmap au lieu d'un canevas. */
-                const T = en.T, k = _fileHD.indexOf(b);
-                if (k >= 0) _fileHD.splice(k, 1);
-                createImageBitmap(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size)).then(function (bm) {
-                    if (b._travailHD === T && _astreEnJeu(b)) _poserHD(b, bm); else bm.close();
-                });
-                _lancerPeintre();
-                return;
-            }
             const c = document.createElement('canvas');
             c.width = c.height = m.size;
-            _ctxTex(c).putImageData(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size), 0, 0);
+            c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size), 0, 0);
             _poserHD(b, c);
         } catch (err) {
             b._travailHD = null;
@@ -5441,18 +5364,13 @@ let _nbAlea = 0;
 function gameRandom() { _nbAlea++; return _gameRng ? _gameRng() : Math.random(); }
 
 // PRNG déterministe (mulberry32)
-/* lire / ecrire : l'etat du generateur, pour la photo de la partie (reprise
-   instantanee en reseau). Les tirages sont inchanges. */
 function mulberry32(a) {
-    const f = function() {
+    return function() {
         a |= 0; a = a + 0x6D2B79F5 | 0;
         var t = Math.imul(a ^ a >>> 15, 1 | a);
         t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
         return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
-    f.lire = function () { return a; };
-    f.ecrire = function (v) { a = v; };
-    return f;
 }
 
 
@@ -15660,24 +15578,16 @@ function tourSimulation() {
     update(TOUR_SIM);
     /* Une fois par seconde de jeu, l'empreinte part au relais, qui la
        compare a celle des autres joueurs. */
-    /* Pendant une reprise (gameState._rejeu), les autres joueurs ont deja
-       valide ces tours : l'empreinte ne part que toutes les 10 s (le relais
-       la compare a la leur, un ecart se verrait encore), et le detail, qui
-       ne sert qu'a comparer les joueurs entre eux, n'est pas calcule. */
-    if (gameState.lockstep && gameState.tour % 60 === 0 && (!gameState._rejeu || gameState.tour % 600 === 0)) {
+    if (gameState.lockstep && gameState.tour % 60 === 0) {
         const e = empreinteEtat(true);
         envoyerAuRelais({ t: 'empreinte', tour: gameState.tour, h: e.empreinte, p: e.parts });
         /* Le detail de la partie a ce tour, garde un moment : si le relais
            signale un ecart, on le lui enverra pour qu'il dise quoi. */
         const L = gameState.lockstep;
-        if (!gameState._rejeu) {
-            if (!L.details) L.details = {};
-            L.details[gameState.tour] = detailPartie();
-            delete L.details[gameState.tour - 240];
-        }
+        if (!L.details) L.details = {};
+        L.details[gameState.tour] = detailPartie();
+        delete L.details[gameState.tour - 240];
     }
-    /* La photo de la partie, pour une reprise instantanee. */
-    if (gameState.lockstep && gameState.tour % PHOTO_TOURS === 0 && !gameState._rejeu) prendrePhoto();
 }
 
 /* ─────────────────────────────────────────────
@@ -15999,28 +15909,22 @@ const MATHS_FIXES = (function () {
         const hz = 0.5 * z, w = 1 - hz;
         return w + (((1 - w) - hz) + z * r);
     };
-    /* x = n * pi/2 + y, avec y entre -pi/4 et pi/4. Le quart (_q) et le reste
-       (_y) sont ranges dans deux variables plutot que dans un tableau neuf a
-       chaque appel : des centaines de milliers de petits tableaux par minute
-       en moins a ramasser. Meme calcul, meme resultat au bit pres. */
-    let _q = 0, _y = 0;
+    /* x = n * pi/2 + y, avec y entre -pi/4 et pi/4. */
     const reduire = function (x) {
         const n = Math.round(x * INVPIO2);
-        _y = ((x - n * PIO2_1) - n * PIO2_2) - n * PIO2_2T;
-        _q = ((n % 4) + 4) % 4;
+        const y = ((x - n * PIO2_1) - n * PIO2_2) - n * PIO2_2T;
+        return [((n % 4) + 4) % 4, y];
     };
     const sin = function (x) {
         if (!isFinite(x)) return NaN;
         if (x > -0.7853981633974483 && x < 0.7853981633974483) return ksin(x);
-        reduire(x);
-        const q = _q, y = _y;
+        const r = reduire(x), q = r[0], y = r[1];
         return q === 0 ? ksin(y) : q === 1 ? kcos(y) : q === 2 ? -ksin(y) : -kcos(y);
     };
     const cos = function (x) {
         if (!isFinite(x)) return NaN;
         if (x > -0.7853981633974483 && x < 0.7853981633974483) return kcos(x);
-        reduire(x);
-        const q = _q, y = _y;
+        const r = reduire(x), q = r[0], y = r[1];
         return q === 0 ? kcos(y) : q === 1 ? -ksin(y) : q === 2 ? -kcos(y) : ksin(y);
     };
     const ATANHI = [4.63647609000806093515e-01, 7.85398163397448278999e-01,
@@ -16271,8 +16175,6 @@ function ouvrirRelais(L, premier) {
         else if (m.t === 'desync') {
             if (L.desync !== null) return;           /* la premiere compte, les suivantes en decoulent */
             L.desync = m.tour;
-            /* Repris depuis une photo qui ne colle pas : reprise complete. */
-            if (L.depuisPhoto !== undefined) { repliRepriseComplete(); return; }
             /* Le detail de ce tour part au relais, qui notera dans son
                journal les premieres valeurs qui different. */
             const d = L.details && L.details[m.tour];
@@ -16317,7 +16219,6 @@ function noterPartieReseau(L) {
 }
 function oublierPartieReseau() {
     try { localStorage.removeItem('nc_partieReseau'); } catch (e) {}
-    photoEffacer();
 }
 /* Une partie quittee il y a moins de 30 minutes, sinon rien. */
 function partieReseauGardee() {
@@ -16330,221 +16231,14 @@ function partieReseauGardee() {
 
 function reprendrePartieReseau() {
     const g = partieReseauGardee();
-    if (!g || gameState.lockstep || _repriseEnCours) return;
-    _repriseEnCours = true;
-    /* D'abord la photo de cette partie, si le navigateur en a une. */
-    photoLire(function (P) {
-        _repriseEnCours = false;
-        if (gameState.lockstep) return;
-        const bonne = P && P.salle === g.salle && P.slot === g.slot && P.version === versionJeu() && P.n0 > 0;
-        const L = gameState.lockstep = { ws: null, url: g.url, slot: null, enJeu: false, joueurs: [], paquets: 0,
-                                         tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null,
-                                         salleNom: g.salle, jeton: g.jeton, slotGarde: g.slot,
-                                         photo: bonne ? P : null };
-        ouvrirRelais(L, function () {
-            const depuis = L.enJeu ? L.paquets : (L.photo ? L.photo.n0 : 0);
-            return { t: 'reprendre', salle: L.salleNom, slot: L.slotGarde, jeton: L.jeton, depuis: depuis, version: versionJeu() };
-        });
-        afficherLockstep(bonne ? 'Reprise rapide de la partie...' : 'Reprise de la partie...');
+    if (!g || gameState.lockstep) return;
+    const L = gameState.lockstep = { ws: null, url: g.url, slot: null, enJeu: false, joueurs: [], paquets: 0,
+                                     tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null,
+                                     salleNom: g.salle, jeton: g.jeton, slotGarde: g.slot };
+    ouvrirRelais(L, function () {
+        return { t: 'reprendre', salle: L.salleNom, slot: L.slotGarde, jeton: L.jeton, depuis: 0, version: versionJeu() };
     });
-}
-let _repriseEnCours = false;
-
-/* ─────────────────────────────────────────────
-   LA PHOTO DE LA PARTIE (reprise instantanee)
-   REPRENDRE rejouait toute la partie depuis le premier tour : plus d'une
-   minute pour une partie de 20 minutes. Desormais, toutes les 30 s de jeu,
-   le navigateur range une PHOTO de la partie (IndexedDB) : tout ce que le
-   calcul utilise, astres, tirs, joueurs, vaisseaux, cometes, hasard. Au
-   retour, la page refait la carte, pose la photo par-dessus, et ne demande
-   au relais que les ordres posterieurs : quelques secondes a rattraper.
-   Ce qui est propre a cet ecran (taille, camera, son, visee en cours,
-   textures) n'est jamais dans la photo et n'est jamais ecrase.
-   Filet de securite : le relais compare toujours l'empreinte du joueur
-   revenu a celle des autres. Au moindre ecart, la photo est effacee et la
-   page se recharge pour une reprise complete, comme avant.
-   ───────────────────────────────────────────── */
-const PHOTO_TOURS = 1800;             /* une photo toutes les 30 s de jeu */
-const PHOTO_LOCAL_RACINE = new Set(['lockstep', 'avantChaqueTour', 'canvas', 'ctx', 'width', 'height', 'reso',
-    '_resoPalier', '_resoZoomVu', '_resoRepos', 'qualite', 'camera', 'running', 'lastTime', 'deltaTime', 'dt',
-    'input', 'lod', 'lodAutoTimer', 'lodFpsAccum', 'lodFpsSamples', 'fps', 'fpsFrames', 'fpsLastCheck', 'audio',
-    '_bgCanvas', '_starsCanvas', '_starsCanvas2', '_starsCanvas3', '_starsUrl', '_starsUrl2', '_starsUrl3',
-    '_fondCss', '_montrerReso', '_vraiTemps', 'mouseWorldX', 'mouseWorldY', 'codexOpen', 'selectedBody',
-    'launching', 'launchSource', 'launchPreview', '_firePhase', '_fireSource', '_fireType', '_fireCamZoom',
-    '_fireLanceur', '_fireGroupe', '_chargeAcc', '_filetsCharge', '_fireSurface', '_zoomCible', '_tirBloque',
-    '_popProdAstre', '_viseeOrdre', '_viseeEnvoi', 'cosmicDust', 'shootingStars', 'shootingStarTimer',
-    'foregroundDebris', 'playerStats', 'playerColor', 'journalOrdres', '_rejeu', '_rattrapage', '_zoneSel']);
-/* Les dessins et leurs caches, sur chaque objet : ceux de cette page restent. */
-const PHOTO_LOCAL_CLE = new Set(['_texture', '_niveaux', '_travailHD', '_hasAtmosphere', '_atmoColor',
-    '_haloCache', '_haloDim', '_haloR', '_spriteDanger', '_disques', '_sysCache', '_vraiX', '_vraiY']);
-const PHOTO_SAUTE = { s: 1 };
-/* Seuls les objets simples, tableaux et tableaux types entrent dans la
-   photo ; fonctions, canevas, sons, elements de la page restent dehors. */
-function _photoGardable(v) {
-    if (typeof v === 'function') return false;
-    if (!v || typeof v !== 'object') return true;
-    if (Array.isArray(v) || ArrayBuffer.isView(v)) return true;
-    const pr = Object.getPrototypeOf(v);
-    return pr === Object.prototype || pr === null;
-}
-
-/* La partie a plat : une liste de noeuds, les liens entre objets notes par
-   leur numero ({ r: n }) pour garder qui pointe vers qui. */
-function photographier() {
-    const ids = new Map(), noeuds = [];
-    const coder = function (v, racine) {
-        if (v === null || typeof v !== 'object') return typeof v === 'function' ? PHOTO_SAUTE : v;
-        if (!_photoGardable(v)) return PHOTO_SAUTE;
-        let id = ids.get(v);
-        if (id !== undefined) return { r: id };
-        id = noeuds.length;
-        ids.set(v, id);
-        noeuds.push(null);
-        let n;
-        if (ArrayBuffer.isView(v)) n = { k: 't', v: v.slice() };
-        else if (Array.isArray(v)) {
-            n = { k: 'a', v: new Array(v.length) };
-            for (let i = 0; i < v.length; i++) n.v[i] = coder(v[i], false);
-        } else {
-            n = { k: 'o', f: {} };
-            for (const k of Object.keys(v)) {
-                if ((racine && PHOTO_LOCAL_RACINE.has(k)) || PHOTO_LOCAL_CLE.has(k)) continue;
-                n.f[k] = coder(v[k], false);
-            }
-        }
-        noeuds[id] = n;
-        return { r: id };
-    };
-    coder(gameState, true);
-    return { noeuds: noeuds, tour: gameState.tour, alea: _gameRng.lire(), nbAlea: _nbAlea };
-}
-
-/* La photo reposee sur la partie fraichement creee. Les objets qui existent
-   deja a la meme place (astres, joueurs, ceinture...) sont REMPLIS, pas
-   remplaces : leurs textures et tout ce qui pointe vers eux restent bons. */
-function restaurerPhoto(P) {
-    const N = P.noeuds, objs = new Array(N.length), pris = new Set();
-    const estRef = function (e) { return e !== null && typeof e === 'object' && e.r !== undefined; };
-    const associer = function (id, ex) {
-        if (objs[id] !== undefined) return;
-        const n = N[id];
-        const libre = ex !== null && typeof ex === 'object' && !pris.has(ex);
-        let o;
-        if (n.k === 't') o = (libre && ex.constructor === n.v.constructor && ex.length === n.v.length) ? ex : new n.v.constructor(n.v.length);
-        else if (n.k === 'a') o = (libre && Array.isArray(ex)) ? ex : [];
-        else o = (libre && !Array.isArray(ex) && !ArrayBuffer.isView(ex) && _photoGardable(ex)) ? ex : {};
-        objs[id] = o;
-        pris.add(o);
-        const meme = o === ex;
-        if (n.k === 'a') { for (let i = 0; i < n.v.length; i++) if (estRef(n.v[i])) associer(n.v[i].r, meme ? ex[i] : undefined); }
-        else if (n.k === 'o') { for (const k in n.f) if (estRef(n.f[k])) associer(n.f[k].r, meme ? ex[k] : undefined); }
-    };
-    objs[0] = gameState;
-    pris.add(gameState);
-    const racine = N[0].f;
-    /* D'abord les listes qui fixent l'identite des objets, dans l'ordre. */
-    for (const k of ['allBodies', 'suns', 'planets', 'moons', 'blackHole', 'players', 'asteroidBelts', 'cleaners', 'capitaux', 'comets', 'jets']) {
-        if (estRef(racine[k])) associer(racine[k].r, gameState[k]);
-    }
-    for (const k in racine) if (estRef(racine[k])) associer(racine[k].r, gameState[k]);
-    const lire = function (e, ancien) {
-        if (e !== null && typeof e === 'object') return e.s ? ancien : objs[e.r];
-        return e;
-    };
-    for (let id = 0; id < N.length; id++) {
-        const n = N[id], o = objs[id];
-        if (n.k === 't') { o.set(n.v); continue; }
-        if (n.k === 'a') {
-            const avant = o.slice();
-            o.length = n.v.length;
-            for (let i = 0; i < n.v.length; i++) o[i] = lire(n.v[i], avant[i]);
-            continue;
-        }
-        for (const k of Object.keys(o)) {
-            if (k in n.f || PHOTO_LOCAL_CLE.has(k) || (id === 0 && PHOTO_LOCAL_RACINE.has(k))) continue;
-            if (!_photoGardable(o[k])) continue;
-            delete o[k];
-        }
-        for (const k in n.f) o[k] = lire(n.f[k], o[k]);
-    }
-    _gameRng.ecrire(P.alea);
-    _nbAlea = P.nbAlea;
-    /* Les grilles des batailles de surface, preparees d'ordinaire au premier
-       combat : une page fraiche ne les a pas encore. */
-    _luttePrepare();
-}
-
-/* Le rangement : IndexedDB, une seule photo (la derniere). */
-function _photoBase(suite) {
-    try {
-        const rq = indexedDB.open('nebulaConquest', 1);
-        rq.onupgradeneeded = function () { rq.result.createObjectStore('photos'); };
-        rq.onsuccess = function () { suite(rq.result); };
-        rq.onerror = function () { suite(null); };
-    } catch (e) { suite(null); }
-}
-function _photoAction(mode, faire, suite) {
-    _photoBase(function (db) {
-        if (!db) { if (suite) suite(null); return; }
-        try {
-            const tx = db.transaction('photos', mode);
-            const rq = faire(tx.objectStore('photos'));
-            tx.oncomplete = function () { db.close(); if (suite) suite(rq ? rq.result : null); };
-            tx.onerror = tx.onabort = function () { db.close(); if (suite) suite(null); };
-        } catch (e) { db.close(); if (suite) suite(null); }
-    });
-}
-function photoEnregistrer(P) { _photoAction('readwrite', function (st) { st.put(P, 'reseau'); return null; }); }
-function photoLire(suite) { _photoAction('readonly', function (st) { return st.get('reseau'); }, function (r) { suite(r || null); }); }
-function photoEffacer(suite) { _photoAction('readwrite', function (st) { st.delete('reseau'); return null; }, suite || null); }
-
-/* Toutes les 30 s de jeu (tourSimulation), en partie et a jour seulement. */
-function prendrePhoto() {
-    const L = gameState.lockstep;
-    if (!L || !L.enJeu || !L.jeton || L.desync !== null || gameState.phase !== 'game') return;
-    try {
-        const P = photographier();
-        P.salle = L.salleNom;
-        P.slot = L.slot;
-        P.version = versionJeu();
-        /* Le premier paquet dont les ordres tombent apres ce tour. */
-        P.n0 = gameState.tour / TOURS_PAR_PAQUET - PAQUETS_AVANCE;
-        P.date = Date.now();
-        photoEnregistrer(P);
-    } catch (e) { console.warn('[photo]', e); }
-}
-
-/* Au retour (lockstepPret) : la photo pose la partie au tour ou elle a ete
-   prise ; les paquets suivants, demandes au relais, font le reste. */
-function reprendreDepuisPhoto(L) {
-    const P = L.photo;
-    L.photo = null;
-    restaurerPhoto(P);
-    _ordresEnAttente = [];
-    L.paquets = P.n0;
-    L.tourPermis = P.tour;
-    L.details = {};
-    L.depuisPhoto = P.tour;
-    _ownerClustersCache = [];
-    _territoires = [];
-    _ancresGroupe = null;
-    _lastScoreHash = '';
-    marquerTerritoiresSales();
-    setPhase(gameState.phase === 'end' ? 'game' : gameState.phase);
-    const moi = gameState.players[L.slot];
-    const b = moi && moi.bodies && moi.bodies[0];
-    if (b) { gameState.camera.x = b.x; gameState.camera.y = b.y; }
-    afficherLockstep('Reprise depuis la photo du tour ' + P.tour);
-}
-
-/* La photo ne colle pas (le relais a vu un ecart) : on l'efface et on
-   recharge la page pour une reprise complete, depuis le premier tour. */
-function repliRepriseComplete() {
-    afficherLockstep('Reprise rapide impossible : reprise complete...', true);
-    photoEffacer(function () {
-        try { sessionStorage.setItem('nc_repriseComplete', '1'); } catch (e) {}
-        location.reload();
-    });
+    afficherLockstep('Reprise de la partie...');
 }
 
 /* Le relais a reuni tout le monde : meme graine, meme carte, memes reglages
@@ -16608,10 +16302,6 @@ function preparerJoueursLockstep() {
 function lockstepPret() {
     const L = gameState.lockstep;
     L.enJeu = true;
-    if (L.photo) {
-        try { reprendreDepuisPhoto(L); }
-        catch (e) { console.warn('[photo]', e); repliRepriseComplete(); return; }
-    }
     if (L.aRejouer) { appliquerReprise(L, L.aRejouer); L.aRejouer = null; }
     envoyerAuRelais({ t: 'pret' });
     if (!L.affichage) L.affichage = setInterval(majBandeauLockstep, 500);
@@ -17086,25 +16776,6 @@ function restaurerPositions() {
     gameState.time = gameState._vraiTemps;
 }
 
-/* La barre de la reprise acceleree (voir avancerImage). null : la cacher. */
-let _barreReprise = null;
-function majBarreReprise(L) {
-    if (!L) { if (_barreReprise) { _barreReprise.remove(); _barreReprise = null; } return; }
-    if (!_barreReprise) {
-        _barreReprise = document.createElement('div');
-        _barreReprise.id = 'barreReprise';
-        _barreReprise.style.cssText = 'position:fixed; inset:0; z-index:950; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:rgba(5,8,25,0.82); font-family:Orbitron,sans-serif; color:#E9D5FF; letter-spacing:2px; font-size:14px;';
-        _barreReprise.innerHTML = '<div>REPRISE DE LA PARTIE</div><div style="width:min(420px,80vw); height:10px; border-radius:5px; background:rgba(139,92,246,0.2); overflow:hidden;"><div class="br-plein" style="height:100%; width:0; background:linear-gradient(90deg,#8B5CF6,#4ADE80);"></div></div><div class="br-txt" style="font-size:12px; color:#A5B4FC;"></div>';
-        document.body.appendChild(_barreReprise);
-    }
-    const total = Math.max(1, L.tourPermis - (L.rejeuDebut || 0));
-    const fait = Math.max(0, gameState.tour - (L.rejeuDebut || 0));
-    const pct = Math.min(100, Math.round(100 * fait / total));
-    _barreReprise.querySelector('.br-plein').style.width = pct + '%';
-    const m = Math.floor(gameState.tour / 3600), sec = Math.floor(gameState.tour / 60) % 60;
-    _barreReprise.querySelector('.br-txt').textContent = pct + ' % \u00b7 ' + m + ' min ' + String(sec).padStart(2, '0') + ' de partie recalculées';
-}
-
 /* Une image : les tours dus depuis la precedente, puis le dessin. */
 function avancerImage(dt, timestamp) {
     const _t0 = performance.now();
@@ -17128,17 +16799,9 @@ function avancerImage(dt, timestamp) {
            image au plus, un retard de 4 minutes ne se rattrapait jamais. */
         const loin = ecart > cible + 4 * TOURS_PAR_PAQUET;
         gameState._rattrapage = ecart > 60;
-        /* LA REPRISE ACCELEREE. Plus de 10 s de retard (retour par
-           REPRENDRE, qui rejoue la partie depuis le debut) : on ne dessine
-           plus, on calcule 150 ms par image et une barre dit ou l'on en est.
-           Avant : 30 ms de calcul puis une image complete, deux fois moins
-           vite. */
-        const rejeu = ecart > 600;
-        gameState._rejeu = rejeu;
-        if (rejeu && L.rejeuDebut === undefined) L.rejeuDebut = gameState.tour;
         const debut = performance.now();
         while (gameState.tour < L.tourPermis
-               && (n < TOURS_MAX_PAR_IMAGE || (loin && performance.now() - debut < (rejeu ? 150 : 10)))
+               && (n < TOURS_MAX_PAR_IMAGE || (loin && performance.now() - debut < (ecart > 600 ? 30 : 10)))
                && (_accSim >= TOUR_SIM || L.tourPermis - gameState.tour > cible + 4 * TOURS_PAR_PAQUET)) {
             tourSimulation();
             _accSim = Math.max(0, _accSim - TOUR_SIM);
@@ -17153,13 +16816,6 @@ function avancerImage(dt, timestamp) {
             if (!L.figee && L.bonus !== undefined) { L.bonus = Math.min(6, L.bonus + 1); L.sansAccroc = performance.now(); }
         }
         L.figee = figee;
-        if (L.tourPermis - gameState.tour > 600) {
-            /* Toujours loin derriere : pas de dessin, seulement la barre. */
-            majBarreReprise(L);
-            _accSim = 0;
-            return;
-        }
-        if (L.rejeuDebut !== undefined) { L.rejeuDebut = undefined; majBarreReprise(null); }
     } else {
         _accSim += dt;
         while (_accSim >= TOUR_SIM && n < TOURS_MAX_PAR_IMAGE) {
@@ -25866,15 +25522,6 @@ function histoirePremiereFois() {
     ouvrirHistoire();
 }
 _histGuet = setInterval(histoirePremiereFois, 800);
-
-/* Apres un repli (photo qui ne collait pas), la page rechargee reprend la
-   partie toute seule, depuis le debut. */
-function repriseCompleteAuto() {
-    let auto = false;
-    try { auto = sessionStorage.getItem('nc_repriseComplete') === '1'; sessionStorage.removeItem('nc_repriseComplete'); } catch (e) {}
-    if (auto) setTimeout(reprendrePartieReseau, 1200);
-}
-repriseCompleteAuto();
 
 document.getElementById('btnMission').addEventListener('click', () => {
     if (typeof ensureAudio === 'function') ensureAudio();

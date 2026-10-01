@@ -1358,149 +1358,11 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        morceaux si le navigateur refuse. Essai de zoom sur 12 planetes :
        toutes nettes (11 restaient floues avant) ; copie publiee (dist,
        compactee) verifiee aussi.
-     - REACTIVITE RESEAU : le delai ordre -> tir est deja presque minimal
-       (la reserve suit la gigue du reseau) ; passer les paquets de 50 a
-       33 ms ne gagnerait que ~8 ms en moyenne, pour un changement de
-       protocole risque : laisse tel quel. A la place, le TIR REPOND AU
-       CLIC : en reseau, le son et un bref eclair partent tout de suite
-       (echoTir, purement local) ; le vrai tir suit sans rejouer le son.
-       Essai a 2 navigateurs : son immediat, tir 82 ms apres, un seul son,
-       pas de desynchronisation.
-     - LE DEPART REFAIT (solo et reseau ; le tutoriel et l'ancien
-       multijoueur gardent l'ancien) :
-       - REGIME POLITIQUE d'abord : 9 cartes (image assets/regimes/<id>.jpg,
-         icone tant qu'elle manque, nom, texte provisoire, stats en bas),
-         3 points d'evolution offerts. Regimes parodiques (noms voulus) :
-         Centre collaborateur G1 V1 D1, Gauche non solidaire G1 D1 S1,
-         Dictature eclairee V1 D1 S1, Royaute a plusieurs G1 D2, Fascisme
-         sympa V2 D1, Anarchie tres organisee V3, Ecolo mais pas trop G1
-         S2, Communisme neoliberal G2 S1, Droite proletaire G3 (plafond 8).
-         Chaque carte dit aussi, en italique, pourquoi ce regime a dissous
-         ses adherents en spores pour conquerir l'univers ; le sous-titre
-         rappelle le lore (la Terre detruite, seules des spores peuvent
-         partir). Ordre 'regime'. En reseau 15 s,
-         compteur "x / y joueurs ont choisi", hasard pour les retardataires ;
-         les IA tirent le leur ;
-       - PUIS LA PLANETE en 15 s pour tous : ordre 'reserver' (astre libre
-         non reserve par un autre, changement possible jusqu'au bout,
-         message si deja pris), anneau pointille a la couleur du joueur et
-         son nom sur l'astre reserve, IA qui reservent entre 2 et 11 s ; a
-         zero, chacun s'installe, astre au hasard sans reservation. En solo,
-         bouton LANCER LA PARTIE (ordre depart_vite). Tout en tours : meme
-         chose chez tous. Relais : ordres regime et reserver ajoutes.
-       Essais : solo avec vrais clics (regime, reservation, changement, IA,
-       installation), reseau a 2 navigateurs (regime au hasard, conflit sur
-       la meme planete, depart au hasard, pas de desynchronisation),
-       tutoriel inchange, npm run lockstep (adapte au depart) identique.
-     - LORE REECRIT (Lore/HISTOIRE.md + PDF) d'apres l'idee de depart : en
-       2387 la technologie est fantastique mais la Terre est detruite ; le
-       seul moyen de partir est de devenir spore ; tous les partis
-       politiques francais y transforment leurs adherents pour conquerir
-       l'univers. 12 scenes (texte, prompt d'image, mouvement), images
-       sans logos ni drapeaux de vrais partis.
-     - HISTOIRE : bouton du menu (sous MISSION TUTORIEL) qui lance la
-       cinematique : les 12 images (Lore/*.png envoyees par le createur,
-       converties en JPG 1672 px, 34 Mo -> 5 Mo, assets/histoire/sceneNN.jpg)
-       se fondent l'une dans l'autre avec un lent zoom alterne ; titre et
-       texte de chaque scene en bas ; defilement seul (4 s + 55 ms par
-       lettre), clic / Espace / fleches / points pour naviguer, PASSER ou
-       Echap pour sortir ; ecran final NEBULA CONQUEST. La musique du titre
-       continue.
-     - MENU REORGANISE : deux grands boutons (JOUER SEUL contre l'IA,
-       MULTIJOUEUR au hasard ou entre amis), REPRENDRE si une partie reseau
-       est en cours, puis une rangee TUTORIEL / HISTOIRE / REGLES. Les trois
-       modes de l'ancien serveur (MULTI matchmaking, LOCAL, COMPETITION)
-       sont caches (code garde) : tout le multijoueur passe par le relais.
-       Fenetre MULTIJOUEUR en deux cartes : AU HASARD (2/4/8/16, classee) et
-       ENTRE AMIS (creer avec IA, ou rejoindre par code) ; la partie creee
-       affiche son code en grand et un bouton COPIER LE LIEN D'INVITATION
-       (?partie=CODE) : l'ami qui l'ouvre arrive directement dans la partie.
-       Essai : creation, copie du lien, arrivee par le lien, depart a deux.
      - LORE : Lore/HISTOIRE.md (+ PDF), "La Chronique des Spores" en 12
        scenes (texte a l'ecran, prompt d'image IA, mouvement), style commun,
        couleurs ; les trois spheres deviennent les Jardiniers (verte), les
        Niveleurs (noire) et les Veilleurs (rouge). A venir : bouton
        HISTOIRE et cinematique dans le menu, quand les images seront faites.
-     - UNE COURBE DE CROISSANCE PAR REGIME (COURBES_REGIME) : bosses
-       (centre, largeur, hauteur), plancher 0,2, pic propre (0,8 Centre a
-       1,25 Dictature), extinction pres du plein. Sans regime (tutoriel,
-       ancien multijoueur) : la courbe commune. Calculee a chaque appel
-       avec Math.* (pas de table), identique en reseau. Partout : production,
-       zones de bataille, debit, fiche de l'astre, etiquette de rendement.
-       Panneau NAISSANCE : la courbe du proprietaire (pic, temps et points
-       gardes par regime), echelle jusqu'a 1,25, couleur jugee par rapport
-       a son propre pic. Carte de regime : petite courbe + une phrase.
-       IA (normale et brutale) : tire seulement des astres arrives dans leur
-       bande de bon rendement (>= 90 % du pic, zone ecrite en dur), batit
-       au-dessus de cette bande, et n'achete une technologie qu'avec le
-       surplus (sinon l'achat vidait l'astre qui montait vers son pic).
-       Essais : rendement moyen des IA sur 10 min, 3 parties, ancienne
-       contre nouvelle IA : meilleur pour 6 des 8 regimes tires, egal pour
-       Centre et Droite (ex. Ecolo 0,24 -> 0,56, Anarchie 0,2 -> 0,44) ; reseau a 2 navigateurs sans
-       desynchronisation ; npm run lockstep 30 000 tours identique (deux
-       graines). CORRIGE dans le banc lockstep : il choisissait un regime
-       qui n'existe plus, la partie ne demarrait jamais (0 tir) ; il joue
-       maintenant vraiment (719 tirs, 5 conquetes).
-     - LOGOS DES REGIMES : 9 logos ironiques dessines en vectoriel
-       (assets/regimes/<id>.svg, valides par le createur) : girouette a
-       poignee de main, coeur casse a cadenas, ampoule couronnee, pile de
-       couronnes, botte souriante a marguerite, gribouillis en grille,
-       feuille a usine, piece d'or a casquette, cle a molette et cravate.
-       Carte : logo entier et centre (plus de recadrage), l'icone se cache
-       quand il est charge. Serveurs locaux (relais, banc) : type SVG ajoute.
-     - LIVRE DES REGLES REMIS A JOUR : sections DEPART & REGIMES et
-       COMMERCE & ALLIANCES (avant, caches dans Territoires) ; MULTIJOUEUR
-       reecrit (AU HASARD classe, ENTRE AMIS avec code et lien, meme version
-       exigee, REPRENDRE ; les anciens modes, guildes et equipes retires) ;
-       Evolution corrigee (depart 3/4/2/1 + 3 points du regime, 8 max ;
-       Growth +30 % par point, Velocity +6 de vitesse par point) ; clic
-       droit sur un nom dans les controles ; mot sur l'HISTOIRE ; REGARDER
-       en solo ; pied de page v9.7.9.
-     - REPRISE ACCELEREE (REPRENDRE rejoue la partie depuis le debut) : plus
-       de 10 s de retard, on ne dessine plus, 150 ms de calcul par image et
-       une barre "REPRISE DE LA PARTIE : x %" ; pendant ce rejeu, empreinte
-       toutes les 10 s seulement (le relais la compare toujours a celle des
-       autres) et pas de detail de diagnostic. Mesure en vrai (relais, 2
-       navigateurs, 6 IA) : 4,2 min de partie reprises en 13,6 s avant,
-       7,4 s apres ; aucune desynchronisation.
-       Maths identiques : sinus et cosinus sans petit tableau neuf a chaque
-       appel (moins de memoire a ramasser), resultat identique au bit pres
-       (npm run lockstep : meme empreinte finale qu'avant, 8885b2d5).
-       Mesures 16 joueurs, 6 min : calcul ~1 ms par tour, image ~2 ms.
-     - REPRISE INSTANTANEE (photo de la partie) : toutes les 30 s de jeu, le
-       navigateur range dans IndexedDB une photo de tout ce que le calcul
-       utilise (objets simples, tableaux, liens entre objets, etat du
-       hasard) ; ce qui est propre a l'ecran (taille, camera, son, visee,
-       textures) n'y entre jamais. REPRENDRE : la page refait la carte, pose
-       la photo par-dessus (les astres existants sont remplis, pas
-       remplaces : textures gardees) et ne demande au relais que les paquets
-       suivants. Filet : au moindre ecart d'empreinte, photo effacee et page
-       rechargee pour une reprise complete automatique. Relais : un joueur
-       revenu est de nouveau compare aux autres (a redeployer sur Railway).
-       Le generateur de hasard expose son etat (memes tirages).
-       CORRIGE en essai : une page fraiche n'avait pas les grilles des
-       batailles de surface (preparees au premier combat) : le dessin
-       plantait apres la reprise ; elles sont preparees a la restauration.
-       Essais : banc photo -> rechargement -> reprise sur 9 parties de 5 a
-       12 min, valeur par valeur : identique ; reseau a 2 navigateurs,
-       7,2 min de partie reprises en 4,5 s (13,6 s pour 4 min avant), relais
-       "identiques" ensuite ; photo volontairement abimee : ecart vu au tour
-       suivant, rechargement et reprise complete automatiques, identiques
-       ensuite ; npm run lockstep identique (8885b2d5). Photo : ~3 000
-       objets, 3 ms, ~1 Mo.
-     - FIREFOX : planetes qui disparaissent apres le choix du regime
-       (signale par le createur ; Chrome normal, Firefox introuvable ici).
-       Interrupteurs d'essai dans l'adresse pour trouver la cause :
-       ?travailleur=0 (haute definition sans Worker) et ?hd=0 (textures
-       legeres seulement). Resultat Firefox : hd=0 bon, travailleur=0 non
-       (la cause n'est pas le Worker). Puis ?tex=logiciel / bitmap / garder,
-       et 4 anciennes versions publiees dans essais/1 a 4 pour trouver le
-       patch fautif (a retirer ensuite).
-     - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
-       des que le menu principal est a l'ecran (apres connexion ou choix
-       hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
-       quand on arrive par un lien d'invitation. Une partie qui demarre la
-       ferme. Essai : navigateur neuf, Echap, deuxieme visite, invitation.
 
    À FAIRE
   🎯 SERVEUR 2 (gameLoop.js, depot a part) : reporter le correctif du
@@ -1554,6 +1416,7 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<base href="../../">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nebula Conquest</title>
@@ -1606,70 +1469,6 @@ canvas#gameCanvas {
 
 /* ── Halos des soleils : meme principe, une couche par soleil, au-dessus du
    fond (plus loin dans la page) et sous le canevas de jeu ── */
-/* La cinematique HISTOIRE : images qui se fondent, lent zoom, texte en bas. */
-#histoire { position: fixed; inset: 0; z-index: 2000; background: #000; overflow: hidden; cursor: pointer; opacity: 0; transition: opacity 0.45s; }
-#histoire.hi-visible { opacity: 1; }
-#histoire .hi-image { position: absolute; inset: -2%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.4s ease; }
-#histoire .hi-image.hi-active { opacity: 1; }
-#histoire .hi-zoom-a { animation: hiZoomA 16s ease-out forwards; }
-#histoire .hi-zoom-b { animation: hiZoomB 16s ease-out forwards; }
-@keyframes hiZoomA { from { transform: scale(1.0) translate(0, 0); } to { transform: scale(1.12) translate(-1.5%, -1%); } }
-@keyframes hiZoomB { from { transform: scale(1.12) translate(1.5%, 1%); } to { transform: scale(1.0) translate(0, 0); } }
-#histoire .hi-voile { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.82) 100%); pointer-events: none; }
-#histoire .hi-bas { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 16px 26px; display: flex; flex-direction: column; align-items: center; text-align: center; }
-#histoire .hi-titre { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 3px; color: #FDE68A; text-transform: uppercase; margin-bottom: 8px;
-    opacity: 0; transform: translateY(8px); transition: opacity 0.8s 0.5s, transform 0.8s 0.5s; text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
-#histoire .hi-texte { font-family: 'Exo 2', sans-serif; font-size: clamp(16px, 2.1vw, 23px); line-height: 1.5; color: #F8FAFC; max-width: 900px;
-    opacity: 0; transform: translateY(10px); transition: opacity 1s 0.9s, transform 1s 0.9s; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
-#histoire .hi-texte-visible .hi-titre, #histoire .hi-texte-visible .hi-texte { opacity: 1; transform: none; }
-#histoire .hi-points { display: flex; gap: 7px; margin-top: 16px; }
-#histoire .hi-points span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 0.3s, transform 0.3s; }
-#histoire .hi-points span.hi-on { background: #FDE68A; transform: scale(1.35); }
-#histoire .hi-passer { position: absolute; top: 16px; right: 16px; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.3); color: #E2E8F0;
-    font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 2px; padding: 7px 14px; border-radius: 6px; cursor: pointer; }
-#histoire .hi-fleche { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.3); border: none; color: rgba(255,255,255,0.7);
-    font-size: 34px; width: 44px; height: 64px; border-radius: 8px; cursor: pointer; }
-#histoire .hi-prec { left: 12px; } #histoire .hi-suiv { right: 12px; }
-#histoire .hi-fin { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: rgba(4,6,20,0.72); }
-#histoire.hi-fini .hi-fin { display: flex; }
-#histoire.hi-fini .hi-bas { opacity: 0; }
-#histoire .hi-fin-titre { font-family: 'Orbitron', sans-serif; font-size: clamp(26px, 5vw, 56px); letter-spacing: 8px; color: #E9D5FF; text-shadow: 0 0 30px rgba(168,85,247,0.7); }
-
-/* La fenetre MULTIJOUEUR : deux cartes (au hasard, entre amis). */
-#salonReseau .salon-carte { background: rgba(30,27,75,0.55); border: 1px solid rgba(139,92,246,0.3); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; text-align: center; }
-#salonReseau .salon-titre { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 2px; color: #E9D5FF; margin-bottom: 6px; }
-#salonReseau .salon-aide { font-size: 12px; color: #94A3B8; margin-bottom: 10px; line-height: 1.4; }
-#salonInvit { background: rgba(253,230,138,0.08); border: 1px solid rgba(253,230,138,0.4); border-radius: 10px; padding: 12px; margin-top: 4px; }
-#salonInvit .si-code { font-family: 'Orbitron', sans-serif; font-size: 30px; letter-spacing: 10px; color: #FDE68A; margin: 4px 0 8px; }
-
-/* Le choix du regime politique : neuf cartes. */
-#ecranRegime { position: fixed; inset: 0; z-index: 990; background: rgba(5,8,25,0.9); overflow-y: auto;
-    display: flex; flex-direction: column; align-items: center; padding: 22px 16px 30px; box-sizing: border-box; font-family: 'Exo 2', sans-serif; color: #E0E7FF; }
-#ecranRegime .rg-titre { font-family: 'Orbitron', sans-serif; font-size: 22px; letter-spacing: 4px; color: #E9D5FF; text-shadow: 0 0 18px rgba(168,85,247,0.5); text-align: center; }
-#ecranRegime .rg-sous { font-size: 13px; color: #A5B4FC; margin-top: 6px; text-align: center; max-width: 640px; line-height: 1.5; }
-#ecranRegime .rg-info { font-family: 'Orbitron', sans-serif; font-size: 12px; color: #FDE68A; min-height: 18px; margin: 8px 0 12px; text-align: center; }
-#ecranRegime .rg-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 220px)); gap: 14px; justify-content: center; width: 100%; }
-@media (max-width: 760px) { #ecranRegime .rg-grille { grid-template-columns: repeat(2, minmax(0, 220px)); } }
-#ecranRegime .rg-carte { background: linear-gradient(180deg, rgba(30,27,75,0.95), rgba(12,10,36,0.95)); border: 1px solid rgba(139,92,246,0.35);
-    border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; display: flex; flex-direction: column; }
-#ecranRegime .rg-carte:hover { transform: translateY(-3px); border-color: rgba(196,181,253,0.8); box-shadow: 0 6px 24px rgba(139,92,246,0.3); }
-#ecranRegime .rg-carte.rg-choisie { border-color: #FDE68A; box-shadow: 0 0 0 2px #FDE68A, 0 0 28px rgba(253,230,138,0.35); }
-#ecranRegime .rg-image { position: relative; height: 118px; background: radial-gradient(circle at 50% 40%, rgba(139,92,246,0.35), rgba(15,12,40,0.9));
-    display: flex; align-items: center; justify-content: center; }
-#ecranRegime .rg-image img { position: absolute; inset: 6px 0; width: 100%; height: calc(100% - 12px); object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.45)); }
-#ecranRegime .rg-logo .rg-icone { visibility: hidden; }
-#ecranRegime .rg-icone { font-size: 46px; filter: drop-shadow(0 0 10px rgba(196,181,253,0.5)); }
-#ecranRegime .rg-nom { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 1.5px; color: #F5F3FF; padding: 10px 12px 4px; }
-#ecranRegime .rg-texte { font-size: 12px; color: #A5B4FC; padding: 0 12px 6px; line-height: 1.4; }
-#ecranRegime .rg-pourquoi { font-size: 11px; font-style: italic; color: #C4B5FD; opacity: 0.8; padding: 0 12px 10px; line-height: 1.4; flex: 1; }
-#ecranRegime .rg-courbe { padding: 0 12px 8px; }
-#ecranRegime .rg-courbe svg { display: block; width: 100%; height: 34px; border-bottom: 1px solid rgba(140,170,230,0.25); }
-#ecranRegime .rg-courbe span { display: block; font-size: 10px; color: #93C5FD; margin-top: 3px; }
-#ecranRegime .rg-stats { display: flex; justify-content: space-around; border-top: 1px solid rgba(139,92,246,0.25); padding: 8px 6px; background: rgba(0,0,0,0.25); }
-#ecranRegime .rg-stat { display: flex; flex-direction: column; align-items: center; font-size: 13px; gap: 1px; }
-#ecranRegime .rg-stat b { font-family: 'Orbitron', sans-serif; font-size: 12px; }
-#ecranRegime .rg-zero span { opacity: 0.35; }
-
 #halosSoleils {
     position: fixed;
     top: 0;
@@ -1840,15 +1639,6 @@ canvas#gameCanvas.grabbing {
     margin-top: clamp(3px, 0.8vh, 8px) !important;
 }
 
-
-/* Les deux grands choix du menu, puis la rangee des autres. */
-#titleScreen .menu-principal { display: flex; flex-direction: column; align-items: center; gap: clamp(4px, 1vh, 10px); }
-#titleScreen .btn-grand { display: flex; flex-direction: column; align-items: center; min-width: min(300px, 80vw);
-    font-size: clamp(13px, 1.9vh, 18px) !important; padding: clamp(8px, 1.5vh, 14px) clamp(16px, 3vw, 34px) !important; }
-#titleScreen #btnSalon { background: rgba(168,85,247,0.16); border-color: rgba(168,85,247,0.5); color: #E9D5FF; }
-#titleScreen .btn-sous { font-family: 'Exo 2', sans-serif; font-size: 11px; letter-spacing: 1px; opacity: 0.7; margin-top: 3px; }
-#titleScreen .menu-secondaire { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: clamp(10px, 2.2vh, 22px); }
-#titleScreen .menu-secondaire .btn { margin: 0 !important; }
 
 #titleScreen.no-intro .btn,
 #titleScreen.no-intro .subtitle,
@@ -3393,25 +3183,15 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <div id="titleScreen" class="screen hidden">
     <canvas id="titleBgCanvas"></canvas>
     <h1 id="titleText" class="title-glow"></h1>
-    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.9) </div>
-<!-- Le menu : deux grands choix (seul, a plusieurs), puis le reste. Les
-         trois modes de l'ancien serveur (serveur 2) sont caches : le
-         multijoueur passe tout par le relais (bouton MULTIJOUEUR). -->
-    <div class="menu-principal">
-        <button class="btn btn-grand" id="btnNewGame">⚔️ JOUER SEUL<span class="btn-sous">contre l'IA</span></button>
-        <button class="btn btn-grand" id="btnSalon">🌐 MULTIJOUEUR<span class="btn-sous">au hasard ou entre amis</span></button>
-        <button class="btn" id="btnReprendre" style="display:none; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.5); color:#BBF7D0;">↩ REPRENDRE LA PARTIE EN COURS</button>
-    </div>
-    <div class="menu-secondaire">
-        <button class="btn" id="btnMission" style="background:rgba(74,222,128,0.10); border:1px solid rgba(74,222,128,0.4); color:#86EFAC;">🎓 TUTORIEL</button>
-        <button class="btn" id="btnHistoire" style="background:rgba(253,230,138,0.08); border:1px solid rgba(253,230,138,0.4); color:#FDE68A;">📜 HISTOIRE</button>
-        <button class="btn" id="btnHelp" style="background:rgba(100,180,255,0.10); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">📖 RÈGLES</button>
-    </div>
-    <div style="display:none;">
-        <button class="btn" id="btnMulti">MULTI (ancien)</button>
-        <button class="btn" id="btnLocal">LOCAL (ancien)</button>
-        <button class="btn" id="btnCompetition">COMPÉTITION (ancien)</button>
-    </div>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.8) </div>
+<button class="btn" id="btnNewGame">⚔️ SOLO vs IA</button>
+    <button class="btn" id="btnMulti" style="margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#4ADE80;">🌐 MULTI (matchmaking)</button>
+    <button class="btn" id="btnSalon" style="margin-top:8px; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.45); color:#D8B4FE;">🛰️ RÉSEAU (bêta)</button>
+    <button class="btn" id="btnReprendre" style="display:none; margin-top:8px; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.5); color:#BBF7D0;">↩ REPRENDRE LA PARTIE</button>
+    <button class="btn" id="btnLocal" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">👥 LOCAL (inviter)</button>
+    <button class="btn" id="btnCompetition" style="margin-top:8px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); color:#FFD700;">🏆 COMPÉTITION</button>
+    <button class="btn" id="btnMission" style="margin-top:8px; background:rgba(74,222,128,0.12); border:1px solid rgba(74,222,128,0.45); color:#86EFAC;">🎓 MISSION TUTORIEL</button>
+    <button class="btn" id="btnHelp" style="margin-top:8px; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">AIDE</button>
     <div id="titlePseudo" style="margin-top:20px; font-family:'Orbitron',sans-serif; font-size:11px; color:rgba(200,170,255,0.5); letter-spacing:2px;"></div>
     <button id="btnLogout" style="margin-top:8px; background:none; border:none; color:rgba(200,170,255,0.3); font-family:'Exo 2',sans-serif; font-size:11px; cursor:pointer; letter-spacing:1px;">DÉCONNEXION</button>
 </div>
@@ -3419,33 +3199,28 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <!-- SALON RESEAU (lockstep) : partie rapide ou privee, par le relais
      d'ordres. Fenetre independante, par-dessus l'ecran titre. -->
 <div id="salonReseau" style="display:none; position:fixed; inset:0; z-index:900; background:rgba(5,8,25,0.92); align-items:center; justify-content:center; padding:16px;">
-    <div style="background:rgba(15,23,42,0.96); border:1px solid rgba(168,85,247,0.45); border-radius:12px; padding:22px 24px; width:100%; max-width:440px; max-height:calc(100vh - 32px); overflow-y:auto; text-align:center; font-family:'Exo 2',sans-serif; color:#E0E7FF;">
-        <h2 style="font-family:'Orbitron',monospace; color:#D8B4FE; text-shadow:0 0 18px rgba(168,85,247,0.45); margin:0 0 14px; font-size:20px;">🌐 MULTIJOUEUR</h2>
+    <div style="background:rgba(15,23,42,0.96); border:1px solid rgba(168,85,247,0.45); border-radius:12px; padding:22px 24px; width:100%; max-width:400px; text-align:center; font-family:'Exo 2',sans-serif; color:#E0E7FF;">
+        <h2 style="font-family:'Orbitron',monospace; color:#D8B4FE; text-shadow:0 0 18px rgba(168,85,247,0.45); margin:0 0 6px; font-size:20px;">🛰️ RÉSEAU</h2>
+        <div style="font-size:11px; color:#94A3B8; margin-bottom:16px;">Chaque joueur calcule la partie, le serveur relaie les ordres (bêta).</div>
         <div id="salonChoix">
-            <div class="salon-carte">
-                <div class="salon-titre">🎲 AU HASARD</div>
-                <div class="salon-aide">Contre d'autres joueurs. La partie démarre dès qu'elle est pleine ; classée (ELO) si vous êtes connecté.</div>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn salon-rapide" data-n="2" style="flex:1; margin:0; padding:10px 0; font-size:12px;">2</button>
-                    <button class="btn salon-rapide" data-n="4" style="flex:1; margin:0; padding:10px 0; font-size:12px;">4</button>
-                    <button class="btn salon-rapide" data-n="8" style="flex:1; margin:0; padding:10px 0; font-size:12px;">8</button>
-                    <button class="btn salon-rapide" data-n="16" style="flex:1; margin:0; padding:10px 0; font-size:12px;">16</button>
-                </div>
-                <div class="salon-aide" style="margin:4px 0 0;">joueurs</div>
+            <div style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:#C4B5FD; margin-bottom:8px;">PARTIE RAPIDE</div>
+            <div style="font-size:12px; color:#94A3B8; margin-bottom:8px;">Elle se lance dès qu'elle est pleine. Classée (ELO) entre joueurs connectés à leur compte.</div>
+            <div style="display:flex; gap:8px; margin-bottom:18px;">
+                <button class="btn salon-rapide" data-n="2" style="flex:1; margin:0; padding:10px 0; font-size:12px;">2</button>
+                <button class="btn salon-rapide" data-n="4" style="flex:1; margin:0; padding:10px 0; font-size:12px;">4</button>
+                <button class="btn salon-rapide" data-n="8" style="flex:1; margin:0; padding:10px 0; font-size:12px;">8</button>
+                <button class="btn salon-rapide" data-n="16" style="flex:1; margin:0; padding:10px 0; font-size:12px;">16</button>
             </div>
-            <div class="salon-carte">
-                <div class="salon-titre">✉️ ENTRE AMIS</div>
-                <div class="salon-aide">Créez la partie, puis envoyez le lien d'invitation (ou le code) à vos amis. Les places vides peuvent être prises par des IA.</div>
-                <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:10px; font-size:12px; flex-wrap:wrap;">
-                    <label>Joueurs <select id="salonNb" style="margin-left:4px;"></select></label>
-                    <label>+ IA <select id="salonIa" style="margin-left:4px;"></select></label>
-                    <button class="btn" id="salonCreer" style="margin:0; padding:7px 14px; font-size:12px;">CRÉER</button>
-                </div>
-                <div style="display:flex; gap:8px; align-items:center; justify-content:center;">
-                    <span style="font-size:12px; color:#94A3B8;">ou rejoindre :</span>
-                    <input id="salonCode" type="text" maxlength="4" placeholder="CODE" autocomplete="off" style="width:90px; text-align:center; text-transform:uppercase; letter-spacing:4px; font-family:'Orbitron',sans-serif; padding:7px; border-radius:6px; border:1px solid rgba(168,85,247,0.45); background:rgba(0,0,0,0.3); color:#E0E7FF;">
-                    <button class="btn" id="salonRejoindre" style="margin:0; padding:7px 14px; font-size:12px;">REJOINDRE</button>
-                </div>
+            <div style="font-size:11px; color:#94A3B8; margin:-12px 0 16px;">joueurs</div>
+            <div style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:#C4B5FD; margin-bottom:8px;">PARTIE PRIVÉE</div>
+            <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:8px; font-size:12px;">
+                <label>Joueurs <select id="salonNb" style="margin-left:4px;"></select></label>
+                <label>IA <select id="salonIa" style="margin-left:4px;"></select></label>
+                <button class="btn" id="salonCreer" style="margin:0; padding:7px 14px; font-size:12px;">CRÉER</button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:6px;">
+                <input id="salonCode" type="text" maxlength="4" placeholder="CODE" autocomplete="off" style="width:90px; text-align:center; text-transform:uppercase; letter-spacing:4px; font-family:'Orbitron',sans-serif; padding:7px; border-radius:6px; border:1px solid rgba(168,85,247,0.45); background:rgba(0,0,0,0.3); color:#E0E7FF;">
+                <button class="btn" id="salonRejoindre" style="margin:0; padding:7px 14px; font-size:12px;">REJOINDRE</button>
             </div>
             <div style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:#C4B5FD; margin:16px 0 6px;">CLASSEMENT</div>
             <div id="salonTailles" style="display:flex; gap:6px; justify-content:center; margin-bottom:6px;">
@@ -3456,7 +3231,6 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
             </div>
             <div id="salonClassement" style="max-height:170px; overflow-y:auto; font-size:12px; text-align:left;"></div>
         </div>
-        <div id="salonInvit" style="display:none;"></div>
         <div id="salonStatut" style="min-height:40px; margin:14px 0 10px; font-size:14px;"></div>
         <button class="btn" id="salonFermer" style="font-size:12px; padding:8px 24px; margin:0;">FERMER</button>
     </div>
@@ -3660,7 +3434,6 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <!-- Navigation chapitres -->
 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(100,180,255,0.15);">
   <a href="#h-objectif" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🎯 Objectif</a>
-  <a href="#h-depart" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🏛 Départ</a>
   <a href="#h-controles" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🕹 Contrôles</a>
   <a href="#h-prod" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🧬 Production</a>
   <a href="#h-bataille" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚔ Bataille</a>
@@ -3672,20 +3445,13 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <a href="#h-alertes" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🔔 Alertes</a>
   <a href="#h-dangers" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚠️ Dangers</a>
   <a href="#h-spheres" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🛸 Sphères</a>
-  <a href="#h-commerce" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🤝 Commerce</a>
   <a href="#h-multi" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🌐 Multi</a>
 </div>
 
 <!-- OBJECTIF -->
 <p id="h-objectif" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🎯 OBJECTIF</p>
-<p style="margin-bottom:6px;">Conquérir <span style="color:#FFD700;">80%</span> de tous les astres de la galaxie (planètes + lunes). Dès ce seuil atteint, la victoire est déclarée immédiatement. En solo, si vous êtes éliminé, le bouton <span style="color:#A5B4FC;">REGARDER</span> de l'écran de défaite permet de suivre la fin de la partie.</p>
-<p style="margin-bottom:6px;">Chaque astre possédé génère des <span style="color:#C8A0FF;">spores</span> en continu. Plus vous en contrôlez, plus vite vous produisez — et plus vous êtes difficile à battre.</p>
-<p style="margin-bottom:16px;">Pourquoi des spores ? Le bouton <span style="color:#E9D5FF;">HISTOIRE</span> du menu le raconte : la Terre est détruite, et les partis politiques y ont transformé leurs adhérents en spores pour conquérir l'univers.</p>
-
-<!-- DEPART -->
-<p id="h-depart" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🏛 DÉPART &amp; RÉGIMES</p>
-<p style="margin-bottom:6px;">Chaque partie (solo et réseau ; pas le tutoriel) commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Centre collaborateur, Gauche non solidaire, Dictature éclairée, Royauté à plusieurs, Fascisme sympa, Anarchie très organisée, Écolo mais pas trop, Communisme néolibéral, Droite prolétaire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun s'installe ; sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
-<p style="margin-bottom:16px;">Chaque régime a aussi sa propre <span style="color:#4ADE80;">courbe de croissance</span>, dessinée sur sa carte : voir Production.</p>
+<p style="margin-bottom:6px;">Conquérir <span style="color:#FFD700;">80%</span> de tous les astres de la galaxie (planètes + lunes). Dès ce seuil atteint, la victoire est déclarée immédiatement.</p>
+<p style="margin-bottom:16px;">Chaque astre possédé génère des <span style="color:#C8A0FF;">spores</span> en continu. Plus vous en contrôlez, plus vite vous produisez — et plus vous êtes difficile à battre.</p>
 
 <!-- CONTRÔLES -->
 <p id="h-controles" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🕹 CONTRÔLES</p>
@@ -3700,7 +3466,6 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Ctrl + clic gauche maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Rafale</b> — paquets de 10 spores, 8 par seconde, arrosés autour du curseur ; lâcher pour arrêter</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Shift maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Boule</b> — charge 25 spores/s (jusqu'à 500, coût double) qui tournent lentement vers la souris ; lâcher Shift la lance</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur un astre</td><td style="padding:3px 0;">Le devis : combien de cases votre envoi y achètera, et à quel prix</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un nom (liste des joueurs)</td><td style="padding:3px 0;">Info sur ce joueur, ou proposition de Commerce</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur fond vide + glisser</td><td style="padding:3px 0;">Déplace la caméra</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Survol d'un nombre de spores</td><td style="padding:3px 0;">Nomme le joueur à qui il appartient, et dit s'il tient l'astre ou l'assaille</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Molette</td><td style="padding:3px 0;">Zoom / dézoom (ne fait pas défiler les panneaux quand la souris est dessus)</td></tr>
@@ -3724,8 +3489,8 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 
 <!-- PRODUCTION -->
 <p id="h-prod" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🧬 SPORES &amp; PRODUCTION</p>
-<p style="margin-bottom:6px;">Chaque astre a une <span style="color:#FFD700;">capacité</span> — le nombre de spores qu'il peut contenir — et se remplit tout seul. La vitesse de remplissage est une <span style="color:#C8A0FF;">part de cette capacité par seconde</span>, si bien qu'une géante et une petite lune mettent le même temps à se remplir : avec la courbe commune, environ 80 secondes pour le premier quart, trois minutes et demie pour le gros pic.</p>
-<p style="margin-bottom:6px;">Mais le rendement n'est pas constant : il suit une <span style="color:#4ADE80;">courbe</span>. Voici la courbe commune (celle du tutoriel) :</p>
+<p style="margin-bottom:6px;">Chaque astre a une <span style="color:#FFD700;">capacité</span> — le nombre de spores qu'il peut contenir — et se remplit tout seul. La vitesse de remplissage est une <span style="color:#C8A0FF;">part de cette capacité par seconde</span>, si bien qu'une géante et une petite lune mettent le même temps à se remplir : environ 80 secondes pour le premier quart, trois minutes et demie pour le gros pic.</p>
+<p style="margin-bottom:6px;">Mais le rendement n'est pas constant : il suit une <span style="color:#4ADE80;">courbe à deux régimes</span>.</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
   <tr><td style="padding:3px 0;color:#E9D5FF;width:32%;">Presque vide</td><td style="padding:3px 0;">Rendement faible — il n'y a personne pour se reproduire</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">Au quart plein</td><td style="padding:3px 0;">Première bosse, modeste mais facile à tenir</td></tr>
@@ -3733,7 +3498,6 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <tr><td style="padding:3px 0;color:#E9D5FF;">Aux sept dixièmes</td><td style="padding:3px 0;color:#4ADE80;">LE PIC — le meilleur rendement du jeu</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">Plein à ras bord</td><td style="padding:3px 0;">Extinction : un astre saturé ne produit plus rien</td></tr>
 </table>
-<p style="margin-bottom:6px;"><span style="color:#FFD700;">CHAQUE RÉGIME A SA COURBE.</span> Le tableau ci-dessus est la courbe commune (tutoriel). En partie, votre <span style="color:#E9D5FF;">régime politique</span> a sa propre courbe, dessinée sur sa carte au moment du choix : la Droite prolétaire donne tout presque vide, la Dictature éclairée a un pic très haut mais étroit vers 85 %, l'Anarchie très organisée cinq pics réguliers, le Communisme néolibéral exige de presque tout remplir… Le panneau <span style="color:#FFD700;">NAISSANCE</span> montre toujours la courbe du propriétaire de l'astre, et les IA visent le meilleur niveau de la leur.</p>
 <p style="margin-bottom:6px;">Le rendement du moment s'affiche au-dessus de l'astre sélectionné, en vert, jaune ou rouge. Tout le reste <span style="color:#E9D5FF;">multiplie</span> cette courbe : la <span style="color:#4ADE80;">Flore</span> de l'astre, la <span style="color:#22C55E;">Symbiose</span> qui monte avec le temps (jusqu'à +20 % sur une planète, +10 % sur une lune), vos <span style="color:#E9D5FF;">nids</span> et votre stat <span style="color:#4ADE80;">Growth</span>.</p>
 <p style="margin-bottom:16px;">Une <span style="color:#EAB308;">alvéole</span> augmente la capacité, donc aussi la production : un plus grand silo nourrit plus de monde. Attention, elle décale aussi le pic.</p>
 <p style="margin-bottom:16px;">Deux types de jets partent du menu radial : <span style="color:#E9D5FF;">⚪ Spores</span>, qui colonisent et attaquent, et <span style="color:#E9D5FF;"><i class="ic-bat" data-g="parasite"></i> Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent).</p>
@@ -3786,14 +3550,15 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ONDES SOLAIRES.</span> Un système entièrement tenu se met à vivre : son étoile s'embrase <span style="color:#E9D5FF;">toutes les 5 secondes</span> et envoie une onde qui balaie ses astres. Chacun la reçoit au passage du front, pas au départ — le système s'allume de l'intérieur vers l'extérieur.</p>
 <p style="margin-bottom:16px;">Ce que l'onde apporte dépend de votre stat <span style="color:#FBBF24;">Sensitivity</span> : <span style="color:#4ADE80;">+5 % de la capacité de l'astre par point</span>. À un point, une lune de 400 reçoit 20 spores.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro. Il peut dépasser son maximum <b>sans limite</b> (chiffre doré ⚡) ; après le tir, le trop-plein s'évapore peu à peu.</p>
+<p style="margin-bottom:6px;"><span style="color:#FDE68A;">COMMERCE.</span> Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
 <p style="margin-bottom:16px;">On ne tire pas à travers une étoile ni un trou noir : ils détruisent les jets. Quand aucun de vos astres n'a la vue sur la cible, le trait de visée passe au <span style="color:#EF4444;">rouge</span>.</p>
 
 <!-- ÉVOLUTION -->
 <p id="h-evolution" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">✦ ÉVOLUTION &amp; MUTATIONS</p>
-<p style="margin-bottom:6px;">Quatre voies. Vous partez avec 3 Growth, 4 Velocity, 2 Density et 1 Sensitivity, plus les <b>3 points offerts par votre régime</b> ; 8 au maximum par voie.</p>
+<p style="margin-bottom:6px;">Quatre voies, 10 points à répartir avant la partie :</p>
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
-  <tr><td style="padding:3px 0;color:#4ADE80;width:26%;">🌱 Growth</td><td style="padding:3px 0;">+30 % de production de spores par point, sur tous vos astres</td></tr>
-  <tr><td style="padding:3px 0;color:#60A5FA;">⚡ Velocity</td><td style="padding:3px 0;">+6 de vitesse des jets par point (vitesse de base : 20)</td></tr>
+  <tr><td style="padding:3px 0;color:#4ADE80;width:26%;">🌱 Growth</td><td style="padding:3px 0;">+5 % de production de spores par point, sur tous vos astres</td></tr>
+  <tr><td style="padding:3px 0;color:#60A5FA;">⚡ Velocity</td><td style="padding:3px 0;">+5 % de vitesse des jets par point</td></tr>
   <tr><td style="padding:3px 0;color:#F472B6;">💎 Density</td><td style="padding:3px 0;">+5 % de puissance à l'impact par point</td></tr>
   <tr><td style="padding:3px 0;color:#FBBF24;">☀ Sensitivity</td><td style="padding:3px 0;">+5 % de la capacité de l'astre par point, à chaque onde solaire</td></tr>
 </table>
@@ -3841,21 +3606,19 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:16px;"><span style="color:#FFD27A;">LA CAPTURE.</span> Envoyez-lui <span style="color:#E9D5FF;">20 000 spores en moins de 30 s</span> (un anneau à votre couleur montre où vous en êtes) et vous la pilotez pendant <b>1 minute</b> avec <span style="color:#E9D5FF;">ZQSD</span>. Pilotée, elle tire pour vous et plus loin : la verte n'arrose que <b>vos</b> astres, la noire ne ronge que ceux de vos <b>adversaires</b>. Écrasée sur une planète ou une lune : tous ses bâtiments détruits, 0 spore et plus de production pendant 1 minute. Sur un soleil : <b>tout son système</b> subit le même sort. La sphère est perdue dans le choc.</p>
 <p style="margin-bottom:16px;">Les <b>IA</b> aussi convoitent les sphères. Une IA assez grosse peut cesser d'attaquer pendant quelques minutes pour <b>économiser</b>, puis bombarder une sphère qui passe près de chez elle. Si elle la prend, elle la lance sur le système le plus riche de ses adversaires, et un message vous prévient.</p>
 
-<!-- COMMERCE -->
-<p id="h-commerce" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🤝 COMMERCE &amp; ALLIANCES</p>
-<p style="margin-bottom:16px;">Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
-
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
-<p style="margin-bottom:6px;">Le bouton <span style="color:#E9D5FF;">MULTIJOUEUR</span> du menu propose deux façons de jouer :</p>
-<p style="margin-bottom:6px;"><span style="color:#4ADE80;">🎲 AU HASARD</span> : choisissez 2, 4, 8 ou 16 joueurs ; vous rejoignez une partie qui démarre dès qu'elle est pleine. Partie <b>classée (ELO)</b> si vous êtes connecté — le classement de chaque taille s'affiche en dessous.</p>
-<p style="margin-bottom:6px;"><span style="color:#FCD34D;">✉️ ENTRE AMIS</span> : choisissez le nombre de joueurs et d'IA, puis CRÉER. La partie affiche un <b>code</b> de 4 lettres et un bouton <b>COPIER LE LIEN D'INVITATION</b> : l'ami qui ouvre le lien arrive directement dans la partie ; il peut aussi taper le code puis REJOINDRE. Les places vides peuvent être prises par des IA.</p>
-<p style="margin-bottom:6px;">Tout le monde voit exactement la même partie. Il faut la <b>même version du jeu</b> : si un joueur a une ancienne version, il est prévenu et doit recharger la page. Si vous perdez la connexion ou rechargez la page, le bouton <span style="color:#E9D5FF;">REPRENDRE</span> du menu vous ramène dans la partie en cours, en quelques secondes : votre navigateur garde une photo de la partie toutes les 30 secondes de jeu.</p>
-<p style="margin-bottom:16px;">Les joueurs IA portent des noms générés (ex. [IA] Zyrex, [IA] Vorath…). En réseau, une partie se termine aussi à 80 % des astres ou quand il ne reste qu'un joueur en vie.</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Rejoindre</span> : depuis le menu principal, "REJOINDRE" vous place dans la prochaine partie disponible. Deux variantes : <span style="color:#4ADE80;">▶ REJOINDRE</span> (chacun pour soi) et <span style="color:#FCD34D;">🤖 REJOINDRE (OK POUR BOTS)</span> qui vote pour compléter avec des IA si la majorité est d'accord.</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Créer une partie</span> : choisissez la carte, ajoutez des IA, invitez des amis par pseudo ou une guilde entière par tag. Option "Compléter par IA" pour remplir les slots vides au lancement. Option <span style="color:#60A5FA;">Mode équipes</span> : 2, 3 ou 4 équipes réparties aléatoirement. En mode équipes, vos jets vers les coéquipiers les renforcent — impossible de trahir. Les noms au-dessus des planètes affichent la couleur de l'équipe.</p>
+<p style="margin-bottom:6px;">Les joueurs IA portent des noms générés aléatoirement (ex. [IA] Zyrex, [IA] Vorath…). En mode équipes, les IA jouent dans leur équipe assignée.</p>
+<p style="margin-bottom:6px;">Le nombre maximum de joueurs est calculé selon la carte : <span style="color:#FFD700;">≤ 10 planètes → max = nb planètes · > 10 planètes → max = nb planètes + 5</span>. En mode équipes, ce nombre est forcément pair.</p>
+<p style="margin-bottom:6px;"><span style="color:#A5B4FC;">👁 Spectateur</span> : si vous êtes éliminé, le bouton <span style="color:#A5B4FC;">REGARDER</span> apparaît sur l'écran de défaite pour observer la suite sans interagir.</p>
+<p style="margin-bottom:6px;"><span style="color:#FB923C;">⚔️ Guildes</span> : créez ou rejoignez une guilde depuis le menu principal. Votre tag s'affiche après votre pseudo <span style="color:#FB923C;">[TAG]</span>. Les guildes ont leur propre classement ELO. Invitez une guilde entière dans une partie via son tag — tous les membres reçoivent l'invitation.</p>
+<p style="margin-bottom:16px;">Les scores et l'ELO sont mis à jour automatiquement après chaque partie multi (minimum 2 joueurs humains).</p>
 
 <!-- ASTUCES -->
 <p style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">💡 ASTUCES</p>
-<p style="margin-bottom:6px;">Ne laissez pas un astre <span style="color:#EF4444;">plein à ras bord</span> : il ne produit plus. Tirez pour le redescendre vers le pic de votre courbe, là où il rapporte le plus.</p>
+<p style="margin-bottom:6px;">Ne laissez pas un astre <span style="color:#EF4444;">plein à ras bord</span> : il ne produit plus. Tirez pour le redescendre vers les sept dixièmes, là où il rapporte le plus.</p>
 <p style="margin-bottom:6px;">Un astre <span style="color:#EF4444;">vidé</span> remonte lentement. Gardez toujours de quoi relancer.</p>
 <p style="margin-bottom:6px;">La touche <span style="color:#FFD27A;">R</span> est faite pour ça : souris dans le vide, elle nettoie d'un coup tout ce qui peut l'être ; souris sur un astre, elle concentre l'effort sur lui seul et vous gardez vos réserves ailleurs.</p>
 <p style="margin-bottom:6px;">Une tête de pont chez l'ennemi produit, construit et tire. Dix cases bien placées valent mieux qu'une attaque ratée.</p>
@@ -3863,7 +3626,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">F3</span> affiche les images par seconde, puis <span style="color:#E9D5FF;">D</span> détaille ce qui coûte cher à dessiner — utile si le jeu rame.</p>
 <p style="margin-bottom:16px;"><span style="color:#FFD700;">Si ça rame</span>, le réglage <span style="color:#E9D5FF;">GRAPH</span> en haut à droite fait peindre le jeu plus petit avant de l'agrandir : la carte y perd un peu de netteté, jamais les panneaux ni le texte. La finesse baisse déjà toute seule quand vous dézoomez — mesuré, une image complète passe de 9,1 à 5,6 ms — et ce réglage décale toute l'échelle vers le bas. En <span style="color:#E9D5FF;">Bas</span>, les scintillements et la brume des jets sont coupés en prime.</p>
 
-<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.9</p>
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.8</p>
     </div>
     <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
 </div>
@@ -4925,16 +4688,10 @@ function _peindreLignes(S, limite) {
     }
     return true;
 }
-/* Essai Firefox (?tex=logiciel) : canevas garde en memoire ordinaire, pas
-   sur la carte graphique. */
-function _ctxTex(c) {
-    return (typeof _essaiTex !== 'undefined' && _essaiTex.get('tex') === 'logiciel')
-        ? c.getContext('2d', { willReadFrequently: true }) : c.getContext('2d');
-}
 function _chantierSphere(size, seed, f, atmo, limbe) {
     const c = document.createElement('canvas');
     c.width = c.height = size;
-    const ctx = _ctxTex(c);
+    const ctx = c.getContext('2d');
     const img = ctx.createImageData(size, size);
     const S = _etatSphere(size, seed, f, atmo, limbe, img.data);
     return {
@@ -4954,9 +4711,6 @@ function _chantierSphere(size, seed, f, atmo, limbe) {
    n'attend jamais. Les astres proches de la camera passent d'abord. */
 const _fileHD = [];
 let _peintreActif = false;
-/* Interrupteurs d'essai, dans l'adresse : ?travailleur=0 peint la haute
-   definition sans Worker ; ?hd=0 garde les textures legeres. */
-const _essaiTex = new URLSearchParams(location.search);
 function _texturer(b, size, seed, f, atmo, limbe) {
     const petit = Math.max(12, Math.min(size, Math.floor(b.radius * 1.2)));
     const c = _chantierSphere(petit, seed, f, atmo, limbe).avancer(Infinity);
@@ -4965,7 +4719,7 @@ function _texturer(b, size, seed, f, atmo, limbe) {
        les planetes et les lunes, une seule image, comme avant : Firefox
        supporte mal des centaines de petits canevas (astres invisibles). */
     b._niveaux = b.type === 'sun' ? _niveauxTexture(c) : null;
-    if (size > petit && _essaiTex.get('hd') !== '0') {
+    if (size > petit) {
         b._travailHD = { size: size, seed: seed, f: f, atmo: atmo, limbe: limbe, chantier: null };
         if (_fileHD.indexOf(b) < 0) _fileHD.push(b);
         _lancerPeintre();
@@ -4977,7 +4731,7 @@ function _texturer(b, size, seed, f, atmo, limbe) {
    _texturer y change, il retient la recette au lieu de peindre), refait la
    recette de l'astre et rend les pixels. Navigateur sans Worker, ou erreur :
    on repasse a la peinture par petits morceaux (_peintreFond). */
-let _travailleur = null, _travailleurKo = _essaiTex.get('travailleur') === '0', _tEnCours = null, _tNumero = 0;
+let _travailleur = null, _travailleurKo = false, _tEnCours = null, _tNumero = 0;
 function _texTravailleur() {
     if (_travailleur || _travailleurKo) return _travailleur;
     try {
@@ -5038,9 +4792,7 @@ function _poserHD(b, c) {
     b._travailHD = null;
     const k = _fileHD.indexOf(b);
     if (k >= 0) _fileHD.splice(k, 1);
-    /* ?tex=garder (essai Firefox) : on ne libere pas l'ancienne image. */
-    if (_essaiTex.get('tex') === 'garder') return;
-    if (ancien && ancien !== c) { if (ancien.close) ancien.close(); else { ancien.width = 0; ancien.height = 0; } }
+    if (ancien && ancien !== c) { ancien.width = 0; ancien.height = 0; }
     if (anciens) for (const n of anciens) if (n !== ancien && n !== c) { n.width = 0; n.height = 0; }
 }
 function _envoyerTravail() {
@@ -5062,19 +4814,9 @@ function _texRecue(e) {
     /* Texture refaite entre-temps, ou partie finie : on laisse. */
     if (b._travailHD === en.T && _astreEnJeu(b)) {
         try {
-            if (_essaiTex.get('tex') === 'bitmap') {
-                /* Essai Firefox : une ImageBitmap au lieu d'un canevas. */
-                const T = en.T, k = _fileHD.indexOf(b);
-                if (k >= 0) _fileHD.splice(k, 1);
-                createImageBitmap(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size)).then(function (bm) {
-                    if (b._travailHD === T && _astreEnJeu(b)) _poserHD(b, bm); else bm.close();
-                });
-                _lancerPeintre();
-                return;
-            }
             const c = document.createElement('canvas');
             c.width = c.height = m.size;
-            _ctxTex(c).putImageData(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size), 0, 0);
+            c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.data), m.size, m.size), 0, 0);
             _poserHD(b, c);
         } catch (err) {
             b._travailHD = null;
@@ -5441,18 +5183,13 @@ let _nbAlea = 0;
 function gameRandom() { _nbAlea++; return _gameRng ? _gameRng() : Math.random(); }
 
 // PRNG déterministe (mulberry32)
-/* lire / ecrire : l'etat du generateur, pour la photo de la partie (reprise
-   instantanee en reseau). Les tirages sont inchanges. */
 function mulberry32(a) {
-    const f = function() {
+    return function() {
         a |= 0; a = a + 0x6D2B79F5 | 0;
         var t = Math.imul(a ^ a >>> 15, 1 | a);
         t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
         return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
-    f.lire = function () { return a; };
-    f.ecrire = function (v) { a = v; };
-    return f;
 }
 
 
@@ -8477,9 +8214,6 @@ function setPhase(phase) {
     gameState.phase = phase;
     if (spawnCountdownInterval) { clearInterval(spawnCountdownInterval); spawnCountdownInterval = null; }
 
-    /* Une partie qui demarre ferme l'histoire si elle tournait encore. */
-    if (phase !== 'title') { try { fermerHistoire(); } catch (e) {} }
-
     // Cacher tous les écrans
     document.getElementById('authScreen').classList.add('hidden');
     document.getElementById('titleScreen').classList.add('hidden');
@@ -8519,8 +8253,6 @@ case 'title':
             connectSocket();
             setTimeout(() => { if (_socket && currentProfile) _socket.emit('register_pseudo', { pseudo: currentProfile.pseudo }); }, 1000);
             if (_titleAnimPlayed) document.getElementById('titleScreen').classList.add('no-intro');
-            /* Arrive par un lien d'invitation : on rejoint la partie. */
-            setTimeout(invitationDepuisAdresse, 600);
             gameState.running = false;
             const _pEl = document.getElementById('titlePseudo');
             if (_pEl) _pEl.textContent = currentProfile ? '⬡ ' + currentProfile.pseudo
@@ -10874,7 +10606,7 @@ function majFiche() {
         g += _fCase('Rempli', Math.round(part * 100) + ' %', part >= PART_SATUREE ? 'neg' : '');
         const debit = debitAstre(b);
         g += _fCase('Production', debit > 0 ? '+' + _sp(debit) + '/s' : '—', debit > 0 ? 'pos' : '');
-        g += _fCase('Rendement', Math.round(courbeCroissance(part, b.owner) * 100) + ' %');
+        g += _fCase('Rendement', Math.round(courbeCroissance(part) * 100) + ' %');
         g += _fCase('Flore', Math.round(b.flore || 0));
         g += _fCase('Faune', Math.round(b.faune || 0));
         g += _fCase('Symbiose', Math.round(b.symbiosis || 0) + ' %');
@@ -11121,297 +10853,6 @@ function updateScoreBoard() {
 
 
 // ─────────────────────────────────────────────
-// DÉPART : RÉGIME POLITIQUE, PUIS CHOIX DE LA PLANÈTE
-// ─────────────────────────────────────────────
-/* Au debut de chaque partie (solo et reseau, pas le tutoriel ni l'ancien
-   multijoueur) :
-   1. Chacun choisit un REGIME POLITIQUE : 3 points d'evolution offerts,
-      repartis selon le regime. En solo on prend son temps ; en reseau, 15 s,
-      et les retardataires recoivent un regime au hasard. Les IA en tirent un.
-   2. Puis le CHOIX DE LA PLANETE, en 15 s pour tous. On RESERVE un astre
-      libre (pas deja reserve par un autre) et on peut changer d'avis
-      jusqu'au bout ; les reservations de chacun se voient sur la carte.
-      Les IA reservent les leurs pendant le decompte. A zero, chacun
-      s'installe sur sa reservation ; sans reservation : un astre au hasard.
-   Tout passe par des ordres et se compte en tours : meme chose chez tous
-   les joueurs en reseau. */
-const REGIMES = [
-    { id: 'centre_collaborateur',  nom: 'Centre collaborateur',   icone: '⚖️', stats: { growth: 1, velocity: 1, density: 1 },      texte: "D'accord avec tout le monde. Surtout avec le plus fort.", pourquoi: "La Terre était fichue : ils ont attendu de voir ce que faisaient les autres partis, puis ils ont suivi.", courbe: "Tiède du début à la fin." },
-    { id: 'gauche_non_solidaire',  nom: 'Gauche non solidaire',   icone: '🌹', stats: { growth: 1, density: 1, sensitivity: 1 },    texte: 'Partager, oui. Mais chacun le sien.', pourquoi: "Un grand vaisseau pour tous ? Non : une spore chacun, et chacun sa planète.", courbe: "Au top quand presque vide." },
-    { id: 'dictature_eclairee',    nom: 'Dictature éclairée',     icone: '💡', stats: { velocity: 1, density: 1, sensitivity: 1 },  texte: 'Un seul chef, mais il a lu des livres.', pourquoi: "Le chef a calculé qu'une spore ne vote jamais contre lui. Le départ a été voté à 100 %.", courbe: "Pic très haut, mais étroit, vers 85 %." },
-    { id: 'royaute_plusieurs',     nom: 'Royauté à plusieurs',    icone: '👑', stats: { growth: 1, density: 2 },                    texte: 'Douze rois, un seul trône, beaucoup de réunions.', pourquoi: "La Terre détruite ne suffisait plus à tous ces rois : il leur fallait chacun un royaume.", courbe: "Trois bosses égales, de 20 à 70 % plein." },
-    { id: 'fascisme_sympa',        nom: 'Fascisme sympa',         icone: '🎖️', stats: { velocity: 2, density: 1 },                  texte: 'On marche au pas, mais on dit merci.', pourquoi: "Partir en rangs serrés de spores, au pas, vers des planètes à conquérir. Poliment.", courbe: "Mou au début, puis au pas de 60 à 90 %." },
-    { id: 'anarchie_organisee',    nom: 'Anarchie très organisée', icone: '🏴', stats: { velocity: 3 },                             texte: 'Pas de chef, mais un planning très strict.', pourquoi: "La fin du monde était au planning. Le départ en spores aussi : mardi, 14 h.", courbe: "Cinq pics réguliers, très hauts." },
-    { id: 'ecolo_pas_trop',        nom: 'Écolo mais pas trop',    icone: '🌿', stats: { growth: 1, sensitivity: 2 },                texte: 'On protège les soleils. Sauf le week-end.', pourquoi: "Ils avaient prévenu que la planète finirait détruite. Ils partent quand même les premiers.", courbe: "Une douce bosse à mi-chemin." },
-    { id: 'communisme_neoliberal', nom: 'Communisme néolibéral',  icone: '📈', stats: { growth: 2, sensitivity: 1 },                texte: 'Tout appartient à tous. Surtout aux actionnaires.', pourquoi: "Des millions d'adhérents en spores, sans salaire ni congés : la conquête la plus rentable de l'histoire.", courbe: "Il faut presque tout remplir." },
-    { id: 'droite_proletaire',     nom: 'Droite prolétaire',      icone: '🛠️', stats: { growth: 3 },                                texte: 'Travailler plus pour produire plus. Beaucoup plus.', pourquoi: "Le travail ne s'arrête pas pour une fin du monde : on part en spores et on reprend ailleurs.", courbe: "Fonce dès le début, puis ralentit." }
-];
-const STATS_REGIME = [
-    { cle: 'growth', nom: 'Croissance', icone: '🌱', couleur: '#4ADE80' },
-    { cle: 'velocity', nom: 'Vélocité', icone: '⚡', couleur: '#FACC15' },
-    { cle: 'density', nom: 'Densité', icone: '💎', couleur: '#38BDF8' },
-    { cle: 'sensitivity', nom: 'Sensibilité', icone: '☀', couleur: '#F472B6' }
-];
-const DEPART_CFG = {
-    compte: 15,          /* secondes pour choisir sa planete */
-    regimeReseau: 15,    /* secondes pour choisir son regime, en reseau */
-    iaPremier: 2,        /* les IA reservent entre 2 et 11 s */
-    iaDernier: 11,
-    statMax: 8           /* plafond d'une statistique */
-};
-
-function regimeDe(id) { return REGIMES.find(function (r) { return r.id === id; }) || null; }
-function departActif() { return gameState.phase === 'spawn' && !gameState.isTutorial && !gameState.isMulti; }
-function _humainsDepart() { return gameState.players.filter(function (p) { return p.isHuman; }); }
-function reservePar(nom) {
-    const D = gameState.depart;
-    if (!D) return -1;
-    for (const s in D.reserv) if (D.reserv[s] === nom) return +s;
-    return -1;
-}
-
-function appliquerRegime(p) {
-    const R = regimeDe(p.regime);
-    if (!R || p._regimeApplique) return;
-    p._regimeApplique = true;
-    for (const k in R.stats) p.stats[k] = Math.min(DEPART_CFG.statMax, (p.stats[k] || 0) + R.stats[k]);
-}
-
-/* L'etat du depart, cree au premier besoin (un ordre peut arriver avant le
-   premier tour de la phase). */
-function _etatDepart() {
-    if (!departActif()) return null;
-    if (!gameState.depart) {
-        gameState.depart = { etape: 'regime', fin: gameState.lockstep ? gameState.tour + DEPART_CFG.regimeReseau * 60 : Infinity,
-                             reserv: {}, iaT: {} };
-    }
-    return gameState.depart;
-}
-
-/* A chaque tour de la phase de depart (tourSimulation). */
-function majDepart() {
-    const D = _etatDepart();
-    if (!D) return;
-    if (D.etape === 'regime') {
-        const humains = _humainsDepart();
-        if (!humains.every(function (h) { return h.regime; }) && gameState.tour < D.fin) return;
-        for (const p of gameState.players) {
-            if (!p.regime) p.regime = REGIMES[Math.floor(gameRandom() * REGIMES.length)].id;
-            appliquerRegime(p);
-        }
-        D.etape = 'planete';
-        D.fin = gameState.tour + DEPART_CFG.compte * 60;
-        for (const p of gameState.players) {
-            if (p.isHuman) continue;
-            D.iaT[p.id] = gameState.tour + Math.round((DEPART_CFG.iaPremier + gameRandom() * (DEPART_CFG.iaDernier - DEPART_CFG.iaPremier)) * 60);
-        }
-        const moi = gameState.players[localSlot()];
-        if (moi) addEvent('mine', regimeDe(moi.regime).icone, 'Régime : ' + regimeDe(moi.regime).nom, null, moi.color);
-        return;
-    }
-    for (const id in D.iaT) {
-        if (gameState.tour >= D.iaT[id] && D.reserv[id] === undefined) iaReserver(+id);
-    }
-    if (gameState.tour >= D.fin) finirDepart();
-}
-
-/* L'IA prend un astre libre, loin des autres reservations, a bonne flore. */
-function _meilleurAstreLibre(slot) {
-    const D = gameState.depart;
-    let best = null, bestScore = -1;
-    const pris = [];
-    for (const s in D.reserv) if (+s !== slot) { const b = astreNomme(D.reserv[s]); if (b) pris.push(b); }
-    for (const b of gameState.planets.concat(gameState.moons)) {
-        if (b.owner !== null || reservePar(b.name) >= 0) continue;
-        let minDist = Infinity;
-        for (const o of pris) minDist = Math.min(minDist, Math.hypot(b.x - o.x, b.y - o.y));
-        const score = (pris.length ? minDist : 0) + (b.flore || 0) * 2;
-        if (score > bestScore) { bestScore = score; best = b; }
-    }
-    return best;
-}
-function iaReserver(slot) {
-    const b = _meilleurAstreLibre(slot);
-    if (b) gameState.depart.reserv[slot] = b.name;
-}
-
-/* L'ordre 'reserver' : un astre libre, que personne d'autre n'a reserve. */
-function reserverAstre(slot, nom) {
-    const D = gameState.depart;
-    if (!departActif() || !D || D.etape !== 'planete') return;
-    const b = astreNomme(nom);
-    if (!b || (b.type !== 'planet' && b.type !== 'moon') || b.owner !== null) return;
-    const qui = reservePar(nom);
-    if (qui >= 0 && qui !== slot) {
-        if (slot === localSlot()) toastCommerce(b.name + ' est déjà réservée par ' + gameState.players[qui].name, '#FCA5A5');
-        return;
-    }
-    D.reserv[slot] = nom;
-    if (slot === localSlot()) playClickSound();
-}
-
-/* Le decompte est fini : chacun s'installe. */
-function finirDepart() {
-    const D = gameState.depart;
-    for (const p of gameState.players) {
-        let b = D.reserv[p.id] !== undefined ? astreNomme(D.reserv[p.id]) : null;
-        if (!b || b.owner !== null) {
-            if (p.isHuman) {
-                const libres = gameState.planets.concat(gameState.moons).filter(function (x) { return x.owner === null; });
-                b = libres.length ? libres[Math.floor(gameRandom() * libres.length)] : null;
-            } else b = _meilleurAstreLibre(p.id);
-        }
-        if (!b) continue;
-        b.owner = p.id;
-        b.spores = b.maxSpores * 0.5;
-        p.bodies = [b];
-        p.spawnPlanet = b;
-        p._spawnAnnounced = true;
-        if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
-        gameState._spawnFlashes.push({ body: b, age: 0, maxAge: 2.5, color: p.color });
-        if (p.id === localSlot()) addEvent('mine', '🌍', 'Vous colonisez ' + b.name + ' !', b, p.color);
-        else addEvent('war', '🌍', p.name + ' colonise ' + b.name + ' !', b, p.color);
-    }
-    marquerTerritoiresSales();
-    gameState.depart = null;
-    fermerEcranRegime();
-    setPhase('game');
-}
-
-// ── L'écran des régimes (cartes) ──
-let _ecranRegime = null, _regimeClique = null;
-/* La petite courbe de croissance du parti, sur sa carte (meme echelle pour
-   tous : le haut vaut 1,25, le plus haut pic). */
-function _carteCourbe(R) {
-    const C = COURBES_REGIME[R.id];
-    if (!C) return '';
-    let ligne = '';
-    for (let i = 0; i <= 50; i++) {
-        const v = courbeRegime(i / 50, C);
-        ligne += (i ? ' L' : 'M') + (i * 2) + ' ' + (29 - Math.min(1.25, v) / 1.25 * 27).toFixed(1);
-    }
-    return '<div class="rg-courbe"><svg viewBox="0 0 100 30" preserveAspectRatio="none">' +
-        '<path d="' + ligne + ' L100 30 L0 30 Z" fill="rgba(120,170,255,0.18)"/>' +
-        '<path d="' + ligne + '" fill="none" stroke="#A5C8FF" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>' +
-        '</svg><span>' + (R.courbe || '') + '</span></div>';
-}
-function ouvrirEcranRegime() {
-    if (_ecranRegime) return;
-    const el = document.createElement('div');
-    el.id = 'ecranRegime';
-    let cartes = '';
-    for (const R of REGIMES) {
-        let stats = '';
-        for (const S of STATS_REGIME) {
-            const n = R.stats[S.cle] || 0;
-            stats += '<div class="rg-stat' + (n ? '' : ' rg-zero') + '" title="' + S.nom + '"><span>' + S.icone + '</span><b style="color:' + (n ? S.couleur : '#475569') + ';">+' + n + '</b></div>';
-        }
-        cartes += '<div class="rg-carte" data-id="' + R.id + '">' +
-            '<div class="rg-image"><span class="rg-icone">' + R.icone + '</span>' +
-            '<img src="assets/regimes/' + R.id + '.svg" alt="" onload="this.parentNode.classList.add(\'rg-logo\')" onerror="this.remove()"></div>' +
-            '<div class="rg-nom">' + R.nom + '</div>' +
-            '<div class="rg-texte">' + R.texte + '</div>' +
-            '<div class="rg-pourquoi">' + (R.pourquoi || '') + '</div>' +
-            _carteCourbe(R) +
-            '<div class="rg-stats">' + stats + '</div></div>';
-    }
-    el.innerHTML = '<div class="rg-titre">CHOISISSEZ VOTRE RÉGIME</div>' +
-        '<div class="rg-sous">La Terre est détruite. Seules des spores peuvent la quitter : votre parti y transforme ses adhérents pour conquérir l\'univers.<br>3 points d\'évolution offerts, répartis selon le régime.</div>' +
-        '<div class="rg-info" id="rgInfo"></div>' +
-        '<div class="rg-grille">' + cartes + '</div>';
-    el.querySelectorAll('.rg-carte').forEach(function (c) {
-        c.addEventListener('click', function () {
-            const D = gameState.depart;
-            if (!D || D.etape !== 'regime') return;
-            _regimeClique = c.dataset.id;
-            playClickSound();
-            donnerOrdre('regime', { id: c.dataset.id });
-            majEcranRegime();
-        });
-    });
-    document.body.appendChild(el);
-    _ecranRegime = el;
-}
-function fermerEcranRegime() {
-    if (_ecranRegime) { _ecranRegime.remove(); _ecranRegime = null; }
-    _regimeClique = null;
-}
-function majEcranRegime() {
-    if (!_ecranRegime) return;
-    const moi = gameState.players[localSlot()];
-    const choisi = (moi && moi.regime) || _regimeClique;
-    _ecranRegime.querySelectorAll('.rg-carte').forEach(function (c) { c.classList.toggle('rg-choisie', c.dataset.id === choisi); });
-    const D = gameState.depart, info = _ecranRegime.querySelector('#rgInfo');
-    if (gameState.lockstep && D) {
-        const H = _humainsDepart();
-        const n = H.filter(function (h) { return h.regime; }).length;
-        const reste = Math.max(0, Math.ceil((D.fin - gameState.tour) / 60));
-        info.textContent = reste + ' s · ' + n + ' / ' + H.length + ' joueurs ont choisi' + (choisi ? ' · en attente des autres…' : '');
-    } else info.textContent = '';
-}
-
-/* A chaque image : l'ecran qui va avec l'etape (regime, puis decompte). */
-let _departUiT = 0;
-function majUiDepart() {
-    const D = gameState.depart;
-    if (!departActif() || !D) { if (_ecranRegime) fermerEcranRegime(); _majBoutonLancer(false); return; }
-    const now = performance.now();
-    if (now - _departUiT < 200) return;
-    _departUiT = now;
-    const banner = document.getElementById('spawnBanner');
-    if (banner) banner.style.visibility = D.etape === 'regime' ? 'hidden' : '';
-    if (D.etape === 'regime') { ouvrirEcranRegime(); majEcranRegime(); _majBoutonLancer(false); return; }
-    if (_ecranRegime) fermerEcranRegime();
-    const reste = Math.max(0, Math.ceil((D.fin - gameState.tour) / 60));
-    const mien = D.reserv[localSlot()];
-    if (banner) banner.textContent = (mien ? 'VOTRE PLANÈTE : ' + mien.toUpperCase() + ' — vous pouvez encore changer' : 'CHOISISSEZ VOTRE PLANÈTE DE DÉPART') + ' — ' + reste + ' s';
-    _majBoutonLancer(!gameState.lockstep && !!mien);
-}
-/* En solo : pas besoin d'attendre la fin du decompte. */
-function _majBoutonLancer(oui) {
-    let b = document.getElementById('btnLancerDepart');
-    if (!oui) { if (b) b.style.display = 'none'; return; }
-    if (!b) {
-        b = document.createElement('button');
-        b.id = 'btnLancerDepart';
-        b.className = 'btn';
-        b.textContent = '▶ LANCER LA PARTIE';
-        b.style.cssText = 'position:fixed; top:58px; left:50%; transform:translateX(-50%); z-index:56; font-size:12px; padding:6px 18px; letter-spacing:2px; background:rgba(34,197,94,0.2); border-color:rgba(34,197,94,0.5); color:#4ADE80; cursor:pointer;';
-        b.addEventListener('click', function () { playClickSound(); donnerOrdre('depart_vite', {}); b.style.display = 'none'; });
-        document.body.appendChild(b);
-    }
-    b.style.display = 'block';
-}
-
-/* Sur la carte : qui a reserve quoi. Un anneau pointille qui tourne, a la
-   couleur du joueur, et son nom au-dessus. */
-function drawReservations(ctx) {
-    const D = gameState.depart;
-    if (!departActif() || !D || D.etape !== 'planete') return;
-    const z = gameState.camera.zoom, t = performance.now() / 1000;
-    ctx.save();
-    for (const s in D.reserv) {
-        const b = astreNomme(D.reserv[s]), p = gameState.players[s];
-        if (!b || !p || !aLEcran(b.x, b.y, b.radius + 80)) continue;
-        const moi = +s === localSlot();
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = (moi ? 3 : 2) / z;
-        ctx.setLineDash([10 / z, 7 / z]);
-        ctx.lineDashOffset = -t * 30 / z;
-        ctx.globalAlpha = 0.95;
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.radius + 9 / z, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        const px = Math.max(11, Math.min(18, 14 * Math.sqrt(z))) / z;
-        ctx.font = 'bold ' + px + 'px Orbitron';
-        ctx.textAlign = 'center';
-        _texteLisible(ctx, (moi ? '★ ' : '') + p.name, b.x, b.y - b.radius - 16 / z, p.color, Math.max(2, px * 0.22));
-    }
-    ctx.restore();
-}
-
-// ─────────────────────────────────────────────
 // SPAWN — Sélection de planète de départ
 // ─────────────────────────────────────────────
 let _spawnTarget = null;
@@ -11433,17 +10874,7 @@ function handleSpawnClick(worldX, worldY) {
 
     const slot = localSlot();
     const human = gameState.players.find(p => p.id === slot) || gameState.players[slot];
-    if (!human) return;
-    if (departActif()) {
-        /* Nouveau depart : pendant le decompte, un astre que personne
-           d'autre n'a reserve ; on peut changer d'avis. */
-        const D = gameState.depart;
-        if (!D || D.etape !== 'planete') return;
-        const qui = reservePar(closest.name);
-        if (qui >= 0 && qui !== slot) { toastCommerce(closest.name + ' est déjà réservée par ' + gameState.players[qui].name, '#FCA5A5'); return; }
-        const bt = document.getElementById('spawnPopupBtn');
-        if (bt) bt.textContent = D.reserv[slot] === closest.name ? '✓ DÉJÀ CHOISIE' : D.reserv[slot] ? '✦ CHANGER POUR CELLE-CI ✦' : '✦ CHOISIR ✦';
-    } else if (human.spawnPlanet) return;
+    if (!human || human.spawnPlanet) return;
 
     // Centrer la caméra sur la planète
     gameState.camera.x = closest.x;
@@ -11478,13 +10909,6 @@ function confirmSpawn() {
     const human = gameState.players.find(p => p.id === slot) || gameState.players[slot];
     if (!human || human.spawnPlanet) return;
     if (_spawnTarget.owner !== null) { _spawnTarget = null; document.getElementById('spawnPopup').style.display = 'none'; return; }
-    if (departActif()) {
-        /* Nouveau depart : une reservation, modifiable jusqu'a la fin du decompte. */
-        donnerOrdre('reserver', { astre: _spawnTarget.name });
-        document.getElementById('spawnPopup').style.display = 'none';
-        _spawnTarget = null;
-        return;
-    }
 
 if (gameState.isMulti) {
         // En multi : le serveur applique le spawn, on attend le snapshot
@@ -11517,7 +10941,7 @@ function coloniser(slot, astre) {
     if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
     gameState._spawnFlashes.push({ body: astre, age: 0, maxAge: 2.5, color: human.color });
     /* En lockstep, la partie ne commence que quand TOUS les humains ont leur
-       astre (ancien depart, garde pour le tutoriel). */
+       astre : verifierColonisationLockstep, a chaque tour. */
     if (gameState.lockstep) {
         if (slot !== localSlot()) addEvent('war', '🌍', `${human.name} colonise ${astre.name} !`, astre, human.color);
         return;
@@ -11876,7 +11300,7 @@ function updateSporeGeneration(dt) {
         const rate = Math.max(1, body.maxSpores) * TAUX_PROD
                    * (0.4 + (body.flore / 100) * 0.6) * (1 + player.stats.growth * 0.3)
                    * symBonus * nidBonus * sysBonus
-                   * courbeCroissance(body.spores / Math.max(1, body.maxSpores), body.owner);
+                   * courbeCroissance(body.spores / Math.max(1, body.maxSpores));
 
         if (body.buildMode === 'parasite') {
             // Accumulation parasite : durée fixe 120s (indépendant du rate)
@@ -12682,47 +12106,7 @@ const TAUX_PROD = 0.006;
    etincelles, sinon l'un dirait "sature" quand l'autre ne montre rien. */
 const PART_SATUREE = 0.985;
 
-/* LES COURBES DES REGIMES. Chaque parti a sa propre facon de faire pousser
-   ses spores : une somme de bosses (centre c, largeur w, hauteur h), ramenee
-   a un plancher de 0,2 et a un pic propre (pic), puis l'extinction pres du
-   plein (k : plus il est grand, plus elle est tardive et brutale). 'max'
-   ramene la forme brute a 1. Sans regime (tutoriel, ancien multijoueur) :
-   la courbe commune ci-dessous. Calculee a chaque appel avec Math.* :
-   aucune table precalculee, pour rester identique en reseau.
-   'zone' : la bande ou le rendement depasse 90 % du pic (calculee une fois
-   pour toutes, en dur) ; les IA y gardent leurs astres. */
-const COURBES_REGIME = {
-    centre_collaborateur:  { k: 10, pic: 0.8,  max: 0.15,     b: [[0.5, 0.35, 0.15]], zone: [0.37, 0.625] },
-    gauche_non_solidaire:  { k: 8,  pic: 1,    max: 0.900676, b: [[0.2, 0.12, 0.9], [0.65, 0.18, 0.35]], zone: [0.16, 0.24] },
-    dictature_eclairee:    { k: 14, pic: 1.25, max: 1.256539, b: [[0.85, 0.06, 1.2], [0.5, 0.3, 0.22]], zone: [0.825, 0.865] },
-    royaute_plusieurs:     { k: 8,  pic: 0.95, max: 0.500003, b: [[0.2, 0.07, 0.5], [0.45, 0.07, 0.5], [0.7, 0.07, 0.5]], zone: [0.175, 0.71] },
-    fascisme_sympa:        { k: 30, pic: 1,    max: 0.630066, b: [[0.6, 0.07, 0.5], [0.7, 0.07, 0.5], [0.8, 0.07, 0.5], [0.9, 0.07, 0.5]], zone: [0.6, 0.89] },
-    anarchie_organisee:    { k: 8,  pic: 1.15, max: 0.8,      b: [[0.1, 0.04, 0.8], [0.3, 0.04, 0.8], [0.5, 0.04, 0.8], [0.7, 0.04, 0.8], [0.9, 0.04, 0.8]], zone: [0.09, 0.705] },
-    ecolo_pas_trop:        { k: 7,  pic: 0.95, max: 0.8,      b: [[0.5, 0.24, 0.8]], zone: [0.41, 0.58] },
-    communisme_neoliberal: { k: 30, pic: 1.05, max: 1,        b: [[0.92, 0.32, 1]], zone: [0.79, 0.93] },
-    droite_proletaire:     { k: 6,  pic: 1,    max: 1.13158,  b: [[0.12, 0.12, 1], [0.5, 0.35, 0.42]], zone: [0.08, 0.17] }
-};
-function courbeDuSlot(slot) {
-    const p = (slot !== undefined && slot !== null) ? gameState.players[slot] : null;
-    return (p && p.regime && COURBES_REGIME[p.regime]) || null;
-}
-/* La bande de bon rendement d'un joueur (courbe commune : 0,66 a 0,73). */
-function zoneRegime(slot) {
-    const C = courbeDuSlot(slot);
-    return C ? C.zone : ZONE_DEFAUT;
-}
-const ZONE_DEFAUT = [0.66, 0.73];
-function courbeRegime(part, C) {
-    if (!(part > 0)) part = 0;
-    if (part >= 1) return 0;
-    let s = 0;
-    for (const q of C.b) { const a = (part - q[0]) / q[1]; s += q[2] * Math.exp(-a * a); }
-    return (0.2 + s / C.max * (C.pic - 0.2)) * (1 - Math.pow(part, C.k));
-}
-
-function courbeCroissance(part, slot) {
-    const C = courbeDuSlot(slot);
-    if (C) return courbeRegime(part, C);
+function courbeCroissance(part) {
     if (!(part > 0)) part = 0;
     if (part >= 1) return 0;
     const a = (part - 0.25) / 0.13;
@@ -13648,7 +13032,7 @@ function majLutte(body, pas) {
         const slot = (z.v === 0) ? body.owner : z.v - 1;
         z.plafond = body.maxSpores * (z.n / total);
         if (slot === null || slot === undefined) { z.debit = 0; z.rendement = 0; continue; }
-        z.rendement = courbeCroissance(z.spores / Math.max(1, z.plafond), slot);
+        z.rendement = courbeCroissance(z.spores / Math.max(1, z.plafond));
         z.debit = debitPour(body, slot) * (z.n / total) * z.rendement;
         if (z.spores < z.plafond) z.spores = Math.min(z.plafond, z.spores + z.debit * pas);
     }
@@ -14131,36 +13515,28 @@ function drawLuttes(ctx) {
    remplissage, et cette relation n'a rien d'intuitif : une bosse au quart, un
    creux a mi-chemin, le grand pic aux sept dixiemes, puis l'extinction. On
    dessine donc la courbe en entier et on y pose un point - vous etes ici. */
-/* Une courbe par regime : les points et le pic sont gardes par regime. */
-function _cleCourbe(slot) {
-    const p = (slot !== undefined && slot !== null) ? gameState.players[slot] : null;
-    return (p && p.regime && COURBES_REGIME[p.regime]) ? p.regime : 'defaut';
-}
-const _naissancePts = {};
-function _pointsNaissance(slot) {
-    const cle = _cleCourbe(slot);
-    if (_naissancePts[cle]) return _naissancePts[cle];
-    const pts = [];
+let _naissancePts = null;
+function _pointsNaissance() {
+    if (_naissancePts) return _naissancePts;
+    _naissancePts = [];
     for (let i = 0; i <= 64; i++) {
         const t = i / 64;
-        pts.push([t, courbeCroissance(t, slot)]);
+        _naissancePts.push([t, courbeCroissance(t)]);
     }
-    _naissancePts[cle] = pts;
-    return pts;
+    return _naissancePts;
 }
 
 /* LE PIC DE LA COURBE, trouve une fois pour toutes : c'est vers lui qu'on
    veut savoir combien de temps il reste. */
-const _picNaissance = {};
-function picNaissance(slot) {
-    const cle = _cleCourbe(slot);
-    if (_picNaissance[cle] !== undefined) return _picNaissance[cle];
+let _picNaissance = -1;
+function picNaissance() {
+    if (_picNaissance >= 0) return _picNaissance;
     let best = 0, bv = -1;
     for (let i = 0; i <= 200; i++) {
-        const t = i / 200, v = courbeCroissance(t, slot);
+        const t = i / 200, v = courbeCroissance(t);
         if (v > bv) { bv = v; best = t; }
     }
-    _picNaissance[cle] = best;
+    _picNaissance = best;
     return best;
 }
 
@@ -14169,13 +13545,13 @@ function picNaissance(slot) {
    le deviner d'une regle de trois. On integre donc la montee pas a pas :
    a chaque cran, la vitesse est le debit de base fois le rendement du moment.
    Renvoie des secondes, ou null si l'on n'y arrivera jamais. */
-function tempsJusqua(depart, cible, debitPlein, plafond, slot) {
+function tempsJusqua(depart, cible, debitPlein, plafond) {
     if (!(debitPlein > 0) || !(plafond > 0)) return 'arret';   /* rien ne pousse */
     if (cible <= depart) return 0;
     let t = 0, part = depart;
     const N = 400, pas = (cible - depart) / N;
     for (let i = 0; i < N; i++) {
-        const r = courbeCroissance(part + pas / 2, slot);
+        const r = courbeCroissance(part + pas / 2);
         if (r < 1e-4) return 'long';            /* le rendement s'eteint */
         t += (pas * plafond) / (debitPlein * r);
         part += pas;
@@ -14214,7 +13590,7 @@ function majPanneauNaissance() {
        panneau, alors qu'un astre tranquille suit exactement la meme courbe.
        On prend donc la zone choisie quand il y en a une, et a defaut l'astre
        selectionne, avec sa reserve et sa capacite. */
-    let titre = null, part = 0, plafond = 0, debitPlein = 0, qui = null;
+    let titre = null, part = 0, plafond = 0, debitPlein = 0;
     const moi = localSlot();
     const sel = zoneChoisie(moi);
     const zb = sel && sel.body;
@@ -14228,7 +13604,6 @@ function majPanneauNaissance() {
         const tot = casesAstre(zb);
         const slot = (z.v === 0) ? zb.owner : z.v - 1;
         debitPlein = debitPour(zb, slot) * (z.n / Math.max(1, tot));
-        qui = slot;
     } else {
         const a = (typeof followingBody !== 'undefined' && followingBody)
                 ? followingBody : gameState.selectedBody;
@@ -14237,7 +13612,6 @@ function majPanneauNaissance() {
             plafond = Math.max(1, a.maxSpores || 1);
             part = (a.spores || 0) / plafond;
             debitPlein = debitPour(a, a.owner);
-            qui = a.owner;
         }
     }
 
@@ -14248,11 +13622,8 @@ function majPanneauNaissance() {
     if (!E.panneau.classList.contains('actif')) E.panneau.classList.add('actif');
 
     part = Math.max(0, Math.min(1, part));
-    const rend = courbeCroissance(part, qui);
-    /* La couleur se juge par rapport au pic de SA courbe : 0,8 est excellent
-       pour le Centre, moyen pour la Dictature. */
-    const haut = courbeCroissance(picNaissance(qui), qui) || 1;
-    const teinte = rend >= 0.85 * haut ? '#4ADE80' : rend >= 0.5 * haut ? '#FACC15' : '#F87171';
+    const rend = courbeCroissance(part);
+    const teinte = rend >= 0.85 ? '#4ADE80' : rend >= 0.5 ? '#FACC15' : '#F87171';
 
     E.zone.textContent = titre;
     E.plein.textContent = Math.round(part * 100) + '% plein';
@@ -14264,9 +13635,9 @@ function majPanneauNaissance() {
        apres on annonce la saturation - le moment ou l'astre cesse de
        produire, et ou il vaut mieux avoir tire. */
     if (E.quand) {
-        const pic = picNaissance(qui);
+        const pic = picNaissance();
         const avant = part < pic - 0.005;
-        const t = (part < PART_SATUREE) ? tempsJusqua(part, avant ? pic : PART_SATUREE, debitPlein, plafond, qui) : null;
+        const t = (part < PART_SATUREE) ? tempsJusqua(part, avant ? pic : PART_SATUREE, debitPlein, plafond) : null;
         let txt;
         if (part >= PART_SATUREE) txt = '\u26A0 saturé — ne produit plus';
         else if (t === 'arret') txt = 'production à l\'arrêt';
@@ -14282,9 +13653,7 @@ function majPanneauNaissance() {
 
     const m = 6, gx = m, gw = W - m * 2, gy = m, gh = H - m * 2;
     const px = t => gx + t * gw;
-    /* Le haut du graphique : 1,25, le plus haut pic de tous les regimes, pour
-       que les courbes se comparent d'une partie a l'autre. */
-    const py = v => gy + gh - Math.max(0, Math.min(1.25, v)) / 1.25 * gh;
+    const py = v => gy + gh - Math.max(0, Math.min(1, v)) * gh;
 
     // La ligne de sol
     x.strokeStyle = 'rgba(140,170,230,0.20)';
@@ -14292,7 +13661,7 @@ function majPanneauNaissance() {
     x.beginPath(); x.moveTo(gx, gy + gh); x.lineTo(gx + gw, gy + gh); x.stroke();
 
     // La courbe, remplie dessous pour qu'on lise la forme d'un coup d'oeil
-    const pts = _pointsNaissance(qui);
+    const pts = _pointsNaissance();
     x.beginPath();
     x.moveTo(px(0), py(pts[0][1]));
     for (let i = 1; i < pts.length; i++) x.lineTo(px(pts[i][0]), py(pts[i][1]));
@@ -15656,28 +15025,20 @@ function tourSimulation() {
     gameState.tour = (gameState.tour || 0) + 1;
     if (typeof gameState.avantChaqueTour === 'function') gameState.avantChaqueTour(gameState.tour);
     appliquerOrdres(gameState.tour);
-    if (gameState.phase === 'spawn') majDepart();
+    if (gameState.lockstep && gameState.phase === 'spawn') verifierColonisationLockstep();
     update(TOUR_SIM);
     /* Une fois par seconde de jeu, l'empreinte part au relais, qui la
        compare a celle des autres joueurs. */
-    /* Pendant une reprise (gameState._rejeu), les autres joueurs ont deja
-       valide ces tours : l'empreinte ne part que toutes les 10 s (le relais
-       la compare a la leur, un ecart se verrait encore), et le detail, qui
-       ne sert qu'a comparer les joueurs entre eux, n'est pas calcule. */
-    if (gameState.lockstep && gameState.tour % 60 === 0 && (!gameState._rejeu || gameState.tour % 600 === 0)) {
+    if (gameState.lockstep && gameState.tour % 60 === 0) {
         const e = empreinteEtat(true);
         envoyerAuRelais({ t: 'empreinte', tour: gameState.tour, h: e.empreinte, p: e.parts });
         /* Le detail de la partie a ce tour, garde un moment : si le relais
            signale un ecart, on le lui enverra pour qu'il dise quoi. */
         const L = gameState.lockstep;
-        if (!gameState._rejeu) {
-            if (!L.details) L.details = {};
-            L.details[gameState.tour] = detailPartie();
-            delete L.details[gameState.tour - 240];
-        }
+        if (!L.details) L.details = {};
+        L.details[gameState.tour] = detailPartie();
+        delete L.details[gameState.tour - 240];
     }
-    /* La photo de la partie, pour une reprise instantanee. */
-    if (gameState.lockstep && gameState.tour % PHOTO_TOURS === 0 && !gameState._rejeu) prendrePhoto();
 }
 
 /* ─────────────────────────────────────────────
@@ -15696,49 +15057,10 @@ function tourSimulation() {
    ───────────────────────────────────────────── */
 let _ordresEnAttente = [];
 
-/* LE TIR REPOND AU CLIC. En reseau, le vrai tir part quand l'ordre revient
-   du relais (50 a 100 ms plus tard) : le son et un bref eclair au depart,
-   eux, viennent tout de suite. Purement local : rien dans la partie. */
-const _echos = [];
-function echoTir(d) {
-    const src = astreNomme(d && d.src);
-    if (!src || !isFinite(d.dx) || !isFinite(d.dy)) return;
-    playLaunchSound();
-    const j = gameState.players[localSlot()];
-    _echos.push({ b: src, dx: +d.dx, dy: +d.dy, t0: performance.now(), couleur: (j && j.color) || '#FFFFFF' });
-}
-function drawEchoTirs(ctx) {
-    if (!_echos.length) return;
-    const now = performance.now(), z = gameState.camera.zoom;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.lineCap = 'round';
-    for (let i = _echos.length - 1; i >= 0; i--) {
-        const e = _echos[i], f = (now - e.t0) / 250;
-        if (f >= 1) { _echos.splice(i, 1); continue; }
-        const b = e.b, r0 = b.radius + 4 / z, l = (18 + 40 * f) / z;
-        const x0 = b.x + e.dx * r0, y0 = b.y + e.dy * r0;
-        ctx.globalAlpha = 0.9 * (1 - f);
-        ctx.strokeStyle = e.couleur;
-        ctx.lineWidth = Math.max(1.5 / z, 4 / z * (1 - f));
-        ctx.beginPath();
-        ctx.moveTo(x0, y0);
-        ctx.lineTo(x0 + e.dx * l, y0 + e.dy * l);
-        ctx.stroke();
-        const rh = (10 + 16 * f) / z;
-        ctx.drawImage(haloSprite(e.couleur, 'halo'), x0 - rh, y0 - rh, rh * 2, rh * 2);
-    }
-    ctx.restore();
-}
-
 function donnerOrdre(type, d) {
     /* En lockstep, l'ordre part au relais : il reviendra a tous les joueurs
        dans un paquet, date du meme tour pour chacun (recevoirPaquet). */
-    if (gameState.lockstep) {
-        envoyerAuRelais({ t: 'ordre', type: type, d: d || {} });
-        if (type === 'tir') echoTir(d);
-        return;
-    }
+    if (gameState.lockstep) { envoyerAuRelais({ t: 'ordre', type: type, d: d || {} }); return; }
     programmerOrdre({ tour: (gameState.tour || 0) + 1, slot: localSlot(), type: type, d: d || {} });
 }
 
@@ -15770,19 +15092,6 @@ function astreNomme(nom) {
 
 /* Ce que fait chaque ordre. slot : le joueur qui l'a donne. */
 const EXECUTER_ORDRE = {
-    /* Le depart : le regime politique, puis la reservation d'un astre. */
-    regime: function (slot, d) {
-        const D = _etatDepart(), p = gameState.players[slot];
-        if (!D || D.etape !== 'regime' || !p || !regimeDe(d.id)) return;
-        p.regime = String(d.id);
-    },
-    reserver: function (slot, d) { reserverAstre(slot, String(d.astre || '')); },
-    /* En solo seulement : lancer sans attendre la fin du decompte. */
-    depart_vite: function (slot, d) {
-        const D = gameState.depart;
-        if (gameState.lockstep || !departActif() || !D || D.etape !== 'planete') return;
-        D.fin = Math.min(D.fin, gameState.tour + 1);
-    },
     /* Proposer un commerce a un joueur (niveau 1 a 3). */
     commerce: function (slot, d) {
         const cible = Math.round(Number(d.cible)), niveau = Math.round(Number(d.niveau));
@@ -15820,8 +15129,7 @@ const EXECUTER_ORDRE = {
         const dx = Number(d.dx), dy = Number(d.dy);
         if (!src || !isFinite(dx) || !isFinite(dy)) return;
         const t = ['normal', 'attaque', 'defense', 'parasite'].includes(d.t) ? d.t : 'normal';
-        /* En reseau, notre propre tir a deja fait son bruit au clic (echoTir). */
-        launchJet(src, dx, dy, t, slot, (gameState.lockstep && slot === localSlot()) ? { muet: true } : undefined);
+        launchJet(src, dx, dy, t, slot);
     },
     /* Un tir de surface vers un point du monde. */
     tir_surface: function (slot, d) {
@@ -15999,28 +15307,22 @@ const MATHS_FIXES = (function () {
         const hz = 0.5 * z, w = 1 - hz;
         return w + (((1 - w) - hz) + z * r);
     };
-    /* x = n * pi/2 + y, avec y entre -pi/4 et pi/4. Le quart (_q) et le reste
-       (_y) sont ranges dans deux variables plutot que dans un tableau neuf a
-       chaque appel : des centaines de milliers de petits tableaux par minute
-       en moins a ramasser. Meme calcul, meme resultat au bit pres. */
-    let _q = 0, _y = 0;
+    /* x = n * pi/2 + y, avec y entre -pi/4 et pi/4. */
     const reduire = function (x) {
         const n = Math.round(x * INVPIO2);
-        _y = ((x - n * PIO2_1) - n * PIO2_2) - n * PIO2_2T;
-        _q = ((n % 4) + 4) % 4;
+        const y = ((x - n * PIO2_1) - n * PIO2_2) - n * PIO2_2T;
+        return [((n % 4) + 4) % 4, y];
     };
     const sin = function (x) {
         if (!isFinite(x)) return NaN;
         if (x > -0.7853981633974483 && x < 0.7853981633974483) return ksin(x);
-        reduire(x);
-        const q = _q, y = _y;
+        const r = reduire(x), q = r[0], y = r[1];
         return q === 0 ? ksin(y) : q === 1 ? kcos(y) : q === 2 ? -ksin(y) : -kcos(y);
     };
     const cos = function (x) {
         if (!isFinite(x)) return NaN;
         if (x > -0.7853981633974483 && x < 0.7853981633974483) return kcos(x);
-        reduire(x);
-        const q = _q, y = _y;
+        const r = reduire(x), q = r[0], y = r[1];
         return q === 0 ? kcos(y) : q === 1 ? -ksin(y) : q === 2 ? -kcos(y) : ksin(y);
     };
     const ATANHI = [4.63647609000806093515e-01, 7.85398163397448278999e-01,
@@ -16224,8 +15526,7 @@ function ouvrirRelais(L, premier) {
         if (m.t === 'attente') {
             const txt = 'En attente des joueurs : ' + m.presents + ' / ' + m.attendus;
             afficherLockstep(txt);
-            if (L.code) afficherInvitation(L.code);
-            salonStatut(txt);
+            salonStatut((L.code ? 'Partie privée ' + L.code + ' — donnez ce code à vos amis.\n' : '') + txt);
         }
         else if (m.t === 'salle') { L.code = m.code; }
         else if (m.t === 'refus' && m.reprise) {
@@ -16271,8 +15572,6 @@ function ouvrirRelais(L, premier) {
         else if (m.t === 'desync') {
             if (L.desync !== null) return;           /* la premiere compte, les suivantes en decoulent */
             L.desync = m.tour;
-            /* Repris depuis une photo qui ne colle pas : reprise complete. */
-            if (L.depuisPhoto !== undefined) { repliRepriseComplete(); return; }
             /* Le detail de ce tour part au relais, qui notera dans son
                journal les premieres valeurs qui different. */
             const d = L.details && L.details[m.tour];
@@ -16317,7 +15616,6 @@ function noterPartieReseau(L) {
 }
 function oublierPartieReseau() {
     try { localStorage.removeItem('nc_partieReseau'); } catch (e) {}
-    photoEffacer();
 }
 /* Une partie quittee il y a moins de 30 minutes, sinon rien. */
 function partieReseauGardee() {
@@ -16330,221 +15628,14 @@ function partieReseauGardee() {
 
 function reprendrePartieReseau() {
     const g = partieReseauGardee();
-    if (!g || gameState.lockstep || _repriseEnCours) return;
-    _repriseEnCours = true;
-    /* D'abord la photo de cette partie, si le navigateur en a une. */
-    photoLire(function (P) {
-        _repriseEnCours = false;
-        if (gameState.lockstep) return;
-        const bonne = P && P.salle === g.salle && P.slot === g.slot && P.version === versionJeu() && P.n0 > 0;
-        const L = gameState.lockstep = { ws: null, url: g.url, slot: null, enJeu: false, joueurs: [], paquets: 0,
-                                         tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null,
-                                         salleNom: g.salle, jeton: g.jeton, slotGarde: g.slot,
-                                         photo: bonne ? P : null };
-        ouvrirRelais(L, function () {
-            const depuis = L.enJeu ? L.paquets : (L.photo ? L.photo.n0 : 0);
-            return { t: 'reprendre', salle: L.salleNom, slot: L.slotGarde, jeton: L.jeton, depuis: depuis, version: versionJeu() };
-        });
-        afficherLockstep(bonne ? 'Reprise rapide de la partie...' : 'Reprise de la partie...');
+    if (!g || gameState.lockstep) return;
+    const L = gameState.lockstep = { ws: null, url: g.url, slot: null, enJeu: false, joueurs: [], paquets: 0,
+                                     tourPermis: PAQUETS_AVANCE * TOURS_PAR_PAQUET, attentes: 0, desync: null,
+                                     salleNom: g.salle, jeton: g.jeton, slotGarde: g.slot };
+    ouvrirRelais(L, function () {
+        return { t: 'reprendre', salle: L.salleNom, slot: L.slotGarde, jeton: L.jeton, depuis: 0, version: versionJeu() };
     });
-}
-let _repriseEnCours = false;
-
-/* ─────────────────────────────────────────────
-   LA PHOTO DE LA PARTIE (reprise instantanee)
-   REPRENDRE rejouait toute la partie depuis le premier tour : plus d'une
-   minute pour une partie de 20 minutes. Desormais, toutes les 30 s de jeu,
-   le navigateur range une PHOTO de la partie (IndexedDB) : tout ce que le
-   calcul utilise, astres, tirs, joueurs, vaisseaux, cometes, hasard. Au
-   retour, la page refait la carte, pose la photo par-dessus, et ne demande
-   au relais que les ordres posterieurs : quelques secondes a rattraper.
-   Ce qui est propre a cet ecran (taille, camera, son, visee en cours,
-   textures) n'est jamais dans la photo et n'est jamais ecrase.
-   Filet de securite : le relais compare toujours l'empreinte du joueur
-   revenu a celle des autres. Au moindre ecart, la photo est effacee et la
-   page se recharge pour une reprise complete, comme avant.
-   ───────────────────────────────────────────── */
-const PHOTO_TOURS = 1800;             /* une photo toutes les 30 s de jeu */
-const PHOTO_LOCAL_RACINE = new Set(['lockstep', 'avantChaqueTour', 'canvas', 'ctx', 'width', 'height', 'reso',
-    '_resoPalier', '_resoZoomVu', '_resoRepos', 'qualite', 'camera', 'running', 'lastTime', 'deltaTime', 'dt',
-    'input', 'lod', 'lodAutoTimer', 'lodFpsAccum', 'lodFpsSamples', 'fps', 'fpsFrames', 'fpsLastCheck', 'audio',
-    '_bgCanvas', '_starsCanvas', '_starsCanvas2', '_starsCanvas3', '_starsUrl', '_starsUrl2', '_starsUrl3',
-    '_fondCss', '_montrerReso', '_vraiTemps', 'mouseWorldX', 'mouseWorldY', 'codexOpen', 'selectedBody',
-    'launching', 'launchSource', 'launchPreview', '_firePhase', '_fireSource', '_fireType', '_fireCamZoom',
-    '_fireLanceur', '_fireGroupe', '_chargeAcc', '_filetsCharge', '_fireSurface', '_zoomCible', '_tirBloque',
-    '_popProdAstre', '_viseeOrdre', '_viseeEnvoi', 'cosmicDust', 'shootingStars', 'shootingStarTimer',
-    'foregroundDebris', 'playerStats', 'playerColor', 'journalOrdres', '_rejeu', '_rattrapage', '_zoneSel']);
-/* Les dessins et leurs caches, sur chaque objet : ceux de cette page restent. */
-const PHOTO_LOCAL_CLE = new Set(['_texture', '_niveaux', '_travailHD', '_hasAtmosphere', '_atmoColor',
-    '_haloCache', '_haloDim', '_haloR', '_spriteDanger', '_disques', '_sysCache', '_vraiX', '_vraiY']);
-const PHOTO_SAUTE = { s: 1 };
-/* Seuls les objets simples, tableaux et tableaux types entrent dans la
-   photo ; fonctions, canevas, sons, elements de la page restent dehors. */
-function _photoGardable(v) {
-    if (typeof v === 'function') return false;
-    if (!v || typeof v !== 'object') return true;
-    if (Array.isArray(v) || ArrayBuffer.isView(v)) return true;
-    const pr = Object.getPrototypeOf(v);
-    return pr === Object.prototype || pr === null;
-}
-
-/* La partie a plat : une liste de noeuds, les liens entre objets notes par
-   leur numero ({ r: n }) pour garder qui pointe vers qui. */
-function photographier() {
-    const ids = new Map(), noeuds = [];
-    const coder = function (v, racine) {
-        if (v === null || typeof v !== 'object') return typeof v === 'function' ? PHOTO_SAUTE : v;
-        if (!_photoGardable(v)) return PHOTO_SAUTE;
-        let id = ids.get(v);
-        if (id !== undefined) return { r: id };
-        id = noeuds.length;
-        ids.set(v, id);
-        noeuds.push(null);
-        let n;
-        if (ArrayBuffer.isView(v)) n = { k: 't', v: v.slice() };
-        else if (Array.isArray(v)) {
-            n = { k: 'a', v: new Array(v.length) };
-            for (let i = 0; i < v.length; i++) n.v[i] = coder(v[i], false);
-        } else {
-            n = { k: 'o', f: {} };
-            for (const k of Object.keys(v)) {
-                if ((racine && PHOTO_LOCAL_RACINE.has(k)) || PHOTO_LOCAL_CLE.has(k)) continue;
-                n.f[k] = coder(v[k], false);
-            }
-        }
-        noeuds[id] = n;
-        return { r: id };
-    };
-    coder(gameState, true);
-    return { noeuds: noeuds, tour: gameState.tour, alea: _gameRng.lire(), nbAlea: _nbAlea };
-}
-
-/* La photo reposee sur la partie fraichement creee. Les objets qui existent
-   deja a la meme place (astres, joueurs, ceinture...) sont REMPLIS, pas
-   remplaces : leurs textures et tout ce qui pointe vers eux restent bons. */
-function restaurerPhoto(P) {
-    const N = P.noeuds, objs = new Array(N.length), pris = new Set();
-    const estRef = function (e) { return e !== null && typeof e === 'object' && e.r !== undefined; };
-    const associer = function (id, ex) {
-        if (objs[id] !== undefined) return;
-        const n = N[id];
-        const libre = ex !== null && typeof ex === 'object' && !pris.has(ex);
-        let o;
-        if (n.k === 't') o = (libre && ex.constructor === n.v.constructor && ex.length === n.v.length) ? ex : new n.v.constructor(n.v.length);
-        else if (n.k === 'a') o = (libre && Array.isArray(ex)) ? ex : [];
-        else o = (libre && !Array.isArray(ex) && !ArrayBuffer.isView(ex) && _photoGardable(ex)) ? ex : {};
-        objs[id] = o;
-        pris.add(o);
-        const meme = o === ex;
-        if (n.k === 'a') { for (let i = 0; i < n.v.length; i++) if (estRef(n.v[i])) associer(n.v[i].r, meme ? ex[i] : undefined); }
-        else if (n.k === 'o') { for (const k in n.f) if (estRef(n.f[k])) associer(n.f[k].r, meme ? ex[k] : undefined); }
-    };
-    objs[0] = gameState;
-    pris.add(gameState);
-    const racine = N[0].f;
-    /* D'abord les listes qui fixent l'identite des objets, dans l'ordre. */
-    for (const k of ['allBodies', 'suns', 'planets', 'moons', 'blackHole', 'players', 'asteroidBelts', 'cleaners', 'capitaux', 'comets', 'jets']) {
-        if (estRef(racine[k])) associer(racine[k].r, gameState[k]);
-    }
-    for (const k in racine) if (estRef(racine[k])) associer(racine[k].r, gameState[k]);
-    const lire = function (e, ancien) {
-        if (e !== null && typeof e === 'object') return e.s ? ancien : objs[e.r];
-        return e;
-    };
-    for (let id = 0; id < N.length; id++) {
-        const n = N[id], o = objs[id];
-        if (n.k === 't') { o.set(n.v); continue; }
-        if (n.k === 'a') {
-            const avant = o.slice();
-            o.length = n.v.length;
-            for (let i = 0; i < n.v.length; i++) o[i] = lire(n.v[i], avant[i]);
-            continue;
-        }
-        for (const k of Object.keys(o)) {
-            if (k in n.f || PHOTO_LOCAL_CLE.has(k) || (id === 0 && PHOTO_LOCAL_RACINE.has(k))) continue;
-            if (!_photoGardable(o[k])) continue;
-            delete o[k];
-        }
-        for (const k in n.f) o[k] = lire(n.f[k], o[k]);
-    }
-    _gameRng.ecrire(P.alea);
-    _nbAlea = P.nbAlea;
-    /* Les grilles des batailles de surface, preparees d'ordinaire au premier
-       combat : une page fraiche ne les a pas encore. */
-    _luttePrepare();
-}
-
-/* Le rangement : IndexedDB, une seule photo (la derniere). */
-function _photoBase(suite) {
-    try {
-        const rq = indexedDB.open('nebulaConquest', 1);
-        rq.onupgradeneeded = function () { rq.result.createObjectStore('photos'); };
-        rq.onsuccess = function () { suite(rq.result); };
-        rq.onerror = function () { suite(null); };
-    } catch (e) { suite(null); }
-}
-function _photoAction(mode, faire, suite) {
-    _photoBase(function (db) {
-        if (!db) { if (suite) suite(null); return; }
-        try {
-            const tx = db.transaction('photos', mode);
-            const rq = faire(tx.objectStore('photos'));
-            tx.oncomplete = function () { db.close(); if (suite) suite(rq ? rq.result : null); };
-            tx.onerror = tx.onabort = function () { db.close(); if (suite) suite(null); };
-        } catch (e) { db.close(); if (suite) suite(null); }
-    });
-}
-function photoEnregistrer(P) { _photoAction('readwrite', function (st) { st.put(P, 'reseau'); return null; }); }
-function photoLire(suite) { _photoAction('readonly', function (st) { return st.get('reseau'); }, function (r) { suite(r || null); }); }
-function photoEffacer(suite) { _photoAction('readwrite', function (st) { st.delete('reseau'); return null; }, suite || null); }
-
-/* Toutes les 30 s de jeu (tourSimulation), en partie et a jour seulement. */
-function prendrePhoto() {
-    const L = gameState.lockstep;
-    if (!L || !L.enJeu || !L.jeton || L.desync !== null || gameState.phase !== 'game') return;
-    try {
-        const P = photographier();
-        P.salle = L.salleNom;
-        P.slot = L.slot;
-        P.version = versionJeu();
-        /* Le premier paquet dont les ordres tombent apres ce tour. */
-        P.n0 = gameState.tour / TOURS_PAR_PAQUET - PAQUETS_AVANCE;
-        P.date = Date.now();
-        photoEnregistrer(P);
-    } catch (e) { console.warn('[photo]', e); }
-}
-
-/* Au retour (lockstepPret) : la photo pose la partie au tour ou elle a ete
-   prise ; les paquets suivants, demandes au relais, font le reste. */
-function reprendreDepuisPhoto(L) {
-    const P = L.photo;
-    L.photo = null;
-    restaurerPhoto(P);
-    _ordresEnAttente = [];
-    L.paquets = P.n0;
-    L.tourPermis = P.tour;
-    L.details = {};
-    L.depuisPhoto = P.tour;
-    _ownerClustersCache = [];
-    _territoires = [];
-    _ancresGroupe = null;
-    _lastScoreHash = '';
-    marquerTerritoiresSales();
-    setPhase(gameState.phase === 'end' ? 'game' : gameState.phase);
-    const moi = gameState.players[L.slot];
-    const b = moi && moi.bodies && moi.bodies[0];
-    if (b) { gameState.camera.x = b.x; gameState.camera.y = b.y; }
-    afficherLockstep('Reprise depuis la photo du tour ' + P.tour);
-}
-
-/* La photo ne colle pas (le relais a vu un ecart) : on l'efface et on
-   recharge la page pour une reprise complete, depuis le premier tour. */
-function repliRepriseComplete() {
-    afficherLockstep('Reprise rapide impossible : reprise complete...', true);
-    photoEffacer(function () {
-        try { sessionStorage.setItem('nc_repriseComplete', '1'); } catch (e) {}
-        location.reload();
-    });
+    afficherLockstep('Reprise de la partie...');
 }
 
 /* Le relais a reuni tout le monde : meme graine, meme carte, memes reglages
@@ -16608,10 +15699,6 @@ function preparerJoueursLockstep() {
 function lockstepPret() {
     const L = gameState.lockstep;
     L.enJeu = true;
-    if (L.photo) {
-        try { reprendreDepuisPhoto(L); }
-        catch (e) { console.warn('[photo]', e); repliRepriseComplete(); return; }
-    }
     if (L.aRejouer) { appliquerReprise(L, L.aRejouer); L.aRejouer = null; }
     envoyerAuRelais({ t: 'pret' });
     if (!L.affichage) L.affichage = setInterval(majBandeauLockstep, 500);
@@ -16670,6 +15757,25 @@ function mesurerReseau(L, n) {
     if (L.bonus === undefined) { L.bonus = 0; L.sansAccroc = maintenant; }
     if (L.bonus > 0 && maintenant - L.sansAccroc > 5000) { L.bonus--; L.sansAccroc = maintenant; }
     L.cible = Math.max(RESERVE_MIN, Math.min(RESERVE_MAX, Math.ceil(gigue / (1000 / 60)) + 2 + L.bonus));
+}
+
+/* Pendant le choix des astres de depart : la partie commence quand tous les
+   humains ont le leur. Au bout de 30 s, un retardataire en recoit un au
+   hasard - le hasard du jeu, donc le meme chez tous. */
+function verifierColonisationLockstep() {
+    const L = gameState.lockstep;
+    const humains = gameState.players.slice(0, L.joueurs.length);
+    if (gameState.tour >= 30 * 60) {
+        for (const h of humains) {
+            if (h.spawnPlanet) continue;
+            const libres = [...gameState.planets, ...gameState.moons].filter(b => b.owner === null);
+            if (libres.length) coloniser(h.id, libres[Math.floor(gameRandom() * libres.length)]);
+        }
+    }
+    if (humains.every(h => h.spawnPlanet)) {
+        autoSpawnAIs();
+        setPhase('game');
+    }
 }
 
 /* ─────────────────────────────────────────────
@@ -16734,56 +15840,12 @@ function installerSalon() {
     });
     document.getElementById('salonFermer').addEventListener('click', function () {
         quitterRelais();
-        cacherInvitation();
         document.getElementById('salonReseau').style.display = 'none';
     });
 }
 
-/* L'INVITATION : le code en grand, et un lien a envoyer. Celui qui ouvre le
-   lien arrive directement dans la partie (voir invitationDepuisAdresse). */
-function lienInvitation(code) { return location.origin + location.pathname + '?partie=' + code; }
-function afficherInvitation(code) {
-    const el = document.getElementById('salonInvit');
-    if (!el) return;
-    if (el.dataset.code === code && el.style.display !== 'none') return;
-    el.dataset.code = code;
-    el.innerHTML = '<div style="font-size:12px; color:#FDE68A;">Votre partie est créée. Invitez vos amis :</div>' +
-        '<div class="si-code">' + code + '</div>' +
-        '<button class="btn" id="siCopier" style="margin:0; padding:7px 14px; font-size:12px;">📋 COPIER LE LIEN D\'INVITATION</button>' +
-        '<div style="font-size:11px; color:#94A3B8; margin-top:6px; word-break:break-all;">' + lienInvitation(code) + '</div>';
-    el.style.display = 'block';
-    el.querySelector('#siCopier').addEventListener('click', function () {
-        const b = this, lien = lienInvitation(code);
-        const ok = function () { b.textContent = '✓ LIEN COPIÉ'; setTimeout(function () { b.textContent = '📋 COPIER LE LIEN D\'INVITATION'; }, 2000); };
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(lien).then(ok, function () { prompt('Copiez ce lien :', lien); });
-        else prompt('Copiez ce lien :', lien);
-    });
-}
-function cacherInvitation() {
-    const el = document.getElementById('salonInvit');
-    if (el) { el.style.display = 'none'; el.dataset.code = ''; el.innerHTML = ''; }
-}
-/* Arrive par un lien d'invitation (?partie=CODE) : des que l'ecran titre
-   s'affiche (compte ouvert), la fenetre MULTIJOUEUR s'ouvre et rejoint. */
-let _invitationEnAttente = null;
-(function () {
-    try {
-        const c = new URLSearchParams(location.search).get('partie');
-        if (c && /^[A-Za-z]{4}$/.test(c)) _invitationEnAttente = c.toUpperCase();
-    } catch (e) {}
-})();
-function invitationDepuisAdresse() {
-    if (!_invitationEnAttente) return;
-    const code = _invitationEnAttente;
-    _invitationEnAttente = null;
-    try { history.replaceState(null, '', location.pathname); } catch (e) {}
-    document.getElementById('salonReseau').style.display = 'flex';
-    salonRejoindre({ code: code }, 'Connexion à la partie ' + code + '...');
-}
-
 function salonRejoindre(reglages, message) {
     quitterRelais();
-    cacherInvitation();
     salonChoixVisibles(false);
     salonStatut(message);
     reglages.nom = (currentProfile && currentProfile.pseudo) || '';
@@ -17086,25 +16148,6 @@ function restaurerPositions() {
     gameState.time = gameState._vraiTemps;
 }
 
-/* La barre de la reprise acceleree (voir avancerImage). null : la cacher. */
-let _barreReprise = null;
-function majBarreReprise(L) {
-    if (!L) { if (_barreReprise) { _barreReprise.remove(); _barreReprise = null; } return; }
-    if (!_barreReprise) {
-        _barreReprise = document.createElement('div');
-        _barreReprise.id = 'barreReprise';
-        _barreReprise.style.cssText = 'position:fixed; inset:0; z-index:950; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:rgba(5,8,25,0.82); font-family:Orbitron,sans-serif; color:#E9D5FF; letter-spacing:2px; font-size:14px;';
-        _barreReprise.innerHTML = '<div>REPRISE DE LA PARTIE</div><div style="width:min(420px,80vw); height:10px; border-radius:5px; background:rgba(139,92,246,0.2); overflow:hidden;"><div class="br-plein" style="height:100%; width:0; background:linear-gradient(90deg,#8B5CF6,#4ADE80);"></div></div><div class="br-txt" style="font-size:12px; color:#A5B4FC;"></div>';
-        document.body.appendChild(_barreReprise);
-    }
-    const total = Math.max(1, L.tourPermis - (L.rejeuDebut || 0));
-    const fait = Math.max(0, gameState.tour - (L.rejeuDebut || 0));
-    const pct = Math.min(100, Math.round(100 * fait / total));
-    _barreReprise.querySelector('.br-plein').style.width = pct + '%';
-    const m = Math.floor(gameState.tour / 3600), sec = Math.floor(gameState.tour / 60) % 60;
-    _barreReprise.querySelector('.br-txt').textContent = pct + ' % \u00b7 ' + m + ' min ' + String(sec).padStart(2, '0') + ' de partie recalculées';
-}
-
 /* Une image : les tours dus depuis la precedente, puis le dessin. */
 function avancerImage(dt, timestamp) {
     const _t0 = performance.now();
@@ -17128,17 +16171,9 @@ function avancerImage(dt, timestamp) {
            image au plus, un retard de 4 minutes ne se rattrapait jamais. */
         const loin = ecart > cible + 4 * TOURS_PAR_PAQUET;
         gameState._rattrapage = ecart > 60;
-        /* LA REPRISE ACCELEREE. Plus de 10 s de retard (retour par
-           REPRENDRE, qui rejoue la partie depuis le debut) : on ne dessine
-           plus, on calcule 150 ms par image et une barre dit ou l'on en est.
-           Avant : 30 ms de calcul puis une image complete, deux fois moins
-           vite. */
-        const rejeu = ecart > 600;
-        gameState._rejeu = rejeu;
-        if (rejeu && L.rejeuDebut === undefined) L.rejeuDebut = gameState.tour;
         const debut = performance.now();
         while (gameState.tour < L.tourPermis
-               && (n < TOURS_MAX_PAR_IMAGE || (loin && performance.now() - debut < (rejeu ? 150 : 10)))
+               && (n < TOURS_MAX_PAR_IMAGE || (loin && performance.now() - debut < (ecart > 600 ? 30 : 10)))
                && (_accSim >= TOUR_SIM || L.tourPermis - gameState.tour > cible + 4 * TOURS_PAR_PAQUET)) {
             tourSimulation();
             _accSim = Math.max(0, _accSim - TOUR_SIM);
@@ -17153,13 +16188,6 @@ function avancerImage(dt, timestamp) {
             if (!L.figee && L.bonus !== undefined) { L.bonus = Math.min(6, L.bonus + 1); L.sansAccroc = performance.now(); }
         }
         L.figee = figee;
-        if (L.tourPermis - gameState.tour > 600) {
-            /* Toujours loin derriere : pas de dessin, seulement la barre. */
-            majBarreReprise(L);
-            _accSim = 0;
-            return;
-        }
-        if (L.rejeuDebut !== undefined) { L.rejeuDebut = undefined; majBarreReprise(null); }
     } else {
         _accSim += dt;
         while (_accSim >= TOUR_SIM && n < TOURS_MAX_PAR_IMAGE) {
@@ -17512,7 +16540,6 @@ function empreinteEtat(detail) {
 // ─────────────────────────────────────────────
 function render() {
     const ctx = gameState.ctx;
-    majUiDepart();
     const cam = gameState.camera;
     const w = gameState.width;
     const h = gameState.height;
@@ -17634,8 +16661,6 @@ function render() {
     drawApocalypses(ctx);
     drawCibleTuto(ctx);
     drawCommerce(ctx);
-    drawEchoTirs(ctx);
-    drawReservations(ctx);
 
     // ── Jets de spores ──
     drawJets(ctx);
@@ -21263,16 +20288,12 @@ function updateAI(dt) {
            vidait ses astres. */
         if (player.totalSpores > 2000 && player.capPhase !== 'prepa' && gameRandom() < 0.03) {
             const _br = ['homing','tenacity','mimicry'][Math.floor(gameRandom()*3)];
-            /* Seulement avec le surplus au-dessus de sa bande de bon
-               rendement : sinon l'achat vide l'astre qui montait vers son pic. */
-            if (player.tech[_br] < 10 && iaSurplus(player) >= getTechCost(player, _br)) buyTech(player, _br);
+            if (player.tech[_br] < 10) buyTech(player, _br);
         }
 
         // IA : batiments (verifie a chaque frame, pas seulement au timer)
         for (const body of player.bodies) {
-            if (body.buildMode === 'off' && body.spores > body.maxSpores * zoneRegime(player.id)[1]) {
-                /* Elle batit avec ce qui depasse le haut de sa bande de bon
-                   rendement (0,73 pour la courbe commune). */
+            if (body.buildMode === 'off' && body.spores > body.maxSpores * 0.7) {
                 body.buildMode = aiChoixBatiment(player, body);
             }
         }
@@ -21472,23 +20493,6 @@ function iaPiloteCapital(C) {
     C.cmdY = Math.abs(dy) / d > 0.38 ? Math.sign(dy) : 0;
 }
 
-/* L'IA (normale et brutale) vise le pic de SA courbe : un astre sous sa
-   bande de bon rendement pousse en paix, elle tire de ceux qui l'ont
-   atteinte - ou qui se battent. */
-function iaSourcePrete(b, min) {
-    if (!(b.spores > min)) return false;
-    if (b.lutte) return true;
-    return b.spores >= Math.max(1, b.maxSpores) * zoneRegime(b.owner)[0];
-}
-
-/* Les spores d'un joueur au-dessus du bas de sa bande de bon rendement. */
-function iaSurplus(player) {
-    const bas = zoneRegime(player.id)[0];
-    let n = 0;
-    for (const b of player.bodies) n += Math.max(0, (b.spores || 0) - Math.max(1, b.maxSpores) * bas);
-    return n;
-}
-
 // ── IA Facile : cible aléatoire, pas d'anticipation ──
 function aiActionEasy(player) {
     // Choisir un astre source avec des spores
@@ -21508,7 +20512,7 @@ function aiActionEasy(player) {
 
 // ── IA Normale : évalue les cibles, interception basique ──
 function aiActionNormal(player) {
-    const sources = player.bodies.filter(b => iaSourcePrete(b, 30));
+    const sources = player.bodies.filter(b => b.spores > 30);
     if (sources.length === 0) return;
 
     // Évaluer les cibles
@@ -21560,7 +20564,7 @@ function aiActionNormal(player) {
 
 // ── IA Brutale : interception parfaite, coordination, micro-gestion ──
 function aiActionBrutal(player) {
-    const sources = player.bodies.filter(b => iaSourcePrete(b, 25));
+    const sources = player.bodies.filter(b => b.spores > 25);
     if (sources.length === 0) return;
 
     // Évaluer les cibles avec anticipation orbitale
@@ -22340,7 +21344,7 @@ function debitAstre(body) {
     return Math.max(1, body.maxSpores) * TAUX_PROD
            * (0.4 + (body.flore / 100) * 0.6) * (1 + joueur.stats.growth * 0.3)
            * sym * nid * sys * part
-           * courbeCroissance((body.spores || 0) / Math.max(1, body.maxSpores || 1), body.owner);
+           * courbeCroissance((body.spores || 0) / Math.max(1, body.maxSpores || 1));
 }
 
 /* ─────────────────────────────────────────────
@@ -22672,7 +21676,7 @@ function drawDebitAstre(ctx) {
     const d = (astre.spores < astre.maxSpores) ? debitAstre(astre) : 0;
     /* Le rendement du moment, en pour cent de ce que l'astre donnerait a
        mi-capacite : c'est la lecture de cette courbe qui fait jouer juste. */
-    const rend = Math.round(courbeCroissance(astre.spores / Math.max(1, astre.maxSpores), astre.owner) * 100);
+    const rend = Math.round(courbeCroissance(astre.spores / Math.max(1, astre.maxSpores)) * 100);
     /* Au-dessus de l'etiquette du pseudo, qui occupe deja le bord haut de
        l'astre : sans ce decalage les deux se superposent. */
     const etiquette = Math.max(9 / z, Math.min(16 / z, astre.radius * 0.45));
@@ -25745,137 +24749,6 @@ document.getElementById('btnStartTutorial').addEventListener('click', () => {
     setPhase('title');
     setTimeout(() => startTutorial(), 100);
 });
-// ─────────────────────────────────────────────
-// HISTOIRE : la cinématique du menu (La Chronique des Spores)
-// ─────────────────────────────────────────────
-/* Douze images (assets/histoire/sceneNN.jpg) qui se fondent l'une dans
-   l'autre, chacune avec un lent zoom (alterne d'une scene a l'autre), son
-   titre et son texte. Defile tout seul (le temps de lire), ou au clic,
-   Espace, fleches ; Echap ou PASSER pour sortir. Purement de l'affichage :
-   la musique du titre continue. Textes : Lore/HISTOIRE.md. */
-const HISTOIRE = [
-    ['Le futur radieux', "En 2387, la France avait tout inventé : les villes volantes, les robots serviables, le croissant éternel. Elle avait juste oublié une chose : la planète."],
-    ['La fin du monde', "La Terre était fichue. Et aucun vaisseau n'était assez léger pour emporter tout le monde."],
-    ['La découverte', "Puis un savant découvrit qu'un humain pouvait devenir spore. Légère, résistante, capable de traverser l'espace. Le seul moyen de partir."],
-    ["Les partis s'en emparent", "Les partis politiques comprirent tout de suite : l'univers était à prendre. Pour une fois, ils furent tous d'accord. Sur le départ. Pas sur le reste."],
-    ['Les adhérents font la queue', "Chaque parti construisit ses machines. Les adhérents firent la queue. Certains avaient même pris leur carte."],
-    ['Le grand départ', "Et des milliards de spores quittèrent la Terre, chacune aux couleurs de son camp. Tout le monde n'était pas aussi enthousiaste."],
-    ['La Nébuleuse', "Après un très long voyage, elles atteignirent la Nébuleuse. Des mondes à prendre… et, au cœur de tout, le Puits."],
-    ['La première colonie', "Une spore touche un monde, s'y accroche, et pousse. Puis une autre. Puis toute une section du parti."],
-    ['La guerre des partis', "Mais tous les partis avaient visé la même Nébuleuse. Le débat reprit. À coups de spores."],
-    ['Les Anciens', "Ils n'étaient pas les premiers. D'autres civilisations avaient fait le même voyage, il y a très longtemps. Le Puits les avait avalées. Parfois, il les rend."],
-    ["Les alliances d'or", "Certains partis passèrent des accords. Des alliances d'or, solides comme une promesse de campagne."],
-    ['À toi, Commandant', "Le parti qui tiendra la Nébuleuse écrira la Constitution de l'univers. À toi, Commandant."]
-];
-let _hist = null;
-function _imgHistoire(k) { return 'assets/histoire/scene' + String(k + 1).padStart(2, '0') + '.jpg'; }
-
-function ouvrirHistoire() {
-    if (_hist) return;
-    const el = document.createElement('div');
-    el.id = 'histoire';
-    let points = '';
-    for (let k = 0; k < HISTOIRE.length; k++) points += '<span data-k="' + k + '"></span>';
-    el.innerHTML = '<div class="hi-image"></div><div class="hi-image"></div><div class="hi-voile"></div>' +
-        '<div class="hi-bas"><div class="hi-titre"></div><div class="hi-texte"></div><div class="hi-points">' + points + '</div></div>' +
-        '<button class="hi-passer">PASSER ✕</button>' +
-        '<button class="hi-fleche hi-prec" aria-label="Scène précédente">‹</button><button class="hi-fleche hi-suiv" aria-label="Scène suivante">›</button>' +
-        '<div class="hi-fin"><div class="hi-fin-titre">NEBULA CONQUEST</div><button class="btn hi-jouer">FERMER</button></div>';
-    document.body.appendChild(el);
-    _hist = { el: el, k: -1, couche: 0, minuteur: null, touches: null };
-    /* Les images se chargent d'avance, dans l'ordre. */
-    _hist.prechargees = HISTOIRE.map(function (_, k) { const im = new Image(); im.src = _imgHistoire(k); return im; });
-    el.querySelector('.hi-passer').addEventListener('click', function (e) { e.stopPropagation(); fermerHistoire(); });
-    el.querySelector('.hi-jouer').addEventListener('click', function (e) { e.stopPropagation(); fermerHistoire(); });
-    el.querySelector('.hi-prec').addEventListener('click', function (e) { e.stopPropagation(); allerScene(_hist.k - 1); });
-    el.querySelector('.hi-suiv').addEventListener('click', function (e) { e.stopPropagation(); allerScene(_hist.k + 1); });
-    el.querySelectorAll('.hi-points span').forEach(function (p) {
-        p.addEventListener('click', function (e) { e.stopPropagation(); allerScene(+p.dataset.k); });
-    });
-    el.addEventListener('click', function () { allerScene(_hist.k + 1); });
-    _hist.touches = function (e) {
-        if (!_hist) return;
-        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermerHistoire(); }
-        else if (e.key === 'ArrowRight' || e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); allerScene(_hist.k + 1); }
-        else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); allerScene(_hist.k - 1); }
-    };
-    document.addEventListener('keydown', _hist.touches, true);
-    requestAnimationFrame(function () { el.classList.add('hi-visible'); allerScene(0); });
-}
-
-function allerScene(k) {
-    const H = _hist;
-    if (!H) return;
-    clearTimeout(H.minuteur);
-    if (k < 0) k = 0;
-    if (k >= HISTOIRE.length) { H.el.classList.add('hi-fini'); H.k = HISTOIRE.length; return; }
-    H.el.classList.remove('hi-fini');
-    if (k === H.k) return;
-    const couches = H.el.querySelectorAll('.hi-image');
-    const neuve = couches[H.couche ^ 1], vieille = couches[H.couche];
-    H.couche ^= 1;
-    /* Le zoom repart de zero sur la nouvelle image, dans un sens ou l'autre. */
-    neuve.style.backgroundImage = 'url("' + _imgHistoire(k) + '")';
-    neuve.classList.remove('hi-zoom-a', 'hi-zoom-b', 'hi-active');
-    void neuve.offsetWidth;
-    neuve.classList.add(k % 2 ? 'hi-zoom-b' : 'hi-zoom-a', 'hi-active');
-    vieille.classList.remove('hi-active');
-    const bas = H.el.querySelector('.hi-bas');
-    bas.classList.remove('hi-texte-visible');
-    void bas.offsetWidth;
-    H.el.querySelector('.hi-titre').textContent = (k + 1) + ' · ' + HISTOIRE[k][0];
-    H.el.querySelector('.hi-texte').textContent = HISTOIRE[k][1];
-    bas.classList.add('hi-texte-visible');
-    H.el.querySelectorAll('.hi-points span').forEach(function (p, i) { p.classList.toggle('hi-on', i === k); });
-    H.k = k;
-    /* Le temps de lire : 4 s, plus un peu par lettre. */
-    const duree = 4000 + HISTOIRE[k][1].length * 55;
-    H.minuteur = setTimeout(function () { allerScene(k + 1); }, duree);
-}
-
-function fermerHistoire() {
-    const H = _hist;
-    if (!H) return;
-    clearTimeout(H.minuteur);
-    document.removeEventListener('keydown', H.touches, true);
-    H.el.classList.remove('hi-visible');
-    setTimeout(function () { H.el.remove(); }, 450);
-    _hist = null;
-}
-
-document.getElementById('btnHistoire').addEventListener('click', () => { playClickSound(); ouvrirHistoire(); });
-
-/* AU PREMIER LANCEMENT, l'histoire se joue toute seule, des que le menu
-   principal est a l'ecran (apres la connexion ou le choix hors ligne).
-   Une seule fois par navigateur (nc_histoireVue). Pas quand on arrive par
-   un lien d'invitation : on rejoint d'abord la partie, l'histoire attendra
-   une prochaine visite. */
-const _histParInvitation = /[?&]partie=/.test(location.search);
-let _histGuet = null;
-function histoirePremiereFois() {
-    let vue = false;
-    try { vue = localStorage.getItem('nc_histoireVue') === '1'; } catch (e) { vue = true; }
-    if (vue || _histParInvitation) { clearInterval(_histGuet); return; }
-    if (gameState.phase !== 'title' || _hist) return;
-    const titre = document.getElementById('titleScreen'), auth = document.getElementById('authScreen');
-    if (!titre || titre.classList.contains('hidden') || (auth && !auth.classList.contains('hidden'))) return;
-    const salon = document.getElementById('salonReseau');
-    if (salon && salon.style.display === 'flex') return;
-    try { localStorage.setItem('nc_histoireVue', '1'); } catch (e) {}
-    clearInterval(_histGuet);
-    ouvrirHistoire();
-}
-_histGuet = setInterval(histoirePremiereFois, 800);
-
-/* Apres un repli (photo qui ne collait pas), la page rechargee reprend la
-   partie toute seule, depuis le debut. */
-function repriseCompleteAuto() {
-    let auto = false;
-    try { auto = sessionStorage.getItem('nc_repriseComplete') === '1'; sessionStorage.removeItem('nc_repriseComplete'); } catch (e) {}
-    if (auto) setTimeout(reprendrePartieReseau, 1200);
-}
-repriseCompleteAuto();
-
 document.getElementById('btnMission').addEventListener('click', () => {
     if (typeof ensureAudio === 'function') ensureAudio();
     playClickSound();
