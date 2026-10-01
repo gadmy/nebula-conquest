@@ -1374,7 +1374,9 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
          Centre collaborateur G1 V1 D1, Gauche non solidaire G1 D1 S1,
          Dictature eclairee V1 D1 S1, Royaute a plusieurs G1 D2, Fascisme
          sympa V2 D1, Anarchie tres organisee V3, Ecolo mais pas trop G1
-         S2, Communisme neoliberal G2 S1, Droite proletaire G3 (plafond 8). Ordre 'regime'. En reseau 15 s,
+         S2, Communisme neoliberal G2 S1, Droite proletaire G3 (plafond 8).
+         Chaque carte dit aussi, en italique, pourquoi ce regime a dissous
+         ses adherents en spores pour conquerir l'univers. Ordre 'regime'. En reseau 15 s,
          compteur "x / y joueurs ont choisi", hasard pour les retardataires ;
          les IA tirent le leur ;
        - PUIS LA PLANETE en 15 s pour tous : ordre 'reserver' (astre libre
@@ -1515,7 +1517,8 @@ canvas#gameCanvas {
 #ecranRegime .rg-image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 #ecranRegime .rg-icone { font-size: 46px; filter: drop-shadow(0 0 10px rgba(196,181,253,0.5)); }
 #ecranRegime .rg-nom { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 1.5px; color: #F5F3FF; padding: 10px 12px 4px; }
-#ecranRegime .rg-texte { font-size: 12px; color: #A5B4FC; padding: 0 12px 10px; line-height: 1.4; flex: 1; }
+#ecranRegime .rg-texte { font-size: 12px; color: #A5B4FC; padding: 0 12px 6px; line-height: 1.4; }
+#ecranRegime .rg-pourquoi { font-size: 11px; font-style: italic; color: #C4B5FD; opacity: 0.8; padding: 0 12px 10px; line-height: 1.4; flex: 1; }
 #ecranRegime .rg-stats { display: flex; justify-content: space-around; border-top: 1px solid rgba(139,92,246,0.25); padding: 8px 6px; background: rgba(0,0,0,0.25); }
 #ecranRegime .rg-stat { display: flex; flex-direction: column; align-items: center; font-size: 13px; gap: 1px; }
 #ecranRegime .rg-stat b { font-family: 'Orbitron', sans-serif; font-size: 12px; }
@@ -10921,15 +10924,15 @@ function updateScoreBoard() {
    Tout passe par des ordres et se compte en tours : meme chose chez tous
    les joueurs en reseau. */
 const REGIMES = [
-    { id: 'centre_collaborateur',  nom: 'Centre collaborateur',   icone: '⚖️', stats: { growth: 1, velocity: 1, density: 1 },      texte: "D'accord avec tout le monde. Surtout avec le plus fort." },
-    { id: 'gauche_non_solidaire',  nom: 'Gauche non solidaire',   icone: '🌹', stats: { growth: 1, density: 1, sensitivity: 1 },    texte: 'Partager, oui. Mais chacun le sien.' },
-    { id: 'dictature_eclairee',    nom: 'Dictature éclairée',     icone: '💡', stats: { velocity: 1, density: 1, sensitivity: 1 },  texte: 'Un seul chef, mais il a lu des livres.' },
-    { id: 'royaute_plusieurs',     nom: 'Royauté à plusieurs',    icone: '👑', stats: { growth: 1, density: 2 },                    texte: 'Douze rois, un seul trône, beaucoup de réunions.' },
-    { id: 'fascisme_sympa',        nom: 'Fascisme sympa',         icone: '🎖️', stats: { velocity: 2, density: 1 },                  texte: 'On marche au pas, mais on dit merci.' },
-    { id: 'anarchie_organisee',    nom: 'Anarchie très organisée', icone: '🏴', stats: { velocity: 3 },                             texte: 'Pas de chef, mais un planning très strict.' },
-    { id: 'ecolo_pas_trop',        nom: 'Écolo mais pas trop',    icone: '🌿', stats: { growth: 1, sensitivity: 2 },                texte: 'On protège les soleils. Sauf le week-end.' },
-    { id: 'communisme_neoliberal', nom: 'Communisme néolibéral',  icone: '📈', stats: { growth: 2, sensitivity: 1 },                texte: 'Tout appartient à tous. Surtout aux actionnaires.' },
-    { id: 'droite_proletaire',     nom: 'Droite prolétaire',      icone: '🛠️', stats: { growth: 3 },                                texte: 'Travailler plus pour produire plus. Beaucoup plus.' }
+    { id: 'centre_collaborateur',  nom: 'Centre collaborateur',   icone: '⚖️', stats: { growth: 1, velocity: 1, density: 1 },      texte: "D'accord avec tout le monde. Surtout avec le plus fort.", pourquoi: "Tout le monde partait en spores : ils ont suivi le mouvement." },
+    { id: 'gauche_non_solidaire',  nom: 'Gauche non solidaire',   icone: '🌹', stats: { growth: 1, density: 1, sensitivity: 1 },    texte: 'Partager, oui. Mais chacun le sien.', pourquoi: "Chaque adhérent voulait sa planète à lui. Une spore chacun, c'est plus juste." },
+    { id: 'dictature_eclairee',    nom: 'Dictature éclairée',     icone: '💡', stats: { velocity: 1, density: 1, sensitivity: 1 },  texte: 'Un seul chef, mais il a lu des livres.', pourquoi: "Le chef a lu qu'une spore n'est jamais en désaccord. Il a été convaincu tout de suite." },
+    { id: 'royaute_plusieurs',     nom: 'Royauté à plusieurs',    icone: '👑', stats: { growth: 1, density: 2 },                    texte: 'Douze rois, un seul trône, beaucoup de réunions.', pourquoi: "Il n'y avait plus assez de trônes : il fallait plus de planètes." },
+    { id: 'fascisme_sympa',        nom: 'Fascisme sympa',         icone: '🎖️', stats: { velocity: 2, density: 1 },                  texte: 'On marche au pas, mais on dit merci.', pourquoi: "Des milliards de spores qui marchent au pas : le rêve. Poliment." },
+    { id: 'anarchie_organisee',    nom: 'Anarchie très organisée', icone: '🏴', stats: { velocity: 3 },                             texte: 'Pas de chef, mais un planning très strict.', pourquoi: "Le planning prévoyait la conquête de l'univers pour mardi." },
+    { id: 'ecolo_pas_trop',        nom: 'Écolo mais pas trop',    icone: '🌿', stats: { growth: 1, sensitivity: 2 },                texte: 'On protège les soleils. Sauf le week-end.', pourquoi: "Une spore ne pollue pas. Et elle voyage sans avion." },
+    { id: 'communisme_neoliberal', nom: 'Communisme néolibéral',  icone: '📈', stats: { growth: 2, sensitivity: 1 },                texte: 'Tout appartient à tous. Surtout aux actionnaires.', pourquoi: "Une spore ne réclame ni salaire ni congés : rentabilité maximale." },
+    { id: 'droite_proletaire',     nom: 'Droite prolétaire',      icone: '🛠️', stats: { growth: 3 },                                texte: 'Travailler plus pour produire plus. Beaucoup plus.', pourquoi: "Une spore ne fait jamais grève." }
 ];
 const STATS_REGIME = [
     { cle: 'growth', nom: 'Croissance', icone: '🌱', couleur: '#4ADE80' },
@@ -11081,6 +11084,7 @@ function ouvrirEcranRegime() {
             '<img src="assets/regimes/' + R.id + '.jpg" alt="" onerror="this.remove()"></div>' +
             '<div class="rg-nom">' + R.nom + '</div>' +
             '<div class="rg-texte">' + R.texte + '</div>' +
+            '<div class="rg-pourquoi">' + (R.pourquoi || '') + '</div>' +
             '<div class="rg-stats">' + stats + '</div></div>';
     }
     el.innerHTML = '<div class="rg-titre">CHOISISSEZ VOTRE RÉGIME</div>' +
