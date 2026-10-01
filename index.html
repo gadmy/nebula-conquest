@@ -1358,6 +1358,14 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        morceaux si le navigateur refuse. Essai de zoom sur 12 planetes :
        toutes nettes (11 restaient floues avant) ; copie publiee (dist,
        compactee) verifiee aussi.
+     - REACTIVITE RESEAU : le delai ordre -> tir est deja presque minimal
+       (la reserve suit la gigue du reseau) ; passer les paquets de 50 a
+       33 ms ne gagnerait que ~8 ms en moyenne, pour un changement de
+       protocole risque : laisse tel quel. A la place, le TIR REPOND AU
+       CLIC : en reseau, le son et un bref eclair partent tout de suite
+       (echoTir, purement local) ; le vrai tir suit sans rejouer le son.
+       Essai a 2 navigateurs : son immediat, tir 82 ms apres, un seul son,
+       pas de desynchronisation.
      - LORE : Lore/HISTOIRE.md (+ PDF), "La Chronique des Spores" en 12
        scenes (texte a l'ecran, prompt d'image IA, mouvement), style commun,
        couleurs ; les trois spheres deviennent les Jardiniers (verte), les
@@ -15056,10 +15064,49 @@ function tourSimulation() {
    ───────────────────────────────────────────── */
 let _ordresEnAttente = [];
 
+/* LE TIR REPOND AU CLIC. En reseau, le vrai tir part quand l'ordre revient
+   du relais (50 a 100 ms plus tard) : le son et un bref eclair au depart,
+   eux, viennent tout de suite. Purement local : rien dans la partie. */
+const _echos = [];
+function echoTir(d) {
+    const src = astreNomme(d && d.src);
+    if (!src || !isFinite(d.dx) || !isFinite(d.dy)) return;
+    playLaunchSound();
+    const j = gameState.players[localSlot()];
+    _echos.push({ b: src, dx: +d.dx, dy: +d.dy, t0: performance.now(), couleur: (j && j.color) || '#FFFFFF' });
+}
+function drawEchoTirs(ctx) {
+    if (!_echos.length) return;
+    const now = performance.now(), z = gameState.camera.zoom;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    for (let i = _echos.length - 1; i >= 0; i--) {
+        const e = _echos[i], f = (now - e.t0) / 250;
+        if (f >= 1) { _echos.splice(i, 1); continue; }
+        const b = e.b, r0 = b.radius + 4 / z, l = (18 + 40 * f) / z;
+        const x0 = b.x + e.dx * r0, y0 = b.y + e.dy * r0;
+        ctx.globalAlpha = 0.9 * (1 - f);
+        ctx.strokeStyle = e.couleur;
+        ctx.lineWidth = Math.max(1.5 / z, 4 / z * (1 - f));
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x0 + e.dx * l, y0 + e.dy * l);
+        ctx.stroke();
+        const rh = (10 + 16 * f) / z;
+        ctx.drawImage(haloSprite(e.couleur, 'halo'), x0 - rh, y0 - rh, rh * 2, rh * 2);
+    }
+    ctx.restore();
+}
+
 function donnerOrdre(type, d) {
     /* En lockstep, l'ordre part au relais : il reviendra a tous les joueurs
        dans un paquet, date du meme tour pour chacun (recevoirPaquet). */
-    if (gameState.lockstep) { envoyerAuRelais({ t: 'ordre', type: type, d: d || {} }); return; }
+    if (gameState.lockstep) {
+        envoyerAuRelais({ t: 'ordre', type: type, d: d || {} });
+        if (type === 'tir') echoTir(d);
+        return;
+    }
     programmerOrdre({ tour: (gameState.tour || 0) + 1, slot: localSlot(), type: type, d: d || {} });
 }
 
@@ -15128,7 +15175,8 @@ const EXECUTER_ORDRE = {
         const dx = Number(d.dx), dy = Number(d.dy);
         if (!src || !isFinite(dx) || !isFinite(dy)) return;
         const t = ['normal', 'attaque', 'defense', 'parasite'].includes(d.t) ? d.t : 'normal';
-        launchJet(src, dx, dy, t, slot);
+        /* En reseau, notre propre tir a deja fait son bruit au clic (echoTir). */
+        launchJet(src, dx, dy, t, slot, (gameState.lockstep && slot === localSlot()) ? { muet: true } : undefined);
     },
     /* Un tir de surface vers un point du monde. */
     tir_surface: function (slot, d) {
@@ -16660,6 +16708,7 @@ function render() {
     drawApocalypses(ctx);
     drawCibleTuto(ctx);
     drawCommerce(ctx);
+    drawEchoTirs(ctx);
 
     // ── Jets de spores ──
     drawJets(ctx);
