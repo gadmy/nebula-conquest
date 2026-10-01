@@ -1512,7 +1512,10 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        peu, alors que hd=0 va bien) : sous Firefox, les canevas des textures
        sont crees en memoire ordinaire (willReadFrequently), pas sur la
        carte graphique ; ?tex=gpu pour l'ancien comportement, ?tex=bitmap
-       pour essayer des ImageBitmap.
+       pour essayer des ImageBitmap. RESULTAT Firefox : seule l'ImageBitmap
+       tient. CORRIGE : sous Firefox, chaque grande texture de planete ou de
+       lune devient une ImageBitmap (?tex=canevas pour s'en passer). Les 4
+       versions d'essai (essais/) sont retirees.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
@@ -5125,8 +5128,12 @@ function _poserHD(b, c) {
     if (b._recetteHD) {
         b._hd = true;
         if (ancien && ancien !== c && ancien !== b._petit) _libererTex(ancien);
-        /* ?tex=bitmap (essai Firefox) : l'image devient une ImageBitmap. */
-        if (_essaiTex.get('tex') === 'bitmap' && window.createImageBitmap && c.getContext) {
+        /* FIREFOX : la grande image devient une ImageBitmap. En canevas, elle
+           s'affichait puis disparaissait, et les autres astres avec (essais
+           du createur : seule l'ImageBitmap tient). ?tex=bitmap pour le
+           forcer ailleurs, ?tex=canevas pour s'en passer. */
+        const bitmap = (_texFirefox || _essaiTex.get('tex') === 'bitmap') && _essaiTex.get('tex') !== 'canevas';
+        if (bitmap && window.createImageBitmap && c.getContext) {
             createImageBitmap(c).then(function (bm) {
                 if (b._texture === c) { b._texture = bm; _libererTex(c); } else bm.close();
             });
