@@ -1366,6 +1366,27 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        (echoTir, purement local) ; le vrai tir suit sans rejouer le son.
        Essai a 2 navigateurs : son immediat, tir 82 ms apres, un seul son,
        pas de desynchronisation.
+     - LE DEPART REFAIT (solo et reseau ; le tutoriel et l'ancien
+       multijoueur gardent l'ancien) :
+       - REGIME POLITIQUE d'abord : 9 cartes (image assets/regimes/<id>.jpg,
+         icone tant qu'elle manque, nom, texte provisoire, stats en bas),
+         3 points d'evolution offerts : Democratie G1 V1 D1, Republique G1
+         D1 S1, Technocratie V1 D1 S1, Monarchie G1 D2, Empire V2 D1,
+         Dictature militaire V3, Theocratie G1 S2, Oligarchie marchande G2
+         S1, Commune agraire G3 (plafond 8). Ordre 'regime'. En reseau 15 s,
+         compteur "x / y joueurs ont choisi", hasard pour les retardataires ;
+         les IA tirent le leur ;
+       - PUIS LA PLANETE en 15 s pour tous : ordre 'reserver' (astre libre
+         non reserve par un autre, changement possible jusqu'au bout,
+         message si deja pris), anneau pointille a la couleur du joueur et
+         son nom sur l'astre reserve, IA qui reservent entre 2 et 11 s ; a
+         zero, chacun s'installe, astre au hasard sans reservation. En solo,
+         bouton LANCER LA PARTIE (ordre depart_vite). Tout en tours : meme
+         chose chez tous. Relais : ordres regime et reserver ajoutes.
+       Essais : solo avec vrais clics (regime, reservation, changement, IA,
+       installation), reseau a 2 navigateurs (regime au hasard, conflit sur
+       la meme planete, depart au hasard, pas de desynchronisation),
+       tutoriel inchange, npm run lockstep (adapte au depart) identique.
      - LORE : Lore/HISTOIRE.md (+ PDF), "La Chronique des Spores" en 12
        scenes (texte a l'ecran, prompt d'image IA, mouvement), style commun,
        couleurs ; les trois spheres deviennent les Jardiniers (verte), les
@@ -1476,6 +1497,29 @@ canvas#gameCanvas {
 
 /* ── Halos des soleils : meme principe, une couche par soleil, au-dessus du
    fond (plus loin dans la page) et sous le canevas de jeu ── */
+/* Le choix du regime politique : neuf cartes. */
+#ecranRegime { position: fixed; inset: 0; z-index: 990; background: rgba(5,8,25,0.9); overflow-y: auto;
+    display: flex; flex-direction: column; align-items: center; padding: 22px 16px 30px; box-sizing: border-box; font-family: 'Exo 2', sans-serif; color: #E0E7FF; }
+#ecranRegime .rg-titre { font-family: 'Orbitron', sans-serif; font-size: 22px; letter-spacing: 4px; color: #E9D5FF; text-shadow: 0 0 18px rgba(168,85,247,0.5); text-align: center; }
+#ecranRegime .rg-sous { font-size: 13px; color: #A5B4FC; margin-top: 4px; text-align: center; }
+#ecranRegime .rg-info { font-family: 'Orbitron', sans-serif; font-size: 12px; color: #FDE68A; min-height: 18px; margin: 8px 0 12px; text-align: center; }
+#ecranRegime .rg-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 220px)); gap: 14px; justify-content: center; width: 100%; }
+@media (max-width: 760px) { #ecranRegime .rg-grille { grid-template-columns: repeat(2, minmax(0, 220px)); } }
+#ecranRegime .rg-carte { background: linear-gradient(180deg, rgba(30,27,75,0.95), rgba(12,10,36,0.95)); border: 1px solid rgba(139,92,246,0.35);
+    border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; display: flex; flex-direction: column; }
+#ecranRegime .rg-carte:hover { transform: translateY(-3px); border-color: rgba(196,181,253,0.8); box-shadow: 0 6px 24px rgba(139,92,246,0.3); }
+#ecranRegime .rg-carte.rg-choisie { border-color: #FDE68A; box-shadow: 0 0 0 2px #FDE68A, 0 0 28px rgba(253,230,138,0.35); }
+#ecranRegime .rg-image { position: relative; height: 118px; background: radial-gradient(circle at 50% 40%, rgba(139,92,246,0.35), rgba(15,12,40,0.9));
+    display: flex; align-items: center; justify-content: center; }
+#ecranRegime .rg-image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#ecranRegime .rg-icone { font-size: 46px; filter: drop-shadow(0 0 10px rgba(196,181,253,0.5)); }
+#ecranRegime .rg-nom { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 1.5px; color: #F5F3FF; padding: 10px 12px 4px; }
+#ecranRegime .rg-texte { font-size: 12px; color: #A5B4FC; padding: 0 12px 10px; line-height: 1.4; flex: 1; }
+#ecranRegime .rg-stats { display: flex; justify-content: space-around; border-top: 1px solid rgba(139,92,246,0.25); padding: 8px 6px; background: rgba(0,0,0,0.25); }
+#ecranRegime .rg-stat { display: flex; flex-direction: column; align-items: center; font-size: 13px; gap: 1px; }
+#ecranRegime .rg-stat b { font-family: 'Orbitron', sans-serif; font-size: 12px; }
+#ecranRegime .rg-zero span { opacity: 0.35; }
+
 #halosSoleils {
     position: fixed;
     top: 0;
@@ -3557,6 +3601,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ONDES SOLAIRES.</span> Un système entièrement tenu se met à vivre : son étoile s'embrase <span style="color:#E9D5FF;">toutes les 5 secondes</span> et envoie une onde qui balaie ses astres. Chacun la reçoit au passage du front, pas au départ — le système s'allume de l'intérieur vers l'extérieur.</p>
 <p style="margin-bottom:16px;">Ce que l'onde apporte dépend de votre stat <span style="color:#FBBF24;">Sensitivity</span> : <span style="color:#4ADE80;">+5 % de la capacité de l'astre par point</span>. À un point, une lune de 400 reçoit 20 spores.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro. Il peut dépasser son maximum <b>sans limite</b> (chiffre doré ⚡) ; après le tir, le trop-plein s'évapore peu à peu.</p>
+<p style="margin-bottom:6px;"><span style="color:#C4B5FD;">LE DÉPART.</span> Chaque partie commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Démocratie, République, Technocratie, Monarchie, Empire, Dictature militaire, Théocratie, Oligarchie marchande, Commune agraire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun s'installe ; sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
 <p style="margin-bottom:6px;"><span style="color:#FDE68A;">COMMERCE.</span> Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
 <p style="margin-bottom:16px;">On ne tire pas à travers une étoile ni un trou noir : ils détruisent les jets. Quand aucun de vos astres n'a la vue sur la cible, le trait de visée passe au <span style="color:#EF4444;">rouge</span>.</p>
 
@@ -10860,6 +10905,280 @@ function updateScoreBoard() {
 
 
 // ─────────────────────────────────────────────
+// DÉPART : RÉGIME POLITIQUE, PUIS CHOIX DE LA PLANÈTE
+// ─────────────────────────────────────────────
+/* Au debut de chaque partie (solo et reseau, pas le tutoriel ni l'ancien
+   multijoueur) :
+   1. Chacun choisit un REGIME POLITIQUE : 3 points d'evolution offerts,
+      repartis selon le regime. En solo on prend son temps ; en reseau, 15 s,
+      et les retardataires recoivent un regime au hasard. Les IA en tirent un.
+   2. Puis le CHOIX DE LA PLANETE, en 15 s pour tous. On RESERVE un astre
+      libre (pas deja reserve par un autre) et on peut changer d'avis
+      jusqu'au bout ; les reservations de chacun se voient sur la carte.
+      Les IA reservent les leurs pendant le decompte. A zero, chacun
+      s'installe sur sa reservation ; sans reservation : un astre au hasard.
+   Tout passe par des ordres et se compte en tours : meme chose chez tous
+   les joueurs en reseau. */
+const REGIMES = [
+    { id: 'democratie',   nom: 'Démocratie',          icone: '🗳️', stats: { growth: 1, velocity: 1, density: 1 },   texte: 'Le peuple décide : un peu de tout.' },
+    { id: 'republique',   nom: 'République',          icone: '🏛️', stats: { growth: 1, density: 1, sensitivity: 1 }, texte: 'Des lois solides et un œil sur les soleils.' },
+    { id: 'technocratie', nom: 'Technocratie',        icone: '⚙️', stats: { velocity: 1, density: 1, sensitivity: 1 }, texte: 'Les savants gouvernent : précision et efficacité.' },
+    { id: 'monarchie',    nom: 'Monarchie',           icone: '👑', stats: { growth: 1, density: 2 },               texte: 'Un trône, des remparts : chaque spore pèse plus lourd.' },
+    { id: 'empire',       nom: 'Empire',              icone: '🦅', stats: { velocity: 2, density: 1 },             texte: "L'expansion avant tout : frapper loin et fort." },
+    { id: 'dictature',    nom: 'Dictature militaire', icone: '⚔️', stats: { velocity: 3 },                         texte: 'La guerre éclair : des tirs plus rapides que tous.' },
+    { id: 'theocratie',   nom: 'Théocratie',          icone: '☀️', stats: { growth: 1, sensitivity: 2 },           texte: 'Le culte des soleils : leurs ondes vous nourrissent.' },
+    { id: 'oligarchie',   nom: 'Oligarchie marchande', icone: '💰', stats: { growth: 2, sensitivity: 1 },          texte: 'Les riches prospèrent : la production avant la guerre.' },
+    { id: 'commune',      nom: 'Commune agraire',     icone: '🌾', stats: { growth: 3 },                           texte: 'Tout pour la récolte : la plus forte croissance.' }
+];
+const STATS_REGIME = [
+    { cle: 'growth', nom: 'Croissance', icone: '🌱', couleur: '#4ADE80' },
+    { cle: 'velocity', nom: 'Vélocité', icone: '⚡', couleur: '#FACC15' },
+    { cle: 'density', nom: 'Densité', icone: '💎', couleur: '#38BDF8' },
+    { cle: 'sensitivity', nom: 'Sensibilité', icone: '☀', couleur: '#F472B6' }
+];
+const DEPART_CFG = {
+    compte: 15,          /* secondes pour choisir sa planete */
+    regimeReseau: 15,    /* secondes pour choisir son regime, en reseau */
+    iaPremier: 2,        /* les IA reservent entre 2 et 11 s */
+    iaDernier: 11,
+    statMax: 8           /* plafond d'une statistique */
+};
+
+function regimeDe(id) { return REGIMES.find(function (r) { return r.id === id; }) || null; }
+function departActif() { return gameState.phase === 'spawn' && !gameState.isTutorial && !gameState.isMulti; }
+function _humainsDepart() { return gameState.players.filter(function (p) { return p.isHuman; }); }
+function reservePar(nom) {
+    const D = gameState.depart;
+    if (!D) return -1;
+    for (const s in D.reserv) if (D.reserv[s] === nom) return +s;
+    return -1;
+}
+
+function appliquerRegime(p) {
+    const R = regimeDe(p.regime);
+    if (!R || p._regimeApplique) return;
+    p._regimeApplique = true;
+    for (const k in R.stats) p.stats[k] = Math.min(DEPART_CFG.statMax, (p.stats[k] || 0) + R.stats[k]);
+}
+
+/* L'etat du depart, cree au premier besoin (un ordre peut arriver avant le
+   premier tour de la phase). */
+function _etatDepart() {
+    if (!departActif()) return null;
+    if (!gameState.depart) {
+        gameState.depart = { etape: 'regime', fin: gameState.lockstep ? gameState.tour + DEPART_CFG.regimeReseau * 60 : Infinity,
+                             reserv: {}, iaT: {} };
+    }
+    return gameState.depart;
+}
+
+/* A chaque tour de la phase de depart (tourSimulation). */
+function majDepart() {
+    const D = _etatDepart();
+    if (!D) return;
+    if (D.etape === 'regime') {
+        const humains = _humainsDepart();
+        if (!humains.every(function (h) { return h.regime; }) && gameState.tour < D.fin) return;
+        for (const p of gameState.players) {
+            if (!p.regime) p.regime = REGIMES[Math.floor(gameRandom() * REGIMES.length)].id;
+            appliquerRegime(p);
+        }
+        D.etape = 'planete';
+        D.fin = gameState.tour + DEPART_CFG.compte * 60;
+        for (const p of gameState.players) {
+            if (p.isHuman) continue;
+            D.iaT[p.id] = gameState.tour + Math.round((DEPART_CFG.iaPremier + gameRandom() * (DEPART_CFG.iaDernier - DEPART_CFG.iaPremier)) * 60);
+        }
+        const moi = gameState.players[localSlot()];
+        if (moi) addEvent('mine', regimeDe(moi.regime).icone, 'Régime : ' + regimeDe(moi.regime).nom, null, moi.color);
+        return;
+    }
+    for (const id in D.iaT) {
+        if (gameState.tour >= D.iaT[id] && D.reserv[id] === undefined) iaReserver(+id);
+    }
+    if (gameState.tour >= D.fin) finirDepart();
+}
+
+/* L'IA prend un astre libre, loin des autres reservations, a bonne flore. */
+function _meilleurAstreLibre(slot) {
+    const D = gameState.depart;
+    let best = null, bestScore = -1;
+    const pris = [];
+    for (const s in D.reserv) if (+s !== slot) { const b = astreNomme(D.reserv[s]); if (b) pris.push(b); }
+    for (const b of gameState.planets.concat(gameState.moons)) {
+        if (b.owner !== null || reservePar(b.name) >= 0) continue;
+        let minDist = Infinity;
+        for (const o of pris) minDist = Math.min(minDist, Math.hypot(b.x - o.x, b.y - o.y));
+        const score = (pris.length ? minDist : 0) + (b.flore || 0) * 2;
+        if (score > bestScore) { bestScore = score; best = b; }
+    }
+    return best;
+}
+function iaReserver(slot) {
+    const b = _meilleurAstreLibre(slot);
+    if (b) gameState.depart.reserv[slot] = b.name;
+}
+
+/* L'ordre 'reserver' : un astre libre, que personne d'autre n'a reserve. */
+function reserverAstre(slot, nom) {
+    const D = gameState.depart;
+    if (!departActif() || !D || D.etape !== 'planete') return;
+    const b = astreNomme(nom);
+    if (!b || (b.type !== 'planet' && b.type !== 'moon') || b.owner !== null) return;
+    const qui = reservePar(nom);
+    if (qui >= 0 && qui !== slot) {
+        if (slot === localSlot()) toastCommerce(b.name + ' est déjà réservée par ' + gameState.players[qui].name, '#FCA5A5');
+        return;
+    }
+    D.reserv[slot] = nom;
+    if (slot === localSlot()) playClickSound();
+}
+
+/* Le decompte est fini : chacun s'installe. */
+function finirDepart() {
+    const D = gameState.depart;
+    for (const p of gameState.players) {
+        let b = D.reserv[p.id] !== undefined ? astreNomme(D.reserv[p.id]) : null;
+        if (!b || b.owner !== null) {
+            if (p.isHuman) {
+                const libres = gameState.planets.concat(gameState.moons).filter(function (x) { return x.owner === null; });
+                b = libres.length ? libres[Math.floor(gameRandom() * libres.length)] : null;
+            } else b = _meilleurAstreLibre(p.id);
+        }
+        if (!b) continue;
+        b.owner = p.id;
+        b.spores = b.maxSpores * 0.5;
+        p.bodies = [b];
+        p.spawnPlanet = b;
+        p._spawnAnnounced = true;
+        if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
+        gameState._spawnFlashes.push({ body: b, age: 0, maxAge: 2.5, color: p.color });
+        if (p.id === localSlot()) addEvent('mine', '🌍', 'Vous colonisez ' + b.name + ' !', b, p.color);
+        else addEvent('war', '🌍', p.name + ' colonise ' + b.name + ' !', b, p.color);
+    }
+    marquerTerritoiresSales();
+    gameState.depart = null;
+    fermerEcranRegime();
+    setPhase('game');
+}
+
+// ── L'écran des régimes (cartes) ──
+let _ecranRegime = null, _regimeClique = null;
+function ouvrirEcranRegime() {
+    if (_ecranRegime) return;
+    const el = document.createElement('div');
+    el.id = 'ecranRegime';
+    let cartes = '';
+    for (const R of REGIMES) {
+        let stats = '';
+        for (const S of STATS_REGIME) {
+            const n = R.stats[S.cle] || 0;
+            stats += '<div class="rg-stat' + (n ? '' : ' rg-zero') + '" title="' + S.nom + '"><span>' + S.icone + '</span><b style="color:' + (n ? S.couleur : '#475569') + ';">+' + n + '</b></div>';
+        }
+        cartes += '<div class="rg-carte" data-id="' + R.id + '">' +
+            '<div class="rg-image"><span class="rg-icone">' + R.icone + '</span>' +
+            '<img src="assets/regimes/' + R.id + '.jpg" alt="" onerror="this.remove()"></div>' +
+            '<div class="rg-nom">' + R.nom + '</div>' +
+            '<div class="rg-texte">' + R.texte + '</div>' +
+            '<div class="rg-stats">' + stats + '</div></div>';
+    }
+    el.innerHTML = '<div class="rg-titre">CHOISISSEZ VOTRE RÉGIME</div>' +
+        '<div class="rg-sous">3 points d\'évolution offerts, répartis selon le régime</div>' +
+        '<div class="rg-info" id="rgInfo"></div>' +
+        '<div class="rg-grille">' + cartes + '</div>';
+    el.querySelectorAll('.rg-carte').forEach(function (c) {
+        c.addEventListener('click', function () {
+            const D = gameState.depart;
+            if (!D || D.etape !== 'regime') return;
+            _regimeClique = c.dataset.id;
+            playClickSound();
+            donnerOrdre('regime', { id: c.dataset.id });
+            majEcranRegime();
+        });
+    });
+    document.body.appendChild(el);
+    _ecranRegime = el;
+}
+function fermerEcranRegime() {
+    if (_ecranRegime) { _ecranRegime.remove(); _ecranRegime = null; }
+    _regimeClique = null;
+}
+function majEcranRegime() {
+    if (!_ecranRegime) return;
+    const moi = gameState.players[localSlot()];
+    const choisi = (moi && moi.regime) || _regimeClique;
+    _ecranRegime.querySelectorAll('.rg-carte').forEach(function (c) { c.classList.toggle('rg-choisie', c.dataset.id === choisi); });
+    const D = gameState.depart, info = _ecranRegime.querySelector('#rgInfo');
+    if (gameState.lockstep && D) {
+        const H = _humainsDepart();
+        const n = H.filter(function (h) { return h.regime; }).length;
+        const reste = Math.max(0, Math.ceil((D.fin - gameState.tour) / 60));
+        info.textContent = reste + ' s · ' + n + ' / ' + H.length + ' joueurs ont choisi' + (choisi ? ' · en attente des autres…' : '');
+    } else info.textContent = '';
+}
+
+/* A chaque image : l'ecran qui va avec l'etape (regime, puis decompte). */
+let _departUiT = 0;
+function majUiDepart() {
+    const D = gameState.depart;
+    if (!departActif() || !D) { if (_ecranRegime) fermerEcranRegime(); _majBoutonLancer(false); return; }
+    const now = performance.now();
+    if (now - _departUiT < 200) return;
+    _departUiT = now;
+    const banner = document.getElementById('spawnBanner');
+    if (banner) banner.style.visibility = D.etape === 'regime' ? 'hidden' : '';
+    if (D.etape === 'regime') { ouvrirEcranRegime(); majEcranRegime(); _majBoutonLancer(false); return; }
+    if (_ecranRegime) fermerEcranRegime();
+    const reste = Math.max(0, Math.ceil((D.fin - gameState.tour) / 60));
+    const mien = D.reserv[localSlot()];
+    if (banner) banner.textContent = (mien ? 'VOTRE PLANÈTE : ' + mien.toUpperCase() + ' — vous pouvez encore changer' : 'CHOISISSEZ VOTRE PLANÈTE DE DÉPART') + ' — ' + reste + ' s';
+    _majBoutonLancer(!gameState.lockstep && !!mien);
+}
+/* En solo : pas besoin d'attendre la fin du decompte. */
+function _majBoutonLancer(oui) {
+    let b = document.getElementById('btnLancerDepart');
+    if (!oui) { if (b) b.style.display = 'none'; return; }
+    if (!b) {
+        b = document.createElement('button');
+        b.id = 'btnLancerDepart';
+        b.className = 'btn';
+        b.textContent = '▶ LANCER LA PARTIE';
+        b.style.cssText = 'position:fixed; top:58px; left:50%; transform:translateX(-50%); z-index:56; font-size:12px; padding:6px 18px; letter-spacing:2px; background:rgba(34,197,94,0.2); border-color:rgba(34,197,94,0.5); color:#4ADE80; cursor:pointer;';
+        b.addEventListener('click', function () { playClickSound(); donnerOrdre('depart_vite', {}); b.style.display = 'none'; });
+        document.body.appendChild(b);
+    }
+    b.style.display = 'block';
+}
+
+/* Sur la carte : qui a reserve quoi. Un anneau pointille qui tourne, a la
+   couleur du joueur, et son nom au-dessus. */
+function drawReservations(ctx) {
+    const D = gameState.depart;
+    if (!departActif() || !D || D.etape !== 'planete') return;
+    const z = gameState.camera.zoom, t = performance.now() / 1000;
+    ctx.save();
+    for (const s in D.reserv) {
+        const b = astreNomme(D.reserv[s]), p = gameState.players[s];
+        if (!b || !p || !aLEcran(b.x, b.y, b.radius + 80)) continue;
+        const moi = +s === localSlot();
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = (moi ? 3 : 2) / z;
+        ctx.setLineDash([10 / z, 7 / z]);
+        ctx.lineDashOffset = -t * 30 / z;
+        ctx.globalAlpha = 0.95;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius + 9 / z, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const px = Math.max(11, Math.min(18, 14 * Math.sqrt(z))) / z;
+        ctx.font = 'bold ' + px + 'px Orbitron';
+        ctx.textAlign = 'center';
+        _texteLisible(ctx, (moi ? '★ ' : '') + p.name, b.x, b.y - b.radius - 16 / z, p.color, Math.max(2, px * 0.22));
+    }
+    ctx.restore();
+}
+
+// ─────────────────────────────────────────────
 // SPAWN — Sélection de planète de départ
 // ─────────────────────────────────────────────
 let _spawnTarget = null;
@@ -10881,7 +11200,17 @@ function handleSpawnClick(worldX, worldY) {
 
     const slot = localSlot();
     const human = gameState.players.find(p => p.id === slot) || gameState.players[slot];
-    if (!human || human.spawnPlanet) return;
+    if (!human) return;
+    if (departActif()) {
+        /* Nouveau depart : pendant le decompte, un astre que personne
+           d'autre n'a reserve ; on peut changer d'avis. */
+        const D = gameState.depart;
+        if (!D || D.etape !== 'planete') return;
+        const qui = reservePar(closest.name);
+        if (qui >= 0 && qui !== slot) { toastCommerce(closest.name + ' est déjà réservée par ' + gameState.players[qui].name, '#FCA5A5'); return; }
+        const bt = document.getElementById('spawnPopupBtn');
+        if (bt) bt.textContent = D.reserv[slot] === closest.name ? '✓ DÉJÀ CHOISIE' : D.reserv[slot] ? '✦ CHANGER POUR CELLE-CI ✦' : '✦ CHOISIR ✦';
+    } else if (human.spawnPlanet) return;
 
     // Centrer la caméra sur la planète
     gameState.camera.x = closest.x;
@@ -10916,6 +11245,13 @@ function confirmSpawn() {
     const human = gameState.players.find(p => p.id === slot) || gameState.players[slot];
     if (!human || human.spawnPlanet) return;
     if (_spawnTarget.owner !== null) { _spawnTarget = null; document.getElementById('spawnPopup').style.display = 'none'; return; }
+    if (departActif()) {
+        /* Nouveau depart : une reservation, modifiable jusqu'a la fin du decompte. */
+        donnerOrdre('reserver', { astre: _spawnTarget.name });
+        document.getElementById('spawnPopup').style.display = 'none';
+        _spawnTarget = null;
+        return;
+    }
 
 if (gameState.isMulti) {
         // En multi : le serveur applique le spawn, on attend le snapshot
@@ -10948,7 +11284,7 @@ function coloniser(slot, astre) {
     if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
     gameState._spawnFlashes.push({ body: astre, age: 0, maxAge: 2.5, color: human.color });
     /* En lockstep, la partie ne commence que quand TOUS les humains ont leur
-       astre : verifierColonisationLockstep, a chaque tour. */
+       astre (ancien depart, garde pour le tutoriel). */
     if (gameState.lockstep) {
         if (slot !== localSlot()) addEvent('war', '🌍', `${human.name} colonise ${astre.name} !`, astre, human.color);
         return;
@@ -15032,7 +15368,7 @@ function tourSimulation() {
     gameState.tour = (gameState.tour || 0) + 1;
     if (typeof gameState.avantChaqueTour === 'function') gameState.avantChaqueTour(gameState.tour);
     appliquerOrdres(gameState.tour);
-    if (gameState.lockstep && gameState.phase === 'spawn') verifierColonisationLockstep();
+    if (gameState.phase === 'spawn') majDepart();
     update(TOUR_SIM);
     /* Une fois par seconde de jeu, l'empreinte part au relais, qui la
        compare a celle des autres joueurs. */
@@ -15138,6 +15474,19 @@ function astreNomme(nom) {
 
 /* Ce que fait chaque ordre. slot : le joueur qui l'a donne. */
 const EXECUTER_ORDRE = {
+    /* Le depart : le regime politique, puis la reservation d'un astre. */
+    regime: function (slot, d) {
+        const D = _etatDepart(), p = gameState.players[slot];
+        if (!D || D.etape !== 'regime' || !p || !regimeDe(d.id)) return;
+        p.regime = String(d.id);
+    },
+    reserver: function (slot, d) { reserverAstre(slot, String(d.astre || '')); },
+    /* En solo seulement : lancer sans attendre la fin du decompte. */
+    depart_vite: function (slot, d) {
+        const D = gameState.depart;
+        if (gameState.lockstep || !departActif() || !D || D.etape !== 'planete') return;
+        D.fin = Math.min(D.fin, gameState.tour + 1);
+    },
     /* Proposer un commerce a un joueur (niveau 1 a 3). */
     commerce: function (slot, d) {
         const cible = Math.round(Number(d.cible)), niveau = Math.round(Number(d.niveau));
@@ -15804,25 +16153,6 @@ function mesurerReseau(L, n) {
     if (L.bonus === undefined) { L.bonus = 0; L.sansAccroc = maintenant; }
     if (L.bonus > 0 && maintenant - L.sansAccroc > 5000) { L.bonus--; L.sansAccroc = maintenant; }
     L.cible = Math.max(RESERVE_MIN, Math.min(RESERVE_MAX, Math.ceil(gigue / (1000 / 60)) + 2 + L.bonus));
-}
-
-/* Pendant le choix des astres de depart : la partie commence quand tous les
-   humains ont le leur. Au bout de 30 s, un retardataire en recoit un au
-   hasard - le hasard du jeu, donc le meme chez tous. */
-function verifierColonisationLockstep() {
-    const L = gameState.lockstep;
-    const humains = gameState.players.slice(0, L.joueurs.length);
-    if (gameState.tour >= 30 * 60) {
-        for (const h of humains) {
-            if (h.spawnPlanet) continue;
-            const libres = [...gameState.planets, ...gameState.moons].filter(b => b.owner === null);
-            if (libres.length) coloniser(h.id, libres[Math.floor(gameRandom() * libres.length)]);
-        }
-    }
-    if (humains.every(h => h.spawnPlanet)) {
-        autoSpawnAIs();
-        setPhase('game');
-    }
 }
 
 /* ─────────────────────────────────────────────
@@ -16587,6 +16917,7 @@ function empreinteEtat(detail) {
 // ─────────────────────────────────────────────
 function render() {
     const ctx = gameState.ctx;
+    majUiDepart();
     const cam = gameState.camera;
     const w = gameState.width;
     const h = gameState.height;
@@ -16709,6 +17040,7 @@ function render() {
     drawCibleTuto(ctx);
     drawCommerce(ctx);
     drawEchoTirs(ctx);
+    drawReservations(ctx);
 
     // ── Jets de spores ──
     drawJets(ctx);

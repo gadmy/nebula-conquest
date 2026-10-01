@@ -136,9 +136,12 @@ async function jouer(navigateur, variante, ordres) {
     await page.waitForFunction(() => gameState.phase === 'spawn', null, { timeout: 30000 });
 
     await page.evaluate((ordres) => {
-        /* Le joueur 0 prend la premiere planete libre, les IA suivent. */
-        _spawnTarget = gameState.planets.filter(b => b.owner === null)[0];
-        confirmSpawn();
+        /* Le depart : le joueur 0 choisit son regime au premier tour, puis
+           reserve la premiere planete libre ; les IA tirent les leurs, et la
+           partie commence au bout du decompte (15 s de jeu). */
+        const premiere = gameState.planets.filter(b => b.owner === null)[0].name;
+        programmerOrdre({ tour: (gameState.tour || 0) + 1, slot: 0, type: 'regime', d: { id: 'democratie' } });
+        programmerOrdre({ tour: (gameState.tour || 0) + 3, slot: 0, type: 'reserver', d: { astre: premiere } });
         const B = window.__banc = { ordres, k: 0, tirs: 0 };
         /* Les ordres du tour passent par la file d'ordres du jeu, comme ceux
            d'un vrai joueur. Le crochet avantChaqueTour est appele au debut
