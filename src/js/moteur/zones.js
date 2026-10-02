@@ -318,7 +318,8 @@ function majLutte(body, pas) {
             for (let k = 0; k < miennes.length; k++) {
                 const z = miennes[k].z;
                 if (z.n < ZONE_MIN || z.elan >= cout) continue;
-                const surplus = z.spores - z.plafond * 0.5;
+                /* Une IA faible riposte des 20 % de remplissage, pas 50. */
+                const surplus = z.spores - z.plafond * (iaFaible(j0) ? 0.2 : 0.5);
                 if (surplus >= cout) z.elan = surplus;
             }
         }
@@ -328,8 +329,11 @@ function majLutte(body, pas) {
        des spores engagees - et chaque case lui coute le prix du sol. */
     for (const id in L.zones) {
         const z = L.zones[id];
-        if (!(z.elan >= cout)) { z.elan = 0; continue; }
-        let cases = Math.max(1, Math.round(LUTTE_CADENCE * pas));
+        if (!(z.elan >= cout)) { z.elan = 0; z.travail = 0; continue; }
+        /* LE TEMPS DU COMBAT. A vide, le front avance de LUTTE_CADENCE cases
+           par seconde ; une case defendue demande en plus de tuer ses
+           defenseurs, et prend d'autant plus de temps (LES DEFENSEURS, plus bas). */
+        z.travail = Math.min((z.travail || 0) + LUTTE_CADENCE * pas * cout, LUTTE_CADENCE * pas * cout * 60);
         const front = _frontDe(L, +id, z.v, _lutteCandidats);
         if (!front.length) { z.elan = 0; continue; }
         for (let i = 0; i < front.length; i++) {
@@ -340,15 +344,27 @@ function majLutte(body, pas) {
             f.p = f.n * 0.30 + grain[f.i] * 2.6 + gameRandom() * 1.3;
         }
         front.sort(function (a, b) { return b.p - a.p; });
-        for (let i = 0; i < front.length && cases > 0; i++) {
+        for (let i = 0; i < front.length; i++) {
             const j = front[i].i;
             const perdant = cel[j];
             if (perdant === z.v || perdant === LUTTE_VIDE) continue;
+            const perdue = L.zones[L.zid[j]];
+            /* LES DEFENSEURS. Une case tenue porte les spores de sa zone,
+               reparties sur ses cases : il faut d'abord les tuer pour la
+               prendre. L'attaquant en paie autant, le defenseur les perd
+               (au prochain prorata), et la case demande d'autant plus de
+               temps. 4000 spores contre 100 passent vite ; contre 3000, le
+               front se traine et peut s'arreter avant la fin. */
+            const defense = (perdue && !(perdant === 0 && neutre))
+                ? perdue.spores / Math.max(1, perdue.nRef || perdue.n) : 0;
             /* Le sol vierge se prend pour presque rien : personne ne le
                defend. Coloniser ne doit pas couter aussi cher que conquerir. */
-            const prix = (perdant === 0 && neutre) ? cout * 0.15 : cout;
-            if (z.elan < prix || z.spores < prix) break;
-            const perdue = L.zones[L.zid[j]];
+            const prix = ((perdant === 0 && neutre) ? cout * 0.15 : cout) + defense;
+            /* Tuer prend plus de temps que s'installer : chaque defenseur
+               ralentit le front deux fois plus qu'il ne coute. */
+            const temps = cout + defense * 2;
+            if (z.travail < temps || z.elan < prix || z.spores < prix) break;
+            z.travail -= temps;
             if (perdue) perdue.n--;      /* ses spores suivront au prochain prorata */
             cel[j] = z.v;
             L.zid[j] = +id;
@@ -357,7 +373,6 @@ function majLutte(body, pas) {
             _lutteCompte[z.v]++;
             z.elan -= prix;
             z.spores = Math.max(0, z.spores - prix);
-            cases--;
             L.sale = true;
         }
         if (z.elan >= cout) pousseEncore = true; else z.elan = 0;

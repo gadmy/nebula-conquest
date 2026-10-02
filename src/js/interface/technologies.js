@@ -43,7 +43,9 @@ function getTechCost(player, branch) {
        et 300 / 600 / 900 de plus par niveau. */
     const baseCost = [3000,6000,9000][Math.min(order,2)];
     const increment = [300,600,900][Math.min(order,2)];
-    return baseCost + lvl * increment;
+    /* Le mimetisme coute deux fois plus cher a chaque palier (choix du
+       createur) : il cree des spores en se scindant vers les lunes. */
+    return (baseCost + lvl * increment) * (branch === 'mimicry' ? 2 : 1);
 }
 function buyTech(player, branch) {
     const cost = getTechCost(player, branch);

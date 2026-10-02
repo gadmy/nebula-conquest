@@ -2199,9 +2199,9 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <!-- BATAILLE -->
 <p id="h-bataille" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚔ BATAILLE DE SURFACE</p>
 <p style="margin-bottom:6px;">Une conquête ne se joue plus en un choc. Les spores qui touchent un astre y <span style="color:#FFD700;">prennent pied sur une case</span>, du côté d'où vient le tir, et s'étalent sur le disque en lobes irréguliers. Chaque camp a sa couleur ; le sol que personne ne tient est gris.</p>
-<p style="margin-bottom:6px;"><span style="color:#FFD700;">ON ACHÈTE LE SOL.</span> La planète vaut sa capacité en spores, donc une case coûte cette capacité divisée par le nombre de cases. Attaquer avec X spores rapporte X cases, puis <span style="color:#E9D5FF;">le front s'arrête net</span>. Le sol vierge, lui, ne coûte que 15 % du prix : coloniser n'est pas conquérir.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">ON ACHÈTE LE SOL.</span> La planète vaut sa capacité en spores, donc une case coûte cette capacité divisée par le nombre de cases. <span style="color:#FFD700;">Plus ses défenseurs</span> : les spores d'une zone sont réparties sur ses cases, et il faut les tuer avant de prendre la case (le défenseur les perd aussi). Une planète presque vide tombe vite ; une planète pleine se défend, <span style="color:#E9D5FF;">le front avance lentement</span> et s'arrête net quand l'attaque n'a plus de quoi payer. Le sol vierge, lui, ne coûte que 15 % du prix : coloniser n'est pas conquérir.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">LE DEVIS, PENDANT LA VISÉE.</span> Sous le curseur s'affiche ce que votre envoi achètera sur l'astre visé : le nombre de cases, la part du disque que ça représente, et le prix d'une case. Faune et biomes adverses y sont déjà déduits, et la densité ajoutée — c'est le vrai chiffre, pas une estimation optimiste. Sur un astre à vous, il indique simplement le renfort.</p>
-<p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
+<p style="margin-bottom:6px;">On prend ce qu'on peut payer : <span style="color:#4ADE80;">attaquer là où l'adversaire est dégarni</span> coûte bien moins cher que de foncer sur une planète pleine. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA RAFALE — CTRL + CLIC GAUCHE.</span> Pendant la visée, maintenez Ctrl et le clic gauche : votre astre crache des <span style="color:#E9D5FF;">paquets de 10 spores, 8 par seconde</span>, dans la direction du curseur à plus ou moins 20° près — une mitrailleuse, pas un fusil. Il se vide tant que vous tenez, et s'arrête quand vous lâchez ou quand il n'a plus de quoi faire un paquet. Le pourcentage d'envoi n'y compte pas.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA BOULE — SHIFT.</span> Pendant la visée, maintenez Shift : votre astre agglutine des spores dans son atmosphère, <span style="color:#E9D5FF;">25 par seconde jusqu'à 500</span>. Chaque spore chargée lui en coûte <b>deux</b>, et rien n'est rendu. La boule tourne lentement vers la souris ; en lâchant Shift elle part <span style="color:#E9D5FF;">dans l'axe centre de l'astre → boule</span>, pas selon la visée habituelle. Elle va plus vite qu'un jet, <span style="color:#4ADE80;">deux fois plus loin</span>, subit quatre fois moins la gravité, et <span style="color:#4ADE80;">les vaisseaux et amas rouges et noirs ne lui font rien</span>. À l'arrivée, c'est un jet comme un autre.</p>
 <p style="margin-bottom:6px;"><span style="color:#FF8A3D;">LE DÉMOLISSEUR — F.</span> Pendant la visée, F <span style="color:#E9D5FF;">arme</span> le démolisseur : le trait de visée rougeoie et trois icônes suivent le curseur — <i class="ic-bat" data-g="alveole"></i> alvéole, <i class="ic-bat" data-g="nid"></i> nid, <i class="ic-bat" data-g="biome"></i> biome. <span style="color:#E9D5FF;">La molette</span> choisit le bâtiment visé ; sous les icônes, le nombre que l'astre pointé en possède. Le clic tire alors <span style="color:#E9D5FF;">250 spores</span>, <b>moins vite</b> qu'un jet pour la même portée. À l'impact, <span style="color:#4ADE80;">un bâtiment de ce type</span>, pris au hasard parmi ceux qui ne sont pas à vous, explose ; si l'astre n'en a pas, rien ne casse. Ses spores attaquent ensuite comme un jet ordinaire. Sans 250 spores sur l'astre (ou la zone), l'écran vibre et rien ne part. F à nouveau désarme.</p>
@@ -2263,7 +2263,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <tr><td style="padding:3px 0;color:#E9D5FF;">💪 Ténacité</td><td style="padding:3px 0;">Les jets éclatés par un astéroïde gardent plus de spores et sont redirigés vers les systèmes solaires.</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;">🦎 Mimétisme</td><td style="padding:3px 0;">À la conquête d'une planète à lunes, le jet se scinde vers elles. Au niv. 10, 100 % des spores vont directement aux lunes.</td></tr>
 </table>
-<p style="margin-bottom:16px;">Coût des branches : 1<sup>re</sup> = 3 000 + 300/niv · 2<sup>e</sup> = 6 000 + 600/niv · 3<sup>e</sup> = 9 000 + 900/niv. Le total sacrifié est plafonné à 50 % de votre production.</p>
+<p style="margin-bottom:16px;">Coût des branches : 1<sup>re</sup> = 3 000 + 300/niv · 2<sup>e</sup> = 6 000 + 600/niv · 3<sup>e</sup> = 9 000 + 900/niv. Le Mimétisme coûte le double à chaque palier. Le total sacrifié est plafonné à 50 % de votre production.</p>
 
 <!-- ALERTES -->
 <p id="h-alertes" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🔔 ALERTES DIRECTIONNELLES</p>
@@ -9009,6 +9009,15 @@ function aiChooseMultiStat(player) {
    une fois les 10 paliers atteints : le reglage restait, et l'astre perdait
    jusqu'a la moitie de sa production pour rien (les IA, 15 a 34 %, toute la
    partie). */
+/* LE COUP DE POUCE DES IA FAIBLES. Une IA reduite a deux astres ou moins
+   produisait trop peu pour se defendre : assiegee, elle ne tirait presque
+   plus et tombait (audit des parties entre IA). Elle produit 30 % de plus,
+   et riposte plus tot (zones.js). Les joueurs humains n'y ont pas droit. */
+function iaFaible(player) {
+    return !!(player && !player.isHuman && player.bodies && player.bodies.length > 0 && player.bodies.length <= 2);
+}
+function bonusIaFaible(player) { return iaFaible(player) ? 1.3 : 1; }
+
 function partSacrifice(player) {
     if (!player || !(player.multiSacrifice > 0)) return 0;
     if ((player.multiTier || 0) + multiEnAttente(player) >= 10) return 0;
@@ -9153,7 +9162,9 @@ function getTechCost(player, branch) {
        et 300 / 600 / 900 de plus par niveau. */
     const baseCost = [3000,6000,9000][Math.min(order,2)];
     const increment = [300,600,900][Math.min(order,2)];
-    return baseCost + lvl * increment;
+    /* Le mimetisme coute deux fois plus cher a chaque palier (choix du
+       createur) : il cree des spores en se scindant vers les lunes. */
+    return (baseCost + lvl * increment) * (branch === 'mimicry' ? 2 : 1);
 }
 function buyTech(player, branch) {
     const cost = getTechCost(player, branch);
@@ -10504,7 +10515,7 @@ function updateSporeGeneration(dt) {
            produit peu. C'est la courbe de croissance. */
         const rate = Math.max(1, body.maxSpores) * TAUX_PROD
                    * (0.4 + (body.flore / 100) * 0.6) * (1 + player.stats.growth * 0.3)
-                   * symBonus * nidBonus * sysBonus
+                   * symBonus * nidBonus * sysBonus * bonusIaFaible(player)
                    * courbeCroissance(body.spores / Math.max(1, body.maxSpores));
 
         if (body.buildMode === 'parasite') {
@@ -11228,9 +11239,9 @@ const LUTTE_CADENCE = 30;      /* cases prises par seconde : c'est l'animation *
 const LUTTE_MAJORITE = 0.5;    /* part etrangere au-dela de laquelle l'astre sort du groupement */
 
 /* LE PRIX DU SOL. La planete entiere vaut sa capacite en spores : une case
-   coute donc la capacite divisee par le nombre de cases. Attaquer avec X
-   spores rapporte X cases-equivalentes, ni plus ni moins - il n'est plus
-   besoin d'avoir plus de troupes que l'adversaire pour grignoter du terrain.
+   coute donc la capacite divisee par le nombre de cases - plus, depuis la
+   v9.7.9, les defenseurs de la case : les spores de sa zone reparties sur
+   ses cases, a tuer avant de la prendre (voir majLutte, LES DEFENSEURS).
    On pousse tant qu'on a de quoi payer, puis le front s'arrete et les deux
    camps se remettent a produire sur ce qu'ils tiennent. */
 function coutCase(body, total) {
@@ -11283,7 +11294,18 @@ function devisAttaque(src, cible) {
 
     const total = casesAstre(cible);
     const neutre = (cible.owner === null || cible.owner === undefined);
-    const prix = coutCase(cible, total) * (neutre ? 0.15 : 1);
+    /* Les defenseurs : les spores du proprietaire, reparties sur le sol
+       qu'il tient, se tuent avant chaque case (voir majLutte). */
+    let defense = 0;
+    if (!neutre) {
+        let tenu = total;
+        if (cible.lutte && cible.lutte.zones) {
+            tenu = 0;
+            for (const id in cible.lutte.zones) if (cible.lutte.zones[id].v === 0) tenu += cible.lutte.zones[id].n;
+        }
+        defense = (cible.spores || 0) / Math.max(1, tenu);
+    }
+    const prix = coutCase(cible, total) * (neutre ? 0.15 : 1) + defense;
     /* On ne peut pas acheter plus de sol qu'il n'y en a : au-dela, l'astre
        tombe en entier et le reste des spores s'y installe. */
     const brut = Math.floor(arrive / prix);
@@ -11383,7 +11405,7 @@ function debitPour(body, slot) {
        pas la multiplicite, elle aurait ete perdue pour rien. */
     return Math.max(1, body.maxSpores) * TAUX_PROD
            * (0.4 + (body.flore / 100) * 0.6) * (1 + joueur.stats.growth * 0.3)
-           * sym * nid * sys;
+           * sym * nid * sys * bonusIaFaible(joueur);
 }
 
 /* Des spores touchent un astre ennemi ou neutre : elles debarquent. */
@@ -12299,7 +12321,8 @@ function majLutte(body, pas) {
             for (let k = 0; k < miennes.length; k++) {
                 const z = miennes[k].z;
                 if (z.n < ZONE_MIN || z.elan >= cout) continue;
-                const surplus = z.spores - z.plafond * 0.5;
+                /* Une IA faible riposte des 20 % de remplissage, pas 50. */
+                const surplus = z.spores - z.plafond * (iaFaible(j0) ? 0.2 : 0.5);
                 if (surplus >= cout) z.elan = surplus;
             }
         }
@@ -12309,8 +12332,11 @@ function majLutte(body, pas) {
        des spores engagees - et chaque case lui coute le prix du sol. */
     for (const id in L.zones) {
         const z = L.zones[id];
-        if (!(z.elan >= cout)) { z.elan = 0; continue; }
-        let cases = Math.max(1, Math.round(LUTTE_CADENCE * pas));
+        if (!(z.elan >= cout)) { z.elan = 0; z.travail = 0; continue; }
+        /* LE TEMPS DU COMBAT. A vide, le front avance de LUTTE_CADENCE cases
+           par seconde ; une case defendue demande en plus de tuer ses
+           defenseurs, et prend d'autant plus de temps (LES DEFENSEURS, plus bas). */
+        z.travail = Math.min((z.travail || 0) + LUTTE_CADENCE * pas * cout, LUTTE_CADENCE * pas * cout * 60);
         const front = _frontDe(L, +id, z.v, _lutteCandidats);
         if (!front.length) { z.elan = 0; continue; }
         for (let i = 0; i < front.length; i++) {
@@ -12321,15 +12347,27 @@ function majLutte(body, pas) {
             f.p = f.n * 0.30 + grain[f.i] * 2.6 + gameRandom() * 1.3;
         }
         front.sort(function (a, b) { return b.p - a.p; });
-        for (let i = 0; i < front.length && cases > 0; i++) {
+        for (let i = 0; i < front.length; i++) {
             const j = front[i].i;
             const perdant = cel[j];
             if (perdant === z.v || perdant === LUTTE_VIDE) continue;
+            const perdue = L.zones[L.zid[j]];
+            /* LES DEFENSEURS. Une case tenue porte les spores de sa zone,
+               reparties sur ses cases : il faut d'abord les tuer pour la
+               prendre. L'attaquant en paie autant, le defenseur les perd
+               (au prochain prorata), et la case demande d'autant plus de
+               temps. 4000 spores contre 100 passent vite ; contre 3000, le
+               front se traine et peut s'arreter avant la fin. */
+            const defense = (perdue && !(perdant === 0 && neutre))
+                ? perdue.spores / Math.max(1, perdue.nRef || perdue.n) : 0;
             /* Le sol vierge se prend pour presque rien : personne ne le
                defend. Coloniser ne doit pas couter aussi cher que conquerir. */
-            const prix = (perdant === 0 && neutre) ? cout * 0.15 : cout;
-            if (z.elan < prix || z.spores < prix) break;
-            const perdue = L.zones[L.zid[j]];
+            const prix = ((perdant === 0 && neutre) ? cout * 0.15 : cout) + defense;
+            /* Tuer prend plus de temps que s'installer : chaque defenseur
+               ralentit le front deux fois plus qu'il ne coute. */
+            const temps = cout + defense * 2;
+            if (z.travail < temps || z.elan < prix || z.spores < prix) break;
+            z.travail -= temps;
             if (perdue) perdue.n--;      /* ses spores suivront au prochain prorata */
             cel[j] = z.v;
             L.zid[j] = +id;
@@ -12338,7 +12376,6 @@ function majLutte(body, pas) {
             _lutteCompte[z.v]++;
             z.elan -= prix;
             z.spores = Math.max(0, z.spores - prix);
-            cases--;
             L.sale = true;
         }
         if (z.elan >= cout) pousseEncore = true; else z.elan = 0;
@@ -20078,6 +20115,23 @@ function iaPiloteCapital(C) {
 /* L'IA (normale et brutale) vise le pic de SA courbe : un astre sous sa
    bande de bon rendement pousse en paix, elle tire de ceux qui l'ont
    atteinte - ou qui se battent. */
+/* CE QUE COUTE UN ASTRE ENTIER : faune, sol (15 % du prix s'il est vierge)
+   et, s'il a un proprietaire, ses defenseurs, le tout divise par ses biomes. */
+function _iaCoutPrise(t) {
+    const sol = Math.max(t.maxSpores || 0, casesAstre(t));
+    if (t.owner === null || t.owner === undefined) return (t.faune || 0) + sol * 0.15;
+    return (t.faune || 0) + (sol + (t.spores || 0)) * (1 + bonusBatiment(t.biomes || 0, 'biome'));
+}
+/* Une IA faible ne tire que sur ce qu'elle peut prendre d'un coup : elle se
+   vidait en tirs sur des planetes trop cheres pour elle (partie de depart
+   sur une lune de 1000, quatre tirs, plus rien). Sinon, elle attend. */
+function _iaAbordable(t, player, sources) {
+    const dens = 1 + ((player.stats && player.stats.density) || 0) * 0.05;
+    let envoi = 0;
+    for (const s of sources) envoi = Math.max(envoi, (s.spores || 0) * 0.5 * dens);
+    return envoi >= _iaCoutPrise(t);
+}
+
 function iaSourcePrete(b, min) {
     if (!(b.spores > min)) return false;
     if (b.lutte) return true;
@@ -20123,7 +20177,9 @@ function aiActionNormal(player) {
     let bestTarget = null;
     let bestScore = -Infinity;
 
+    const faible = iaFaible(player);
     for (const target of targets) {
+        if (faible && !_iaAbordable(target, player, sources)) continue;
         // Trouver la source la plus proche
         let minDist = Infinity;
         let closestSource = null;
@@ -20138,6 +20194,9 @@ function aiActionNormal(player) {
         const score = (target.flore || 0) * 2
             - (target.faune || 0) * 1
             - minDist * 0.05
+            /* Les spores en place defendent l'astre (chaque case se paie en
+               defenseurs) : un astre plein coute cher a prendre. */
+            - (target.spores || 0) * 0.15
             + (target.owner === null ? 50 : 0); // préférer les neutres
 
         if (score > bestScore) {
@@ -20175,7 +20234,9 @@ function aiActionBrutal(player) {
     let bestTarget = null;
     let bestScore = -Infinity;
 
+    const faible = iaFaible(player);
     for (const target of targets) {
+        if (faible && !_iaAbordable(target, player, sources)) continue;
         let minDist = Infinity;
         for (const src of sources) {
             const dx = target.x - src.x;

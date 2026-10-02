@@ -20,9 +20,9 @@ const LUTTE_CADENCE = 30;      /* cases prises par seconde : c'est l'animation *
 const LUTTE_MAJORITE = 0.5;    /* part etrangere au-dela de laquelle l'astre sort du groupement */
 
 /* LE PRIX DU SOL. La planete entiere vaut sa capacite en spores : une case
-   coute donc la capacite divisee par le nombre de cases. Attaquer avec X
-   spores rapporte X cases-equivalentes, ni plus ni moins - il n'est plus
-   besoin d'avoir plus de troupes que l'adversaire pour grignoter du terrain.
+   coute donc la capacite divisee par le nombre de cases - plus, depuis la
+   v9.7.9, les defenseurs de la case : les spores de sa zone reparties sur
+   ses cases, a tuer avant de la prendre (voir majLutte, LES DEFENSEURS).
    On pousse tant qu'on a de quoi payer, puis le front s'arrete et les deux
    camps se remettent a produire sur ce qu'ils tiennent. */
 function coutCase(body, total) {
@@ -75,7 +75,18 @@ function devisAttaque(src, cible) {
 
     const total = casesAstre(cible);
     const neutre = (cible.owner === null || cible.owner === undefined);
-    const prix = coutCase(cible, total) * (neutre ? 0.15 : 1);
+    /* Les defenseurs : les spores du proprietaire, reparties sur le sol
+       qu'il tient, se tuent avant chaque case (voir majLutte). */
+    let defense = 0;
+    if (!neutre) {
+        let tenu = total;
+        if (cible.lutte && cible.lutte.zones) {
+            tenu = 0;
+            for (const id in cible.lutte.zones) if (cible.lutte.zones[id].v === 0) tenu += cible.lutte.zones[id].n;
+        }
+        defense = (cible.spores || 0) / Math.max(1, tenu);
+    }
+    const prix = coutCase(cible, total) * (neutre ? 0.15 : 1) + defense;
     /* On ne peut pas acheter plus de sol qu'il n'y en a : au-dela, l'astre
        tombe en entier et le reste des spores s'y installe. */
     const brut = Math.floor(arrive / prix);
@@ -175,7 +186,7 @@ function debitPour(body, slot) {
        pas la multiplicite, elle aurait ete perdue pour rien. */
     return Math.max(1, body.maxSpores) * TAUX_PROD
            * (0.4 + (body.flore / 100) * 0.6) * (1 + joueur.stats.growth * 0.3)
-           * sym * nid * sys;
+           * sym * nid * sys * bonusIaFaible(joueur);
 }
 
 /* Des spores touchent un astre ennemi ou neutre : elles debarquent. */

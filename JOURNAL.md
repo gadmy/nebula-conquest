@@ -1647,6 +1647,23 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        alveoles et des contre-poussees (le stock du defenseur ne freine pas
        l'attaque, chaque case a un prix fixe). Tests : banc lockstep
        identique (4c0f74cc), solo et reseau ok.
+     - LA DEFENSE PAR LES SPORES (demande du createur) : avant de prendre une
+       case, l'attaquant doit tuer ses defenseurs = les spores de la zone
+       reparties sur ses cases. Prix d'une case = prix du sol + defenseurs
+       (le defenseur les perd aussi), et temps = sol + 2 x defenseurs : le
+       front ralentit d'autant (LUTTE_CADENCE devient un budget de temps par
+       zone, z.travail). Essai, 4000 spores sur une planete de 4900 : contre
+       100 defenseurs ~25 cases/s, contre 3000 ~10, contre une planete pleine
+       ~5. Le devis de visee compte les defenseurs ; l'IA normale evite les
+       astres pleins. Regles mises a jour (ON ACHETE LE SOL).
+     - IA FAIBLES (2 astres ou moins) un peu remontees : +30 % de production,
+       riposte des 20 % de remplissage (au lieu de 50), et ne tirent plus que
+       sur ce qu'elles peuvent prendre d'un coup (elles se vidaient sur des
+       planetes trop cheres, ex. depart sur une lune de 1000). Sur 4 parties
+       de 30 min : elles tiennent en moyenne 2 a 4 min de plus et tirent plus.
+       Humains non concernes.
+     - MIMETISME : deux fois plus cher a chaque palier. Regles mises a jour.
+       Banc lockstep identique (4c869494), solo et reseau ok.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

@@ -63,7 +63,7 @@ function updateSporeGeneration(dt) {
            produit peu. C'est la courbe de croissance. */
         const rate = Math.max(1, body.maxSpores) * TAUX_PROD
                    * (0.4 + (body.flore / 100) * 0.6) * (1 + player.stats.growth * 0.3)
-                   * symBonus * nidBonus * sysBonus
+                   * symBonus * nidBonus * sysBonus * bonusIaFaible(player)
                    * courbeCroissance(body.spores / Math.max(1, body.maxSpores));
 
         if (body.buildMode === 'parasite') {

@@ -1481,6 +1481,15 @@ function aiChooseMultiStat(player) {
    une fois les 10 paliers atteints : le reglage restait, et l'astre perdait
    jusqu'a la moitie de sa production pour rien (les IA, 15 a 34 %, toute la
    partie). */
+/* LE COUP DE POUCE DES IA FAIBLES. Une IA reduite a deux astres ou moins
+   produisait trop peu pour se defendre : assiegee, elle ne tirait presque
+   plus et tombait (audit des parties entre IA). Elle produit 30 % de plus,
+   et riposte plus tot (zones.js). Les joueurs humains n'y ont pas droit. */
+function iaFaible(player) {
+    return !!(player && !player.isHuman && player.bodies && player.bodies.length > 0 && player.bodies.length <= 2);
+}
+function bonusIaFaible(player) { return iaFaible(player) ? 1.3 : 1; }
+
 function partSacrifice(player) {
     if (!player || !(player.multiSacrifice > 0)) return 0;
     if ((player.multiTier || 0) + multiEnAttente(player) >= 10) return 0;

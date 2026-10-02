@@ -231,6 +231,23 @@ function iaPiloteCapital(C) {
 /* L'IA (normale et brutale) vise le pic de SA courbe : un astre sous sa
    bande de bon rendement pousse en paix, elle tire de ceux qui l'ont
    atteinte - ou qui se battent. */
+/* CE QUE COUTE UN ASTRE ENTIER : faune, sol (15 % du prix s'il est vierge)
+   et, s'il a un proprietaire, ses defenseurs, le tout divise par ses biomes. */
+function _iaCoutPrise(t) {
+    const sol = Math.max(t.maxSpores || 0, casesAstre(t));
+    if (t.owner === null || t.owner === undefined) return (t.faune || 0) + sol * 0.15;
+    return (t.faune || 0) + (sol + (t.spores || 0)) * (1 + bonusBatiment(t.biomes || 0, 'biome'));
+}
+/* Une IA faible ne tire que sur ce qu'elle peut prendre d'un coup : elle se
+   vidait en tirs sur des planetes trop cheres pour elle (partie de depart
+   sur une lune de 1000, quatre tirs, plus rien). Sinon, elle attend. */
+function _iaAbordable(t, player, sources) {
+    const dens = 1 + ((player.stats && player.stats.density) || 0) * 0.05;
+    let envoi = 0;
+    for (const s of sources) envoi = Math.max(envoi, (s.spores || 0) * 0.5 * dens);
+    return envoi >= _iaCoutPrise(t);
+}
+
 function iaSourcePrete(b, min) {
     if (!(b.spores > min)) return false;
     if (b.lutte) return true;
@@ -276,7 +293,9 @@ function aiActionNormal(player) {
     let bestTarget = null;
     let bestScore = -Infinity;
 
+    const faible = iaFaible(player);
     for (const target of targets) {
+        if (faible && !_iaAbordable(target, player, sources)) continue;
         // Trouver la source la plus proche
         let minDist = Infinity;
         let closestSource = null;
@@ -291,6 +310,9 @@ function aiActionNormal(player) {
         const score = (target.flore || 0) * 2
             - (target.faune || 0) * 1
             - minDist * 0.05
+            /* Les spores en place defendent l'astre (chaque case se paie en
+               defenseurs) : un astre plein coute cher a prendre. */
+            - (target.spores || 0) * 0.15
             + (target.owner === null ? 50 : 0); // préférer les neutres
 
         if (score > bestScore) {
@@ -328,7 +350,9 @@ function aiActionBrutal(player) {
     let bestTarget = null;
     let bestScore = -Infinity;
 
+    const faible = iaFaible(player);
     for (const target of targets) {
+        if (faible && !_iaAbordable(target, player, sources)) continue;
         let minDist = Infinity;
         for (const src of sources) {
             const dx = target.x - src.x;
