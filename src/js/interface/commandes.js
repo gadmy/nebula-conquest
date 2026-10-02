@@ -90,8 +90,9 @@ function setupUI() {
                construction du panneau.
        Espace : passer en visee depuis l'astre choisi.
        F      : armer le demolisseur (voir armerDemolisseur).
-       G      : armer la spore parasitaire (voir armerParasite).
-       4      : construire un foyer putride (spore parasitaire en 2 min).
+       G      : armer la spore parasitaire ; en visee, G la lance vers le curseur.
+       4, Shift+G : construire un foyer putride (spore parasitaire en 2 min).
+       A / E  : envoi -10 / +10 % ; Shift+A / Shift+E : sacrifice -5 / +5 %.
        Tab    : amener la camera sur l'entree suivante de la liste de gauche.
        ───────────────────────────────────────────── */
     function _astreActif() {
@@ -208,7 +209,8 @@ function setupUI() {
     window.reglerEnvoi = function (delta) {
         const sl = document.getElementById('jetRatioSlider');
         if (!sl) return;
-        const v = Math.max(0, Math.min(100, Math.round(gameState.jetRatio * 100) + delta));
+        /* De 10 en 10, cale sur une dizaine (55 % passe a 60 ou 50). */
+        const v = Math.max(0, Math.min(100, Math.round((gameState.jetRatio * 100 + delta) / 10) * 10));
         if (v === Math.round(gameState.jetRatio * 100)) return;
         sl.value = v;
         gameState.jetRatio = v / 100;
@@ -217,6 +219,22 @@ function setupUI() {
         if (gameState.isMulti) sendAction('set_jet_ratio', { value: gameState.jetRatio });
         else donnerOrdre('part', { v: gameState.jetRatio });
         majJaugeEnvoi(true);
+    };
+
+    /* SHIFT + A / SHIFT + E : la part de production sacrifiee pour la
+       multiplicite (les evolutions), de 5 en 5, de 0 a 50 %. */
+    window.reglerSacrifice = function (delta) {
+        const human = gameState.players[localSlot()];
+        const sl = document.getElementById('evoSacrifice');
+        if (!human || !sl) return;
+        const cur = human.multiSacrifice || 0;
+        const v = Math.max(0, Math.min(50, Math.round((cur + delta) / 5) * 5));
+        if (v === cur) return;
+        sl.value = v;
+        const lbl = document.getElementById('evoSacVal');
+        if (lbl) lbl.textContent = v + '%';
+        if (gameState.isMulti) { human.multiSacrifice = v; sendAction('set_sacrifice', { value: v }); }
+        else donnerOrdre('sacrifice', { v: v });
     };
 
     window.addEventListener('keyup', (e) => {
@@ -260,7 +278,19 @@ function setupUI() {
                DEMOLISSEUR : voir armerDemolisseur. */
             if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) viserDepuisSelection(); return; }
             if (e.code === 'KeyF')  { e.preventDefault(); if (!e.repeat) armerDemolisseur(); return; }
-            if (e.code === 'KeyG')  { e.preventDefault(); if (!e.repeat) armerParasite(); return; }
+            /* G : armer la spore parasitaire, puis G encore (ou en visee) la
+               lance vers le curseur. Shift + G : lancer sa production (le
+               foyer putride, comme la touche 4). */
+            if (e.code === 'KeyG')  {
+                e.preventDefault();
+                if (e.repeat) return;
+                if (e.shiftKey) {
+                    const _a = _astreActif();
+                    if (_a && (_a.parasiteSpore || 0) >= 1) { secouerEcran(8); return; }
+                    _construire('parasite');
+                } else armerParasite();
+                return;
+            }
             if (e.key === 'Tab')    { e.preventDefault(); _astreSuivant();    return; }
             if (_camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
             /* La souris designe la cible : sur un astre, la riposte s'y
@@ -268,8 +298,8 @@ function setupUI() {
             if (e.code === 'KeyR')  { e.preventDefault(); riposteGenerale(astreSousSouris()); return; }
             /* T : le contraire, nos zones cessent de pousser (meme ciblage). */
             if (e.code === 'KeyT')  { e.preventDefault(); arreterAttaques(astreSousSouris()); return; }
-            if (e.code === 'KeyQ')  { e.preventDefault(); reglerEnvoi(-5); return; }
-            if (e.code === 'KeyE')  { e.preventDefault(); reglerEnvoi(+5); return; }
+            if (e.code === 'KeyQ')  { e.preventDefault(); if (e.shiftKey) reglerSacrifice(-5); else reglerEnvoi(-10); return; }
+            if (e.code === 'KeyE')  { e.preventDefault(); if (e.shiftKey) reglerSacrifice(+5); else reglerEnvoi(+10); return; }
         }
         if (e.key === 'Escape') {
             if (gameState.phase === 'game') togglePause();

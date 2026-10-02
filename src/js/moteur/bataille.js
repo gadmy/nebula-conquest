@@ -89,7 +89,8 @@ function devisAttaque(src, cible) {
     const prix = coutCase(cible, total) * (neutre ? 0.15 : 1) + defense;
     /* On ne peut pas acheter plus de sol qu'il n'y en a : au-dela, l'astre
        tombe en entier et le reste des spores s'y installe. */
-    const brut = Math.floor(arrive / prix);
+    /* Seule la part d'attaque achete du sol ; le reste tiendra le terrain. */
+    const brut = Math.floor(arrive * Math.max(0, Math.min(1, gameState.jetRatio)) / prix);
     return { envoi: envoi, arrive: arrive, prix: prix, total: total,
              cases: Math.min(brut, total), tout: brut >= total, neutre: neutre };
 }
@@ -209,7 +210,7 @@ function naitreLutte(body) {
     return body.lutte;
 }
 
-function engagerLutte(body, slot, spores, angle) {
+function engagerLutte(body, slot, spores, angle, part) {
     _luttePrepare();
     const N = LUTTE_N;
     naitreLutte(body);
@@ -243,7 +244,11 @@ function engagerLutte(body, slot, spores, angle) {
     zonesRecalculer(body, L);
     const id = (tete >= 0) ? L.zid[tete] : 0;
     const z = L.zones[id];
-    if (z) { z.spores += spores; z.elan = (z.elan || 0) + spores; }
+    /* Toutes les spores arrivent dans la zone ; seule la part d'attaque
+       (le pourcentage d'envoi du tir) pousse. Le reste y reste en garnison :
+       elle defend le terrain pris (voir LES DEFENSEURS, majLutte). */
+    const p = (part === undefined) ? 1 : Math.max(0, Math.min(1, part));
+    if (z) { z.spores += spores; z.elan = (z.elan || 0) + spores * p; }
     zonesAgreger(body, L);
     L.dormante = false;
 }

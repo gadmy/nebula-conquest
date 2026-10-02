@@ -141,7 +141,12 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
         selected: false,
         source: source,
         sourceName: source.name,
-        demolisseur: (opts && opts.demol) || false
+        demolisseur: (opts && opts.demol) || false,
+        /* LA PART D'ATTAQUE : le pourcentage d'envoi au moment du tir. A
+           l'arrivee, cette part pousse ; le reste tient le terrain pris
+           (garnison). 30 % envoyes = 30 % attaquent, 70 % gardent. Rafale,
+           demolisseur : tout attaque. */
+        part: _nb ? 1 : Math.max(0, Math.min(1, partEnvoi(tireur)))
     });
 }
 
@@ -415,7 +420,8 @@ function updateJets(dt) {
                         selected: false,
                         source: jet.source,
                         sourceName: jet.sourceName,
-                        _hitBelt: Object.assign({}, jet._hitBelt)
+                        _hitBelt: Object.assign({}, jet._hitBelt),
+                        part: jet.part
                     });
                 }
                 spawnImpact(jet.x, jet.y, '#44FF44');
@@ -543,7 +549,7 @@ function checkJetCollision(jet) {
                 const g = ajouterSpores(body, jet.spores * densityBonus);
                 /* Renforcer un astre assiege, c'est contre-attaquer : les
                    spores arrivees poussent aussitot contre l'envahisseur. */
-                if (zd && g > 0) { zd.elan = (zd.elan || 0) + g; body.lutte.dormante = false; }
+                if (zd && g > 0) { zd.elan = (zd.elan || 0) + g * (jet.part === undefined ? 1 : jet.part); body.lutte.dormante = false; }
                 playFusionSound();
             } else {
                 const _ml = gameState.players[jet.owner]?.tech?.mimicry || 0;
@@ -563,7 +569,7 @@ function checkJetCollision(jet) {
                         const mdx=mn.x-body.x, mdy=mn.y-body.y, mdd=Math.sqrt(mdx*mdx+mdy*mdy);
                         if (mdd<1) continue;
                         const mSpd=jet.speed*0.8, mTr=computeTrajectory(body.x,body.y,mdx/mdd,mdy/mdd,mSpd,200);
-                        gameState.jets.push({ owner:jet.owner, color:jet.color, spores:_ms, trajectory:mTr, posIndex:0, x:body.x, y:body.y, speed:mSpd, alive:true, trail:[], sparkles:[], age:0, selected:false, source:body, sourceName:body.name, eclat:true, _hitBelt:{} });
+                        gameState.jets.push({ owner:jet.owner, color:jet.color, spores:_ms, trajectory:mTr, posIndex:0, x:body.x, y:body.y, speed:mSpd, alive:true, trail:[], sparkles:[], age:0, selected:false, source:body, sourceName:body.name, eclat:true, _hitBelt:{}, part:jet.part });
                     }
                 } else {
                     applyConquest(body, jet);

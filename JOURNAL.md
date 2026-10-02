@@ -1664,6 +1664,23 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        Humains non concernes.
      - MIMETISME : deux fois plus cher a chaque palier. Regles mises a jour.
        Banc lockstep identique (4c869494), solo et reseau ok.
+     - LA GARNISON (demande du createur) : le pourcentage d'envoi d'un tir
+       decide de sa part d'attaque. A l'arrivee, toutes ses spores entrent
+       dans la zone, mais seule cette part pousse (elan) ; le reste tient le
+       terrain pris et le defend (30 % envoyes = 30 % attaquent, 70 % en
+       garnison ; 100 % = assaut total ; rafale/demolisseur = tout attaque).
+       jet.part, engagerLutte(..., part), renforts d'un astre assiege pareil,
+       devis de visee aussi. Essai 3000 sur planete pleine : a 50 %, 1500
+       spores gardent ~200 cases, l'IA ne les reprend que lentement.
+     - Pas de riposte automatique pour les joueurs (choix du createur).
+     - TOUCHES : A / E reglent l'envoi de 10 en 10 (cale sur la dizaine) ;
+       Shift + A / Shift + E reglent le sacrifice (multiplicite) de 5 en 5,
+       0 a 50 %. Parasite : G arme, G encore (ou G en pleine visee) la lance
+       vers le curseur ; Shift + G = construire le foyer putride (comme 4).
+       Regles et aide des touches mises a jour.
+     - Panneau EVOLUTION : les onglets Evolution et Mutations sur la meme
+       ligne (icone a cote du texte, plus de retour a la ligne).
+       Banc lockstep identique (72eefb0c), solo et reseau ok.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

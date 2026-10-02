@@ -803,7 +803,8 @@ canvas#gameCanvas.grabbing {
     font-size: 8px; color: rgba(200,170,255,0.4);
 }
 #evoPanel .evo-tabs { display:flex; gap:0; margin-bottom:6px; }
-#evoPanel .evo-tab { flex:1; padding:4px 2px; text-align:center; font-size:11px; font-family:'Orbitron',sans-serif; color:rgba(200,170,255,0.4); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+/* Les deux onglets sur la meme ligne : l'icone a cote du texte, jamais au-dessus. */
+#evoPanel .evo-tab { flex:1; display:flex; align-items:center; justify-content:center; gap:4px; white-space:nowrap; line-height:1.2; padding:4px 2px; text-align:center; font-size:11px; font-family:'Orbitron',sans-serif; color:rgba(200,170,255,0.4); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
 #evoPanel .evo-tab:hover { color:rgba(200,170,255,0.7); }
 #evoPanel .evo-tab.active { color:#E9D5FF; border-bottom-color:#A855F7; }
 #evoPanel .evo-tab-content { display:none; }
@@ -1797,3 +1798,4 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border-radius:4px;
       border:1px solid rgba(196,181,253,0.5); border-bottom-width:2px; background:rgba(139,92,246,0.18);
       color:#F5F3FF; font-family:Orbitron, sans-serif; font-size:0.82em; line-height:1.55; text-align:center; }
+#evoPanel .evo-tab img, #evoPanel .evo-tab i, #evoPanel .evo-tab svg { width:1.1em; height:1.1em; flex:0 0 auto; display:inline-block; vertical-align:middle; }

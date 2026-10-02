@@ -826,7 +826,8 @@ canvas#gameCanvas.grabbing {
     font-size: 8px; color: rgba(200,170,255,0.4);
 }
 #evoPanel .evo-tabs { display:flex; gap:0; margin-bottom:6px; }
-#evoPanel .evo-tab { flex:1; padding:4px 2px; text-align:center; font-size:11px; font-family:'Orbitron',sans-serif; color:rgba(200,170,255,0.4); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+/* Les deux onglets sur la meme ligne : l'icone a cote du texte, jamais au-dessus. */
+#evoPanel .evo-tab { flex:1; display:flex; align-items:center; justify-content:center; gap:4px; white-space:nowrap; line-height:1.2; padding:4px 2px; text-align:center; font-size:11px; font-family:'Orbitron',sans-serif; color:rgba(200,170,255,0.4); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
 #evoPanel .evo-tab:hover { color:rgba(200,170,255,0.7); }
 #evoPanel .evo-tab.active { color:#E9D5FF; border-bottom-color:#A855F7; }
 #evoPanel .evo-tab-content { display:none; }
@@ -1820,6 +1821,7 @@ i.ic-bat { display: inline-block; width: 1em; height: 1em; }
 kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border-radius:4px;
       border:1px solid rgba(196,181,253,0.5); border-bottom-width:2px; background:rgba(139,92,246,0.18);
       color:#F5F3FF; font-family:Orbitron, sans-serif; font-size:0.82em; line-height:1.55; text-align:center; }
+#evoPanel .evo-tab img, #evoPanel .evo-tab i, #evoPanel .evo-tab svg { width:1.1em; height:1.1em; flex:0 0 auto; display:inline-block; vertical-align:middle; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -2169,11 +2171,12 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">P / M</td><td style="padding:3px 0;">Zoom avant / arrière</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;">Passe en mode tir depuis l'astre sélectionné : vers un autre astre, ou sur son propre sol (curseur sur son disque). Sans Espace, aucun tir</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">F</td><td style="padding:3px 0;"><b style="color:#FF8A3D;">Démolisseur</b> — arme le tir (le trait rougeoie) ; la molette choisit le bâtiment <i class="ic-bat" data-g="alveole"></i> <i class="ic-bat" data-g="nid"></i> <i class="ic-bat" data-g="biome"></i> ; le clic tire 250 spores, plus lentes, qui en détruisent un de ce type. F à nouveau : désarme</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">G</td><td style="padding:3px 0;"><b style="color:#4ADE80;">Spore parasitaire</b> — l'arme depuis l'astre choisi (il faut qu'elle soit prête) ; le clic la lance. G à nouveau : désarme</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">G</td><td style="padding:3px 0;"><b style="color:#4ADE80;">Spore parasitaire</b> — l'arme depuis l'astre choisi (il faut qu'elle soit prête) ; le clic la lance, <b>G à nouveau</b> aussi — et en pleine visée, G la lance tout de suite vers le curseur</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans Mes Astres — le bouton ⇄ choisit : de planète en planète, ou d'astre en astre (lunes comprises)</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">4 <span style="color:rgba(200,210,230,0.45)">(&nbsp;'&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire un <i class="ic-bat" data-g="parasite"></i> foyer putride : une spore parasitaire en 2 minutes</td></tr>
-  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">4 <span style="color:rgba(200,210,230,0.45)">(&nbsp;'&nbsp;en azerty)</span> ou Shift + G</td><td style="padding:3px 0;">Construire un <i class="ic-bat" data-g="parasite"></i> foyer putride : une spore parasitaire en 2 minutes</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 10 %</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Shift + A / E</td><td style="padding:3px 0;">Régler le sacrifice pour la multiplicité (les évolutions), par crans de 5 %, de 0 à 50 %</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#FFD27A;">R</b></td><td style="padding:3px 0;"><b style="color:#FFD27A;">Riposte</b> au pourcentage d'envoi — sur l'astre survolé, ou sur tous si la souris est dans le vide</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#93C5FD;">T</b></td><td style="padding:3px 0;"><b style="color:#93C5FD;">Arrêt</b> — vos zones cessent d'attaquer, sur l'astre survolé ou partout ; les spores engagées restent dans la zone</td></tr>
   <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">K</td><td style="padding:3px 0;">Affiche (ou cache) tous les raccourcis, en transparence par-dessus la partie</td></tr>
@@ -2195,11 +2198,12 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 </table>
 <p style="margin-bottom:6px;">Le rendement du moment s'affiche au-dessus de l'astre sélectionné, en vert, jaune ou rouge. Tout le reste <span style="color:#E9D5FF;">multiplie</span> cette courbe : la <span style="color:#4ADE80;">Flore</span> de l'astre, la <span style="color:#22C55E;">Symbiose</span> qui monte avec le temps (jusqu'à +20 % sur une planète, +10 % sur une lune), vos <span style="color:#E9D5FF;">nids</span> et votre stat <span style="color:#4ADE80;">Growth</span>.</p>
 <p style="margin-bottom:16px;">Une <span style="color:#EAB308;">alvéole</span> augmente la capacité, donc aussi la production : un plus grand silo nourrit plus de monde. Attention, elle décale aussi le pic.</p>
-<p style="margin-bottom:16px;">Deux types de jets : <span style="color:#E9D5FF;">⚪ Spores</span> (Espace, puis clic), qui colonisent et attaquent, et <span style="color:#E9D5FF;"><i class="ic-bat" data-g="parasite"></i> Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent). Raccourcis : <b>4</b> construit le foyer putride qui la prépare, <b>G</b> l'arme pendant la visée.</p>
+<p style="margin-bottom:16px;">Deux types de jets : <span style="color:#E9D5FF;">⚪ Spores</span> (Espace, puis clic), qui colonisent et attaquent, et <span style="color:#E9D5FF;"><i class="ic-bat" data-g="parasite"></i> Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent). Raccourcis : <b>4</b> ou <b>Shift + G</b> construit le foyer putride qui la prépare, <b>G</b> l'arme, et <b>G</b> en visée la lance vers le curseur.</p>
 <!-- BATAILLE -->
 <p id="h-bataille" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚔ BATAILLE DE SURFACE</p>
 <p style="margin-bottom:6px;">Une conquête ne se joue plus en un choc. Les spores qui touchent un astre y <span style="color:#FFD700;">prennent pied sur une case</span>, du côté d'où vient le tir, et s'étalent sur le disque en lobes irréguliers. Chaque camp a sa couleur ; le sol que personne ne tient est gris.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ON ACHÈTE LE SOL.</span> La planète vaut sa capacité en spores, donc une case coûte cette capacité divisée par le nombre de cases. <span style="color:#FFD700;">Plus ses défenseurs</span> : les spores d'une zone sont réparties sur ses cases, et il faut les tuer avant de prendre la case (le défenseur les perd aussi). Une planète presque vide tombe vite ; une planète pleine se défend, <span style="color:#E9D5FF;">le front avance lentement</span> et s'arrête net quand l'attaque n'a plus de quoi payer. Le sol vierge, lui, ne coûte que 15 % du prix : coloniser n'est pas conquérir.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">LA GARNISON.</span> Le pourcentage d'envoi décide aussi de la façon dont le tir se bat. Avec 30 %, <span style="color:#E9D5FF;">30 % du tir attaque</span> et achète du sol, <span style="color:#E9D5FF;">70 % restent en garnison</span> sur le terrain pris et le défendent. À 100 %, c'est l'assaut total jusqu'à épuisement ; la rafale et le démolisseur attaquent toujours en entier.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">LE DEVIS, PENDANT LA VISÉE.</span> Sous le curseur s'affiche ce que votre envoi achètera sur l'astre visé : le nombre de cases, la part du disque que ça représente, et le prix d'une case. Faune et biomes adverses y sont déjà déduits, et la densité ajoutée — c'est le vrai chiffre, pas une estimation optimiste. Sur un astre à vous, il indique simplement le renfort.</p>
 <p style="margin-bottom:6px;">On prend ce qu'on peut payer : <span style="color:#4ADE80;">attaquer là où l'adversaire est dégarni</span> coûte bien moins cher que de foncer sur une planète pleine. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA RAFALE — CTRL + CLIC GAUCHE.</span> Pendant la visée, maintenez Ctrl et le clic gauche : votre astre crache des <span style="color:#E9D5FF;">paquets de 10 spores, 8 par seconde</span>, dans la direction du curseur à plus ou moins 20° près — une mitrailleuse, pas un fusil. Il se vide tant que vous tenez, et s'arrête quand vous lâchez ou quand il n'a plus de quoi faire un paquet. Le pourcentage d'envoi n'y compte pas.</p>
@@ -2498,7 +2502,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
         <div style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(200,160,255,0.5);letter-spacing:2px;text-align:center;margin:4px 0 6px;">⚔ CONQUÊTE</div>
         <div class="evo-sacrifice" style="margin-bottom:2px;">
             <label title="Pourcentage de spores envoyées lors d'un jet">🚀 Envoi</label>
-            <input type="range" id="jetRatioSlider" min="0" max="100" value="50" step="5">
+            <input type="range" id="jetRatioSlider" min="0" max="100" value="50" step="10">
             <span class="sac-val" id="jetRatioVal">50%</span>
         </div>
         </div><!-- /tabEvo -->
@@ -6296,8 +6300,9 @@ function setupUI() {
                construction du panneau.
        Espace : passer en visee depuis l'astre choisi.
        F      : armer le demolisseur (voir armerDemolisseur).
-       G      : armer la spore parasitaire (voir armerParasite).
-       4      : construire un foyer putride (spore parasitaire en 2 min).
+       G      : armer la spore parasitaire ; en visee, G la lance vers le curseur.
+       4, Shift+G : construire un foyer putride (spore parasitaire en 2 min).
+       A / E  : envoi -10 / +10 % ; Shift+A / Shift+E : sacrifice -5 / +5 %.
        Tab    : amener la camera sur l'entree suivante de la liste de gauche.
        ───────────────────────────────────────────── */
     function _astreActif() {
@@ -6414,7 +6419,8 @@ function setupUI() {
     window.reglerEnvoi = function (delta) {
         const sl = document.getElementById('jetRatioSlider');
         if (!sl) return;
-        const v = Math.max(0, Math.min(100, Math.round(gameState.jetRatio * 100) + delta));
+        /* De 10 en 10, cale sur une dizaine (55 % passe a 60 ou 50). */
+        const v = Math.max(0, Math.min(100, Math.round((gameState.jetRatio * 100 + delta) / 10) * 10));
         if (v === Math.round(gameState.jetRatio * 100)) return;
         sl.value = v;
         gameState.jetRatio = v / 100;
@@ -6423,6 +6429,22 @@ function setupUI() {
         if (gameState.isMulti) sendAction('set_jet_ratio', { value: gameState.jetRatio });
         else donnerOrdre('part', { v: gameState.jetRatio });
         majJaugeEnvoi(true);
+    };
+
+    /* SHIFT + A / SHIFT + E : la part de production sacrifiee pour la
+       multiplicite (les evolutions), de 5 en 5, de 0 a 50 %. */
+    window.reglerSacrifice = function (delta) {
+        const human = gameState.players[localSlot()];
+        const sl = document.getElementById('evoSacrifice');
+        if (!human || !sl) return;
+        const cur = human.multiSacrifice || 0;
+        const v = Math.max(0, Math.min(50, Math.round((cur + delta) / 5) * 5));
+        if (v === cur) return;
+        sl.value = v;
+        const lbl = document.getElementById('evoSacVal');
+        if (lbl) lbl.textContent = v + '%';
+        if (gameState.isMulti) { human.multiSacrifice = v; sendAction('set_sacrifice', { value: v }); }
+        else donnerOrdre('sacrifice', { v: v });
     };
 
     window.addEventListener('keyup', (e) => {
@@ -6466,7 +6488,19 @@ function setupUI() {
                DEMOLISSEUR : voir armerDemolisseur. */
             if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) viserDepuisSelection(); return; }
             if (e.code === 'KeyF')  { e.preventDefault(); if (!e.repeat) armerDemolisseur(); return; }
-            if (e.code === 'KeyG')  { e.preventDefault(); if (!e.repeat) armerParasite(); return; }
+            /* G : armer la spore parasitaire, puis G encore (ou en visee) la
+               lance vers le curseur. Shift + G : lancer sa production (le
+               foyer putride, comme la touche 4). */
+            if (e.code === 'KeyG')  {
+                e.preventDefault();
+                if (e.repeat) return;
+                if (e.shiftKey) {
+                    const _a = _astreActif();
+                    if (_a && (_a.parasiteSpore || 0) >= 1) { secouerEcran(8); return; }
+                    _construire('parasite');
+                } else armerParasite();
+                return;
+            }
             if (e.key === 'Tab')    { e.preventDefault(); _astreSuivant();    return; }
             if (_camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
             /* La souris designe la cible : sur un astre, la riposte s'y
@@ -6474,8 +6508,8 @@ function setupUI() {
             if (e.code === 'KeyR')  { e.preventDefault(); riposteGenerale(astreSousSouris()); return; }
             /* T : le contraire, nos zones cessent de pousser (meme ciblage). */
             if (e.code === 'KeyT')  { e.preventDefault(); arreterAttaques(astreSousSouris()); return; }
-            if (e.code === 'KeyQ')  { e.preventDefault(); reglerEnvoi(-5); return; }
-            if (e.code === 'KeyE')  { e.preventDefault(); reglerEnvoi(+5); return; }
+            if (e.code === 'KeyQ')  { e.preventDefault(); if (e.shiftKey) reglerSacrifice(-5); else reglerEnvoi(-10); return; }
+            if (e.code === 'KeyE')  { e.preventDefault(); if (e.shiftKey) reglerSacrifice(+5); else reglerEnvoi(+10); return; }
         }
         if (e.key === 'Escape') {
             if (gameState.phase === 'game') togglePause();
@@ -8038,8 +8072,14 @@ function armerDemolisseur() {
 function armerParasite() {
     if (gameState.phase !== 'game' || gameState.isSpectator) return;
     if (gameState._boule || gameState._rafale) return;
-    if (gameState._firePhase === 'aiming' && gameState._fireType === 'parasite') { gameState._fireType = 'normal'; return; }
     const moi = localSlot();
+    /* Deja en visee : G lance la spore parasitaire tout de suite, vers le
+       curseur, depuis l'astre qui vise. */
+    if (gameState._firePhase === 'aiming') {
+        const s = gameState._fireLanceur || gameState._fireSource;
+        if (s && s.owner === moi && (s.parasiteSpore || 0) >= 1 && !s.lutte) { tirerParasiteVersCurseur(s); return; }
+        if (gameState._fireType === 'parasite') { secouerEcran(8); return; }
+    }
     const src = (gameState._firePhase === 'aiming' && gameState._fireSource) ? gameState._fireSource
               : ((typeof followingBody !== 'undefined' && followingBody) ? followingBody : gameState.selectedBody);
     if (!src || src.owner !== moi || (src.parasiteSpore || 0) < 1) { secouerEcran(8); return; }
@@ -8050,6 +8090,25 @@ function armerParasite() {
     gameState._fireSource = src;
     gameState._fireType = 'parasite';
     gameState._firePhase = 'aiming';
+}
+
+function tirerParasiteVersCurseur(src) {
+    const dx = gameState.mouseWorldX - src.x, dy = gameState.mouseWorldY - src.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 10) { secouerEcran(8); return; }
+    if (gameState.isMulti) sendAction('jet', { srcName: src.name, dirX: dx / len, dirY: dy / len, sporeType: 'parasite' });
+    else donnerOrdre('tir', { src: src.name, dx: dx / len, dy: dy / len, t: 'parasite' });
+    /* Fin de visee, comme apres un clic. */
+    const cam = gameState.camera;
+    if (gameState._fireCamZoom !== null && gameState._fireCamZoom !== undefined) { cam.zoom = gameState._fireCamZoom; gameState._fireCamZoom = null; }
+    gameState._firePhase = null;
+    gameState._fireType = 'normal';
+    gameState._fireSource = null;
+    gameState._fireLanceur = null;
+    gameState._fireGroupe = null;
+    gameState._chargeAcc = 0;
+    gameState._aimHolding = false;
+    gameState.launchPreview = [];
 }
 
 /* Molette pendant que le demolisseur est arme : le genre suivant. */
@@ -10781,7 +10840,12 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
         selected: false,
         source: source,
         sourceName: source.name,
-        demolisseur: (opts && opts.demol) || false
+        demolisseur: (opts && opts.demol) || false,
+        /* LA PART D'ATTAQUE : le pourcentage d'envoi au moment du tir. A
+           l'arrivee, cette part pousse ; le reste tient le terrain pris
+           (garnison). 30 % envoyes = 30 % attaquent, 70 % gardent. Rafale,
+           demolisseur : tout attaque. */
+        part: _nb ? 1 : Math.max(0, Math.min(1, partEnvoi(tireur)))
     });
 }
 
@@ -11055,7 +11119,8 @@ function updateJets(dt) {
                         selected: false,
                         source: jet.source,
                         sourceName: jet.sourceName,
-                        _hitBelt: Object.assign({}, jet._hitBelt)
+                        _hitBelt: Object.assign({}, jet._hitBelt),
+                        part: jet.part
                     });
                 }
                 spawnImpact(jet.x, jet.y, '#44FF44');
@@ -11183,7 +11248,7 @@ function checkJetCollision(jet) {
                 const g = ajouterSpores(body, jet.spores * densityBonus);
                 /* Renforcer un astre assiege, c'est contre-attaquer : les
                    spores arrivees poussent aussitot contre l'envahisseur. */
-                if (zd && g > 0) { zd.elan = (zd.elan || 0) + g; body.lutte.dormante = false; }
+                if (zd && g > 0) { zd.elan = (zd.elan || 0) + g * (jet.part === undefined ? 1 : jet.part); body.lutte.dormante = false; }
                 playFusionSound();
             } else {
                 const _ml = gameState.players[jet.owner]?.tech?.mimicry || 0;
@@ -11203,7 +11268,7 @@ function checkJetCollision(jet) {
                         const mdx=mn.x-body.x, mdy=mn.y-body.y, mdd=Math.sqrt(mdx*mdx+mdy*mdy);
                         if (mdd<1) continue;
                         const mSpd=jet.speed*0.8, mTr=computeTrajectory(body.x,body.y,mdx/mdd,mdy/mdd,mSpd,200);
-                        gameState.jets.push({ owner:jet.owner, color:jet.color, spores:_ms, trajectory:mTr, posIndex:0, x:body.x, y:body.y, speed:mSpd, alive:true, trail:[], sparkles:[], age:0, selected:false, source:body, sourceName:body.name, eclat:true, _hitBelt:{} });
+                        gameState.jets.push({ owner:jet.owner, color:jet.color, spores:_ms, trajectory:mTr, posIndex:0, x:body.x, y:body.y, speed:mSpd, alive:true, trail:[], sparkles:[], age:0, selected:false, source:body, sourceName:body.name, eclat:true, _hitBelt:{}, part:jet.part });
                     }
                 } else {
                     applyConquest(body, jet);
@@ -11308,7 +11373,8 @@ function devisAttaque(src, cible) {
     const prix = coutCase(cible, total) * (neutre ? 0.15 : 1) + defense;
     /* On ne peut pas acheter plus de sol qu'il n'y en a : au-dela, l'astre
        tombe en entier et le reste des spores s'y installe. */
-    const brut = Math.floor(arrive / prix);
+    /* Seule la part d'attaque achete du sol ; le reste tiendra le terrain. */
+    const brut = Math.floor(arrive * Math.max(0, Math.min(1, gameState.jetRatio)) / prix);
     return { envoi: envoi, arrive: arrive, prix: prix, total: total,
              cases: Math.min(brut, total), tout: brut >= total, neutre: neutre };
 }
@@ -11428,7 +11494,7 @@ function naitreLutte(body) {
     return body.lutte;
 }
 
-function engagerLutte(body, slot, spores, angle) {
+function engagerLutte(body, slot, spores, angle, part) {
     _luttePrepare();
     const N = LUTTE_N;
     naitreLutte(body);
@@ -11462,7 +11528,11 @@ function engagerLutte(body, slot, spores, angle) {
     zonesRecalculer(body, L);
     const id = (tete >= 0) ? L.zid[tete] : 0;
     const z = L.zones[id];
-    if (z) { z.spores += spores; z.elan = (z.elan || 0) + spores; }
+    /* Toutes les spores arrivent dans la zone ; seule la part d'attaque
+       (le pourcentage d'envoi du tir) pousse. Le reste y reste en garnison :
+       elle defend le terrain pris (voir LES DEFENSEURS, majLutte). */
+    const p = (part === undefined) ? 1 : Math.max(0, Math.min(1, part));
+    if (z) { z.spores += spores; z.elan = (z.elan || 0) + spores * p; }
     zonesAgreger(body, L);
     L.dormante = false;
 }
@@ -13157,7 +13227,8 @@ function applyConquest(body, jet) {
        bataille qui decidera, et qui pourra aussi les rejeter a la mer. */
     if (attacking > 0) {
         engagerLutte(body, jet.owner, attacking,
-                     Math.atan2(jet.y - body.y, jet.x - body.x));
+                     Math.atan2(jet.y - body.y, jet.x - body.x),
+                     jet.part === undefined ? 1 : jet.part);
     } else if (body.faune <= 0 && body.spores > 0) {
         gameState.conquestEffects.push({
             x: body.x, y: body.y - body.radius - 15,

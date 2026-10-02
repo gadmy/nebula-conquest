@@ -510,8 +510,14 @@ function armerDemolisseur() {
 function armerParasite() {
     if (gameState.phase !== 'game' || gameState.isSpectator) return;
     if (gameState._boule || gameState._rafale) return;
-    if (gameState._firePhase === 'aiming' && gameState._fireType === 'parasite') { gameState._fireType = 'normal'; return; }
     const moi = localSlot();
+    /* Deja en visee : G lance la spore parasitaire tout de suite, vers le
+       curseur, depuis l'astre qui vise. */
+    if (gameState._firePhase === 'aiming') {
+        const s = gameState._fireLanceur || gameState._fireSource;
+        if (s && s.owner === moi && (s.parasiteSpore || 0) >= 1 && !s.lutte) { tirerParasiteVersCurseur(s); return; }
+        if (gameState._fireType === 'parasite') { secouerEcran(8); return; }
+    }
     const src = (gameState._firePhase === 'aiming' && gameState._fireSource) ? gameState._fireSource
               : ((typeof followingBody !== 'undefined' && followingBody) ? followingBody : gameState.selectedBody);
     if (!src || src.owner !== moi || (src.parasiteSpore || 0) < 1) { secouerEcran(8); return; }
@@ -522,6 +528,25 @@ function armerParasite() {
     gameState._fireSource = src;
     gameState._fireType = 'parasite';
     gameState._firePhase = 'aiming';
+}
+
+function tirerParasiteVersCurseur(src) {
+    const dx = gameState.mouseWorldX - src.x, dy = gameState.mouseWorldY - src.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 10) { secouerEcran(8); return; }
+    if (gameState.isMulti) sendAction('jet', { srcName: src.name, dirX: dx / len, dirY: dy / len, sporeType: 'parasite' });
+    else donnerOrdre('tir', { src: src.name, dx: dx / len, dy: dy / len, t: 'parasite' });
+    /* Fin de visee, comme apres un clic. */
+    const cam = gameState.camera;
+    if (gameState._fireCamZoom !== null && gameState._fireCamZoom !== undefined) { cam.zoom = gameState._fireCamZoom; gameState._fireCamZoom = null; }
+    gameState._firePhase = null;
+    gameState._fireType = 'normal';
+    gameState._fireSource = null;
+    gameState._fireLanceur = null;
+    gameState._fireGroupe = null;
+    gameState._chargeAcc = 0;
+    gameState._aimHolding = false;
+    gameState.launchPreview = [];
 }
 
 /* Molette pendant que le demolisseur est arme : le genre suivant. */

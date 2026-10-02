@@ -1154,7 +1154,8 @@ function applyConquest(body, jet) {
        bataille qui decidera, et qui pourra aussi les rejeter a la mer. */
     if (attacking > 0) {
         engagerLutte(body, jet.owner, attacking,
-                     Math.atan2(jet.y - body.y, jet.x - body.x));
+                     Math.atan2(jet.y - body.y, jet.x - body.x),
+                     jet.part === undefined ? 1 : jet.part);
     } else if (body.faune <= 0 && body.spores > 0) {
         gameState.conquestEffects.push({
             x: body.x, y: body.y - body.radius - 15,
