@@ -1723,8 +1723,9 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        - Tableau des scores : au-dela de 16 joueurs, trie du plus grand au
          plus petit et defile ; sa propre ligne en clair.
        - Base : migration 20261002150000_parties_50_joueurs (classement ELO
-         taille 50, garde-fou des parties jusqu'a 50 joueurs et 50 soleils) a
-         lancer par l'utilisateur dans l'editeur SQL (confirmation requise).
+         taille 50, garde-fou des parties jusqu'a 50 joueurs et 50 soleils),
+         lancee par l'utilisateur dans l'editeur SQL ; verifiee en ligne,
+         historique des migrations a jour, aucune alerte de securite.
        - Essais : solo 49 joueurs (49 couleurs et noms differents, 2-3 ms
          par tour) ; reseau 2 humains + 47 IA identiques, reprise ok.
          Editeur de carte (F2) verifie. Les plus grandes cartes ont 49
