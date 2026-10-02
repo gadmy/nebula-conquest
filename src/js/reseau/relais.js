@@ -19,6 +19,10 @@ function lockstepDepuisAdresse() {
     const q = new URLSearchParams(location.search);
     const url = q.get('relais');
     if (!url || !q.get('salle')) return;
+    /* Page rechargee en pleine partie de cette salle : on reprend notre
+       place au lieu de rejoindre comme un nouveau joueur. */
+    const g = partieReseauGardee();
+    if (g && g.salle === q.get('salle')) { reprendrePartieReseau(); return; }
     const reglages = {
         salle: q.get('salle') || 'essai', joueurs: q.get('joueurs'), ia: q.get('ia'),
         carte: q.get('carte'), difficulte: q.get('difficulte'),
@@ -26,6 +30,8 @@ function lockstepDepuisAdresse() {
     };
     jetonSession(function (jeton) {
         reglages.jeton = jeton;
+        /* Une reprise a demarre pendant qu'on attendait le jeton : on la laisse. */
+        if (gameState.lockstep || _repriseEnCours) return;
         rejoindreRelais(url, reglages);
     });
 }

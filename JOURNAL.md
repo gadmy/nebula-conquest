@@ -1572,6 +1572,12 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        main ; un 4e job « Publication du site » le publie seulement si les
        3 verifications sont vertes (sur main uniquement). Sinon le site
        garde la version precedente. Reglage : Pages > Source = GitHub Actions.
+       Premier essai : le test reseau a echoue, publication bien bloquee.
+     - CORRECTIF REPRISE (adresse ?relais=...&salle=...) : une page
+       rechargee en pleine partie rejoignait AUSSI la salle comme un nouveau
+       joueur ; selon la vitesse de la machine, ca annulait la reprise.
+       Maintenant elle reprend sa place, et ne rejoint plus si une reprise
+       a demarre. Le test reseau affiche ce que voit le joueur 2 s'il echoue.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
