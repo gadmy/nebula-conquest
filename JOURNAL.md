@@ -1589,6 +1589,11 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        bord) : le conseiller Supabase ne signale plus aucune alerte.
      - Reglages Claude (.claude/settings.json) : outils Supabase autorises
        sans confirmation, sauf actions sur le projet entier.
+     - RANGEMENT SUPABASE : les 7 tables de l'appli de recettes (lfs_*) sont
+       copiees dans le schema archive (non publie), copie verifiee identique
+       (migration 20261002140000_archiver_recettes). Leur retrait de public
+       attend le feu vert de l'utilisateur. Comptes rendus et dossiers (appli
+       toujours utilisee) : non touches, empreinte identique avant/apres.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
