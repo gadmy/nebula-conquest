@@ -33,3 +33,5 @@ npm start                 # relais local : le jeu est servi sur http://localhost
   - une partie en réseau à deux, avec rechargement et reprise (`tests/reseau.mjs`).
 
 Une croix rouge signale quelque chose à corriger avant de publier.
+
+**Publication protégée** : sur `main`, le site n'est mis à jour (job « Publication du site ») que si les trois vérifications sont vertes. Une erreur détectée bloque donc la mise en ligne, et le site garde la version précédente. Réglage GitHub nécessaire : *Settings > Pages > Source = GitHub Actions*.

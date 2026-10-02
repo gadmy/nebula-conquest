@@ -2,6 +2,7 @@
 # GitHub verifie que le jeu est bien fabrique, que le code se lit, que la
 # base se recree, et qu'une partie se joue (solo et reseau a deux, avec
 # reprise). Une croix rouge = quelque chose a corriger avant de publier.
+# Sur main, si tout est vert, le site est ensuite publie (job « publier »).
 name: Verifications
 
 on:
@@ -58,3 +59,29 @@ jobs:
         run: node tests/partie-solo.mjs
       - name: Partie en reseau a deux, avec reprise
         run: node tests/reseau.mjs
+
+  # PUBLICATION PROTEGEE : le site n'est mis a jour que sur main, et
+  # seulement si les trois verifications ci-dessus sont vertes.
+  # (Reglage GitHub : Settings > Pages > Source = GitHub Actions.)
+  publier:
+    name: Publication du site
+    needs: [code, base, jeu]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    concurrency:
+      group: publication
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deploiement
+        uses: actions/deploy-pages@v4

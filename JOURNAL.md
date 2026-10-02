@@ -1567,7 +1567,11 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        erreur), tests/reseau.mjs (deux navigateurs par le relais, identiques,
        rechargement et reprise depuis la photo, toujours identiques).
        npm test lance tout en local. Essais ici : tout passe ; un index.html
-       pas refabrique est bien refuse.
+       pas refabrique est bien refuse. Premier passage sur GitHub : vert.
+     - PUBLICATION PROTEGEE : le site n'est plus publie directement depuis
+       main ; un 4e job « Publication du site » le publie seulement si les
+       3 verifications sont vertes (sur main uniquement). Sinon le site
+       garde la version precedente. Reglage : Pages > Source = GitHub Actions.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
