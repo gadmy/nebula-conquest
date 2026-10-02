@@ -1607,6 +1607,8 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        dans leur mediocrite, savants, machines, publicite), orthographe
        corrigee. Jeu (histoire.js) et Lore/HISTOIRE.md. Le temps d'affichage
        suit la longueur du texte ; la scene 1 tient sur 3 lignes.
+       Puis scenes 7 a 12 aussi (confins de l'univers, militants coute que
+       coute, nouvelles especes, « L'humanite spore est a son commencement »).
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

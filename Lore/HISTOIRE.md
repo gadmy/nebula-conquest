@@ -97,7 +97,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : les nuées arrivent dans une immense nébuleuse : des soleils, des planètes, et au centre un trou noir au disque violet.
 
-**Texte à l'écran** : « Après un très long voyage, elles atteignirent la Nébuleuse. Des mondes à prendre… et, au cœur de tout, le Puits. »
+**Texte à l'écran** : « Après un très long voyage, elles atteignirent de nouveaux systèmes aux confins de l'univers. »
 
 **Prompt IA** : `streams of glowing colored spores arriving into a vast nebula, distant suns and planets, at the center a black hole with a tilted violet accretion disk and a lensed arc of light, sense of wonder and scale`
 
@@ -107,7 +107,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : une nuée de spores se pose sur une lune glacée ; la surface s'illumine de réseaux lumineux.
 
-**Texte à l'écran** : « Une spore touche un monde, s'y accroche, et pousse. Puis une autre. Puis toute une section du parti. »
+**Texte à l'écran** : « Une spore touche un monde, s'y accroche, et pousse. Les planètes sont plus ou moins accueillantes, mais les militants s'y installent coûte que coûte. »
 
 **Prompt IA** : `a cloud of phosphorescent spores settling on the surface of an icy moon like glowing snow, bioluminescent networks spreading across the surface, organic hive-like structures growing`
 
@@ -117,7 +117,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : des traînées de spores de couleurs différentes se croisent entre les planètes ; sur une surface, deux territoires de couleurs se disputent le sol.
 
-**Texte à l'écran** : « Mais tous les partis avaient visé la même Nébuleuse. Le débat reprit. À coups de spores. »
+**Texte à l'écran** : « Hélas, accrochées à leur nouvelle planète, les spores politisées n'en eurent pas assez et décidèrent d'envahir lunes, planètes et systèmes alentour. »
 
 **Prompt IA** : `streams of glowing spores launched between planets, crossing each other, on a planet surface two colored living territories (violet and orange) fight for ground in irregular patches, epic space battle`
 
@@ -127,7 +127,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : trois immenses sphères de pierre gravée, grandes comme des lunes, une verte, une noire, une rouge, qui sortent du trou noir.
 
-**Texte à l'écran** : « Ils n'étaient pas les premiers. D'autres civilisations avaient fait le même voyage, il y a très longtemps. Le Puits les avait avalées. Parfois, il les rend. »
+**Texte à l'écran** : « Les spores rencontrèrent de nouvelles espèces ayant fait le voyage il y a très longtemps. Alliés ou ennemis ? »
 
 **Prompt IA** : `three colossal ancient spheres the size of moons, made of engraved dark stone with glowing veins, one green, one steel grey, one ember red, emerging from a black hole with a violet accretion disk, ancient and majestic`
 
@@ -137,7 +137,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : entre deux planètes aux auras de couleurs différentes, de petites orbes dorées voyagent dans les deux sens ; l'une se brise.
 
-**Texte à l'écran** : « Certains partis passèrent des accords. Des alliances d'or, solides comme une promesse de campagne. »
+**Texte à l'écran** : « Certains partis passèrent des accords. Des alliances solides comme une promesse de campagne. »
 
 **Prompt IA** : `two planets with different colored auras (violet and teal) exchanging small glowing golden orbs traveling slowly in both directions like lanterns across space, one orb cracking apart, fragile alliance`
 
@@ -147,7 +147,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : vue d'ensemble de la Nébuleuse, des dizaines de mondes aux couleurs mêlées, le trou noir au centre ; au premier plan, une planète qui s'illumine.
 
-**Texte à l'écran** : « Le parti qui tiendra la Nébuleuse écrira la Constitution de l'univers. À toi, Commandant. »
+**Texte à l'écran** : « L'humanité spore est à son commencement. »
 
 **Prompt IA** : `panoramic view of a living nebula with dozens of worlds glowing in mixed colors, a black hole with violet disk at the center, in the foreground one planet lighting up with a bright aura, hopeful and epic, call to adventure`
 
