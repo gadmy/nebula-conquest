@@ -16,6 +16,20 @@ Jeu de conquête spatiale en temps réel, dans le navigateur.
 npm install
 # modifier les fichiers de src/
 npm run construire        # refait index.html
-npm run lockstep          # vérifie que le multijoueur reste identique chez tous
+npm run verifier          # vérifications rapides (page à jour, code lisible)
+npm test                  # tout : vérifications, multijoueur identique, partie solo, partie en réseau
 npm start                 # relais local : le jeu est servi sur http://localhost:8080
 ```
+
+## Tests automatiques
+
+À chaque envoi sur GitHub, l'onglet **Actions** lance les vérifications (`.github/workflows/verifications.yml`) :
+
+- **Fabrication et code** : `index.html` est à jour, et chaque fichier de code se lit sans erreur.
+- **Base de données** : toutes les migrations de `supabase/` se rejouent sur un Postgres vide.
+- **Parties de jeu**, dans un vrai navigateur :
+  - le banc « multijoueur identique » ;
+  - une partie solo de 3 minutes (`tests/partie-solo.mjs`) ;
+  - une partie en réseau à deux, avec rechargement et reprise (`tests/reseau.mjs`).
+
+Une croix rouge signale quelque chose à corriger avant de publier.

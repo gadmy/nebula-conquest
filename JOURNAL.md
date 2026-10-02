@@ -1557,6 +1557,17 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        a l'ancien ; chaque fichier de code se lit seul (node --check).
        Le journal (ce texte) passe de l'en-tete de index.html a JOURNAL.md ;
        la page garde un court bloc SUIVI DE PROJET. Guide : src/LISEZMOI.md.
+     - TESTS AUTOMATIQUES SUR GITHUB (.github/workflows/verifications.yml),
+       a chaque envoi : 1) fabrication et code (npm run verifier :
+       index.html a jour, chaque fichier de src/js et les scripts assembles
+       se lisent, outils et tests aussi) ; 2) base : les migrations rejouees
+       sur un Postgres 17 vide (supabase/tests/rejouer.sh, avec une
+       imitation de Supabase) ; 3) parties dans Chromium : banc lockstep,
+       tests/partie-solo.mjs (regimes, 3 min de jeu, fiche, K, aucune
+       erreur), tests/reseau.mjs (deux navigateurs par le relais, identiques,
+       rechargement et reprise depuis la photo, toujours identiques).
+       npm test lance tout en local. Essais ici : tout passe ; un index.html
+       pas refabrique est bien refuse.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

@@ -4,6 +4,10 @@
   "description": "Outils du jeu : fabrication de index.html depuis src/, copie brouillee pour la publication, banc lockstep, relais d'ordres",
   "scripts": {
     "construire": "node outils/construire.mjs",
+    "verifier": "node outils/verifier.mjs",
+    "test:solo": "node tests/partie-solo.mjs",
+    "test:reseau": "node tests/reseau.mjs",
+    "test": "node outils/verifier.mjs && node outils/lockstep-test.mjs --tours 12000 && node tests/partie-solo.mjs && node tests/reseau.mjs",
     "brouiller": "node outils/brouiller.mjs",
     "lockstep": "node outils/lockstep-test.mjs",
     "relais": "node outils/relais.mjs",
