@@ -1578,6 +1578,16 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        joueur ; selon la vitesse de la machine, ca annulait la reprise.
        Maintenant elle reprend sa place, et ne rejoint plus si une reprise
        a demarre. Le test reseau affiche ce que voit le joueur 2 s'il echoue.
+     - SECURITE SUPABASE (migration 20261002130000_securite_vues_fonctions) :
+       les 3 alertes du conseiller Supabase sont reglees. 1) leaderboard et
+       guild_leaderboard lisent avec les droits du lecteur (security_invoker),
+       classement identique avant/apres ; 2) increment_bot_votes reservee au
+       serveur (le jeu ne l'appelait pas) ; 3) nc_membre* rangees dans le
+       schema prive, hors API, les regles des tables long_* marchent toujours
+       (essai : membre oui, intrus non). Base en ligne = fichiers (empreinte,
+       11 familles). Reste : protection des mots de passe fuites (reglage).
+     - Reglages Claude (.claude/settings.json) : outils Supabase autorises
+       sans confirmation, sauf actions sur le projet entier.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

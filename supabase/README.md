@@ -21,8 +21,10 @@ Projet en ligne : `hcjajtpbzusqgxkyzbgc` (région eu-west-1).
 - `elo_reseau` et la vue `classement_reseau` : l'ELO des parties rapides en réseau, par taille (2, 4, 8, 16). Écrit seulement par le relais, avec la fonction `enregistrer_partie_reseau`.
 - `game_rooms`, `game_room_players` : salons de l'ancien multijoueur.
 - `guilds`, `guild_members` et la vue `guild_leaderboard` : les guildes, cachées dans le menu actuel.
-- `long_*` : le mode « partie longue », en sommeil.
+- `long_*` : le mode « partie longue », en sommeil. Ses règles d'accès utilisent les fonctions `prive.nc_membre*`, rangées dans le schéma `prive`, qui n'est pas publié dans l'API.
 - La vue `leaderboard` : l'ancien classement 1 contre 1.
+
+Les vues lisent les tables avec les droits de celui qui les consulte (`security_invoker`), jamais avec ceux de leur créateur.
 
 ### Ce qui n'est pas à Nebula
 
