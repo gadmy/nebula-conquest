@@ -101,16 +101,16 @@ const EXECUTER_ORDRE = {
         if (gameState.lockstep || !departActif() || !D || D.etape !== 'planete') return;
         D.fin = Math.min(D.fin, gameState.tour + 1);
     },
-    /* Proposer un commerce a un joueur (niveau 1 a 3). */
+    /* Proposer un commerce a un joueur (astre contre astre : niveau 1). */
     commerce: function (slot, d) {
         const cible = Math.round(Number(d.cible)), niveau = Math.round(Number(d.niveau));
-        if (!(niveau >= 1 && niveau <= 3) || !gameState.players[cible] || cible === slot) return;
+        if (niveau !== 1 || !gameState.players[cible] || cible === slot) return;
         proposerCommerce(slot, cible, niveau);
     },
     /* Repondre a une proposition de commerce. */
     commerce_reponse: function (slot, d) {
         const de = Math.round(Number(d.de)), niveau = Math.round(Number(d.niveau));
-        if (!gameState.players[de] || !(niveau >= 1 && niveau <= 3)) return;
+        if (!gameState.players[de] || niveau !== 1) return;
         repondreCommerce(slot, de, niveau, !!d.ok);
     },
     /* Piloter la sphere capitale qu'on a capturee : une direction (ZQSD). */

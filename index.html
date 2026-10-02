@@ -2314,7 +2314,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 
 <!-- COMMERCE -->
 <p id="h-commerce" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🤝 COMMERCE &amp; ALLIANCES</p>
-<p style="margin-bottom:16px;">Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. Un astre ne sert qu'à un commerce à la fois, mais vous pouvez en ouvrir <b>plusieurs du même type</b> avec le même joueur : deux planètes libres chacun, deux commerces planète contre planète. <span style="color:#FDE68A;">Fusion</span> : quand la dernière planète ou lune d'un de vos systèmes planétaires entre en commerce, ses commerces planète contre planète se fondent en <b>un commerce de système planétaire</b>, si l'autre joueur a lui aussi un système planétaire entier de libre ; sinon ils continuent tels quels. Même chose quand tout un système solaire commerce : il devient un commerce de système solaire. Dans le tableau des scores, une <span style="color:#CD7F32;">★ bronze</span> (planète), <span style="color:#C8D0DA;">★ argent</span> (système planétaire) ou <span style="color:#FFD700;">★ or</span> (système solaire) suit le nom de chaque joueur en commerce, avec leur nombre s'il y en a plusieurs. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
+<p style="margin-bottom:16px;">Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b> : un de vos astres (planète ou lune) commerce avec un des siens, 10 spores toutes les 20 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. <span style="color:#FDE68A;">Un astre peut commercer une fois avec chaque joueur</span> : avec trois adversaires, la même planète peut avoir trois commerces, un par joueur. Avec un même joueur, vous pouvez en ouvrir autant que vous avez d'astres libres l'un pour l'autre. Dans le tableau des scores, une <span style="color:#CD7F32;">★</span> bronze suit le nom de chaque joueur en commerce, avec leur nombre. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
 
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
@@ -14508,16 +14508,16 @@ const EXECUTER_ORDRE = {
         if (gameState.lockstep || !departActif() || !D || D.etape !== 'planete') return;
         D.fin = Math.min(D.fin, gameState.tour + 1);
     },
-    /* Proposer un commerce a un joueur (niveau 1 a 3). */
+    /* Proposer un commerce a un joueur (astre contre astre : niveau 1). */
     commerce: function (slot, d) {
         const cible = Math.round(Number(d.cible)), niveau = Math.round(Number(d.niveau));
-        if (!(niveau >= 1 && niveau <= 3) || !gameState.players[cible] || cible === slot) return;
+        if (niveau !== 1 || !gameState.players[cible] || cible === slot) return;
         proposerCommerce(slot, cible, niveau);
     },
     /* Repondre a une proposition de commerce. */
     commerce_reponse: function (slot, d) {
         const de = Math.round(Number(d.de)), niveau = Math.round(Number(d.niveau));
-        if (!gameState.players[de] || !(niveau >= 1 && niveau <= 3)) return;
+        if (!gameState.players[de] || niveau !== 1) return;
         repondreCommerce(slot, de, niveau, !!d.ok);
     },
     /* Piloter la sphere capitale qu'on a capturee : une direction (ZQSD). */
@@ -19581,27 +19581,23 @@ function drawCapitaux(ctx) {
 // COMMERCE ENTRE JOUEURS
 // ─────────────────────────────────────────────
 /* Clic droit sur un nom de la liste des joueurs : Info, ou Commerce. Un
-   commerce lie un astre de chaque joueur ; chacun envoie a l'autre, a
-   intervalle regulier, une petite boule lumineuse qui voyage lentement et
-   donne ses spores a l'astre qui la recoit : les deux y gagnent.
-   - Niveau 1, planete contre planete (lunes comprises) : 10 spores / 20 s.
-   - Niveau 2, systeme planetaire contre systeme planetaire (une planete et
-     toutes ses lunes) : 100 spores / 30 s.
-   - Niveau 3, systeme solaire contre systeme solaire (tout ce qui tourne
-     autour d'un soleil) : 1 000 spores / 40 s.
-   Un astre ne sert qu'a un commerce a la fois ; deux joueurs peuvent donc
-   en ouvrir plusieurs du meme niveau, autant qu'ils ont d'astres libres
-   (deux planetes chacun : deux commerces planete contre planete). Le commerce dure tant
-   qu'aucun des deux n'attaque l'autre : seule une attaque le rompt (un
-   astre perdu est remplace par un autre, s'il en reste). Une IA juge : elle refuse
-   si on l'a attaquee dans la derniere minute, ou si le demandeur est
-   nettement plus fort qu'elle. Tout passe par des ordres : meme chose chez
-   tous les joueurs en reseau. */
+   commerce lie un astre de chaque joueur (planete ou lune) ; chacun envoie a
+   l'autre, a intervalle regulier, une petite boule lumineuse qui voyage
+   lentement et donne ses spores a l'astre qui la recoit : les deux y gagnent
+   (10 spores toutes les 20 s).
+   Un seul genre de commerce : astre contre astre (les commerces de systeme
+   planetaire et solaire ont ete retires, choix du createur). Un astre peut
+   commercer UNE fois avec CHAQUE autre joueur : avec trois adversaires, la
+   planete A peut avoir trois commerces, un par joueur. Deux joueurs peuvent
+   en ouvrir autant qu'ils ont d'astres libres l'un pour l'autre.
+   Le commerce dure tant qu'aucun des deux n'attaque l'autre : seule une
+   attaque le rompt (un astre perdu est remplace par un autre, s'il en reste).
+   Une IA juge : elle refuse si on l'a attaquee dans la derniere minute, ou si
+   le demandeur est nettement plus fort qu'elle. Tout passe par des ordres :
+   meme chose chez tous les joueurs en reseau. */
 const COMMERCE_CFG = {
     niveaux: {
-        1: { nom: 'Planète contre planète', periode: 20, quantite: 10 },
-        2: { nom: 'Système planétaire', periode: 30, quantite: 100 },
-        3: { nom: 'Système solaire', periode: 40, quantite: 1000 }
+        1: { nom: 'Planète contre planète', periode: 20, quantite: 10 }
     },
     vitesseBoule: 110,
     voyageMax: 15,             /* secondes de voyage au plus */
@@ -19616,58 +19612,26 @@ function initCommerce() {
     gameState._commerceId = 0;
 }
 
-function _enCommerce(body) {
-    const C = gameState.commerces || [];
-    if (C.some(function (c) { return c.srcA === body.name || c.srcB === body.name; })) return true;
-    /* Couvert par le commerce de son systeme : une lune dont la planete
-       commerce en systeme planetaire, tout astre d'un soleil qui commerce en
-       systeme solaire. Il n'est plus libre pour un autre commerce. */
+/* L'astre a-t-il deja un commerce avec ce joueur-la ? (avec un autre, ca
+   ne compte pas : un astre commerce une fois avec chaque joueur). */
+function _enCommerce(body, avec) {
     const o = body.owner;
-    const planete = body.type === 'planet' ? body : body.parent;
-    const soleil = planete && planete.parent;
-    return C.some(function (c) {
-        const nom = c.a === o ? c.srcA : (c.b === o ? c.srcB : null);
-        if (!nom) return false;
-        if (c.niveau === 2 && planete && body !== planete && nom === planete.name) return true;
-        if (c.niveau === 3 && soleil && soleil.planets && soleil.planets.some(function (p) { return p.name === nom; })) return true;
-        return false;
+    return (gameState.commerces || []).some(function (c) {
+        return (c.a === o && c.b === avec && c.srcA === body.name) || (c.b === o && c.a === avec && c.srcB === body.name);
     });
 }
 
-/* Une planete et toutes ses lunes a ce joueur (au moins une lune). */
-function _systemePlanetaire(p, slot) {
-    if (p.type !== 'planet' || p.owner !== slot || !p.moons || !p.moons.length) return false;
-    return p.moons.every(function (m) { return m.owner === slot; });
-}
-/* Tout ce qui tourne autour de ce soleil est a ce joueur. */
-function _systemeSolaire(s, slot) {
-    if (!s.planets || !s.planets.length) return false;
-    for (const p of s.planets) {
-        if (p.owner !== slot) return false;
-        for (const m of (p.moons || [])) if (m.owner !== slot) return false;
-    }
-    return true;
-}
-
-/* Les astres qu'un joueur peut engager a ce niveau (libres de tout commerce). */
-function _astresCommerce(slot, niveau) {
+/* Les astres qu'un joueur peut engager avec 'avec' (libres de commerce
+   avec lui, hors bataille). */
+function _astresCommerce(slot, niveau, avec) {
     const j = gameState.players[slot];
     if (!j || !j.bodies) return [];
-    if (niveau === 1) return j.bodies.filter(function (b) { return !b.lutte && !_enCommerce(b); });
-    if (niveau === 2) return j.bodies.filter(function (b) { return _systemePlanetaire(b, slot) && !_enCommerce(b); });
-    /* Niveau 3 : la plus grosse planete de chaque systeme solaire complet. */
-    const r = [];
-    for (const s of gameState.suns) {
-        if (!_systemeSolaire(s, slot)) continue;
-        const pl = s.planets.slice().sort(function (a, b) { return b.radius - a.radius || (a.name < b.name ? -1 : 1); })[0];
-        if (pl && !_enCommerce(pl)) r.push(pl);
-    }
-    return r;
+    return j.bodies.filter(function (b) { return !b.lutte && !_enCommerce(b, avec); });
 }
 
 /* Les deux astres d'un commerce : ceux qui sont le plus pres l'un de l'autre. */
 function _paireCommerce(a, b, niveau) {
-    const A = _astresCommerce(a, niveau), B = _astresCommerce(b, niveau);
+    const A = _astresCommerce(a, niveau, b), B = _astresCommerce(b, niveau, a);
     let best = null, bd = Infinity;
     for (const x of A) for (const y of B) {
         const d = Math.hypot(x.x - y.x, x.y - y.y);
@@ -19682,8 +19646,9 @@ function raisonPasCommerce(a, b, niveau) {
     if (!ja || !jb || a === b) return 'impossible';
     if (!jb.alive || !jb.bodies || !jb.bodies.length) return 'joueur éliminé';
     if ((gameState.propositions || []).some(function (p) { return p.de === a && p.a === b; })) return 'proposition en attente';
-    if (!_astresCommerce(a, niveau).length) return niveau === 1 ? "vous n'avez pas d'astre libre" : niveau === 2 ? 'il vous faut une planète et toutes ses lunes' : 'il vous faut tout un système solaire';
-    if (!_astresCommerce(b, niveau).length) return niveau === 1 ? "il n'a pas d'astre libre" : niveau === 2 ? "il n'a pas de planète avec toutes ses lunes" : "il n'a pas de système solaire complet";
+    if (!COMMERCE_CFG.niveaux[niveau]) return 'impossible';
+    if (!_astresCommerce(a, niveau, b).length) return "aucun de vos astres n'est libre pour lui";
+    if (!_astresCommerce(b, niveau, a).length) return "aucun de ses astres n'est libre pour vous";
     return '';
 }
 
@@ -19752,89 +19717,6 @@ function ouvrirCommerce(a, b, niveau) {
         toastCommerce('Alliance commerciale avec ' + autre.name + ' : ' + N.nom.toLowerCase() + ' (' + paire[a === moi ? 0 : 1].name + ' ↔ ' + paire[a === moi ? 1 : 0].name + ')', '#86EFAC');
     }
     addEvent('neutral', '🤝', gameState.players[a].name + ' et ' + gameState.players[b].name + ' commercent (' + N.nom.toLowerCase() + ')', paire[0], gameState.players[a].color);
-    _fusionner(c);
-}
-
-/* LA FUSION. Quand le dernier astre libre d'un systeme planetaire entre en
-   commerce (planete et toutes ses lunes, chacune deja dans un commerce
-   planete contre planete), ses commerces fusionnent en UN commerce de
-   systeme planetaire avec le joueur du dernier commerce - si celui-ci a
-   lui aussi un systeme planetaire entier de libre (en comptant ce que la
-   fusion libere). Sinon rien ne change. Meme principe un cran plus haut :
-   tout un systeme solaire en commerce devient un commerce de systeme
-   solaire. Tant qu'il manque un astre, les commerces continuent tels quels. */
-function _commerceDe(body, slot) {
-    return (gameState.commerces || []).find(function (c) {
-        return (c.a === slot && c.srcA === body.name) || (c.b === slot && c.srcB === body.name);
-    }) || null;
-}
-function _fusionner(c) {
-    for (const [moi, autre, nom] of [[c.a, c.b, c.srcA], [c.b, c.a, c.srcB]]) {
-        const astre = astreNomme(nom);
-        if (!astre) continue;
-        const planete = astre.type === 'planet' ? astre : astre.parent;
-        if (c.niveau === 1 && planete && _systemePlanetaire(planete, moi)) {
-            const membres = [planete].concat(planete.moons);
-            const cs = membres.map(function (m) { return _commerceDe(m, moi); });
-            if (cs.every(function (x) { return x && x.niveau === 1; })) {
-                const n = _fusionVers(moi, autre, cs, 2, planete);
-                if (n) { _fusionner(n); return; }
-            }
-        }
-        const soleil = planete && planete.parent;
-        if (c.niveau <= 2 && soleil && soleil.type === 'sun' && _systemeSolaire(soleil, moi)) {
-            /* Chaque planete : en commerce de systeme planetaire (il couvre
-               ses lunes), ou bien elle et chacune de ses lunes en commerce. */
-            const cs = [];
-            let complet = true;
-            for (const p of soleil.planets) {
-                const cp = _commerceDe(p, moi);
-                if (cp && cp.niveau === 2) { cs.push(cp); continue; }
-                for (const m of [p].concat(p.moons || [])) {
-                    const cm = _commerceDe(m, moi);
-                    if (!cm || cm.niveau > 2) { complet = false; break; }
-                    cs.push(cm);
-                }
-                if (!complet) break;
-            }
-            if (complet && cs.length) {
-                const grande = soleil.planets.slice().sort(function (x, y) { return y.radius - x.radius || (x.name < y.name ? -1 : 1); })[0];
-                const n = _fusionVers(moi, autre, cs, 3, grande);
-                if (n) return;
-            }
-        }
-    }
-}
-/* Retire les commerces cs, et ouvre a leur place un commerce du niveau
-   donne entre l'astre 'ancre' (a moi) et l'astre libre le plus proche de
-   l'autre. Si l'autre n'en a pas, tout est remis comme avant. */
-function _fusionVers(moi, autre, cs, niveau, ancre) {
-    const C = gameState.commerces;
-    const avant = C.slice();
-    for (const x of cs) { const k = C.indexOf(x); if (k >= 0) C.splice(k, 1); }
-    let best = null, bd = Infinity;
-    for (const y of _astresCommerce(autre, niveau)) {
-        const d = Math.hypot(ancre.x - y.x, ancre.y - y.y);
-        if (d < bd) { bd = d; best = y; }
-    }
-    if (!best || _enCommerce(ancre)) {
-        C.length = 0;
-        for (const x of avant) C.push(x);
-        return null;
-    }
-    gameState.orbesCommerce = gameState.orbesCommerce.filter(function (o) { return !cs.some(function (x) { return x.id === o.commerce; }); });
-    const N = COMMERCE_CFG.niveaux[niveau];
-    const t = gameState.time;
-    const n = { id: ++gameState._commerceId, a: moi, b: autre, niveau: niveau, srcA: ancre.name, srcB: best.name,
-                debut: t, prochain: t, periode: N.periode, quantite: N.quantite };
-    C.push(n);
-    const loc = localSlot();
-    if (moi === loc || autre === loc) {
-        const lui = gameState.players[moi === loc ? autre : moi];
-        toastCommerce('Commerces fusionnés avec ' + lui.name + ' : ' + N.nom.toLowerCase() + ' (' + (moi === loc ? ancre.name + ' ↔ ' + best.name : best.name + ' ↔ ' + ancre.name) + ')', '#FDE68A');
-    }
-    addEvent('neutral', '🤝', gameState.players[moi].name + ' et ' + gameState.players[autre].name + ' passent au commerce : ' + N.nom.toLowerCase(), ancre, gameState.players[moi].color);
-    return n;
 }
 
 function finCommerce(c, raison, fautif, sansFenetre) {
@@ -19980,8 +19862,8 @@ function fenetreProposition(de, niveau) {
     setTimeout(function () { if (el.parentNode) el.remove(); }, 30000);
 }
 
-/* CLIC DROIT SUR UN JOUEUR : Info, ou Commerce (les trois niveaux, grises
-   quand ils ne sont pas possibles, avec la raison au survol). */
+/* CLIC DROIT SUR UN JOUEUR : Info, ou Commerce (grise quand il n'est pas
+   possible, avec la raison au survol). */
 function menuJoueur(slot, x, y) {
     fermerMenuJoueur();
     const moi = localSlot();
@@ -19999,7 +19881,7 @@ function menuJoueur(slot, x, y) {
     html += ligne('ℹ️ Info', 'info', false, '');
     if (slot !== moi && (!gameState.isMulti || gameState.lockstep)) {
         html += '<div style="padding:6px 10px 2px; font-size:10px; letter-spacing:2px; color:#A78BFA; font-family:Orbitron,sans-serif;">COMMERCE</div>';
-        for (const n of [1, 2, 3]) {
+        for (const n of [1]) {
             const N = COMMERCE_CFG.niveaux[n];
             const r = raisonPasCommerce(moi, slot, n);
             html += ligne('🤝 ' + N.nom + ' <span style="color:#94A3B8; font-size:11px;">' + N.quantite + ' sp / ' + N.periode + ' s</span>', 'c' + n, !!r, r);

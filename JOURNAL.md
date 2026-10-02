@@ -1702,6 +1702,14 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        n'est plus libre pour un autre. Essai : 15 propositions planete contre
        planete sur un systeme solaire entier -> fusions en systemes
        planetaires, puis un seul commerce de systeme solaire.
+     - COMMERCE SIMPLIFIE (choix du createur, remplace les deux points
+       ci-dessus) : il ne reste que le commerce astre contre astre (planete
+       ou lune, 10 spores / 20 s). Commerces de systeme planetaire et
+       solaire retires, fusion retiree. Un astre commerce UNE fois avec
+       CHAQUE joueur (3 adversaires : 3 commerces possibles pour la meme
+       planete) ; avec un meme joueur, autant de commerces que d'astres
+       libres l'un pour l'autre. Essai : A avec IA1 puis IA2 ok, A encore
+       avec IA1 refuse, une 2e planete B avec IA1 ok. Regles a jour.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
