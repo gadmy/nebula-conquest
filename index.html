@@ -1536,6 +1536,15 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        clic droit annule toujours. La fiche (INFOS) montre en plus les
        batiments de l'astre : alveoles, nids, biomes, et le parasite (pret
        ou en cours), mise a jour en direct. Regles et touche K a jour.
+     - BASE SUPABASE EN FICHIERS (dossier supabase/) : etat initial des
+       tables de Nebula releve sur la base en ligne (15 tables, 3 vues,
+       6 fonctions, 1 declencheur, 43 regles d'acces, droits), dans
+       supabase/migrations/20261002120000_etat_initial_nebula.sql. Verifie :
+       rejoue sur un Postgres vide, puis empreinte (supabase/signature.sql)
+       identique a la base en ligne sur 341 elements. README : regle d'or
+       (plus de changement a la main), comment faire un changement, mise en
+       route unique (migration repair), tables d'autres applis (lfs_*,
+       comptes_rendus, dossiers) laissees dehors. README du depot complete.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

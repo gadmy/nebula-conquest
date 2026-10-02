@@ -1,0 +1,9 @@
+# Configuration de l'outil Supabase (CLI) pour Nebula Conquest.
+# Voir supabase/README.md. Les valeurs absentes prennent les reglages par defaut.
+project_id = "nebula-conquest"
+
+[db]
+major_version = 17
+
+[auth]
+site_url = "https://gadmy.github.io/nebula-conquest/"
