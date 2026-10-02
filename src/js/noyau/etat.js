@@ -138,8 +138,16 @@ const gameState = {
     // ── Couleurs disponibles ──
     /* 16 couleurs : jusqu'a 16 joueurs en reseau (lockstep). Les 6 dernieres
        ne servent qu'au-dela de 10 joueurs. */
+    /* 50 couleurs : les 16 d'origine d'abord, puis 34 choisies une a une
+       pour etre le plus loin possible des precedentes (espace OKLab), et
+       assez claires pour se lire sur le fond de nuit. A 50 joueurs, deux
+       couleurs restent proches : le nom sur chaque astre tranche. */
     teamColors: ['#8B5CF6','#EC4899','#EF4444','#F97316','#EAB308','#22C55E','#06B6D4','#3B82F6','#A855F7','#F472B6',
-                 '#14B8A6','#84CC16','#E2E8F0','#B45309','#6EE7B7','#FF7F50'],
+                 '#14B8A6','#84CC16','#E2E8F0','#B45309','#6EE7B7','#FF7F50',
+                 '#288A28','#B6A5E9','#ECEC13','#28828A','#EC13EC','#E9B6A5','#C20AA3','#8A7A28','#C2940A','#A5CDE9',
+                 '#D2E9A5','#13EC13','#13DAEC','#9BE963','#DE63E9','#0A94C2','#639BE9','#E9A5D2','#A413EC','#C2750A',
+                 '#A5E9DD','#EC13B6','#E9D263','#13EC80','#C813EC','#E9A663','#EC136D','#C2C20A','#E96379','#288A61',
+                 '#E9D2A5','#6363E9','#136DEC','#6A8A28'],
 
     // ── Codex ──
     selectedBody: null,

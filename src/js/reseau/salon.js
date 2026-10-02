@@ -1,13 +1,13 @@
 /* ─────────────────────────────────────────────
    LE SALON RESEAU (bouton RESEAU de l'ecran titre)
-   - Partie rapide : 2, 4, 8 ou 16 joueurs. Le relais place le joueur dans
+   - Partie rapide : 2, 4, 8, 16 ou 50 joueurs. Le relais place le joueur dans
      la premiere partie publique de cette taille qui attend ; elle se lance
      des qu'elle est pleine, les suivants en remplissent une nouvelle.
    - Partie privee : CREER donne un code de 4 lettres a transmettre ;
      REJOINDRE avec ce code. Lancee elle aussi des qu'elle est pleine.
-   Jusqu'a 16 joueurs en tout, humains et IA (16 couleurs).
+   Jusqu'a 50 joueurs en tout, humains et IA (50 couleurs).
    ───────────────────────────────────────────── */
-const JOUEURS_MAX = 16;
+const JOUEURS_MAX = 50;
 
 function installerSalon() {
     const nb = document.getElementById('salonNb'), ia = document.getElementById('salonIa');
@@ -239,7 +239,7 @@ function quitterPartieLockstep() {
     location.href = location.pathname;
 }
 
-/* UN CLASSEMENT PAR TAILLE DE PARTIE (2, 4, 8, 16 joueurs) : les 10
+/* UN CLASSEMENT PAR TAILLE DE PARTIE (2, 4, 8, 16, 50 joueurs) : les 10
    premiers, et sa propre ligne si on n'y est pas. */
 let salonTaille = 2;
 function salonClassement(taille) {

@@ -31,6 +31,7 @@
 
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { extname, join, resolve } from 'node:path';
 import { WebSocketServer } from 'ws';
@@ -124,15 +125,29 @@ function entier(v, min, max, def) {
     return v >= min && v <= max ? v : def;
 }
 
-/* Jusqu'a 16 joueurs, humains et IA : le jeu a 16 couleurs. */
-const JOUEURS_MAX = 16;
-/* Planetes de chaque carte de la bibliotheque du jeu (MAP_LIBRARY), pour en
-   choisir une assez grande : au moins deux planetes par joueur. */
-const PLANETES_CARTE = [5, 5, 16, 10, 17, 7, 12, 7, 6, 5, 13, 21, 17, 49, 47];
+/* Jusqu'a 50 joueurs, humains et IA : le jeu a 50 couleurs. */
+const JOUEURS_MAX = 50;
+/* Planetes de chaque carte de la bibliotheque du jeu (MAP_LIBRARY), lues
+   dans le fichier des cartes au demarrage : une carte ajoutee y est prise en
+   compte toute seule (railway.json relance le relais quand ce fichier
+   change). A defaut, la liste connue le 2 octobre 2026. */
+let PLANETES_CARTE = [5, 5, 16, 10, 17, 7, 12, 7, 6, 5, 13, 21, 17, 49, 47];
+try {
+    const txt = readFileSync(new URL('../src/js/donnees/cartes.js', import.meta.url), 'utf8');
+    const m = txt.match(/const MAP_LIBRARY\s*=\s*(\[[\s\S]*?\n\]);/);
+    if (m) {
+        const liste = JSON.parse(m[1]);
+        if (Array.isArray(liste) && liste.length) PLANETES_CARTE = liste.map(c => (c.suns || []).reduce((s, u) => s + ((u.planets || []).length), 0));
+    }
+} catch (e) { console.log('Cartes : liste par defaut (' + e.message + ')'); }
+/* Une carte assez grande : au moins deux planetes par joueur ; a defaut
+   (grandes parties), au moins une ; sinon la plus grande. */
 function carteAuHasard(total) {
-    const ok = PLANETES_CARTE.map((p, i) => [p, i]).filter(([p]) => p >= total * 2).map(([, i]) => i);
-    if (!ok.length) return PLANETES_CARTE.indexOf(Math.max(...PLANETES_CARTE));
-    return ok[Math.floor(Math.random() * ok.length)];
+    for (const parJoueur of [2, 1]) {
+        const ok = PLANETES_CARTE.map((p, i) => [p, i]).filter(([p]) => p >= total * parJoueur).map(([, i]) => i);
+        if (ok.length) return ok[Math.floor(Math.random() * ok.length)];
+    }
+    return PLANETES_CARTE.indexOf(Math.max(...PLANETES_CARTE));
 }
 
 /* Code de partie privee : 4 lettres, sans celles qu'on confond (I, O). */
@@ -154,7 +169,7 @@ function nouvelleSalle(nom, m, options) {
         public: !!options.public,
         reglages: {
             joueurs, ia,
-            carte: m.carte !== undefined && m.carte !== null && m.carte !== '' ? entier(m.carte, 0, 14, 6) : carteAuHasard(joueurs + ia),
+            carte: m.carte !== undefined && m.carte !== null && m.carte !== '' ? entier(m.carte, 0, PLANETES_CARTE.length - 1, 6) : carteAuHasard(joueurs + ia),
             difficulte: ['easy', 'normal', 'hard', 'brutal'].includes(m.difficulte) ? m.difficulte : 'normal',
         },
     };

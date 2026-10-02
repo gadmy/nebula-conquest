@@ -5,7 +5,8 @@
       "outils/relais.mjs",
       "package.json",
       "package-lock.json",
-      "railway.json"
+      "railway.json",
+      "src/js/donnees/cartes.js"
     ]
   }
 }

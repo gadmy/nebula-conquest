@@ -296,12 +296,20 @@ function updateScoreBoard() {
     // Calculer un hash rapide pour éviter innerHTML inutile
     let hash = '';
     let html = '';
-    for (const player of gameState.players) {
+    /* Grande partie (plus de 16 joueurs) : du plus grand au plus petit, les
+       elimines a la fin ; la liste defile (#scoreBoard, jeu.css). */
+    let liste = gameState.players;
+    if (liste.length > 16) {
+        liste = liste.slice().sort(function (a, b) {
+            return ((b.bodies ? b.bodies.length : 0) - (a.bodies ? a.bodies.length : 0)) || (a.id - b.id);
+        });
+    }
+    for (const player of liste) {
         const owned = player.bodies ? player.bodies.length : 0;
         const pct = totalBodies > 0 ? Math.round((owned / totalBodies) * 100) : 0;
         const _et = _etoilesCommerce(player);
         hash += player.id + ':' + pct + ':' + _et.cle + ',';
-        html += `<div class="score-row" data-slot="${player.id}" title="Clic droit : info / commerce">
+        html += `<div class="score-row${player.id === localSlot() ? ' moi' : ''}" data-slot="${player.id}" title="Clic droit : info / commerce">
             <div class="score-color" style="background:${player.color}"></div>
             <span class="score-name">${player.name}${player.guildTag ? ' <span style="color:rgba(251,146,60,0.6);font-size:10px;">['+player.guildTag+']</span>' : ''}</span>${_et.html}
             <div class="score-bar-bg"><div class="score-bar" style="width:${pct}%;background:${player.color}"></div></div>

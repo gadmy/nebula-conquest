@@ -1830,6 +1830,10 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 .score-row .score-name { margin-right: 8px; }
 .score-etoiles small { font-size: 8px; margin-right: 2px; }
 .score-etoiles { flex-shrink: 0; margin: 0 6px 0 -4px; font-size: 9px; letter-spacing: 0; white-space: nowrap; text-shadow: 0 0 3px rgba(0,0,0,0.7); }
+
+/* Tableau des scores : au-dela d'une quinzaine de joueurs, il defile. */
+#scoreBoard { max-height: 300px; overflow-y: auto; overscroll-behavior: contain; }
+#scoreBoard .score-row.moi .score-name { color: #F5F3FF; font-weight: 600; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -1899,6 +1903,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
                     <button class="btn salon-rapide" data-n="4" style="flex:1; margin:0; padding:10px 0; font-size:12px;">4</button>
                     <button class="btn salon-rapide" data-n="8" style="flex:1; margin:0; padding:10px 0; font-size:12px;">8</button>
                     <button class="btn salon-rapide" data-n="16" style="flex:1; margin:0; padding:10px 0; font-size:12px;">16</button>
+                    <button class="btn salon-rapide" data-n="50" style="flex:1; margin:0; padding:10px 0; font-size:12px;">50</button>
                 </div>
                 <div class="salon-aide" style="margin:4px 0 0;">joueurs</div>
             </div>
@@ -1922,6 +1927,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
                 <button class="btn salon-taille" data-n="4" style="margin:0; padding:4px 10px; font-size:11px;">4 J</button>
                 <button class="btn salon-taille" data-n="8" style="margin:0; padding:4px 10px; font-size:11px;">8 J</button>
                 <button class="btn salon-taille" data-n="16" style="margin:0; padding:4px 10px; font-size:11px;">16 J</button>
+                <button class="btn salon-taille" data-n="50" style="margin:0; padding:4px 10px; font-size:11px;">50 J</button>
             </div>
             <div id="salonClassement" style="max-height:170px; overflow-y:auto; font-size:12px; text-align:left;"></div>
         </div>
@@ -2319,7 +2325,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
 <p style="margin-bottom:6px;">Le bouton <span style="color:#E9D5FF;">MULTIJOUEUR</span> du menu propose deux façons de jouer :</p>
-<p style="margin-bottom:6px;"><span style="color:#4ADE80;">🎲 AU HASARD</span> : choisissez 2, 4, 8 ou 16 joueurs ; vous rejoignez une partie qui démarre dès qu'elle est pleine. Partie <b>classée (ELO)</b> si vous êtes connecté — le classement de chaque taille s'affiche en dessous.</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">🎲 AU HASARD</span> : choisissez 2, 4, 8, 16 ou 50 joueurs ; vous rejoignez une partie qui démarre dès qu'elle est pleine. Partie <b>classée (ELO)</b> si vous êtes connecté — le classement de chaque taille s'affiche en dessous.</p>
 <p style="margin-bottom:6px;"><span style="color:#FCD34D;">✉️ ENTRE AMIS</span> : choisissez le nombre de joueurs et d'IA, puis CRÉER. La partie affiche un <b>code</b> de 4 lettres et un bouton <b>COPIER LE LIEN D'INVITATION</b> : l'ami qui ouvre le lien arrive directement dans la partie ; il peut aussi taper le code puis REJOINDRE. Les places vides peuvent être prises par des IA.</p>
 <p style="margin-bottom:6px;">Tout le monde voit exactement la même partie. Il faut la <b>même version du jeu</b> : si un joueur a une ancienne version, il est prévenu et doit recharger la page. Si vous perdez la connexion ou rechargez la page, le bouton <span style="color:#E9D5FF;">REPRENDRE</span> du menu vous ramène dans la partie en cours, en quelques secondes : votre navigateur garde une photo de la partie toutes les 30 secondes de jeu.</p>
 <p style="margin-bottom:16px;">Les joueurs IA portent des noms générés (ex. [IA] Zyrex, [IA] Vorath…). En réseau, une partie se termine aussi à 80 % des astres ou quand il ne reste qu'un joueur en vie.</p>
@@ -2364,7 +2370,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
         </div>
         <div class="config-row">
             <label>Joueurs IA</label>
-            <input type="range" id="cfgPlayers" min="1" max="8" value="3">
+            <input type="range" id="cfgPlayers" min="1" max="49" value="3">
             <span class="val" id="cfgPlayersVal">3</span>
         </div>
         <div class="config-row">
@@ -2830,8 +2836,16 @@ const gameState = {
     // ── Couleurs disponibles ──
     /* 16 couleurs : jusqu'a 16 joueurs en reseau (lockstep). Les 6 dernieres
        ne servent qu'au-dela de 10 joueurs. */
+    /* 50 couleurs : les 16 d'origine d'abord, puis 34 choisies une a une
+       pour etre le plus loin possible des precedentes (espace OKLab), et
+       assez claires pour se lire sur le fond de nuit. A 50 joueurs, deux
+       couleurs restent proches : le nom sur chaque astre tranche. */
     teamColors: ['#8B5CF6','#EC4899','#EF4444','#F97316','#EAB308','#22C55E','#06B6D4','#3B82F6','#A855F7','#F472B6',
-                 '#14B8A6','#84CC16','#E2E8F0','#B45309','#6EE7B7','#FF7F50'],
+                 '#14B8A6','#84CC16','#E2E8F0','#B45309','#6EE7B7','#FF7F50',
+                 '#288A28','#B6A5E9','#ECEC13','#28828A','#EC13EC','#E9B6A5','#C20AA3','#8A7A28','#C2940A','#A5CDE9',
+                 '#D2E9A5','#13EC13','#13DAEC','#9BE963','#DE63E9','#0A94C2','#639BE9','#E9A5D2','#A413EC','#C2750A',
+                 '#A5E9DD','#EC13B6','#E9D263','#13EC80','#C813EC','#E9A663','#EC136D','#C2C20A','#E96379','#288A61',
+                 '#E9D2A5','#6363E9','#136DEC','#6A8A28'],
 
     // ── Codex ──
     selectedBody: null,
@@ -6239,17 +6253,16 @@ function setupUI() {
         const val = cfgMap.value;
         if (val === 'random') {
             // En mode aléatoire : prendre le max parmi toutes les cartes
-            const maxAll = MAP_LIBRARY.reduce((best, m) => {
-                const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
-                return Math.max(best, np <= 10 ? np : np + 5);
-            }, 2);
-            cfgPlayers.max = maxAll - 1;
+            /* Une planete de depart par joueur, 50 joueurs au plus (49 IA) :
+               le depart prendra une carte assez grande. */
+            const maxAll = MAP_LIBRARY.reduce((best, m) => Math.max(best, m.suns.reduce((a,s)=>a+s.planets.length,0)), 2);
+            cfgPlayers.max = Math.min(49, maxAll - 1);
             return;
         }
         const mapIdx = parseInt(val) || 0;
         const m = MAP_LIBRARY[mapIdx];
         const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
-        const maxP = Math.max(1, (np <= 10 ? np : np + 5) - 1);
+        const maxP = Math.min(49, Math.max(1, np - 1));
         cfgPlayers.max = maxP;
         if (parseInt(cfgPlayers.value) > maxP) {
             cfgPlayers.value = maxP;
@@ -7249,7 +7262,17 @@ function startGame() {
         gameState.config.cleanerCount = parseInt(document.getElementById('cfgCleaners').value);
         gameState.config.useComets = document.getElementById('cfgComets').value === 'on';
         const mapSel = document.getElementById('cfgMap').value;
-        gameState.config.mapIndex = mapSel === 'random' ? Math.floor(Math.random() * MAP_LIBRARY.length) : parseInt(mapSel);
+        /* Carte au hasard : parmi celles qui ont assez de planetes pour tout
+           le monde (deux par joueur, a defaut une, sinon la plus grande). */
+        if (mapSel === 'random') {
+            const nPl = MAP_LIBRARY.map(function (m) { return m.suns.reduce(function (a, s) { return a + s.planets.length; }, 0); });
+            let ok = [];
+            for (const parJ of [2, 1]) {
+                ok = nPl.map(function (n, i) { return [n, i]; }).filter(function (x) { return x[0] >= gameState.config.playerCount * parJ; }).map(function (x) { return x[1]; });
+                if (ok.length) break;
+            }
+            gameState.config.mapIndex = ok.length ? ok[Math.floor(Math.random() * ok.length)] : nPl.indexOf(Math.max.apply(null, nPl));
+        } else gameState.config.mapIndex = parseInt(mapSel);
     }
 
     // Générer l'univers avec progression
@@ -8937,7 +8960,10 @@ function finishMultiSpawn() {
     setPhase('game');
 }
 
-const AI_NAMES = ['Zyrex','Vorath','Nex','Kael','Draven','Syx','Torvan','Umek','Xael','Phryx','Corvus','Zalith','Nekron','Vreth','Oxar','Juvek','Thyron','Blaze','Mordax','Cynth'];
+/* 60 noms : assez pour une partie a 50 sans doublon. */
+const AI_NAMES = ['Zyrex','Vorath','Nex','Kael','Draven','Syx','Torvan','Umek','Xael','Phryx','Corvus','Zalith','Nekron','Vreth','Oxar','Juvek','Thyron','Blaze','Mordax','Cynth',
+                  'Kryos','Velun','Ozric','Tharn','Ysolde','Quorx','Brakk','Lumen','Sarth','Ixion','Mireth','Gorval','Fenrix','Halcy','Druum','Azoth','Vexa','Orlon','Skarn','Nyx',
+                  'Talos','Ebrin','Cazor','Ulmir','Rhaxx','Pyrel','Zorin','Kelth','Imrah','Vosk','Arden','Glyx','Morrow','Sablon','Tyrr','Quill','Ostra','Bexil','Jorun','Elvar'];
 const _usedAiNames = new Set();
 function randomAiName() {
     const available = AI_NAMES.filter(n => !_usedAiNames.has(n));
@@ -9844,12 +9870,20 @@ function updateScoreBoard() {
     // Calculer un hash rapide pour éviter innerHTML inutile
     let hash = '';
     let html = '';
-    for (const player of gameState.players) {
+    /* Grande partie (plus de 16 joueurs) : du plus grand au plus petit, les
+       elimines a la fin ; la liste defile (#scoreBoard, jeu.css). */
+    let liste = gameState.players;
+    if (liste.length > 16) {
+        liste = liste.slice().sort(function (a, b) {
+            return ((b.bodies ? b.bodies.length : 0) - (a.bodies ? a.bodies.length : 0)) || (a.id - b.id);
+        });
+    }
+    for (const player of liste) {
         const owned = player.bodies ? player.bodies.length : 0;
         const pct = totalBodies > 0 ? Math.round((owned / totalBodies) * 100) : 0;
         const _et = _etoilesCommerce(player);
         hash += player.id + ':' + pct + ':' + _et.cle + ',';
-        html += `<div class="score-row" data-slot="${player.id}" title="Clic droit : info / commerce">
+        html += `<div class="score-row${player.id === localSlot() ? ' moi' : ''}" data-slot="${player.id}" title="Clic droit : info / commerce">
             <div class="score-color" style="background:${player.color}"></div>
             <span class="score-name">${player.name}${player.guildTag ? ' <span style="color:rgba(251,146,60,0.6);font-size:10px;">['+player.guildTag+']</span>' : ''}</span>${_et.html}
             <div class="score-bar-bg"><div class="score-bar" style="width:${pct}%;background:${player.color}"></div></div>
@@ -15413,14 +15447,14 @@ function mesurerReseau(L, n) {
 
 /* ─────────────────────────────────────────────
    LE SALON RESEAU (bouton RESEAU de l'ecran titre)
-   - Partie rapide : 2, 4, 8 ou 16 joueurs. Le relais place le joueur dans
+   - Partie rapide : 2, 4, 8, 16 ou 50 joueurs. Le relais place le joueur dans
      la premiere partie publique de cette taille qui attend ; elle se lance
      des qu'elle est pleine, les suivants en remplissent une nouvelle.
    - Partie privee : CREER donne un code de 4 lettres a transmettre ;
      REJOINDRE avec ce code. Lancee elle aussi des qu'elle est pleine.
-   Jusqu'a 16 joueurs en tout, humains et IA (16 couleurs).
+   Jusqu'a 50 joueurs en tout, humains et IA (50 couleurs).
    ───────────────────────────────────────────── */
-const JOUEURS_MAX = 16;
+const JOUEURS_MAX = 50;
 
 function installerSalon() {
     const nb = document.getElementById('salonNb'), ia = document.getElementById('salonIa');
@@ -15652,7 +15686,7 @@ function quitterPartieLockstep() {
     location.href = location.pathname;
 }
 
-/* UN CLASSEMENT PAR TAILLE DE PARTIE (2, 4, 8, 16 joueurs) : les 10
+/* UN CLASSEMENT PAR TAILLE DE PARTIE (2, 4, 8, 16, 50 joueurs) : les 10
    premiers, et sa propre ligne si on n'y est pas. */
 let salonTaille = 2;
 function salonClassement(taille) {

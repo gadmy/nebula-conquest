@@ -21,17 +21,16 @@ function setupUI() {
         const val = cfgMap.value;
         if (val === 'random') {
             // En mode aléatoire : prendre le max parmi toutes les cartes
-            const maxAll = MAP_LIBRARY.reduce((best, m) => {
-                const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
-                return Math.max(best, np <= 10 ? np : np + 5);
-            }, 2);
-            cfgPlayers.max = maxAll - 1;
+            /* Une planete de depart par joueur, 50 joueurs au plus (49 IA) :
+               le depart prendra une carte assez grande. */
+            const maxAll = MAP_LIBRARY.reduce((best, m) => Math.max(best, m.suns.reduce((a,s)=>a+s.planets.length,0)), 2);
+            cfgPlayers.max = Math.min(49, maxAll - 1);
             return;
         }
         const mapIdx = parseInt(val) || 0;
         const m = MAP_LIBRARY[mapIdx];
         const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
-        const maxP = Math.max(1, (np <= 10 ? np : np + 5) - 1);
+        const maxP = Math.min(49, Math.max(1, np - 1));
         cfgPlayers.max = maxP;
         if (parseInt(cfgPlayers.value) > maxP) {
             cfgPlayers.value = maxP;
@@ -1031,7 +1030,17 @@ function startGame() {
         gameState.config.cleanerCount = parseInt(document.getElementById('cfgCleaners').value);
         gameState.config.useComets = document.getElementById('cfgComets').value === 'on';
         const mapSel = document.getElementById('cfgMap').value;
-        gameState.config.mapIndex = mapSel === 'random' ? Math.floor(Math.random() * MAP_LIBRARY.length) : parseInt(mapSel);
+        /* Carte au hasard : parmi celles qui ont assez de planetes pour tout
+           le monde (deux par joueur, a defaut une, sinon la plus grande). */
+        if (mapSel === 'random') {
+            const nPl = MAP_LIBRARY.map(function (m) { return m.suns.reduce(function (a, s) { return a + s.planets.length; }, 0); });
+            let ok = [];
+            for (const parJ of [2, 1]) {
+                ok = nPl.map(function (n, i) { return [n, i]; }).filter(function (x) { return x[0] >= gameState.config.playerCount * parJ; }).map(function (x) { return x[1]; });
+                if (ok.length) break;
+            }
+            gameState.config.mapIndex = ok.length ? ok[Math.floor(Math.random() * ok.length)] : nPl.indexOf(Math.max.apply(null, nPl));
+        } else gameState.config.mapIndex = parseInt(mapSel);
     }
 
     // Générer l'univers avec progression

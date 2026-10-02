@@ -1807,3 +1807,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 .score-row .score-name { margin-right: 8px; }
 .score-etoiles small { font-size: 8px; margin-right: 2px; }
 .score-etoiles { flex-shrink: 0; margin: 0 6px 0 -4px; font-size: 9px; letter-spacing: 0; white-space: nowrap; text-shadow: 0 0 3px rgba(0,0,0,0.7); }
+
+/* Tableau des scores : au-dela d'une quinzaine de joueurs, il defile. */
+#scoreBoard { max-height: 300px; overflow-y: auto; overscroll-behavior: contain; }
+#scoreBoard .score-row.moi .score-name { color: #F5F3FF; font-weight: 600; }

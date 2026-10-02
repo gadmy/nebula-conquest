@@ -1367,7 +1367,10 @@ function finishMultiSpawn() {
     setPhase('game');
 }
 
-const AI_NAMES = ['Zyrex','Vorath','Nex','Kael','Draven','Syx','Torvan','Umek','Xael','Phryx','Corvus','Zalith','Nekron','Vreth','Oxar','Juvek','Thyron','Blaze','Mordax','Cynth'];
+/* 60 noms : assez pour une partie a 50 sans doublon. */
+const AI_NAMES = ['Zyrex','Vorath','Nex','Kael','Draven','Syx','Torvan','Umek','Xael','Phryx','Corvus','Zalith','Nekron','Vreth','Oxar','Juvek','Thyron','Blaze','Mordax','Cynth',
+                  'Kryos','Velun','Ozric','Tharn','Ysolde','Quorx','Brakk','Lumen','Sarth','Ixion','Mireth','Gorval','Fenrix','Halcy','Druum','Azoth','Vexa','Orlon','Skarn','Nyx',
+                  'Talos','Ebrin','Cazor','Ulmir','Rhaxx','Pyrel','Zorin','Kelth','Imrah','Vosk','Arden','Glyx','Morrow','Sablon','Tyrr','Quill','Ostra','Bexil','Jorun','Elvar'];
 const _usedAiNames = new Set();
 function randomAiName() {
     const available = AI_NAMES.filter(n => !_usedAiNames.has(n));

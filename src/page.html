@@ -91,6 +91,7 @@
                     <button class="btn salon-rapide" data-n="4" style="flex:1; margin:0; padding:10px 0; font-size:12px;">4</button>
                     <button class="btn salon-rapide" data-n="8" style="flex:1; margin:0; padding:10px 0; font-size:12px;">8</button>
                     <button class="btn salon-rapide" data-n="16" style="flex:1; margin:0; padding:10px 0; font-size:12px;">16</button>
+                    <button class="btn salon-rapide" data-n="50" style="flex:1; margin:0; padding:10px 0; font-size:12px;">50</button>
                 </div>
                 <div class="salon-aide" style="margin:4px 0 0;">joueurs</div>
             </div>
@@ -114,6 +115,7 @@
                 <button class="btn salon-taille" data-n="4" style="margin:0; padding:4px 10px; font-size:11px;">4 J</button>
                 <button class="btn salon-taille" data-n="8" style="margin:0; padding:4px 10px; font-size:11px;">8 J</button>
                 <button class="btn salon-taille" data-n="16" style="margin:0; padding:4px 10px; font-size:11px;">16 J</button>
+                <button class="btn salon-taille" data-n="50" style="margin:0; padding:4px 10px; font-size:11px;">50 J</button>
             </div>
             <div id="salonClassement" style="max-height:170px; overflow-y:auto; font-size:12px; text-align:left;"></div>
         </div>
@@ -511,7 +513,7 @@
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
 <p style="margin-bottom:6px;">Le bouton <span style="color:#E9D5FF;">MULTIJOUEUR</span> du menu propose deux façons de jouer :</p>
-<p style="margin-bottom:6px;"><span style="color:#4ADE80;">🎲 AU HASARD</span> : choisissez 2, 4, 8 ou 16 joueurs ; vous rejoignez une partie qui démarre dès qu'elle est pleine. Partie <b>classée (ELO)</b> si vous êtes connecté — le classement de chaque taille s'affiche en dessous.</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">🎲 AU HASARD</span> : choisissez 2, 4, 8, 16 ou 50 joueurs ; vous rejoignez une partie qui démarre dès qu'elle est pleine. Partie <b>classée (ELO)</b> si vous êtes connecté — le classement de chaque taille s'affiche en dessous.</p>
 <p style="margin-bottom:6px;"><span style="color:#FCD34D;">✉️ ENTRE AMIS</span> : choisissez le nombre de joueurs et d'IA, puis CRÉER. La partie affiche un <b>code</b> de 4 lettres et un bouton <b>COPIER LE LIEN D'INVITATION</b> : l'ami qui ouvre le lien arrive directement dans la partie ; il peut aussi taper le code puis REJOINDRE. Les places vides peuvent être prises par des IA.</p>
 <p style="margin-bottom:6px;">Tout le monde voit exactement la même partie. Il faut la <b>même version du jeu</b> : si un joueur a une ancienne version, il est prévenu et doit recharger la page. Si vous perdez la connexion ou rechargez la page, le bouton <span style="color:#E9D5FF;">REPRENDRE</span> du menu vous ramène dans la partie en cours, en quelques secondes : votre navigateur garde une photo de la partie toutes les 30 secondes de jeu.</p>
 <p style="margin-bottom:16px;">Les joueurs IA portent des noms générés (ex. [IA] Zyrex, [IA] Vorath…). En réseau, une partie se termine aussi à 80 % des astres ou quand il ne reste qu'un joueur en vie.</p>
@@ -556,7 +558,7 @@
         </div>
         <div class="config-row">
             <label>Joueurs IA</label>
-            <input type="range" id="cfgPlayers" min="1" max="8" value="3">
+            <input type="range" id="cfgPlayers" min="1" max="49" value="3">
             <span class="val" id="cfgPlayersVal">3</span>
         </div>
         <div class="config-row">

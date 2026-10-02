@@ -1710,6 +1710,25 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        planete) ; avec un meme joueur, autant de commerces que d'astres
        libres l'un pour l'autre. Essai : A avec IA1 puis IA2 ok, A encore
        avec IA1 refuse, une 2e planete B avec IA1 ok. Regles a jour.
+     - PARTIES A 50 JOUEURS :
+       - 50 couleurs (les 16 d'origine + 34 choisies une a une pour etre le
+         plus loin possible des autres en OKLab, assez claires sur la nuit) ;
+         60 noms d'IA (plus de doublons).
+       - Limites : solo jusqu'a 49 IA (une planete de depart par joueur ; la
+         carte au hasard en prend une assez grande) ; reseau jusqu'a 50
+         (salon, relais) ; partie rapide et classement « 50 ».
+       - Relais : il lit le nombre de planetes de chaque carte dans
+         src/js/donnees/cartes.js au demarrage (une nouvelle carte compte
+         toute seule) ; railway.json le relance aussi quand ce fichier change.
+       - Tableau des scores : au-dela de 16 joueurs, trie du plus grand au
+         plus petit et defile ; sa propre ligne en clair.
+       - Base : migration 20261002150000_parties_50_joueurs (classement ELO
+         taille 50, garde-fou des parties jusqu'a 50 joueurs et 50 soleils) a
+         lancer par l'utilisateur dans l'editeur SQL (confirmation requise).
+       - Essais : solo 49 joueurs (49 couleurs et noms differents, 2-3 ms
+         par tour) ; reseau 2 humains + 47 IA identiques, reprise ok.
+         Editeur de carte (F2) verifie. Les plus grandes cartes ont 49
+         planetes : 50 joueurs demanderont une carte plus grande.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
