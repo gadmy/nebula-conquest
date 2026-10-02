@@ -1,0 +1,1799 @@
+/* ══════════════════════════════════════════════
+   NEBULA CONQUEST — CSS
+   ══════════════════════════════════════════════ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: 'Exo 2', sans-serif;
+    color: #ccc;
+    user-select: none;
+}
+
+canvas#gameCanvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    cursor: grab;
+    /* Positionne pour passer AU-DESSUS des couches de fond, qui sont en
+       z-index negatif. */
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Fond spatial : deux couches deplacees par le compositeur ── */
+#fondDegrade, #fondEtoiles, #fondEtoiles2, #fondEtoiles3 {
+    position: fixed;
+    top: 0;
+    left: 0;
+    /* z-index 0 et non -1 : html porte deja un fond noir, donc celui du body
+       ne remonte pas a la racine et se peint APRES les couches a z-index
+       negatif - il les recouvrait entierement. Au-dessus du fond du body,
+       sous le canevas de jeu, tout se voit. */
+    z-index: 0;
+    pointer-events: none;
+    transform-origin: 0 0;
+    will-change: transform;
+    display: none;
+}
+#fondDegrade { width: 2048px; height: 2048px; }
+#fondEtoiles, #fondEtoiles2, #fondEtoiles3 { background-repeat: repeat; }
+
+/* ── Halos des soleils : meme principe, une couche par soleil, au-dessus du
+   fond (plus loin dans la page) et sous le canevas de jeu ── */
+/* La cinematique HISTOIRE : images qui se fondent, lent zoom, texte en bas. */
+#histoire { position: fixed; inset: 0; z-index: 2000; background: #000; overflow: hidden; cursor: pointer; opacity: 0; transition: opacity 0.45s; }
+#histoire.hi-visible { opacity: 1; }
+#histoire .hi-image { position: absolute; inset: -2%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.4s ease; }
+#histoire .hi-image.hi-active { opacity: 1; }
+#histoire .hi-zoom-a { animation: hiZoomA 16s ease-out forwards; }
+#histoire .hi-zoom-b { animation: hiZoomB 16s ease-out forwards; }
+@keyframes hiZoomA { from { transform: scale(1.0) translate(0, 0); } to { transform: scale(1.12) translate(-1.5%, -1%); } }
+@keyframes hiZoomB { from { transform: scale(1.12) translate(1.5%, 1%); } to { transform: scale(1.0) translate(0, 0); } }
+#histoire .hi-voile { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.82) 100%); pointer-events: none; }
+#histoire .hi-bas { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 16px 26px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+#histoire .hi-titre { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 3px; color: #FDE68A; text-transform: uppercase; margin-bottom: 8px;
+    opacity: 0; transform: translateY(8px); transition: opacity 0.8s 0.5s, transform 0.8s 0.5s; text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+#histoire .hi-texte { font-family: 'Exo 2', sans-serif; font-size: clamp(16px, 2.1vw, 23px); line-height: 1.5; color: #F8FAFC; max-width: 900px;
+    opacity: 0; transform: translateY(10px); transition: opacity 1s 0.9s, transform 1s 0.9s; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
+#histoire .hi-texte-visible .hi-titre, #histoire .hi-texte-visible .hi-texte { opacity: 1; transform: none; }
+#histoire .hi-points { display: flex; gap: 7px; margin-top: 16px; }
+#histoire .hi-points span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 0.3s, transform 0.3s; }
+#histoire .hi-points span.hi-on { background: #FDE68A; transform: scale(1.35); }
+#histoire .hi-passer { position: absolute; top: 16px; right: 16px; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.3); color: #E2E8F0;
+    font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 2px; padding: 7px 14px; border-radius: 6px; cursor: pointer; }
+#histoire .hi-fleche { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.3); border: none; color: rgba(255,255,255,0.7);
+    font-size: 34px; width: 44px; height: 64px; border-radius: 8px; cursor: pointer; }
+#histoire .hi-prec { left: 12px; } #histoire .hi-suiv { right: 12px; }
+#histoire .hi-fin { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: rgba(4,6,20,0.72); }
+#histoire.hi-fini .hi-fin { display: flex; }
+#histoire.hi-fini .hi-bas { opacity: 0; }
+#histoire .hi-fin-titre { font-family: 'Orbitron', sans-serif; font-size: clamp(26px, 5vw, 56px); letter-spacing: 8px; color: #E9D5FF; text-shadow: 0 0 30px rgba(168,85,247,0.7); }
+
+/* La fenetre MULTIJOUEUR : deux cartes (au hasard, entre amis). */
+#salonReseau .salon-carte { background: rgba(30,27,75,0.55); border: 1px solid rgba(139,92,246,0.3); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; text-align: center; }
+#salonReseau .salon-titre { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 2px; color: #E9D5FF; margin-bottom: 6px; }
+#salonReseau .salon-aide { font-size: 12px; color: #94A3B8; margin-bottom: 10px; line-height: 1.4; }
+#salonInvit { background: rgba(253,230,138,0.08); border: 1px solid rgba(253,230,138,0.4); border-radius: 10px; padding: 12px; margin-top: 4px; }
+#salonInvit .si-code { font-family: 'Orbitron', sans-serif; font-size: 30px; letter-spacing: 10px; color: #FDE68A; margin: 4px 0 8px; }
+
+/* Le choix du regime politique : neuf cartes. */
+#ecranRegime { position: fixed; inset: 0; z-index: 990; background: rgba(5,8,25,0.9); overflow-y: auto;
+    display: flex; flex-direction: column; align-items: center; padding: 22px 16px 30px; box-sizing: border-box; font-family: 'Exo 2', sans-serif; color: #E0E7FF; }
+#ecranRegime .rg-titre { font-family: 'Orbitron', sans-serif; font-size: 22px; letter-spacing: 4px; color: #E9D5FF; text-shadow: 0 0 18px rgba(168,85,247,0.5); text-align: center; }
+#ecranRegime .rg-sous { font-size: 13px; color: #A5B4FC; margin-top: 6px; text-align: center; max-width: 640px; line-height: 1.5; }
+#ecranRegime .rg-info { font-family: 'Orbitron', sans-serif; font-size: 12px; color: #FDE68A; min-height: 18px; margin: 8px 0 12px; text-align: center; }
+#ecranRegime .rg-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 220px)); gap: 14px; justify-content: center; width: 100%; }
+@media (max-width: 760px) { #ecranRegime .rg-grille { grid-template-columns: repeat(2, minmax(0, 220px)); } }
+#ecranRegime .rg-carte { background: linear-gradient(180deg, rgba(30,27,75,0.95), rgba(12,10,36,0.95)); border: 1px solid rgba(139,92,246,0.35);
+    border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; display: flex; flex-direction: column; }
+#ecranRegime .rg-carte:hover { transform: translateY(-3px); border-color: rgba(196,181,253,0.8); box-shadow: 0 6px 24px rgba(139,92,246,0.3); }
+#ecranRegime .rg-carte.rg-choisie { border-color: #FDE68A; box-shadow: 0 0 0 2px #FDE68A, 0 0 28px rgba(253,230,138,0.35); }
+#ecranRegime .rg-image { position: relative; height: 118px; background: radial-gradient(circle at 50% 40%, rgba(139,92,246,0.35), rgba(15,12,40,0.9));
+    display: flex; align-items: center; justify-content: center; }
+#ecranRegime .rg-image img { position: absolute; inset: 6px 0; width: 100%; height: calc(100% - 12px); object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.45)); }
+#ecranRegime .rg-logo .rg-icone { visibility: hidden; }
+#ecranRegime .rg-icone { font-size: 46px; filter: drop-shadow(0 0 10px rgba(196,181,253,0.5)); }
+#ecranRegime .rg-nom { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 1.5px; color: #F5F3FF; padding: 10px 12px 4px; }
+#ecranRegime .rg-texte { font-size: 12px; color: #A5B4FC; padding: 0 12px 6px; line-height: 1.4; }
+#ecranRegime .rg-pourquoi { font-size: 11px; font-style: italic; color: #C4B5FD; opacity: 0.8; padding: 0 12px 10px; line-height: 1.4; flex: 1; }
+#ecranRegime .rg-stats { display: flex; justify-content: space-around; border-top: 1px solid rgba(139,92,246,0.25); padding: 8px 6px; background: rgba(0,0,0,0.25); }
+#ecranRegime .rg-stat { display: flex; flex-direction: column; align-items: center; font-size: 13px; gap: 1px; }
+#ecranRegime .rg-stat b { font-family: 'Orbitron', sans-serif; font-size: 12px; }
+#ecranRegime .rg-zero span { opacity: 0.35; }
+
+#halosSoleils {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+    display: none;
+}
+#halosSoleils canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+
+canvas#gameCanvas.grabbing {
+    cursor: grabbing;
+}
+
+/* ── HUD overlay (préparé pour étape 4) ── */
+#hud {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* ── FPS counter (debug) ── */
+/* ── Tooltip build modes ── */
+.build-mode-tooltip {
+    position: fixed;
+    z-index: 200;
+    background: rgba(10,8,35,0.95);
+    border: 1px solid rgba(100,70,180,0.4);
+    border-radius: 5px;
+    padding: 4px 8px;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 10px;
+    color: #E2D9F3;
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.build-mode-tooltip.visible { opacity: 1; }
+
+/* ── Top-right : UI size + FPS ── */
+#topRight {
+    position: fixed;
+    top: 8px; right: 12px;
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    pointer-events: auto;
+}
+#fps {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: rgba(0, 255, 180, 0.6);
+    pointer-events: none;
+}
+#topRight .tr-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 7px;
+    color: rgba(200,170,255,0.35);
+    letter-spacing: 1px;
+}
+#topRight input[type="range"] {
+    width: 90px;
+    accent-color: #A78BFA;
+}
+#topRight .tr-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: #C8A0FF;
+    min-width: 28px;
+    text-align: right;
+}
+#topRight .tr-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+#topRight #uiResetBtn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 7px;
+    color: rgba(200,170,255,0.4);
+    cursor: pointer;
+    letter-spacing: 1px;
+}
+
+/* ── Écrans UI (menu, config, etc.) ── */
+.screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    pointer-events: auto;
+}
+
+.screen.hidden { display: none; }
+.hidden { display: none !important; }
+
+/* ── Écran titre ── */
+#titleScreen {
+    background: radial-gradient(ellipse at center, rgba(14,27,61,0.85) 0%, rgba(6,8,26,0.95) 100%);
+}
+
+#titleScreen h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(24px, 4vh, 52px);
+    font-weight: 900;
+    color: #C8A0FF;
+    text-shadow: 0 0 30px rgba(160,80,255,0.5), 0 0 60px rgba(120,40,200,0.3);
+    letter-spacing: 6px;
+    margin-bottom: clamp(4px, 1vh, 12px);
+}
+
+#titleScreen .subtitle {
+    font-family: 'Exo 2', sans-serif;
+    font-size: clamp(10px, 1.5vh, 16px);
+    color: rgba(180, 190, 220, 0.6);
+    letter-spacing: 3px;
+    margin-bottom: clamp(10px, 2vh, 50px);
+}
+
+#titleScreen h1 .title-letter {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: letterAppear 0.4s forwards;
+}
+
+@keyframes letterAppear {
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#titleScreen .title-glow {
+    animation: titlePulse 3s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+    0%, 100% { text-shadow: 0 0 30px rgba(160,80,255,0.5), 0 0 60px rgba(120,40,200,0.3); }
+    50% { text-shadow: 0 0 40px rgba(160,80,255,0.7), 0 0 80px rgba(120,40,200,0.4), 0 0 120px rgba(100,30,180,0.2); }
+}
+
+#titleScreen canvas:not(#qmPreview) {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+}
+
+#titleScreen .btn {
+    opacity: 0;
+    animation: fadeInUp 0.6s 2s forwards;
+    padding: clamp(5px, 1vh, 10px) clamp(12px, 2vw, 24px) !important;
+    font-size: clamp(10px, 1.4vh, 14px) !important;
+    margin-top: clamp(3px, 0.8vh, 8px) !important;
+}
+
+
+/* Les deux grands choix du menu, puis la rangee des autres. */
+#titleScreen .menu-principal { display: flex; flex-direction: column; align-items: center; gap: clamp(4px, 1vh, 10px); }
+#titleScreen .btn-grand { display: flex; flex-direction: column; align-items: center; min-width: min(300px, 80vw);
+    font-size: clamp(13px, 1.9vh, 18px) !important; padding: clamp(8px, 1.5vh, 14px) clamp(16px, 3vw, 34px) !important; }
+#titleScreen #btnSalon { background: rgba(168,85,247,0.16); border-color: rgba(168,85,247,0.5); color: #E9D5FF; }
+#titleScreen .btn-sous { font-family: 'Exo 2', sans-serif; font-size: 11px; letter-spacing: 1px; opacity: 0.7; margin-top: 3px; }
+#titleScreen .menu-secondaire { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: clamp(10px, 2.2vh, 22px); }
+#titleScreen .menu-secondaire .btn { margin: 0 !important; }
+
+#titleScreen.no-intro .btn,
+#titleScreen.no-intro .subtitle,
+#titleScreen.no-intro .title-letter,
+#titleScreen.no-intro #titlePseudo,
+#titleScreen.no-intro #btnLogout {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+}
+
+#titlePseudo {
+    opacity: 0;
+    animation: fadeInUp 0.5s 2.2s forwards;
+}
+
+#titleScreen #btnLogout {
+    opacity: 0;
+    animation: fadeInUp 0.5s 2.4s forwards;
+}
+
+#titleScreen .subtitle {
+    opacity: 0;
+    animation: fadeInUp 0.5s 1.5s forwards;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes nidGlow {
+    0%,100% { box-shadow: 0 0 6px 2px rgba(239,68,68,0.5); border-color: rgba(239,68,68,0.6); }
+    50%      { box-shadow: 0 0 14px 5px rgba(239,68,68,0.9); border-color: rgba(239,68,68,1); }
+}
+@keyframes nidFade {
+    0%,100% { opacity:1; } 50% { opacity:0.4; }
+}
+@keyframes slideDown {
+    from { transform: translateX(-50%) translateY(-60px); opacity:0; }
+    to   { transform: translateX(-50%) translateY(0);    opacity:1; }
+}
+#gameTopBanner {
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+    z-index: 500; background: rgba(10,8,35,0.95);
+    border: 1px solid rgba(255,215,0,0.6); border-radius: 10px;
+    padding: 8px 20px; font-family: 'Exo 2', sans-serif; font-size: 13px;
+    color: #FFD700; cursor: pointer; pointer-events: auto;
+    animation: slideDown 0.3s ease; display: none;
+    box-shadow: 0 0 20px rgba(255,215,0,0.3);
+}
+
+.btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 15px;
+    padding: 14px 40px;
+    border: 1px solid rgba(160, 120, 255, 0.4);
+    background: rgba(40, 20, 80, 0.5);
+    color: #C8A0FF;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.3s;
+    border-radius: 4px;
+    margin: 6px;
+}
+
+.btn:hover {
+    background: rgba(80, 40, 140, 0.6);
+    border-color: rgba(180, 140, 255, 0.7);
+    box-shadow: 0 0 20px rgba(140, 80, 220, 0.3);
+}
+
+/* ── Nidification ── */
+/* #nidPanel .nid-planet-btn {
+    font-family: 'Exo 2', sans-serif; font-size: 12px;
+    padding: 3px 8px; border-radius: 4px; cursor: pointer;
+    border: 1px solid rgba(34,197,94,0.4); color: #4ADE80;
+    background: rgba(34,197,94,0.15); transition: all 0.2s;
+}
+.mp-mother-badge {
+    font-family: 'Orbitron', sans-serif; font-size: 7px;
+    color: #FBBF24; background: rgba(234,179,8,0.2);
+    border: 1px solid rgba(234,179,8,0.4); border-radius: 3px;
+    padding: 1px 4px; cursor: pointer; transition: all 0.2s;
+    letter-spacing: 0.5px;
+}
+.mp-mother-badge:hover {
+    background: rgba(234,179,8,0.4); border-color: #FBBF24;
+}
+
+/* ── Lobby & Room ── */
+.room-slot {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 6px;
+    background: rgba(20,15,50,0.5); border: 1px solid rgba(100,70,180,0.2);
+}
+.room-slot .slot-color {
+    width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+}
+.room-slot .slot-name { flex: 1; color: #E0E7FF; font-size: 13px; }
+.room-slot .slot-ready {
+    font-family: 'Orbitron',monospace; font-size: 10px;
+    letter-spacing: 1px; padding: 2px 8px; border-radius: 3px;
+}
+.room-slot .slot-ready.yes { color: #4ADE80; background: rgba(34,197,94,0.15); }
+.room-slot .slot-ready.no { color: #64748B; background: rgba(100,116,139,0.1); }
+.room-slot.empty { border-style: dashed; opacity: 0.4; }
+.lobby-room-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; border-radius: 6px; margin-bottom: 6px;
+    background: rgba(20,15,50,0.5); border: 1px solid rgba(100,70,180,0.2);
+    cursor: pointer; transition: all 0.2s;
+}
+.lobby-room-row:hover {
+    background: rgba(40,30,80,0.6); border-color: rgba(34,197,94,0.4);
+}
+
+/* ── Écran config ── */
+#configScreen {
+    background: radial-gradient(ellipse at center, rgba(14,27,61,0.9) 0%, rgba(6,8,26,0.97) 100%);
+}
+
+#configScreen h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px;
+    color: #C8A0FF;
+    margin-bottom: 30px;
+    letter-spacing: 3px;
+}
+
+.config-panel {
+    background: rgba(20, 15, 50, 0.6);
+    border: 1px solid rgba(100, 70, 180, 0.25);
+    border-radius: 8px;
+    padding: 25px 35px;
+    width: 420px;
+    max-width: 90vw;
+}
+
+.config-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 0;
+    font-size: 14px;
+}
+
+.config-row label {
+    color: rgba(180, 190, 220, 0.8);
+    font-family: 'Exo 2', sans-serif;
+}
+
+.config-row input[type="range"] {
+    width: 140px;
+    accent-color: #8B5CF6;
+}
+
+.config-row .val {
+    color: #C8A0FF;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    min-width: 30px;
+    text-align: right;
+}
+
+.config-row select {
+    background: rgba(30, 20, 60, 0.8);
+    border: 1px solid rgba(100, 70, 180, 0.4);
+    color: #C8A0FF;
+    padding: 4px 8px;
+    font-family: 'Exo 2', sans-serif;
+    border-radius: 3px;
+}
+
+
+.color-picker {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+.color-swatch {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.color-swatch:hover { transform: scale(1.2); }
+.color-swatch.selected { border-color: #FFF; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+.config-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+/* ── Écran spawn ── */
+#spawnScreen .spawn-banner {
+    position: fixed;
+    top: 20px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    color: #FFD700;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    letter-spacing: 2px;
+    z-index: 55;
+    pointer-events: none;
+}
+
+/* ── HUD en jeu ── */
+#gameHud {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 20;
+    display: none;
+}
+
+#sporeCounter {
+    position: absolute;
+    top: 12px; left: 16px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    color: #C8A0FF;
+    pointer-events: auto;
+}
+
+#sporeCounter .count {
+    font-size: 22px;
+    color: #FFD700;
+}
+#sporeCounter .spore-mods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 3px;
+    max-width: 200px;
+}
+#sporeCounter .spore-mod {
+    font-size: 9px;
+    font-family: 'Exo 2', sans-serif;
+    padding: 1px 5px;
+    border-radius: 3px;
+    cursor: default;
+    white-space: nowrap;
+}
+#sporeCounter .spore-mod.pos { background: rgba(34,197,94,0.2); color: #4ADE80; border: 1px solid rgba(34,197,94,0.4); }
+#sporeCounter .spore-mod.neg { background: rgba(239,68,68,0.2); color: #F87171; border: 1px solid rgba(239,68,68,0.4); }
+#sporeCounter .spore-mod.neu { background: rgba(100,70,180,0.2); color: #C084FC; border: 1px solid rgba(100,70,180,0.4); }
+/* Compteur global de batiments, sous les spores et la production. */
+#sporeCounter .spore-bats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 4px;
+    max-width: 200px;
+}
+#sporeCounter .spore-bat {
+    font-size: 10px;
+    font-family: 'Exo 2', sans-serif;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: rgba(100,70,180,0.16);
+    border: 1px solid rgba(139,92,246,0.3);
+    color: #D8CFF5;
+    cursor: default;
+    white-space: nowrap;
+}
+#sporeCounter .spore-bat b { color: #F3EDFF; font-weight: 600; }
+.planet-mods {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 8px;
+    pointer-events: none;
+}
+
+/* COLONNE GAUCHE. Le panneau d'evolution etait une fenetre centree qu'il
+   fallait ouvrir au clic droit ; il est desormais toujours la, empile
+   au-dessus de Mes Astres. Les deux partagent une colonne en flex ancree en
+   bas a gauche : Mes Astres prend la place qui reste et defile, l'evolution
+   garde sa hauteur. Sans ce partage, deux panneaux de hauteur variable
+   ancres au meme bord finissent par se recouvrir. */
+#colonneGauche {
+    position: fixed;
+    left: 0;
+    bottom: 12px;
+    width: 218px;
+    max-height: calc(100vh - 24px);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 25;
+    pointer-events: none;
+}
+#colonneGauche > * { pointer-events: auto; }
+
+#naissancePanel {
+    position: static;
+    flex: 0 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Exo 2', sans-serif;
+    background: rgba(10,8,30,0.92);
+    border: 1px solid rgba(100,70,180,0.4);
+    border-radius: 8px;
+    padding: 7px 10px 6px;
+    display: none;
+}
+#naissancePanel.actif { display: block; }
+#naissanceTitre {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #7DD3FC;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+#naissanceZone { font-size: 8px; letter-spacing: 1px; color: rgba(200,210,230,0.45); }
+#naissanceCanvas { display: block; width: 100%; height: 88px; }
+#naissancePied {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    margin-top: 4px;
+    color: rgba(190,210,245,0.75);
+}
+#naissanceRend { font-weight: bold; }
+#naissanceQuand {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 10px;
+    margin-top: 3px;
+    color: rgba(190,210,245,0.6);
+    text-align: center;
+}
+
+#evoPanel {
+    position: static;
+    flex: 0 0 auto;
+    width: 100%;
+    max-height: 46vh;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 11px;
+    background: rgba(10,8,30,0.92);
+    border: 1px solid rgba(100,70,180,0.4);
+    border-radius: 8px;
+    padding: 8px 12px;
+    pointer-events: auto;
+    /* Largeur figee : les deux onglets n'ont pas le meme contenu, et sans
+       cela le panneau changeait de largeur en passant de l'un a l'autre. */
+    box-sizing: border-box;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100,70,180,0.3) transparent;
+    overscroll-behavior: contain;
+    z-index: 40;
+    display: none;
+}
+#evoPanel .evo-close {
+    position: absolute;
+    top: 5px; right: 8px;
+    cursor: pointer;
+    color: rgba(180,180,200,0.4);
+    font-size: 14px;
+    line-height: 1;
+}
+#evoPanel .evo-close:hover { color: #fff; }
+#evoPanel .evo-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+#evoPanel .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+#evoPanel .stat-icon { font-size: 12px; width: 16px; text-align: center; }
+#evoPanel .stat-name {
+    color: rgba(200,170,255,0.5);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: 65px;
+}
+#evoPanel .stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    color: #E9D5FF;
+    width: 20px;
+    text-align: center;
+}
+#evoPanel .stat-bonus {
+    font-size: 12px;
+    color: #A855F7;
+    width: 30px;
+}
+#evoPanel .stat-effect {
+    font-size: 11px;
+    color: rgba(200,170,255,0.4);
+    flex: 1;
+}
+#evoPanel .evo-sep {
+    height: 1px;
+    background: rgba(168,85,247,0.2);
+    margin: 4px 0 6px;
+}
+#evoPanel .evo-multi-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: #C084FC;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 5px;
+}
+#evoPanel .evo-tier {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    margin-bottom: 5px;
+}
+#evoPanel .tier-pip {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(168,85,247,0.3);
+    background: rgba(0,0,0,0.5);
+    transition: all 0.3s;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 7px; color: transparent;
+}
+#evoPanel .tier-pip.filled {
+    border-color: #A855F7;
+    background: radial-gradient(circle, #C084FC, #7C3AED);
+    box-shadow: 0 0 6px rgba(168,85,247,0.5);
+    color: #fff;
+}
+#evoPanel .tier-pip.current {
+    border-color: #E9D5FF;
+    animation: tierPulse 1.5s infinite;
+}
+#evoPanel .evo-bar-bg {
+    width: 100%; height: 6px;
+    background: rgba(168,85,247,0.12);
+    border-radius: 3px; overflow: hidden;
+    margin-bottom: 4px;
+}
+#evoPanel .evo-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #7C3AED, #C084FC);
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+#evoPanel .evo-info {
+    font-size: 9px;
+    color: rgba(200,170,255,0.5);
+    text-align: center;
+    margin-bottom: 5px;
+}
+#evoPanel .evo-sacrifice {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+}
+#evoPanel .evo-sacrifice label {
+    font-size: 9px;
+    color: rgba(200,170,255,0.5);
+}
+#evoPanel .evo-sacrifice input[type="range"] {
+    width: 100px;
+    accent-color: #A855F7;
+}
+#evoPanel .evo-sacrifice .sac-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: #C084FC;
+    min-width: 30px;
+    text-align: right;
+}
+#evoPanel .evo-choose {
+    display: none;
+    text-align: center;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(168,85,247,0.2);
+}
+#evoPanel .evo-choose .choose-title {
+    font-size: 9px; color: #E9D5FF;
+    margin-bottom: 5px;
+}
+#evoPanel .evo-choose button {
+    background: rgba(168,85,247,0.15);
+    border: 1px solid rgba(168,85,247,0.4);
+    color: #E9D5FF;
+    padding: 4px 10px;
+    margin: 0 3px;
+    cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 10px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+#evoPanel .evo-choose button:hover {
+    background: rgba(168,85,247,0.3);
+    border-color: #C084FC;
+}
+#evoPanel .evo-choose .stat-current {
+    font-size: 8px; color: rgba(200,170,255,0.4);
+}
+#evoPanel .evo-tabs { display:flex; gap:0; margin-bottom:6px; }
+#evoPanel .evo-tab { flex:1; padding:4px 2px; text-align:center; font-size:11px; font-family:'Orbitron',sans-serif; color:rgba(200,170,255,0.4); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+#evoPanel .evo-tab:hover { color:rgba(200,170,255,0.7); }
+#evoPanel .evo-tab.active { color:#E9D5FF; border-bottom-color:#A855F7; }
+#evoPanel .evo-tab-content { display:none; }
+#evoPanel .evo-tab-content.active { display:block; }
+#evoPanel .tech-branch { margin-bottom:8px; padding:6px 8px; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.15); border-radius:5px; }
+#evoPanel .tech-branch-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+#evoPanel .tech-branch-icon { font-size:14px; }
+#evoPanel .tech-branch-name { font-family:'Orbitron',sans-serif; font-size:13px; color:#E9D5FF; flex:1; }
+#evoPanel .tech-branch-lvl { font-family:'Orbitron',sans-serif; font-size:12px; color:#C084FC; }
+#evoPanel .tech-pips { display:flex; gap:2px; margin-bottom:4px; }
+#evoPanel .tech-pip { flex:1; height:4px; border-radius:2px; background:rgba(168,85,247,0.15); transition:all 0.3s; }
+#evoPanel .tech-pip.filled { background:linear-gradient(90deg,#7C3AED,#C084FC); }
+#evoPanel .tech-lvl-name { font-size:12px; color:rgba(200,170,255,0.6); text-align:center; margin-bottom:3px; }
+#evoPanel .tech-buy { display:block; width:100%; padding:4px; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.4); color:#E9D5FF; cursor:pointer; font-family:'Exo 2',sans-serif; font-size:12px; border-radius:4px; transition:all 0.2s; }
+#evoPanel .tech-buy:hover { background:rgba(168,85,247,0.3); border-color:#C084FC; }
+#evoPanel .tech-buy:disabled { opacity:0.35; cursor:default; background:rgba(168,85,247,0.08); }
+#evoPanel .tech-buy .tech-cost { font-family:'Orbitron',sans-serif; font-size:12px; color:#C084FC; }
+
+/* ── Panneau bas-droite tri-onglets ── */
+#sidePanel {
+    position: fixed;
+    bottom: 12px; right: 12px;
+    z-index: 25;
+    display: none;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    pointer-events: auto;
+}
+#sidePanelToggle {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: rgba(200,160,255,0.5);
+    cursor: pointer;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border: 1px solid rgba(100,70,180,0.25);
+    border-radius: 4px;
+    background: rgba(10,8,30,0.7);
+    transition: all 0.2s;
+    user-select: none;
+}
+#sidePanelToggle:hover { color: #C8A0FF; border-color: rgba(100,70,180,0.5); }
+#sidePanelStack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+}
+/* Les trois panneaux se replient, mais ne se retirent plus : la case a
+   cocher les faisait disparaitre sans aucun moyen de les rappeler. */
+.sp-block {
+    width: 220px;
+    background: rgba(6,8,26,0.88);
+    border: 1px solid rgba(100,70,180,0.3);
+    border-radius: 6px;
+    overflow: hidden;
+    display: none;
+}
+.sp-block.sp-visible { display: block; }
+.sp-block-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    background: rgba(100,70,180,0.1);
+    border-bottom: 1px solid rgba(100,70,180,0.15);
+    cursor: pointer;
+    user-select: none;
+}
+.sp-block-header .sp-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 8px;
+    color: rgba(200,160,255,0.6);
+    letter-spacing: 1px;
+    flex: 1;
+}
+.sp-block-header .sp-collapse {
+    font-size: 10px;
+    color: rgba(200,160,255,0.4);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.sp-block.sp-collapsed .sp-body { display: none; }
+.sp-block.sp-collapsed .sp-collapse { transform: rotate(-90deg); }
+.sp-body { padding: 6px 8px; max-height: 200px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: rgba(100,70,180,0.3) transparent;
+    overscroll-behavior: contain; }
+.sp-body::-webkit-scrollbar { width: 3px; }
+.sp-body::-webkit-scrollbar-thumb { background: rgba(100,70,180,0.4); border-radius: 3px; }
+
+/* scoreBoard dans sidePanel */
+#scoreBoard { pointer-events: auto; }
+.score-row {
+    display: flex;
+    align-items: center;
+    margin: 4px 0;
+    font-size: 12px;
+    font-family: 'Exo 2', sans-serif;
+}
+
+.score-row {
+    display: flex;
+    align-items: center;
+    margin: 4px 0;
+    font-size: 12px;
+    font-family: 'Exo 2', sans-serif;
+}
+
+.score-color {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.score-name {
+    flex: 1;
+    color: rgba(200, 210, 230, 0.8);
+}
+
+.score-bar-bg {
+    width: 60px; height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    margin-left: 8px;
+    overflow: hidden;
+}
+
+.score-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s;
+}
+
+.score-pct {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: rgba(200, 200, 220, 0.6);
+    margin-left: 6px;
+    min-width: 28px;
+    text-align: right;
+}
+
+/* ── Codex (flottant au clic) ── */
+#codex {
+    position: fixed;
+    display: none;
+    width: 280px;
+    max-height: 80vh;
+    overflow-y: auto;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    background: rgba(10, 8, 35, 0.92);
+    border: 1px solid rgba(100, 70, 180, 0.3);
+    border-radius: 8px;
+    padding: 14px;
+    z-index: 30;
+    pointer-events: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100,70,180,0.3) transparent;
+    overscroll-behavior: contain;
+}
+
+#codex.open { display: block; }
+
+#codex h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    color: #C8A0FF;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+}
+
+#codex .codex-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin: 6px 0;
+    color: rgba(180, 190, 220, 0.7);
+}
+
+#codex .codex-row .codex-val {
+    color: rgba(220, 225, 240, 0.9);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+}
+
+#codex .close-btn {
+    position: absolute;
+    top: 6px; left: 8px;
+    cursor: pointer;
+    color: rgba(180,180,200,0.5);
+    font-size: 16px;
+    pointer-events: auto;
+}
+
+#codex .close-btn:hover { color: #FFF; }
+
+#codex .codex-symbiose {
+    margin: 8px 0 4px;
+}
+
+#codex .codex-symbiose .sym-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: rgba(180, 190, 220, 0.7);
+    margin-bottom: 4px;
+}
+
+#codex .codex-symbiose .sym-label .sym-val {
+    color: #22C55E;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+}
+
+#codex .codex-symbiose .sym-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+#codex .codex-symbiose .sym-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #22C55E, #86EFAC);
+    border-radius: 3px;
+    transition: width 0.5s;
+}
+
+#codex .codex-symbiose .sym-bonus {
+    font-size: 10px;
+    color: rgba(34, 197, 94, 0.6);
+    margin-top: 2px;
+    text-align: right;
+}
+
+/* ── Onglets codex ── */
+#codex .codex-tabs {
+    display: flex; gap: 0; margin: -4px -18px 12px; border-bottom: 1px solid rgba(100,70,180,0.2);
+}
+#codex .codex-tab {
+    flex: 1; padding: 7px 4px; font-family:'Exo 2',sans-serif; font-size: 12px;
+    color: rgba(180,190,220,0.5); text-align: center; cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.15s; letter-spacing: 0.5px;
+}
+#codex .codex-tab:hover { color: rgba(200,160,255,0.8); }
+#codex .codex-tab.active { color: #C8A0FF; border-bottom-color: #C8A0FF; }
+#codex .codex-tab-content { display: none; }
+#codex .codex-tab-content.active { display: block; }
+
+/* ── Bâtiments ── */
+#codex .bld-grid {
+    display: flex; flex-direction: column; gap: 5px; margin-top: 4px;
+}
+#codex .bld-card {
+    background: rgba(100,70,180,0.07); border: 1px solid rgba(100,70,180,0.2);
+    border-radius: 6px; padding: 6px 8px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    display: flex; align-items: center; gap: 8px; position: relative;
+}
+#codex .bld-card:hover { background: rgba(100,70,180,0.18); border-color: rgba(160,120,255,0.5); }
+#codex .bld-card.active { background: rgba(100,70,180,0.22); border-color: #C8A0FF; box-shadow: 0 0 6px rgba(160,120,255,0.25); }
+#codex .bld-icon { font-size: 18px; flex-shrink: 0; }
+#codex .bld-main { flex: 1; min-width: 0; }
+#codex .bld-name { font-family:'Exo 2',sans-serif; font-size: 13px; color: rgba(220,225,240,0.9); font-weight: 600; }
+#codex .bld-desc { font-family:'Exo 2',sans-serif; font-size: 11px; color: rgba(180,190,220,0.7); margin-top: 1px; }
+#codex .bld-progress-bg { margin-top: 3px; height: 2px; background: rgba(255,255,255,0.08); border-radius: 1px; overflow: hidden; }
+#codex .bld-progress { height: 100%; background: linear-gradient(90deg,#C8A0FF,#A78BFA); border-radius: 1px; transition: width 0.5s; }
+#codex .bld-count { font-family:'Orbitron',sans-serif; font-size: 11px; color: #C8A0FF; flex-shrink: 0; text-align: right; }
+
+#codex .codex-build {
+    margin-top: 6px;
+    padding: 6px 0;
+    border-top: 1px solid rgba(100,70,180,0.2);
+}
+#codex .codex-build .build-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: #A78BFA;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+#codex .codex-build .build-radios {
+    display: flex; gap: 8px; margin-bottom: 6px;
+}
+#codex .codex-build .build-radios label {
+    font-size: 11px; color: rgba(200,200,220,0.7);
+    cursor: pointer; display: flex; align-items: center; gap: 3px;
+}
+#codex .codex-build .build-radios input[type="radio"] {
+    accent-color: #A78BFA;
+}
+#codex .codex-build .build-info {
+    font-size: 10px; color: rgba(200,200,220,0.5);
+}
+#codex .codex-build .build-count {
+    font-size: 11px; color: #C8A0FF; margin-top: 3px;
+}
+#codex .codex-build .build-progress-bg {
+    height: 4px; background: rgba(255,255,255,0.08);
+    border-radius: 2px; margin-top: 3px; overflow: hidden;
+}
+#codex .codex-build .build-progress {
+    height: 100%; border-radius: 2px;
+    transition: width 0.3s;
+}
+#codex .codex-build .build-progress.nid { background: linear-gradient(90deg, #22C55E, #4ADE80); }
+#codex .codex-build .build-progress.biome { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+#codex .codex-build .build-progress.ruche { background: linear-gradient(90deg, #DC2626, #EF4444); }
+#codex .codex-build .build-progress.mare { background: linear-gradient(90deg, #0EA5E9, #38BDF8); }
+.build-icon-btn {
+    font-size: 16px;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 5px;
+    border: 1px solid rgba(100,70,180,0.2);
+    background: rgba(100,70,180,0.05);
+    transition: all 0.15s;
+    opacity: 0.5;
+}
+input[type="radio"]:checked + .build-icon-btn {
+    opacity: 1;
+    background: rgba(100,70,180,0.3);
+    border-color: rgba(160,120,255,0.6);
+    box-shadow: 0 0 6px rgba(160,120,255,0.3);
+}
+
+/* ── Bandeau du mode surface ── */
+#surfaceHud {
+    position: fixed;
+    left: 50%;
+    top: 58px;
+    transform: translateX(-50%);
+    z-index: 24;
+    pointer-events: none;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #FFD27A;
+    background: rgba(10,8,30,0.72);
+    border: 1px solid rgba(255,210,122,0.35);
+    border-radius: 20px;
+    padding: 5px 16px;
+    text-shadow: 0 0 10px rgba(255,210,122,0.5);
+    white-space: nowrap;
+}
+
+/* ── Jauge d'envoi (bas, centre) ── */
+/* Le pourcentage d'envoi se reglait au curseur, ecrit en 11 pixels dans un
+   coin : on tirait sans savoir avec quoi. Il est maintenant en gros au
+   milieu du bas de l'ecran, la ou le regard revient entre deux tirs. */
+#envoiHud {
+    position: fixed;
+    left: 50%;
+    /* Remontee pour laisser la place a la fiche en dessous (84 px + marges). */
+    bottom: 104px;
+    transform: translateX(-50%);
+    z-index: 24;
+    pointer-events: none;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    user-select: none;
+    transition: opacity 0.2s;
+}
+#envoiHud .envoi-val {
+    font-size: 38px;
+    font-weight: 900;
+    line-height: 1;
+    color: #E9D5FF;
+    letter-spacing: 2px;
+    text-shadow: 0 0 14px rgba(140,90,240,0.55), 0 2px 4px rgba(0,0,0,0.9);
+    transition: color 0.15s, text-shadow 0.15s;
+}
+#envoiHud .envoi-val span { font-size: 22px; opacity: 0.75; margin-left: 2px; }
+#envoiHud.pulse .envoi-val { color: #FFFFFF; text-shadow: 0 0 22px rgba(190,140,255,0.95), 0 2px 4px rgba(0,0,0,0.9); }
+/* La barre dit d'un coup d'oeil ou l'on est dans la course, ce qu'un nombre
+   seul ne fait pas : on voit qu'on est au tiers sans lire le chiffre. */
+#envoiHud .envoi-jauge {
+    width: 190px;
+    height: 7px;
+    margin: 6px auto 0;
+    border-radius: 4px;
+    background: rgba(10,8,30,0.75);
+    border: 1px solid rgba(140,90,240,0.45);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+    overflow: hidden;
+}
+#envoiHud .envoi-jauge i {
+    display: block;
+    height: 100%;
+    width: 50%;
+    background: linear-gradient(90deg, #7C3AED, #C8A0FF);
+    box-shadow: 0 0 10px rgba(180,130,255,0.75);
+    transition: width 0.12s;
+}
+#envoiHud .envoi-nb {
+    margin-top: 5px;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4ADE80;
+    text-shadow: 0 0 10px rgba(74,222,128,0.5), 0 2px 4px rgba(0,0,0,0.95);
+}
+#envoiHud .envoi-nb em { font-style: normal; font-size: 10px; letter-spacing: 3px; opacity: 0.7; margin-left: 4px; }
+#envoiHud .envoi-sub {
+    margin-top: 2px;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: rgba(200,160,255,0.55);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+
+/* ── Fiche : l'astre choisi, ou le joueur quand rien n'est choisi ──
+   Hauteur FIXE : la jauge d'envoi est posee dessus, elle ne doit pas sauter
+   quand on passe d'un astre a la fiche du joueur. Elle laisse passer les
+   clics : c'est un affichage, pas un panneau. */
+#ficheHud {
+    position: fixed;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    width: 460px;
+    max-width: calc(100vw - 32px);
+    height: 84px;
+    box-sizing: border-box;
+    z-index: 24;
+    pointer-events: none;
+    background: rgba(10, 8, 35, 0.84);
+    border: 1px solid rgba(100, 70, 180, 0.35);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-family: 'Exo 2', sans-serif;
+    color: #D8CCF5;
+    overflow: hidden;
+    user-select: none;
+}
+#ficheHud .fiche-tete {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #E9D5FF;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#ficheHud .fiche-tete i {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: 1px;
+}
+#ficheHud .fiche-tete small { font-size: 9px; opacity: 0.55; margin-left: 6px; letter-spacing: 1px; }
+#ficheHud .fiche-grille {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px 12px;
+    font-size: 11px;
+}
+#ficheHud .fiche-grille div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ficheHud .fiche-grille span {
+    color: rgba(200, 160, 255, 0.55);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-right: 4px;
+}
+#ficheHud .fiche-grille b { font-weight: 600; color: #F0E8FF; }
+#ficheHud .fiche-grille b.pos { color: #4ADE80; }
+#ficheHud .fiche-grille b.neg { color: #F87171; }
+
+/* Le bouton de la touche Tab, dans le titre de MES ASTRES. */
+#mpTabMode {
+    margin-left: 6px;
+    padding: 1px 6px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: #C8A0FF;
+    background: rgba(100, 70, 180, 0.18);
+    border: 1px solid rgba(140, 90, 240, 0.45);
+    border-radius: 4px;
+    cursor: pointer;
+    vertical-align: 1px;
+}
+#mpTabMode:hover { background: rgba(140, 90, 240, 0.35); color: #F0E8FF; }
+
+/* ── Liste planètes du joueur ── */
+#myPlanets {
+    position: static;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    background: rgba(10, 8, 35, 0.88);
+    border: 1px solid rgba(100, 70, 180, 0.2);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    padding: 8px 6px;
+    z-index: 25;
+    pointer-events: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100,70,180,0.3) transparent;
+}
+
+#myPlanets::-webkit-scrollbar { width: 3px; }
+#myPlanets::-webkit-scrollbar-thumb { background: rgba(100,70,180,0.4); border-radius: 3px; }
+
+#myPlanets .mp-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: rgba(200,160,255,0.5);
+    text-align: center;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+#myPlanets .mp-sun-group {
+    margin-bottom: 4px;
+    border-bottom: 0.5px solid rgba(100,70,180,0.12);
+    padding-bottom: 4px;
+}
+
+#myPlanets .mp-sun-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    color: rgba(255,210,80,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 6px;
+    cursor: pointer;
+    border-radius: 5px;
+    user-select: none;
+    transition: background 0.15s;
+}
+#myPlanets .mp-sun-label:hover { background: rgba(100,70,180,0.15); }
+#myPlanets .mp-sun-label .mp-chevron {
+    font-size: 9px;
+    color: rgba(200,160,255,0.4);
+    transition: transform 0.2s;
+}
+#myPlanets .mp-sun-label.open .mp-chevron { transform: rotate(90deg); }
+#myPlanets .mp-sun-label .sys-complete {
+    font-size: 9px;
+    color: #FFD700;
+    background: rgba(255,215,0,0.1);
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+}
+
+#myPlanets .mp-sun-body {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.25s ease;
+}
+#myPlanets .mp-sun-body.open { max-height: 600px; }
+
+#myPlanets .mp-build-bar {
+    display: flex;
+    gap: 3px;
+    padding: 3px 4px 4px;
+    border-bottom: 0.5px solid rgba(100,70,180,0.1);
+    margin-bottom: 3px;
+}
+#myPlanets .mp-build-bar .mp-bbtn {
+    font-size: 11px;
+    width: 24px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 0.5px solid rgba(100,70,180,0.2);
+    background: rgba(100,70,180,0.05);
+    opacity: 0.5;
+    transition: all 0.15s;
+}
+#myPlanets .mp-build-bar .mp-bbtn:hover { opacity: 0.85; background: rgba(100,70,180,0.15); }
+#myPlanets .mp-build-bar .mp-bbtn.active {
+    opacity: 1;
+    background: rgba(100,70,180,0.25);
+    border-color: rgba(100,70,180,0.6);
+}
+
+#myPlanets .mp-body-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 4px 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s;
+}
+#myPlanets .mp-body-row:hover { background: rgba(100,70,180,0.12); }
+#myPlanets .mp-body-row.active {
+    background: rgba(255,215,0,0.07);
+    border: 0.5px solid rgba(255,215,0,0.3);
+}
+#myPlanets .mp-body-row.nid-candidate {
+    background: rgba(239,68,68,0.07);
+    border: 0.5px solid rgba(239,68,68,0.5);
+    animation: nidFade 1.2s infinite;
+}
+
+#myPlanets .mp-planet-block { margin-bottom: 2px; }
+
+#myPlanets .mp-moon-indent {
+    display: flex;
+    align-items: stretch;
+    margin-left: 10px;
+}
+#myPlanets .mp-tree-line {
+    width: 10px;
+    flex-shrink: 0;
+    position: relative;
+    margin-right: 2px;
+}
+#myPlanets .mp-tree-line::before {
+    content: '';
+    position: absolute;
+    left: 4px; top: 0; bottom: 0;
+    width: 1px;
+    background: rgba(100,70,180,0.25);
+}
+#myPlanets .mp-tree-line.last::before { bottom: 50%; }
+#myPlanets .mp-tree-line::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 50%;
+    width: 5px; height: 1px;
+    background: rgba(100,70,180,0.25);
+}
+
+#myPlanets .mp-dot {
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+#myPlanets .mp-name {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 11px;
+    color: rgba(200,210,230,0.85);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#myPlanets .mp-spores {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: #FFD700;
+    white-space: nowrap;
+}
+#myPlanets .mp-build-icon { font-size: 10px; opacity: 0.8; }
+#myPlanets .mp-nid-label {
+    font-size: 9px;
+    color: rgba(239,68,68,0.9);
+    white-space: nowrap;
+}
+/* ── Pause overlay ── */
+.panel-drag-handle {
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 6px;
+    background: rgba(100,70,180,0.12);
+    border-bottom: 1px solid rgba(100,70,180,0.15);
+    border-radius: 6px 6px 0 0;
+    user-select: none;
+}
+.panel-drag-handle:active { cursor: grabbing; }
+.panel-drag-handle .panel-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 7px;
+    color: rgba(200,160,255,0.4);
+    letter-spacing: 1px;
+}
+.panel-drag-handle .panel-collapse {
+    cursor: pointer;
+    font-size: 12px;
+    color: rgba(200,160,255,0.4);
+    transition: transform 0.2s;
+    line-height: 1;
+}
+.panel-drag-handle .panel-collapse:hover { color: rgba(200,160,255,0.8); }
+.panel-collapsed > *:not(.panel-drag-handle) { display: none !important; }
+.panel-collapsed { min-height: auto !important; max-height: none !important; height: auto !important; overflow: hidden !important; }
+#eventLog {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 11px;
+}
+#eventLog .log-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(100,70,180,0.2);
+    flex-wrap: wrap;
+}
+#eventLog .log-header .log-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: rgba(200,160,255,0.6);
+    letter-spacing: 1px;
+    margin-right: auto;
+}
+#eventLog .log-filter {
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid rgba(100,70,180,0.3);
+    background: rgba(100,70,180,0.1);
+    color: rgba(200,200,220,0.6);
+    font-size: 8px;
+    cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    transition: all 0.2s;
+}
+#eventLog .log-filter.active {
+    background: rgba(100,70,180,0.3);
+    color: #c8a0ff;
+    border-color: rgba(160,120,255,0.5);
+}
+#eventLog .log-body {
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 4px 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100,70,180,0.3) transparent;
+}
+#eventLog .log-body::-webkit-scrollbar { width: 3px; }
+#eventLog .log-body::-webkit-scrollbar-thumb { background: rgba(100,70,180,0.4); border-radius: 3px; }
+#eventLog .log-entry {
+    padding: 3px 8px;
+    color: rgba(200,210,230,0.7);
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+}
+#eventLog .log-entry:hover { background: rgba(100,70,180,0.1); }
+#eventLog .log-entry .log-time {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 8px;
+    color: rgba(200,200,220,0.4);
+    min-width: 35px;
+}
+#eventLog .log-entry .log-icon { font-size: 10px; }
+#eventLog .log-entry .log-text { flex: 1; }
+#pauseOverlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 60;
+}
+
+#pauseOverlay.active { display: flex; }
+
+#pauseOverlay h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 30px;
+    color: #C8A0FF;
+    margin-bottom: 14px;
+    letter-spacing: 4px;
+}
+
+/* Le livre des regles pendant la pause : il prend la place qu'il peut sans
+   jamais pousser les boutons hors de l'ecran. */
+#pauseBook { width: 100%; display: flex; justify-content: center; }
+#pauseBook:empty { display: none; }
+#pauseBook > div { max-height: 62vh; margin: 0 16px; }
+#pauseBoutons { display: flex; gap: 12px; margin-top: 16px; }
+
+#qualiteSel {
+    flex: 1;
+    background: rgba(20,16,50,0.9);
+    border: 1px solid rgba(100,70,180,0.45);
+    border-radius: 4px;
+    color: rgba(200,160,255,0.9);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 10px;
+    padding: 1px 2px;
+    cursor: pointer;
+}
+
+/* ── Contrôle volume intégré dans topRight ── */
+.vol-icon {
+    font-size: 14px;
+    cursor: pointer;
+    color: rgba(200,160,255,0.7);
+}
+#volSlider {
+    width: 70px;
+    accent-color: #8B5CF6;
+}
+
+/* minimap intégré dans sidePanel */
+#minimap {
+    width: 100%;
+    height: 160px;
+    cursor: pointer;
+}
+#minimap canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 3px;
+    display: block;
+}
+/* uiZoomControl intégré dans topRight */
+#uiZoomControl { display: none; }
+
+/* ── Compteur temps ── */
+#gameTimer {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    color: rgba(200, 200, 220, 0.5);
+    letter-spacing: 1px;
+    pointer-events: none;
+}
+
+/* ── Indicateurs hors-écran ── */
+.offscreen-indicator {
+    position: fixed;
+    width: 0; height: 0;
+    z-index: 21;
+    pointer-events: none;
+}
+
+/* ── Transitions ── */
+#screenFade {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #000;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+
+#screenFade.active { opacity: 1; }
+
+/* ── Loading screen ── */
+#loadingScreen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #06081A;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#loadingScreen.hidden { display: none; }
+
+#loadingScreen h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+    color: #C8A0FF;
+    letter-spacing: 4px;
+    margin-bottom: 30px;
+}
+
+#loadingBar {
+    width: 250px;
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+#loadingBarFill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #8B5CF6, #C8A0FF);
+    border-radius: 2px;
+    transition: width 0.2s;
+}
+
+#loadingText {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 11px;
+    color: rgba(180, 190, 220, 0.4);
+    margin-top: 12px;
+    letter-spacing: 1px;
+}
+
+/* ── Écran de fin ── */
+#endScreen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 70;
+}
+
+#endScreen.active { display: flex; }
+
+#endScreen h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 42px;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+}
+
+#endScreen h1.victory { color: #FFD700; text-shadow: 0 0 30px rgba(255,215,0,0.5); }
+#endScreen h1.defeat { color: #EF4444; text-shadow: 0 0 30px rgba(239,68,68,0.4); }
+
+#endScreen .end-subtitle {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 16px;
+    color: rgba(200,210,230,0.6);
+    margin-bottom: 30px;
+}
+
+#endScreen .end-stats {
+    background: rgba(20, 15, 50, 0.6);
+    border: 1px solid rgba(100, 70, 180, 0.25);
+    border-radius: 8px;
+    padding: 20px 30px;
+    margin-bottom: 25px;
+    min-width: 300px;
+}
+
+#endScreen .end-stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 8px 0;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 14px;
+    color: rgba(180,190,220,0.7);
+}
+
+#endScreen .end-stat-row .end-stat-val {
+    color: #C8A0FF;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+}
+
+#endScreen .end-buttons { display: flex; gap: 12px; }
+
+
+#authScreen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #162650, #0a0e28);
+}
+#authScreen input:focus {
+    border-color: #8B5CF6;
+    box-shadow: 0 0 8px rgba(139,92,246,0.3);
+}
+#authScreen .btn { font-size: 14px; padding: 10px 20px; }
+
+/* Icones des batiments (voir iconeBat) : posees sur la ligne du texte. */
+svg.ic-bat { display: inline-block; vertical-align: -0.22em; flex-shrink: 0; }
+i.ic-bat { display: inline-block; width: 1em; height: 1em; }
+
+
+/* Touches du clavier (mission tutoriel, panneau des raccourcis K). */
+kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border-radius:4px;
+      border:1px solid rgba(196,181,253,0.5); border-bottom-width:2px; background:rgba(139,92,246,0.18);
+      color:#F5F3FF; font-family:Orbitron, sans-serif; font-size:0.82em; line-height:1.55; text-align:center; }

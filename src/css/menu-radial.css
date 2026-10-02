@@ -1,0 +1,18 @@
+#sporeTypeMenu {
+    display:none; position:fixed; z-index:200; pointer-events:none;
+}
+#bodyInfoPanel {
+    display:none; position:fixed; z-index:199; pointer-events:none;
+    background:rgba(10,8,35,0.92); border:1px solid rgba(100,70,180,0.4);
+    border-radius:8px; padding:8px 10px; min-width:160px; max-width:200px;
+    font-family:'Exo 2',sans-serif; font-size:11px; color:#E2D9F3;
+}
+#bodyInfoPanel .bi-title { font-family:'Orbitron',sans-serif; font-size:10px; color:#C084FC; margin-bottom:6px; letter-spacing:1px; }
+#bodyInfoPanel .bi-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:3px; gap:8px; }
+#bodyInfoPanel .bi-label { color:rgba(200,180,255,0.6); font-size:10px; }
+#bodyInfoPanel .bi-val { font-size:11px; font-weight:600; }
+#bodyInfoPanel .bi-pos { color:#4ADE80; }
+#bodyInfoPanel .bi-neg { color:#F87171; }
+#bodyInfoPanel .bi-neu { color:#C084FC; }
+#bodyInfoPanel .bi-sep { border:none; border-top:1px solid rgba(100,70,180,0.2); margin:5px 0; }
+#stmCanvas { pointer-events:all; cursor:pointer; }

@@ -1,0 +1,948 @@
+<!-- © 2025 Guillaume de Mauroy — Tous droits réservés
+     Nebula Conquest — https://nebulaconquest.com
+     Toute reproduction ou distribution sans autorisation expresse est interdite.
+     Contact : ga.dmy@ikmail.com
+
+	 -->
+
+<!-- SUIVI DE PROJET
+     VERSION : v9.7.9 (en cours)
+     Journal complet des versions et liste A FAIRE : JOURNAL.md
+
+     ATTENTION : ce index.html est FABRIQUE a partir du dossier src/
+     (npm run construire). On modifie les fichiers de src/, jamais
+     index.html a la main : il serait ecrase. Voir src/LISEZMOI.md. -->
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nebula Conquest</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+<!--#inclure css/jeu.css-->
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+
+<!-- ═══ ÉCRAN TITRE ═══ -->
+<!-- ═══ ÉCRAN AUTH ═══ -->
+<div id="authScreen" class="screen hidden">
+    <h1 class="title-glow" style="font-family:'Orbitron',monospace; font-size:2.5rem; color:#E0E7FF; text-shadow:0 0 30px rgba(139,92,246,0.5); margin-bottom:30px;">NEBULA CONQUEST</h1>
+    <div id="authBox" style="background:rgba(15,23,42,0.9); border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:30px; max-width:360px; margin:0 auto; text-align:center;">
+        <div id="authStep1">
+            <p style="color:#94A3B8; margin-bottom:16px; font-size:14px;">Connectez-vous ou créez un compte</p>
+            <input type="email" id="authEmail" placeholder="votre@email.com" style="width:100%; padding:10px 14px; background:rgba(30,41,59,0.8); border:1px solid rgba(139,92,246,0.3); border-radius:8px; color:#E0E7FF; font-size:14px; margin-bottom:12px; box-sizing:border-box; outline:none;">
+            <input type="password" id="authPassword" placeholder="Mot de passe (6 car. min)" style="width:100%; padding:10px 14px; background:rgba(30,41,59,0.8); border:1px solid rgba(139,92,246,0.3); border-radius:8px; color:#E0E7FF; font-size:14px; margin-bottom:12px; box-sizing:border-box; outline:none;">
+            <button class="btn" id="btnAuthLogin" style="width:100%; margin-top:4px;">CONNEXION</button>
+            <button class="btn" id="btnAuthSignup" style="width:100%; margin-top:8px; background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4);">CRÉER UN COMPTE</button>
+            <p id="authMsg" style="color:#8B5CF6; margin-top:12px; font-size:13px; min-height:20px;"></p>
+            <button class="btn" id="btnHorsLigne" style="width:100%; margin-top:6px; display:none; background:rgba(100,180,255,0.15); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">▶ JOUER EN SOLO HORS LIGNE</button>
+        </div>
+        <div id="authStep2" style="display:none;">
+            <p style="color:#94A3B8; margin-bottom:16px; font-size:14px;">Choisissez votre pseudo de commandant</p>
+            <input type="text" id="authPseudo" placeholder="Pseudo (3-20 car.)" maxlength="20" style="width:100%; padding:10px 14px; background:rgba(30,41,59,0.8); border:1px solid rgba(139,92,246,0.3); border-radius:8px; color:#E0E7FF; font-size:14px; margin-bottom:12px; box-sizing:border-box; outline:none;">
+            <button class="btn" id="btnAuthPseudo" style="width:100%; margin-top:4px;">CONFIRMER</button>
+            <p id="pseudoMsg" style="color:#8B5CF6; margin-top:12px; font-size:13px; min-height:20px;"></p>
+        </div>
+    </div>
+</div>
+
+<div id="titleScreen" class="screen hidden">
+    <canvas id="titleBgCanvas"></canvas>
+    <h1 id="titleText" class="title-glow"></h1>
+    <div class="subtitle">CONQUÊTE SPATIALE EN TEMPS RÉEL (v9.7.9) </div>
+<!-- Le menu : deux grands choix (seul, a plusieurs), puis le reste. Les
+         trois modes de l'ancien serveur (serveur 2) sont caches : le
+         multijoueur passe tout par le relais (bouton MULTIJOUEUR). -->
+    <div class="menu-principal">
+        <button class="btn btn-grand" id="btnNewGame">⚔️ JOUER SEUL<span class="btn-sous">contre l'IA</span></button>
+        <button class="btn btn-grand" id="btnSalon">🌐 MULTIJOUEUR<span class="btn-sous">au hasard ou entre amis</span></button>
+        <button class="btn" id="btnReprendre" style="display:none; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.5); color:#BBF7D0;">↩ REPRENDRE LA PARTIE EN COURS</button>
+    </div>
+    <div class="menu-secondaire">
+        <button class="btn" id="btnMission" style="background:rgba(74,222,128,0.10); border:1px solid rgba(74,222,128,0.4); color:#86EFAC;">🎓 TUTORIEL</button>
+        <button class="btn" id="btnHistoire" style="background:rgba(253,230,138,0.08); border:1px solid rgba(253,230,138,0.4); color:#FDE68A;">📜 HISTOIRE</button>
+        <button class="btn" id="btnHelp" style="background:rgba(100,180,255,0.10); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">📖 RÈGLES</button>
+    </div>
+    <div style="display:none;">
+        <button class="btn" id="btnMulti">MULTI (ancien)</button>
+        <button class="btn" id="btnLocal">LOCAL (ancien)</button>
+        <button class="btn" id="btnCompetition">COMPÉTITION (ancien)</button>
+    </div>
+    <div id="titlePseudo" style="margin-top:20px; font-family:'Orbitron',sans-serif; font-size:11px; color:rgba(200,170,255,0.5); letter-spacing:2px;"></div>
+    <button id="btnLogout" style="margin-top:8px; background:none; border:none; color:rgba(200,170,255,0.3); font-family:'Exo 2',sans-serif; font-size:11px; cursor:pointer; letter-spacing:1px;">DÉCONNEXION</button>
+</div>
+
+<!-- SALON RESEAU (lockstep) : partie rapide ou privee, par le relais
+     d'ordres. Fenetre independante, par-dessus l'ecran titre. -->
+<div id="salonReseau" style="display:none; position:fixed; inset:0; z-index:900; background:rgba(5,8,25,0.92); align-items:center; justify-content:center; padding:16px;">
+    <div style="background:rgba(15,23,42,0.96); border:1px solid rgba(168,85,247,0.45); border-radius:12px; padding:22px 24px; width:100%; max-width:440px; max-height:calc(100vh - 32px); overflow-y:auto; text-align:center; font-family:'Exo 2',sans-serif; color:#E0E7FF;">
+        <h2 style="font-family:'Orbitron',monospace; color:#D8B4FE; text-shadow:0 0 18px rgba(168,85,247,0.45); margin:0 0 14px; font-size:20px;">🌐 MULTIJOUEUR</h2>
+        <div id="salonChoix">
+            <div class="salon-carte">
+                <div class="salon-titre">🎲 AU HASARD</div>
+                <div class="salon-aide">Contre d'autres joueurs. La partie démarre dès qu'elle est pleine ; classée (ELO) si vous êtes connecté.</div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn salon-rapide" data-n="2" style="flex:1; margin:0; padding:10px 0; font-size:12px;">2</button>
+                    <button class="btn salon-rapide" data-n="4" style="flex:1; margin:0; padding:10px 0; font-size:12px;">4</button>
+                    <button class="btn salon-rapide" data-n="8" style="flex:1; margin:0; padding:10px 0; font-size:12px;">8</button>
+                    <button class="btn salon-rapide" data-n="16" style="flex:1; margin:0; padding:10px 0; font-size:12px;">16</button>
+                </div>
+                <div class="salon-aide" style="margin:4px 0 0;">joueurs</div>
+            </div>
+            <div class="salon-carte">
+                <div class="salon-titre">✉️ ENTRE AMIS</div>
+                <div class="salon-aide">Créez la partie, puis envoyez le lien d'invitation (ou le code) à vos amis. Les places vides peuvent être prises par des IA.</div>
+                <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:10px; font-size:12px; flex-wrap:wrap;">
+                    <label>Joueurs <select id="salonNb" style="margin-left:4px;"></select></label>
+                    <label>+ IA <select id="salonIa" style="margin-left:4px;"></select></label>
+                    <button class="btn" id="salonCreer" style="margin:0; padding:7px 14px; font-size:12px;">CRÉER</button>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; justify-content:center;">
+                    <span style="font-size:12px; color:#94A3B8;">ou rejoindre :</span>
+                    <input id="salonCode" type="text" maxlength="4" placeholder="CODE" autocomplete="off" style="width:90px; text-align:center; text-transform:uppercase; letter-spacing:4px; font-family:'Orbitron',sans-serif; padding:7px; border-radius:6px; border:1px solid rgba(168,85,247,0.45); background:rgba(0,0,0,0.3); color:#E0E7FF;">
+                    <button class="btn" id="salonRejoindre" style="margin:0; padding:7px 14px; font-size:12px;">REJOINDRE</button>
+                </div>
+            </div>
+            <div style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:#C4B5FD; margin:16px 0 6px;">CLASSEMENT</div>
+            <div id="salonTailles" style="display:flex; gap:6px; justify-content:center; margin-bottom:6px;">
+                <button class="btn salon-taille" data-n="2" style="margin:0; padding:4px 10px; font-size:11px;">2 J</button>
+                <button class="btn salon-taille" data-n="4" style="margin:0; padding:4px 10px; font-size:11px;">4 J</button>
+                <button class="btn salon-taille" data-n="8" style="margin:0; padding:4px 10px; font-size:11px;">8 J</button>
+                <button class="btn salon-taille" data-n="16" style="margin:0; padding:4px 10px; font-size:11px;">16 J</button>
+            </div>
+            <div id="salonClassement" style="max-height:170px; overflow-y:auto; font-size:12px; text-align:left;"></div>
+        </div>
+        <div id="salonInvit" style="display:none;"></div>
+        <div id="salonStatut" style="min-height:40px; margin:14px 0 10px; font-size:14px;"></div>
+        <button class="btn" id="salonFermer" style="font-size:12px; padding:8px 24px; margin:0;">FERMER</button>
+    </div>
+</div>
+
+<!-- ═══ ÉCRAN MULTI (matchmaking) ═══ -->
+<div id="multiScreen" class="screen hidden">
+    <h2 style="font-family:'Orbitron',monospace; color:#4ADE80; text-shadow:0 0 20px rgba(34,197,94,0.4); margin-bottom:20px;">🌐 MULTI</h2>
+    <div style="background:rgba(15,23,42,0.9); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:24px; max-width:380px; margin:0 auto; text-align:center;">
+        <div id="multiStatus" style="font-family:'Exo 2',sans-serif; font-size:14px; color:#E0E7FF; margin-bottom:20px; min-height:40px;">En attente d'adversaires...</div>
+        <div id="multiSlots" style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;"></div>
+        <div id="multiTimer" style="font-family:'Orbitron',sans-serif; font-size:28px; color:#4ADE80; text-shadow:0 0 12px rgba(34,197,94,0.4); margin-bottom:16px; min-height:36px;"></div>
+        <button class="btn" id="btnMultiCancel" style="font-size:12px; padding:8px 24px;">ANNULER</button>
+    </div>
+</div>
+
+<!-- ═══ ÉCRAN LOCAL (inviter par pseudo) ═══ -->
+<div id="localScreen" class="screen hidden" style="background:rgba(5,8,25,0.98);">
+    <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:20px;">👥 PARTIE LOCALE</h2>
+    <div style="background:rgba(15,23,42,0.9); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px; max-width:380px; margin:0 auto;">
+        <div id="localSlots" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
+<div style="display:flex; gap:8px; margin-bottom:12px;">
+            <input id="localInviteInput" type="text" placeholder="Pseudo à inviter..." style="flex:1; background:rgba(15,23,42,0.8); border:1px solid rgba(100,180,255,0.4); border-radius:6px; padding:7px 10px; color:#7DD3FC; font-family:'Exo 2',sans-serif; font-size:13px; outline:none;">
+            <button class="btn" id="btnLocalInvite" style="font-size:12px; padding:7px 14px; margin:0; background:rgba(100,180,255,0.2); border-color:rgba(100,180,255,0.5); color:#7DD3FC;">INVITER</button>
+        </div>
+        <div id="localInviteMsg" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#4ADE80; min-height:16px; margin-bottom:12px; text-align:center;"></div>
+        <!-- Reglage de l'hote : nombre de vaisseaux de la partie (le serveur en accepte 12 au plus). -->
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; font-family:'Exo 2',sans-serif; font-size:13px; color:#94A3B8;">
+            <span style="white-space:nowrap;">🛸 Vaisseaux</span>
+            <input type="range" id="localCleaners" min="0" max="12" value="2" style="flex:1;">
+            <span id="localCleanersVal" style="color:#7DD3FC; min-width:18px; text-align:right;">2</span>
+        </div>
+        <div id="localWaitMsg" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#94A3B8; text-align:center; padding:10px 0;">En attente d'une réponse...</div>
+        <button class="btn" id="btnLocalCancel" style="width:100%; margin-top:8px; font-size:12px; padding:8px;">ANNULER</button>
+    </div>
+</div>
+
+<!-- ═══ ÉCRAN TOURNOI ═══ -->
+<!-- ═══ ÉCRAN COMPÉTITION ═══ -->
+<div id="competitionScreen" class="screen hidden" style="background:rgba(5,8,25,0.98); flex-direction:column; align-items:center; justify-content:center; gap:20px;">
+    <h2 style="font-family:'Orbitron',monospace; color:#FFD700; text-shadow:0 0 20px rgba(255,215,0,0.4); letter-spacing:3px;">🏆 COMPÉTITION</h2>
+    <div style="display:flex; flex-direction:column; gap:14px; width:100%; max-width:340px;">
+        <button class="btn" id="btnGoRanked" style="padding:18px; font-size:15px; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.5); color:#A5B4FC; letter-spacing:2px;">⚔️ 1 vs 1</button>
+        <button class="btn" id="btnGoTournament" style="padding:18px; font-size:15px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); color:#FFD700; letter-spacing:2px;">🏆 TOURNOI 32 JOUEURS</button>
+    </div>
+    <button class="btn" id="btnCompetitionBack" style="margin-top:8px; font-size:12px; padding:8px 24px;">RETOUR</button>
+</div>
+
+<!-- ═══ ÉCRAN RANKED 1v1 ═══ -->
+<div id="rankedScreen" class="screen hidden" style="background:rgba(5,8,25,0.98); flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+    <h2 style="font-family:'Orbitron',monospace; color:#A5B4FC; text-shadow:0 0 20px rgba(99,102,241,0.4); letter-spacing:3px;">⚔️ 1 vs 1</h2>
+    <div id="rankedStatus" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#94A3B8; letter-spacing:1px;">Choisissez un mode</div>
+    <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:320px;">
+        <button class="btn" id="btnRankedRandom" style="padding:14px; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.5); color:#A5B4FC;">🎲 Adversaire aléatoire</button>
+        <div style="display:flex; gap:8px;">
+            <input id="rankedInviteInput" type="text" placeholder="Pseudo de l'adversaire..." style="flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:10px 12px; font-family:'Exo 2',sans-serif; font-size:13px; color:#E0E7FF; outline:none;">
+            <button class="btn" id="btnRankedInvite" style="padding:10px 14px; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.5); color:#A5B4FC; white-space:nowrap;">Inviter</button>
+        </div>
+    </div>
+    <!-- Panel score entre les manches -->
+    <div id="rankedScorePanel" style="display:none; flex-direction:column; align-items:center; gap:10px; background:rgba(15,23,42,0.95); border:1px solid rgba(99,102,241,0.3); border-radius:12px; padding:20px 32px;">
+        <div id="rankedScoreTitle" style="font-family:'Orbitron',sans-serif; font-size:13px; color:#A5B4FC; letter-spacing:2px;">MANCHE TERMINÉE</div>
+        <div id="rankedScore" style="font-family:'Orbitron',sans-serif; font-size:32px; color:#FFD700;">0 — 0</div>
+        <div id="rankedScoreMsg" style="font-family:'Exo 2',sans-serif; font-size:12px; color:#94A3B8;"></div>
+        <button class="btn" id="btnRankedNextManche" style="padding:10px 24px; background:rgba(99,102,241,0.2); border:1px solid rgba(99,102,241,0.5); color:#A5B4FC;">▶ MANCHE SUIVANTE</button>
+    </div>
+    <button class="btn" id="btnRankedBack" style="margin-top:8px; font-size:12px; padding:8px 24px;">RETOUR</button>
+</div>
+
+<div id="tournamentScreen" class="screen hidden" style="background:rgba(5,8,25,0.98); overflow-y:auto; justify-content:flex-start; padding:20px 16px;">
+    <h2 style="font-family:'Orbitron',monospace; color:#FFD700; text-shadow:0 0 20px rgba(255,215,0,0.4); margin-bottom:6px; letter-spacing:3px; flex-shrink:0;">🏆 TOURNOI</h2>
+    <div id="tournamentStatus" style="font-family:'Exo 2',sans-serif; font-size:13px; color:#94A3B8; margin-bottom:10px; letter-spacing:1px; flex-shrink:0;">Chargement...</div>
+    <div id="tournamentJoinPanel" style="background:rgba(15,23,42,0.9); border:1px solid rgba(255,215,0,0.3); border-radius:12px; padding:14px 20px; max-width:500px; width:100%; margin:0 auto 12px; text-align:center; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div id="tournamentPlayerCount" style="font-family:'Orbitron',sans-serif; font-size:22px; color:#FFD700; text-shadow:0 0 12px rgba(255,215,0,0.4); white-space:nowrap;">0 / 32</div>
+        <div id="tournamentJoinMsg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:#4ADE80; flex:1; text-align:center;"></div>
+        <button class="btn" id="btnTournamentJoin" style="font-size:12px; padding:8px 16px; background:rgba(255,215,0,0.2); border-color:rgba(255,215,0,0.6); color:#FFD700; letter-spacing:1px; white-space:nowrap; margin:0;">S'INSCRIRE</button>
+    </div>
+    <div style="background:rgba(15,23,42,0.9); border:1px solid rgba(255,215,0,0.2); border-radius:12px; padding:12px; max-width:860px; width:100%; margin:0 auto;">
+        <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:rgba(255,215,0,0.5); letter-spacing:2px; margin-bottom:10px; text-align:center;">TOUR 1 — 16 MATCHS</div>
+        <div id="bracketGrid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;"></div>
+    </div>
+    <button class="btn" id="btnTournamentBack" style="margin-top:14px; font-size:12px; padding:8px 24px; flex-shrink:0;">RETOUR</button>
+</div>
+
+<!-- ═══ ÉCRAN LEADERBOARD ═══ -->
+<!-- ═══ ÉCRAN GUILDES ═══ -->
+<div id="guildScreen" class="screen hidden">
+    <h2 style="font-family:'Orbitron',monospace; color:#FB923C; text-shadow:0 0 20px rgba(251,146,60,0.4); margin-bottom:20px; letter-spacing:3px;">⚔️ GUILDES</h2>
+    <div style="background:rgba(15,23,42,0.92); border:1px solid rgba(251,146,60,0.3); border-radius:12px; padding:24px 28px; max-width:500px; margin:0 auto; max-height:70vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(251,146,60,0.3) transparent;">
+
+        <!-- Ma guilde -->
+        <div id="myGuildPanel" style="display:none;">
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
+                <img id="myGuildLogo" src="" style="width:52px; height:52px; border-radius:8px; border:2px solid rgba(251,146,60,0.5); object-fit:cover;" onerror="this.style.display='none'">
+                <div>
+                    <div id="myGuildName" style="font-family:'Orbitron',monospace; font-size:16px; color:#FB923C; letter-spacing:2px;"></div>
+                    <div id="myGuildTag" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(251,146,60,0.6); margin-top:2px;"></div>
+                    <div id="myGuildElo" style="font-family:'Orbitron',monospace; font-size:12px; color:#FFD700; margin-top:2px;"></div>
+                </div>
+            </div>
+            <div id="myGuildMembers" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(200,210,230,0.7); margin-bottom:14px;"></div>
+            <button class="btn" id="btnLeaveGuild" style="font-size:12px; padding:7px 18px; background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.4); color:#F87171;">QUITTER LA GUILDE</button>
+        </div>
+
+        <!-- Pas de guilde -->
+        <div id="noGuildPanel">
+            <p style="font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.7); margin-bottom:18px; text-align:center;">Vous n'appartenez à aucune guilde.</p>
+
+            <!-- Créer une guilde -->
+            <div style="margin-bottom:20px; padding:16px; background:rgba(251,146,60,0.06); border:1px solid rgba(251,146,60,0.2); border-radius:8px;">
+                <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:#FB923C; letter-spacing:2px; margin-bottom:12px;">CRÉER UNE GUILDE</div>
+                <div style="margin-bottom:8px;"><input id="guildNameInput" type="text" placeholder="Nom de la guilde..." maxlength="30" style="width:100%; box-sizing:border-box; background:rgba(15,23,42,0.8); border:1px solid rgba(251,146,60,0.3); border-radius:6px; padding:7px 10px; color:#FB923C; font-family:'Exo 2',sans-serif; font-size:13px; outline:none;"></div>
+                <div style="margin-bottom:8px;"><input id="guildTagInput" type="text" placeholder="Tag (3 lettres max)" maxlength="3" style="width:100%; box-sizing:border-box; background:rgba(15,23,42,0.8); border:1px solid rgba(251,146,60,0.3); border-radius:6px; padding:7px 10px; color:#FB923C; font-family:'Exo 2',sans-serif; font-size:13px; outline:none; text-transform:uppercase;"></div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-family:'Exo 2',sans-serif; font-size:11px; color:rgba(251,146,60,0.6); display:block; margin-bottom:6px;">Logo (PNG/JPG, max 1MB)</label>
+                    <input id="guildLogoInput" type="file" accept="image/png,image/jpeg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:rgba(200,210,230,0.7);">
+                    <img id="guildLogoPreview" src="" style="display:none; width:52px; height:52px; border-radius:8px; border:2px solid rgba(251,146,60,0.4); object-fit:cover; margin-top:8px;">
+                </div>
+                <button class="btn" id="btnCreateGuild" style="width:100%; font-size:13px; padding:8px; background:rgba(251,146,60,0.2); border-color:rgba(251,146,60,0.5); color:#FB923C;">CRÉER</button>
+                <div id="guildCreateMsg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:#94A3B8; text-align:center; margin-top:8px; min-height:16px;"></div>
+            </div>
+
+            <!-- Rejoindre une guilde -->
+            <div style="padding:16px; background:rgba(251,146,60,0.06); border:1px solid rgba(251,146,60,0.2); border-radius:8px;">
+                <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:#FB923C; letter-spacing:2px; margin-bottom:12px;">REJOINDRE UNE GUILDE</div>
+                <div style="display:flex; gap:8px;">
+                    <input id="guildJoinTagInput" type="text" placeholder="Tag (ex: NEB)" maxlength="3" style="flex:1; background:rgba(15,23,42,0.8); border:1px solid rgba(251,146,60,0.3); border-radius:6px; padding:7px 10px; color:#FB923C; font-family:'Exo 2',sans-serif; font-size:13px; outline:none; text-transform:uppercase;">
+                    <button class="btn" id="btnJoinGuild" style="font-size:12px; padding:7px 16px; margin:0; background:rgba(251,146,60,0.2); border-color:rgba(251,146,60,0.5); color:#FB923C;">REJOINDRE</button>
+                </div>
+                <div id="guildJoinMsg" style="font-family:'Exo 2',sans-serif; font-size:11px; color:#94A3B8; text-align:center; margin-top:8px; min-height:16px;"></div>
+            </div>
+        </div>
+
+        <!-- Classement guildes -->
+        <div style="margin-top:20px;">
+            <div style="font-family:'Orbitron',sans-serif; font-size:10px; color:#FB923C; letter-spacing:2px; margin-bottom:10px;">CLASSEMENT GUILDES</div>
+            <div id="guildLeaderboard" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(200,210,230,0.7);">Chargement...</div>
+        </div>
+    </div>
+    <button class="btn" id="btnGuildBack" style="margin-top:16px;">RETOUR</button>
+</div>
+
+<div id="leaderboardScreen" class="screen hidden" style="display:none!important;">
+    <h2 style="font-family:'Orbitron',monospace; color:#E0E7FF; text-shadow:0 0 20px rgba(139,92,246,0.4); margin-bottom:20px;">CLASSEMENT</h2>
+    <div style="display:flex; gap:14px; max-width:900px; margin:0 auto; max-height:65vh;">
+
+        <!-- Colonne Joueurs -->
+        <div style="flex:1; background:rgba(15,23,42,0.9); border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:16px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(139,92,246,0.3) transparent;">
+            <div style="font-family:'Orbitron',monospace; font-size:10px; color:#8B5CF6; letter-spacing:2px; margin-bottom:12px; text-align:center;">JOUEURS</div>
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead>
+                    <tr style="color:#8B5CF6; border-bottom:1px solid rgba(139,92,246,0.3);">
+                        <th style="padding:6px 4px; text-align:left;">#</th>
+                        <th style="padding:6px 4px; text-align:left;">Joueur</th>
+                        <th style="padding:6px 4px; text-align:center;">ELO</th>
+                        <th style="padding:6px 4px; text-align:center;">V</th>
+                        <th style="padding:6px 4px; text-align:center;">%</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody"></tbody>
+            </table>
+            <p id="leaderboardEmpty" style="color:#94A3B8; text-align:center; padding:20px; display:none;">Aucune partie enregistrée.</p>
+        </div>
+
+        <!-- Colonne Guildes -->
+        <div style="flex:1; background:rgba(15,23,42,0.9); border:1px solid rgba(251,146,60,0.3); border-radius:12px; padding:16px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(251,146,60,0.3) transparent;">
+            <div style="font-family:'Orbitron',monospace; font-size:10px; color:#FB923C; letter-spacing:2px; margin-bottom:12px; text-align:center;">GUILDES</div>
+            <div id="guildLeaderboardRanking">Chargement...</div>
+        </div>
+    </div>
+    <button class="btn" id="btnLeaderboardBack" style="margin-top:16px;">RETOUR</button>
+</div>
+
+<!-- ═══ POPUP PROFIL GUILDE ═══ -->
+<div id="guildProfilePopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:300; background:rgba(10,15,35,0.97); border:2px solid rgba(251,146,60,0.5); border-radius:14px; padding:24px 28px; max-width:380px; width:90%; box-shadow:0 0 40px rgba(251,146,60,0.2); pointer-events:auto;">
+    <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
+        <img id="gpLogo" src="" style="width:56px; height:56px; border-radius:8px; border:2px solid rgba(251,146,60,0.5); object-fit:cover;">
+        <div>
+            <div id="gpName" style="font-family:'Orbitron',monospace; font-size:15px; color:#FB923C;"></div>
+            <div id="gpTag" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(251,146,60,0.6); margin-top:2px;"></div>
+            <div id="gpElo" style="font-family:'Orbitron',monospace; font-size:12px; color:#FFD700; margin-top:2px;"></div>
+        </div>
+    </div>
+    <div id="gpDesc" style="font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.8); margin-bottom:12px; min-height:32px; line-height:1.5;"></div>
+    <textarea id="gpDescEdit" style="display:none; width:100%; box-sizing:border-box; background:rgba(15,23,42,0.8); border:1px solid rgba(251,146,60,0.4); border-radius:6px; padding:8px; color:#FB923C; font-family:'Exo 2',sans-serif; font-size:12px; resize:vertical; min-height:60px;" maxlength="300" placeholder="Présentation de la guilde (300 chars max)..."></textarea>
+    <div id="gpMembers" style="font-family:'Exo 2',sans-serif; font-size:12px; color:rgba(200,210,230,0.6); margin-bottom:14px;"></div>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button id="gpEditBtn" style="display:none; background:rgba(251,146,60,0.2); border:1px solid rgba(251,146,60,0.4); border-radius:6px; padding:6px 14px; color:#FB923C; font-family:'Exo 2',sans-serif; font-size:12px; cursor:pointer;">✏️ Modifier</button>
+        <button id="gpSaveBtn" style="display:none; background:rgba(34,197,94,0.2); border:1px solid rgba(34,197,94,0.4); border-radius:6px; padding:6px 14px; color:#4ADE80; font-family:'Exo 2',sans-serif; font-size:12px; cursor:pointer;">Sauvegarder</button>
+        <button id="gpCloseBtn" style="background:rgba(100,116,139,0.2); border:1px solid rgba(100,116,139,0.4); border-radius:6px; padding:6px 14px; color:#94A3B8; font-family:'Exo 2',sans-serif; font-size:12px; cursor:pointer;">Fermer</button>
+    </div>
+</div>
+<div id="guildProfileOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:299;" onclick="closeGuildProfile()"></div>
+
+<!-- ═══ ÉCRAN AIDE ═══ -->
+<div id="helpScreen" class="screen hidden">
+    <h2 style="font-family:'Orbitron',monospace; color:#7DD3FC; text-shadow:0 0 20px rgba(100,180,255,0.4); margin-bottom:12px; letter-spacing:3px;">LIVRE DES RÈGLES</h2>
+    <button class="btn" id="btnStartTutorial" style="margin-bottom:16px; background:rgba(34,197,94,0.2); border:1px solid rgba(34,197,94,0.5); color:#4ADE80; font-size:13px; padding:10px 28px; letter-spacing:2px;">🎓 LANCER LA MISSION TUTORIEL</button>
+    <div id="helpBook" style="background:rgba(15,23,42,0.92); border:1px solid rgba(100,180,255,0.3); border-radius:12px; padding:24px 28px; max-width:620px; margin:0 auto; max-height:70vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(100,180,255,0.3) transparent; font-family:'Exo 2',sans-serif; font-size:13px; color:rgba(200,210,230,0.85); line-height:1.6;">
+
+<!-- Navigation chapitres -->
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(100,180,255,0.15);">
+  <a href="#h-objectif" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🎯 Objectif</a>
+  <a href="#h-depart" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🏛 Départ</a>
+  <a href="#h-controles" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🕹 Contrôles</a>
+  <a href="#h-prod" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🧬 Production</a>
+  <a href="#h-bataille" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚔ Bataille</a>
+  <a href="#h-zones" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🗺 Zones</a>
+  <a href="#h-surface" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🎯 Tir de surface</a>
+  <a href="#h-batiments" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;"><i class="ic-bat" data-g="alveole" data-px="12"></i><i class="ic-bat" data-g="nid" data-px="12"></i><i class="ic-bat" data-g="biome" data-px="12"></i> Bâtiments</a>
+  <a href="#h-territoires" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🛰 Territoires</a>
+  <a href="#h-evolution" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">✦ Évolution</a>
+  <a href="#h-alertes" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🔔 Alertes</a>
+  <a href="#h-dangers" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">⚠️ Dangers</a>
+  <a href="#h-spheres" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🛸 Sphères</a>
+  <a href="#h-commerce" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🤝 Commerce</a>
+  <a href="#h-multi" style="color:#7DD3FC;font-size:11px;text-decoration:none;background:rgba(100,180,255,0.1);padding:3px 8px;border-radius:4px;">🌐 Multi</a>
+</div>
+
+<!-- OBJECTIF -->
+<p id="h-objectif" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🎯 OBJECTIF</p>
+<p style="margin-bottom:6px;">Conquérir <span style="color:#FFD700;">80%</span> de tous les astres de la galaxie (planètes + lunes). Dès ce seuil atteint, la victoire est déclarée immédiatement. En solo, si vous êtes éliminé, le bouton <span style="color:#A5B4FC;">REGARDER</span> de l'écran de défaite permet de suivre la fin de la partie.</p>
+<p style="margin-bottom:6px;">Chaque astre possédé génère des <span style="color:#C8A0FF;">spores</span> en continu. Plus vous en contrôlez, plus vite vous produisez — et plus vous êtes difficile à battre.</p>
+<p style="margin-bottom:16px;">Pourquoi des spores ? Le bouton <span style="color:#E9D5FF;">HISTOIRE</span> du menu le raconte : la Terre est détruite, et les partis politiques y ont transformé leurs adhérents en spores pour conquérir l'univers.</p>
+
+<!-- DEPART -->
+<p id="h-depart" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🏛 DÉPART &amp; RÉGIMES</p>
+<p style="margin-bottom:6px;">Chaque partie (solo et réseau ; pas le tutoriel) commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Centre collaborateur, Gauche non solidaire, Dictature éclairée, Royauté à plusieurs, Fascisme sympa, Anarchie très organisée, Écolo mais pas trop, Communisme néolibéral, Droite prolétaire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun s'installe ; sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
+
+<!-- CONTRÔLES -->
+<p id="h-controles" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🕹 CONTRÔLES</p>
+<p style="margin-bottom:6px;color:rgba(200,210,230,0.55);font-size:11px;letter-spacing:1px;">SOURIS</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche sur un astre</td><td style="padding:3px 0;">Le sélectionne et centre la caméra dessus</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un astre</td><td style="padding:3px 0;">Sa fiche : type, flore, faune, propriétaire, spores et <b>bâtiments</b> <i class="ic-bat" data-g="alveole"></i> <i class="ic-bat" data-g="nid"></i> <i class="ic-bat" data-g="biome"></i>. Tirs et constructions passent par les touches (Espace, 1 à 4, F, G)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic gauche maintenu → relâcher</td><td style="padding:3px 0;">En mode visée : tire un jet de spores dans la direction pointée</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic sur une zone de la planète</td><td style="padding:3px 0;">Choisit la zone d'où partira le tir — elle se cerne d'un trait double et d'un « TIR »</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Double-clic sur un astre</td><td style="padding:3px 0;">Plonge dessus (cadrage) ; Espace ensuite pour tirer</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur votre disque</td><td style="padding:3px 0;">Le tir devient un tir de surface ; hors du disque, c'est un jet normal</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Ctrl + clic gauche maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Rafale</b> — paquets de 10 spores, 8 par seconde, arrosés autour du curseur ; lâcher pour arrêter</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : Shift maintenu</td><td style="padding:3px 0;"><b style="color:#FFD27A;">Boule</b> — charge 25 spores/s (jusqu'à 500, coût double) qui tournent lentement vers la souris ; lâcher Shift la lance</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">En visée : curseur sur un astre</td><td style="padding:3px 0;">Le devis : combien de cases votre envoi y achètera, et à quel prix</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur un nom (liste des joueurs)</td><td style="padding:3px 0;">Info sur ce joueur, ou proposition de Commerce</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Clic droit sur fond vide + glisser</td><td style="padding:3px 0;">Déplace la caméra</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Survol d'un nombre de spores</td><td style="padding:3px 0;">Nomme le joueur à qui il appartient, et dit s'il tient l'astre ou l'assaille</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Molette</td><td style="padding:3px 0;">Zoom / dézoom (ne fait pas défiler les panneaux quand la souris est dessus)</td></tr>
+</table>
+<p style="margin-bottom:6px;color:rgba(200,210,230,0.55);font-size:11px;letter-spacing:1px;">CLAVIER</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Z Q S D <span style="color:rgba(200,210,230,0.45)">ou flèches</span></td><td style="padding:3px 0;">Déplacer la caméra</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">P / M</td><td style="padding:3px 0;">Zoom avant / arrière</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Espace</td><td style="padding:3px 0;">Passe en mode tir depuis l'astre sélectionné : vers un autre astre, ou sur son propre sol (curseur sur son disque). Sans Espace, aucun tir</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">F</td><td style="padding:3px 0;"><b style="color:#FF8A3D;">Démolisseur</b> — arme le tir (le trait rougeoie) ; la molette choisit le bâtiment <i class="ic-bat" data-g="alveole"></i> <i class="ic-bat" data-g="nid"></i> <i class="ic-bat" data-g="biome"></i> ; le clic tire 250 spores, plus lentes, qui en détruisent un de ce type. F à nouveau : désarme</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">G</td><td style="padding:3px 0;"><b style="color:#4ADE80;">Spore parasitaire</b> — l'arme depuis l'astre choisi (il faut qu'elle soit prête) ; le clic la lance. G à nouveau : désarme</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Tab</td><td style="padding:3px 0;">Astre suivant dans Mes Astres — le bouton ⇄ choisit : de planète en planète, ou d'astre en astre (lunes comprises)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">1 2 3 <span style="color:rgba(200,210,230,0.45)">(&nbsp;&amp;&nbsp;é&nbsp;"&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire alvéole · nid · biome sur la zone sélectionnée</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">4 <span style="color:rgba(200,210,230,0.45)">(&nbsp;'&nbsp;en azerty)</span></td><td style="padding:3px 0;">Construire un <i class="ic-bat" data-g="parasite"></i> foyer putride : une spore parasitaire en 2 minutes</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">A / E</td><td style="padding:3px 0;">Régler la part de spores envoyée, par crans de 5 %</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#FFD27A;">R</b></td><td style="padding:3px 0;"><b style="color:#FFD27A;">Riposte</b> au pourcentage d'envoi — sur l'astre survolé, ou sur tous si la souris est dans le vide</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;"><b style="color:#93C5FD;">T</b></td><td style="padding:3px 0;"><b style="color:#93C5FD;">Arrêt</b> — vos zones cessent d'attaquer, sur l'astre survolé ou partout ; les spores engagées restent dans la zone</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">K</td><td style="padding:3px 0;">Affiche (ou cache) tous les raccourcis, en transparence par-dessus la partie</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">Échap</td><td style="padding:3px 0;">Pause (le livre des règles s’ouvre)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:42%;">F3 puis D</td><td style="padding:3px 0;">Diagnostic de performance, puis détail du rendu</td></tr>
+</table>
+<p style="margin-bottom:16px;color:rgba(200,210,230,0.5);font-size:11px;">💡 En mode visée, le clic droit annule. La part de spores envoyée se règle aussi au curseur <span style="color:#E9D5FF;">Envoi</span> du panneau Évolution, et s'affiche en gros en bas de l'écran.</p>
+
+<!-- PRODUCTION -->
+<p id="h-prod" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🧬 SPORES &amp; PRODUCTION</p>
+<p style="margin-bottom:6px;">Chaque astre a une <span style="color:#FFD700;">capacité</span> — le nombre de spores qu'il peut contenir — et se remplit tout seul. La vitesse de remplissage est une <span style="color:#C8A0FF;">part de cette capacité par seconde</span>, si bien qu'une géante et une petite lune mettent le même temps à se remplir : à la base, environ une minute pour le premier quart, une minute et demie pour atteindre le pic.</p>
+<p style="margin-bottom:6px;">Mais le rendement n'est pas constant : il suit une <span style="color:#4ADE80;">courbe</span>, la même pour tous (comme dans OpenFront) : plus il y a de spores, plus elles se reproduisent, mais plus elles manquent de place.</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:32%;">Presque vide</td><td style="padding:3px 0;">Rendement faible — il n'y a presque personne pour se reproduire</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Au quart plein</td><td style="padding:3px 0;">Déjà bon (9/10 du pic)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Vers 40 %</td><td style="padding:3px 0;color:#4ADE80;">LE PIC — le meilleur rendement</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Aux trois quarts</td><td style="padding:3px 0;">Ça ralentit nettement (6/10 du pic)</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Plein à ras bord</td><td style="padding:3px 0;">Extinction : un astre saturé ne produit plus rien</td></tr>
+</table>
+<p style="margin-bottom:6px;">Le rendement du moment s'affiche au-dessus de l'astre sélectionné, en vert, jaune ou rouge. Tout le reste <span style="color:#E9D5FF;">multiplie</span> cette courbe : la <span style="color:#4ADE80;">Flore</span> de l'astre, la <span style="color:#22C55E;">Symbiose</span> qui monte avec le temps (jusqu'à +20 % sur une planète, +10 % sur une lune), vos <span style="color:#E9D5FF;">nids</span> et votre stat <span style="color:#4ADE80;">Growth</span>.</p>
+<p style="margin-bottom:16px;">Une <span style="color:#EAB308;">alvéole</span> augmente la capacité, donc aussi la production : un plus grand silo nourrit plus de monde. Attention, elle décale aussi le pic.</p>
+<p style="margin-bottom:16px;">Deux types de jets : <span style="color:#E9D5FF;">⚪ Spores</span> (Espace, puis clic), qui colonisent et attaquent, et <span style="color:#E9D5FF;"><i class="ic-bat" data-g="parasite"></i> Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent). Raccourcis : <b>4</b> construit le foyer putride qui la prépare, <b>G</b> l'arme pendant la visée.</p>
+<!-- BATAILLE -->
+<p id="h-bataille" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚔ BATAILLE DE SURFACE</p>
+<p style="margin-bottom:6px;">Une conquête ne se joue plus en un choc. Les spores qui touchent un astre y <span style="color:#FFD700;">prennent pied sur une case</span>, du côté d'où vient le tir, et s'étalent sur le disque en lobes irréguliers. Chaque camp a sa couleur ; le sol que personne ne tient est gris.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">ON ACHÈTE LE SOL.</span> La planète vaut sa capacité en spores, donc une case coûte cette capacité divisée par le nombre de cases. Attaquer avec X spores rapporte X cases, puis <span style="color:#E9D5FF;">le front s'arrête net</span>. Le sol vierge, lui, ne coûte que 15 % du prix : coloniser n'est pas conquérir.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">LE DEVIS, PENDANT LA VISÉE.</span> Sous le curseur s'affiche ce que votre envoi achètera sur l'astre visé : le nombre de cases, la part du disque que ça représente, et le prix d'une case. Faune et biomes adverses y sont déjà déduits, et la densité ajoutée — c'est le vrai chiffre, pas une estimation optimiste. Sur un astre à vous, il indique simplement le renfort.</p>
+<p style="margin-bottom:6px;">Il n'y a donc <span style="color:#4ADE80;">pas besoin d'être plus fort</span> pour attaquer — on prend ce qu'on peut payer. Personne ne repousse tout seul : il faut relancer une attaque. Pendant ce temps, les deux camps produisent chacun sur ce qu'ils tiennent, et <span style="color:#E9D5FF;">le terrain conquis reste</span>.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA RAFALE — CTRL + CLIC GAUCHE.</span> Pendant la visée, maintenez Ctrl et le clic gauche : votre astre crache des <span style="color:#E9D5FF;">paquets de 10 spores, 8 par seconde</span>, dans la direction du curseur à plus ou moins 20° près — une mitrailleuse, pas un fusil. Il se vide tant que vous tenez, et s'arrête quand vous lâchez ou quand il n'a plus de quoi faire un paquet. Le pourcentage d'envoi n'y compte pas.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA BOULE — SHIFT.</span> Pendant la visée, maintenez Shift : votre astre agglutine des spores dans son atmosphère, <span style="color:#E9D5FF;">25 par seconde jusqu'à 500</span>. Chaque spore chargée lui en coûte <b>deux</b>, et rien n'est rendu. La boule tourne lentement vers la souris ; en lâchant Shift elle part <span style="color:#E9D5FF;">dans l'axe centre de l'astre → boule</span>, pas selon la visée habituelle. Elle va plus vite qu'un jet, <span style="color:#4ADE80;">deux fois plus loin</span>, subit quatre fois moins la gravité, et <span style="color:#4ADE80;">les vaisseaux et amas rouges et noirs ne lui font rien</span>. À l'arrivée, c'est un jet comme un autre.</p>
+<p style="margin-bottom:6px;"><span style="color:#FF8A3D;">LE DÉMOLISSEUR — F.</span> Pendant la visée, F <span style="color:#E9D5FF;">arme</span> le démolisseur : le trait de visée rougeoie et trois icônes suivent le curseur — <i class="ic-bat" data-g="alveole"></i> alvéole, <i class="ic-bat" data-g="nid"></i> nid, <i class="ic-bat" data-g="biome"></i> biome. <span style="color:#E9D5FF;">La molette</span> choisit le bâtiment visé ; sous les icônes, le nombre que l'astre pointé en possède. Le clic tire alors <span style="color:#E9D5FF;">250 spores</span>, <b>moins vite</b> qu'un jet pour la même portée. À l'impact, <span style="color:#4ADE80;">un bâtiment de ce type</span>, pris au hasard parmi ceux qui ne sont pas à vous, explose ; si l'astre n'en a pas, rien ne casse. Ses spores attaquent ensuite comme un jet ordinaire. Sans 250 spores sur l'astre (ou la zone), l'écran vibre et rien ne part. F à nouveau désarme.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD27A;">LA TOUCHE R — RIPOSTE.</span> Sur chaque astre où plusieurs camps se partagent le sol et où vous tenez une zone, chacune de vos zones engage <span style="color:#E9D5FF;">le pourcentage d'envoi</span> de sa réserve — celui que vous réglez avec <b>A</b> et <b>E</b>, comme pour un jet. Chez vous, chez l'autre, ou sur un neutre entamé. Chaque case reprise se paie au prix du sol, et <span style="color:#4ADE80;">ce qui n'a rien trouvé à acheter reste dans la zone</span> : riposter à 100 % pour trois cases ne vide pas la planète.</p>
+<p style="margin-bottom:6px;"><span style="color:#E9D5FF;">C'est la souris qui désigne la cible :</span> le curseur sur un astre, la riposte ne touche que <b>ses</b> zones ; le curseur dans le vide, <b>tous</b> vos astres contaminés repartent d'un coup. Rien à nettoyer : l'écran vibre.</p>
+<p style="margin-bottom:6px;"><span style="color:#93C5FD;">LA TOUCHE T — ARRÊT.</span> Le contraire de R : vos zones <span style="color:#E9D5FF;">cessent de pousser</span>, que l'attaque vienne d'une riposte, d'un jet ou d'un tir de surface. Même ciblage à la souris : un astre, ou tous. Rien n'est perdu — les spores engagées restent dans la zone, prêtes pour la prochaine riposte.</p>
+<p style="margin-bottom:16px;">Plusieurs attaques sur la même planète ouvrent <span style="color:#E9D5FF;">chacune leur propre front</span> à l'endroit touché. Des spores ne renforcent une tache que si le tir retombe sur du terrain que vous tenez déjà.</p>
+<!-- ZONES -->
+<p id="h-zones" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🗺 LES ZONES</p>
+<p style="margin-bottom:6px;">Une tache sur une planète n'est pas un morceau de camp : c'est une <span style="color:#FFD700;">zone</span>, avec <span style="color:#E9D5FF;">ses spores</span> et <span style="color:#E9D5FF;">son rendement</span>, écrits en son milieu quand on zoome. Deux taches d'un même joueur vivent chacune leur vie et ne mettent leurs réserves en commun que si le terrain finit par les souder.</p>
+<p style="margin-bottom:6px;">Perdre du sol, c'est perdre les spores qui étaient dessus : elles sont sur le terrain, pas dans un coffre. Une zone coupée en deux partage les siennes au prorata des cases.</p>
+<p style="margin-bottom:6px;"><span style="color:#E9D5FF;">On clique une zone</span> pour choisir d'où l'on tire et où l'on construit. Un clic qui tombe sur le terrain d'un autre prend la vôtre la plus proche.</p>
+<p style="margin-bottom:6px;">Le panneau <span style="color:#FFD700;">NAISSANCE</span>, en haut à gauche au-dessus d'Évolution, montre la courbe de production en entier, un point qui dit où vous en êtes dessus, et surtout <span style="color:#E9D5FF;">dans combien de temps</span> vous atteindrez le pic — ou, si vous l'avez dépassé, dans combien de temps vous serez saturé et ne produirez plus rien. On voit d'un coup d'œil si ça monte vers le pic, si ça stagne dans le creux, ou si ça s'étouffe en approchant du plafond. Il suit la <b>zone choisie</b> quand une bataille est en cours, et sinon l'<b>astre sélectionné</b> — il n'y a pas besoin de se battre pour avoir besoin de la courbe.</p>
+<p style="margin-bottom:16px;">Sous <span style="color:#EF4444;">dix cases</span>, une zone ne peut plus ni attaquer ni bâtir — l'écran vibre si vous essayez — et une fois son élan retombé elle s'effrite case par case jusqu'à disparaître.</p>
+<!-- TIR DE SURFACE -->
+<p id="h-surface" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🎯 TIR DE SURFACE</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">IL N'Y A QU'UNE VISÉE.</span> Depuis un astre où vous tenez du terrain, c'est le curseur qui décide : posé <b>sur son disque</b>, le tir devient un tir de surface ; <b>partout ailleurs</b>, c'est un jet ordinaire vers la cible visée. Rien à activer, rien à quitter — le bandeau en haut vous dit ce que le tir fera si vous lâchez maintenant.</p>
+<p style="margin-bottom:6px;">Un <span style="color:#E9D5FF;">double-clic</span> sur un astre plonge dessus et vous met en visée — c'est un raccourci de cadrage, plus un mode. Le tir de surface part du bout de terrain que vous y tenez le plus proche du curseur.</p>
+<p style="margin-bottom:6px;">La trajectoire est une cloche déviée vers le centre de l'astre — plus on vise loin, plus il faut corriger ; d'une frontière à celle d'en face le tir reste tendu. Il passe <span style="color:#60A5FA;">au-dessus du disque, dans l'atmosphère</span>, et seul le point de chute revient sur la planète.</p>
+<p style="margin-bottom:16px;">L'astre doit garder <span style="color:#E9D5FF;">70 pixels de rayon</span> à l'écran : en dessous, on ne distingue plus ses cases, donc le viser signifie le prendre pour cible et non le bombarder. Une géante se bombarde de loin, une petite lune demande qu'on s'approche.</p>
+
+<!-- BÂTIMENTS -->
+<p id="h-batiments" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;"><i class="ic-bat" data-g="alveole"></i><i class="ic-bat" data-g="nid"></i><i class="ic-bat" data-g="biome"></i> BÂTIMENTS</p>
+<p style="margin-bottom:6px;">Aux touches <span style="color:#E9D5FF;">1 2 3</span> (4 pour le foyer putride), ou dans l'onglet BÂTIMENTS de la fiche (clic droit sur l'astre). La construction est <span style="color:#4ADE80;">immédiate</span> : si l'astre ne peut pas payer, elle est refusée sur-le-champ et l'écran vibre.</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+  <tr style="color:rgba(200,210,230,0.5);"><td style="padding:3px 0;width:26%;">Bâtiment</td><td style="padding:3px 0;width:22%;">Coût</td><td style="padding:3px 0;">Gains successifs</td></tr>
+  <tr><td style="padding:3px 0;"><i class="ic-bat" data-g="alveole"></i> Alvéole</td><td style="padding:3px 0;color:#FFD700;">10 % du stock max</td><td style="padding:3px 0;">capacité : +20 %, +15 %, +10 %, puis +5 %</td></tr>
+  <tr><td style="padding:3px 0;"><i class="ic-bat" data-g="nid"></i> Nid</td><td style="padding:3px 0;color:#FFD700;">15 % du stock max</td><td style="padding:3px 0;">production : +30 %, +22,5 %, +15 %, puis +7,5 %</td></tr>
+  <tr><td style="padding:3px 0;"><i class="ic-bat" data-g="biome"></i> Biome</td><td style="padding:3px 0;color:#FFD700;">20 % du stock max</td><td style="padding:3px 0;">défense : +20 %, +15 %, +10 %, puis +5 %</td></tr>
+  <tr><td colspan="3" style="padding:6px 0;color:rgba(200,210,230,0.6);font-size:11px;">À partir du quatrième d'un même genre, le coût monte de <b>10 %</b> à chaque fois. Le nid rapporte une fois et demie plus que les autres, à coût égal.</td></tr>
+</table>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">UNE ICÔNE PAR BÂTIMENT, PARTOUT LA MÊME.</span> <i class="ic-bat" data-g="alveole"></i> le rayon de miel pour l'alvéole, <i class="ic-bat" data-g="nid"></i> l'œuf dans son nid pour le nid, <i class="ic-bat" data-g="biome"></i> le dôme de vie pour le biome, et <i class="ic-bat" data-g="parasite"></i> la spore infectée pour le parasite. Ce sont les mêmes sur les astres, la barre de construction, la liste de gauche, la fiche et le journal. De très près, un <span style="color:#4ADE80;">nid qui produit crache ses spores</span> en petits jets.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">LES BÂTIMENTS SONT POSÉS SUR LE SOL.</span> Chacun occupe une case de la surface : on le voit là où il est. Vous pouvez bâtir sur une simple tête de pont chez l'ennemi, payée par la réserve que vous avez sur place.</p>
+<p style="margin-bottom:16px;">Quand la frontière passe dessus, le bâtiment <span style="color:#4ADE80;">change de mains avec le terrain</span> : la conquête ne détruit rien, elle récupère — seul le <span style="color:#FF8A3D;">démolisseur</span> (F) fait exploser un bâtiment. Seuls comptent les nids que vous tenez, et les biomes qui défendent sont ceux que l'assaillant ne tient pas.</p>
+<p style="margin-bottom:16px;"><span style="color:#FFD700;">Système solaire entier conquis</span> → +3 % de production sur tous ses astres, et les ondes solaires se déclenchent (voir Territoires).</p>
+
+<!-- TERRITOIRES -->
+<p id="h-territoires" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🛰 TERRITOIRES &amp; ONDES SOLAIRES</p>
+<p style="margin-bottom:6px;">Une planète dont vous tenez toutes les lunes forme un <span style="color:#FFD700;">territoire</span>, entouré d'une frontière en courbes. Un soleil entièrement tenu en forme un plus grand, qui absorbe les précédents et inclut l'étoile. Deux frontières à vous qui se croisent n'en font plus qu'une.</p>
+<p style="margin-bottom:16px;">Une <span style="color:#E9D5FF;">tête de pont ennemie ne casse pas un groupement</span> : un astre envahi à moins de la moitié compte toujours comme tenu. Au-delà de la moitié, il en sort.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">ONDES SOLAIRES.</span> Un système entièrement tenu se met à vivre : son étoile s'embrase <span style="color:#E9D5FF;">toutes les 5 secondes</span> et envoie une onde qui balaie ses astres. Chacun la reçoit au passage du front, pas au départ — le système s'allume de l'intérieur vers l'extérieur.</p>
+<p style="margin-bottom:16px;">Ce que l'onde apporte dépend de votre stat <span style="color:#FBBF24;">Sensitivity</span> : <span style="color:#4ADE80;">+5 % de la capacité de l'astre par point</span>. À un point, une lune de 400 reçoit 20 spores.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro. Il peut dépasser son maximum <b>sans limite</b> (chiffre doré ⚡) ; après le tir, le trop-plein s'évapore peu à peu.</p>
+<p style="margin-bottom:16px;">On ne tire pas à travers une étoile ni un trou noir : ils détruisent les jets. Quand aucun de vos astres n'a la vue sur la cible, le trait de visée passe au <span style="color:#EF4444;">rouge</span>.</p>
+
+<!-- ÉVOLUTION -->
+<p id="h-evolution" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">✦ ÉVOLUTION &amp; MUTATIONS</p>
+<p style="margin-bottom:6px;">Quatre voies. Vous partez avec 3 Growth, 4 Velocity, 2 Density et 1 Sensitivity, plus les <b>3 points offerts par votre régime</b> ; 8 au maximum par voie.</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+  <tr><td style="padding:3px 0;color:#4ADE80;width:26%;">🌱 Growth</td><td style="padding:3px 0;">+30 % de production de spores par point, sur tous vos astres</td></tr>
+  <tr><td style="padding:3px 0;color:#60A5FA;">⚡ Velocity</td><td style="padding:3px 0;">+6 de vitesse des jets par point (vitesse de base : 20)</td></tr>
+  <tr><td style="padding:3px 0;color:#F472B6;">💎 Density</td><td style="padding:3px 0;">+5 % de puissance à l'impact par point</td></tr>
+  <tr><td style="padding:3px 0;color:#FBBF24;">☀ Sensitivity</td><td style="padding:3px 0;">+5 % de la capacité de l'astre par point, à chaque onde solaire</td></tr>
+</table>
+<p style="margin-bottom:16px;"><span style="color:#C8A0FF;">Multiplicité</span> : sacrifiez une part réglable de votre production pour accumuler des points d'évolution. À chaque palier (10 au maximum) vous gagnez +1 point dans la voie de votre choix. Coût croissant : 100 spores pour le 1<sup>er</sup> palier, 200 pour le 2<sup>e</sup>, et ainsi de suite jusqu'à 1 000 pour le 10<sup>e</sup>. Pas besoin de choisir tout de suite : <span style="color:#E9D5FF;">les points s'empilent</span> et vous les placez quand vous voulez.</p>
+<p style="margin-bottom:6px;"><span style="color:#C8A0FF;">Mutations</span> — trois branches, dans l'onglet Mutations du panneau Évolution :</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+  <tr><td style="padding:3px 0;color:#E9D5FF;width:26%;">🎯 Tête chercheuse</td><td style="padding:3px 0;">Vos jets dévient vers les astres non-alliés proches. Portée 110 unités, +30 par niveau.</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">💪 Ténacité</td><td style="padding:3px 0;">Les jets éclatés par un astéroïde gardent plus de spores et sont redirigés vers les systèmes solaires.</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">🦎 Mimétisme</td><td style="padding:3px 0;">À la conquête d'une planète à lunes, le jet se scinde vers elles. Au niv. 10, 100 % des spores vont directement aux lunes.</td></tr>
+</table>
+<p style="margin-bottom:16px;">Coût des branches : 1<sup>re</sup> = 3 000 + 300/niv · 2<sup>e</sup> = 6 000 + 600/niv · 3<sup>e</sup> = 9 000 + 900/niv. Le total sacrifié est plafonné à 50 % de votre production.</p>
+
+<!-- ALERTES -->
+<p id="h-alertes" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🔔 ALERTES DIRECTIONNELLES</p>
+<p style="margin-bottom:6px;">La carte est bien plus grande que l'écran : dire qu'il se passe quelque chose ne suffit pas, il faut dire <span style="color:#E9D5FF;">où</span>. Trois événements posent une balise sur l'astre concerné :</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+  <tr><td style="padding:3px 0;color:#F87171;width:32%;">On vous attaque</td><td style="padding:3px 0;">Anneau battant sur l'astre visé</td></tr>
+  <tr><td style="padding:3px 0;color:#EF4444;">Vous perdez un astre</td><td style="padding:3px 0;">Balise + éclat lumineux au bord de l'écran, du bon côté, et une secousse</td></tr>
+  <tr><td style="padding:3px 0;color:#FBBF24;">Un groupement se referme</td><td style="padding:3px 0;">Balise sur le territoire qui vient de se former, quel que soit le joueur</td></tr>
+</table>
+<p style="margin-bottom:6px;">Quand l'astre est hors-champ, la balise devient une <span style="color:#E9D5FF;">flèche collée au bord</span>, exactement dans sa direction.</p>
+<p style="margin-bottom:16px;">Sous un astre disputé s'empilent plusieurs nombres : celui de qui le tient, puis un <span style="color:#E9D5FF;">⚔</span> par assaillant, chacun à sa couleur. <span style="color:#E9D5FF;">Passez la souris dessus</span> et il vous dit de qui il s'agit.</p>
+
+<!-- DANGERS -->
+<p id="h-dangers" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">⚠️ DANGERS</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+  <tr><td style="padding:3px 0;color:#A78BFA;">Trou noir central</td><td style="padding:3px 0;">Détruit les jets trop proches, courbe toutes les trajectoires</td></tr>
+  <tr><td style="padding:3px 0;color:#FBBF24;">Étoiles</td><td style="padding:3px 0;">Détruisent le jet au contact. Un jet qui passe près d'une étoile brûle <b>1 spore/s</b>, tout près <b>5 spores/s</b></td></tr>
+  <tr><td style="padding:3px 0;color:#EF4444;">Vaisseau rouge</td><td style="padding:3px 0;">Attaque et détruit vos jets</td></tr>
+  <tr><td style="padding:3px 0;color:#4ADE80;">Vaisseau vert</td><td style="padding:3px 0;">×2 les spores d'un jet au contact (une seule fois par jet)</td></tr>
+  <tr><td style="padding:3px 0;color:#888;">Vaisseau noir</td><td style="padding:3px 0;">Renvoie vos jets vers leurs astres d'origine</td></tr>
+  <tr><td style="padding:3px 0;color:#E9D5FF;">Duels</td><td style="padding:3px 0;">Deux vaisseaux de couleurs différentes qui se croisent se battent : le perdant explose, un autre de sa couleur réapparaît ailleurs peu après</td></tr>
+  <tr><td style="padding:3px 0;color:#888;">Astéroïde noir</td><td style="padding:3px 0;">÷2 spores au contact (un amas qui passe devant ou derrière votre planète ne touche pas le tir qui en part)</td></tr>
+  <tr><td style="padding:3px 0;color:#EF4444;">Astéroïde rouge</td><td style="padding:3px 0;">Dévie la trajectoire du jet</td></tr>
+  <tr><td style="padding:3px 0;color:#4ADE80;">Astéroïde vert</td><td style="padding:3px 0;">Éclate le jet en 5 mini-jets partant dans des directions aléatoires (Ténacité améliore leur direction et leur charge)</td></tr>
+  <tr><td style="padding:3px 0;color:#60A5FA;">Comète</td><td style="padding:3px 0;">Détruit les spores au contact — trajectoire imprévisible</td></tr>
+</table>
+<p style="margin-bottom:6px;"><span style="color:#93C5FD;">LA FRONDE DU TROU NOIR.</span> Un jet qui frôle le trou noir sans y tomber en ressort <span style="color:#4ADE80;">plus rapide</span>, jusqu'à +80 % au ras de la zone qui détruit, et le reste jusqu'à l'impact.</p>
+<p style="margin-bottom:16px;">Chaque gain ou perte en vol <span style="color:#E9D5FF;">saute en chiffre</span> au-dessus du jet, là où il se produit : <span style="color:#4ADE80;">+N</span> en vert, <span style="color:#F87171;">−N</span> en rouge. La brûlure d'une étoile s'affiche une fois par seconde.</p>
+
+<!-- SPHERES CAPITALES -->
+<p id="h-spheres" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🛸 SPHÈRES CAPITALES</p>
+<p style="margin-bottom:6px;">Après <b>3 minutes</b> de jeu, trois sphères blindées, grandes comme des lunes, sortent du trou noir l'une après l'autre : une <span style="color:#4ADE80;">verte</span>, une <span style="color:#A5A5C8;">noire</span>, une <span style="color:#EF4444;">rouge</span>. Elles errent lentement dans la galaxie ; de temps en temps, la verte <b>passe près du joueur le plus faible</b>, la noire <b>près du meilleur</b>, puis elles repartent. La rouge se tient près d'un soleil, le plus loin possible des joueurs. Quand elle frôle un astre, la verte le mitraille de paquets de <span style="color:#4ADE80;">+5 spores</span>, quel que soit son camp ; la noire, de tirs à <span style="color:#F87171;">−5 spores</span>. La rouge ne tire pas.</p>
+<p style="margin-bottom:6px;">Vos jets ne leur font aucun mal : seuls les <b>petits vaisseaux d'une autre couleur</b> peuvent les abattre, et elles ripostent. Une sphère détruite explose : les astres alentour tombent à <b>0 spore</b> et ne produisent plus rien pendant <b>1 minute</b>. Elle ressort du trou noir 3 minutes plus tard.</p>
+<p style="margin-bottom:16px;"><span style="color:#FFD27A;">LA CAPTURE.</span> Envoyez-lui <span style="color:#E9D5FF;">20 000 spores en moins de 30 s</span> (un anneau à votre couleur montre où vous en êtes) et vous la pilotez pendant <b>1 minute</b> avec <span style="color:#E9D5FF;">ZQSD</span>. Pilotée, elle tire pour vous et plus loin : la verte n'arrose que <b>vos</b> astres, la noire ne ronge que ceux de vos <b>adversaires</b>. Écrasée sur une planète ou une lune : tous ses bâtiments détruits, 0 spore et plus de production pendant 1 minute. Sur un soleil : <b>tout son système</b> subit le même sort. La sphère est perdue dans le choc.</p>
+<p style="margin-bottom:16px;">Les <b>IA</b> aussi convoitent les sphères. Une IA assez grosse peut cesser d'attaquer pendant quelques minutes pour <b>économiser</b>, puis bombarder une sphère qui passe près de chez elle. Si elle la prend, elle la lance sur le système le plus riche de ses adversaires, et un message vous prévient.</p>
+
+<!-- COMMERCE -->
+<p id="h-commerce" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🤝 COMMERCE &amp; ALLIANCES</p>
+<p style="margin-bottom:16px;">Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
+
+<!-- MULTIJOUEUR -->
+<p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
+<p style="margin-bottom:6px;">Le bouton <span style="color:#E9D5FF;">MULTIJOUEUR</span> du menu propose deux façons de jouer :</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">🎲 AU HASARD</span> : choisissez 2, 4, 8 ou 16 joueurs ; vous rejoignez une partie qui démarre dès qu'elle est pleine. Partie <b>classée (ELO)</b> si vous êtes connecté — le classement de chaque taille s'affiche en dessous.</p>
+<p style="margin-bottom:6px;"><span style="color:#FCD34D;">✉️ ENTRE AMIS</span> : choisissez le nombre de joueurs et d'IA, puis CRÉER. La partie affiche un <b>code</b> de 4 lettres et un bouton <b>COPIER LE LIEN D'INVITATION</b> : l'ami qui ouvre le lien arrive directement dans la partie ; il peut aussi taper le code puis REJOINDRE. Les places vides peuvent être prises par des IA.</p>
+<p style="margin-bottom:6px;">Tout le monde voit exactement la même partie. Il faut la <b>même version du jeu</b> : si un joueur a une ancienne version, il est prévenu et doit recharger la page. Si vous perdez la connexion ou rechargez la page, le bouton <span style="color:#E9D5FF;">REPRENDRE</span> du menu vous ramène dans la partie en cours, en quelques secondes : votre navigateur garde une photo de la partie toutes les 30 secondes de jeu.</p>
+<p style="margin-bottom:16px;">Les joueurs IA portent des noms générés (ex. [IA] Zyrex, [IA] Vorath…). En réseau, une partie se termine aussi à 80 % des astres ou quand il ne reste qu'un joueur en vie.</p>
+
+<!-- ASTUCES -->
+<p style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">💡 ASTUCES</p>
+<p style="margin-bottom:6px;">Ne laissez pas un astre <span style="color:#EF4444;">plein à ras bord</span> : il ne produit plus. Tirez pour le redescendre vers 40 %, là où il rapporte le plus.</p>
+<p style="margin-bottom:6px;">Un astre <span style="color:#EF4444;">vidé</span> remonte lentement. Gardez toujours de quoi relancer.</p>
+<p style="margin-bottom:6px;">La touche <span style="color:#FFD27A;">R</span> est faite pour ça : souris dans le vide, elle nettoie d'un coup tout ce qui peut l'être ; souris sur un astre, elle concentre l'effort sur lui seul et vous gardez vos réserves ailleurs.</p>
+<p style="margin-bottom:6px;">Une tête de pont chez l'ennemi produit, construit et tire. Dix cases bien placées valent mieux qu'une attaque ratée.</p>
+<p style="margin-bottom:6px;">Les panneaux <span style="color:#E9D5FF;">Scores / Carte / Événements</span> se replient via ▲ PANNEAUX en bas à droite ; le curseur <span style="color:#E9D5FF;">taille UI</span> en haut à droite les redimensionne.</p>
+<p style="margin-bottom:6px;"><span style="color:#E9D5FF;">F3</span> affiche les images par seconde, puis <span style="color:#E9D5FF;">D</span> détaille ce qui coûte cher à dessiner — utile si le jeu rame.</p>
+<p style="margin-bottom:16px;"><span style="color:#FFD700;">Si ça rame</span>, le réglage <span style="color:#E9D5FF;">GRAPH</span> en haut à droite fait peindre le jeu plus petit avant de l'agrandir : la carte y perd un peu de netteté, jamais les panneaux ni le texte. La finesse baisse déjà toute seule quand vous dézoomez — mesuré, une image complète passe de 9,1 à 5,6 ms — et ce réglage décale toute l'échelle vers le bas. En <span style="color:#E9D5FF;">Bas</span>, les scintillements et la brume des jets sont coupés en prime.</p>
+
+<p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.9</p>
+    </div>
+    <button class="btn" id="btnHelpBack" style="margin-top:16px;">RETOUR</button>
+</div>
+
+<div id="gameTopBanner"></div>
+
+<!-- ═══ POPUP INVITATION ═══ -->
+<div id="invitePopup" class="hidden" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:200; background:rgba(10,15,35,0.95); border:2px solid rgba(100,180,255,0.6); border-radius:14px; padding:24px 32px; text-align:center; box-shadow:0 0 40px rgba(100,180,255,0.3); pointer-events:auto;">
+    <div style="font-family:'Orbitron',sans-serif; font-size:12px; color:rgba(100,180,255,0.6); letter-spacing:2px; margin-bottom:12px;">INVITATION</div>
+    <div id="invitePopupText" style="font-family:'Exo 2',sans-serif; font-size:15px; color:#E0E7FF; margin-bottom:6px;"></div>
+    <div id="invitePopupParams" style="font-family:'Exo 2',sans-serif; font-size:11px; color:rgba(200,210,230,0.5); margin-bottom:16px;"></div>
+    <div style="display:flex; gap:10px; justify-content:center;">
+        <button class="btn" id="btnInviteAccept" style="font-size:12px; padding:8px 20px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.6); color:#4ADE80;">ACCEPTER</button>
+        <button class="btn" id="btnInviteDecline" style="font-size:12px; padding:8px 20px; background:rgba(239,68,68,0.2); border-color:rgba(239,68,68,0.5); color:#F87171;">REFUSER</button>
+    </div>
+</div>
+
+<!-- ═══ ÉCRAN CONFIG ═══ -->
+<div id="configScreen" class="screen hidden">
+    <h2>CONFIGURATION</h2>
+    <div class="config-panel">
+        <div class="config-row">
+            <label>Map</label>
+            <select id="cfgMap" style="flex:1;background:rgba(15,23,42,0.9);color:#E9D5FF;border:1px solid rgba(139,92,246,0.4);border-radius:4px;padding:4px 8px;font-family:'Exo 2',sans-serif;font-size:12px;">
+                <option value="random">🎲 Aléatoire</option>
+            </select>
+        </div>
+        <div class="config-row">
+            <label>Joueurs IA</label>
+            <input type="range" id="cfgPlayers" min="1" max="8" value="3">
+            <span class="val" id="cfgPlayersVal">3</span>
+        </div>
+        <div class="config-row">
+            <label>Difficulté IA</label>
+            <select id="cfgDifficulty">
+                <option value="easy">Facile</option>
+                <option value="normal" selected>Normal</option>
+                <option value="brutal">Brutal</option>
+            </select>
+        </div>
+        <div class="config-row">
+            <label>Vaisseaux ennemis</label>
+            <input type="range" id="cfgCleaners" min="0" max="25" value="3">
+            <span class="val" id="cfgCleanersVal">3</span>
+        </div>
+        <div class="config-row">
+            <label>Comètes</label>
+            <select id="cfgComets">
+                <option value="on" selected>Activées</option>
+                <option value="off">Désactivées</option>
+            </select>
+        </div>
+
+        <div class="config-buttons">
+            <button class="btn" id="btnBack">RETOUR</button>
+            <button class="btn" id="btnStart">LANCER</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ BANNIÈRE SPAWN ═══ -->
+<div id="spawnBanner" class="hidden" style="position:fixed;top:20px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:18px;color:#FFD700;text-shadow:0 0 15px rgba(255,215,0,0.4);letter-spacing:2px;z-index:55;pointer-events:none;">CHOISISSEZ VOTRE PLANÈTE DE DÉPART</div>
+
+<!-- ═══ LOADING ═══ -->
+<div id="loadingScreen">
+    <h2>NEBULA CONQUEST</h2>
+    <div id="loadingBar"><div id="loadingBarFill"></div></div>
+    <div id="loadingText">Initialisation...</div>
+</div>
+
+<!-- ═══ FADE ═══ -->
+<div id="screenFade"></div>
+
+<!-- ═══ CANVAS ═══ -->
+<!-- LE FOND SPATIAL, hors du canevas de jeu. Ces deux couches ne dependent
+     que de la camera : les laisser au compositeur coute zero par image, la ou
+     les repeindre prenait un tiers du temps de rendu. -->
+<canvas id="fondDegrade" width="2048" height="2048"></canvas>
+<div id="fondEtoiles"></div>
+<div id="fondEtoiles2"></div>
+<div id="fondEtoiles3"></div>
+<div id="halosSoleils"></div>
+<canvas id="gameCanvas"></canvas>
+<div id="topRight">
+    <div id="fps">-- FPS</div>
+    <div class="tr-row">
+        <span class="vol-icon" id="volToggle">🔊</span>
+        <input type="range" id="volSlider" min="0" max="100" value="0">
+    </div>
+    <div class="tr-row">
+        <span class="tr-label">UI</span>
+        <input type="range" id="uiZoomSlider" min="60" max="140" value="100" step="5">
+        <span class="tr-val" id="uiZoomVal">100%</span>
+    </div>
+    <div class="tr-row">
+        <span class="tr-label" title="Finesse du rendu. Elle baisse toute seule quand on dezoome ; ce reglage decale toute l'echelle si la machine peine.">GRAPH</span>
+        <select id="qualiteSel" title="Finesse du rendu. Elle baisse toute seule quand on dezoome ; ce reglage decale toute l'echelle si la machine peine.">
+            <option value="haute">Élevé</option>
+            <option value="moyenne">Moyen</option>
+            <option value="basse">Bas</option>
+        </select>
+        <span class="tr-val" id="qualiteVal">100%</span>
+    </div>
+    <span id="uiResetBtn" title="Réinitialiser positions des panneaux">⟲ RESET</span>
+</div>
+
+<!-- ═══ HUD EN JEU ═══ -->
+<div id="gameHud">
+    <div id="sporeCounter" title="Total de spores sur tous vos astres">SPORES <span class="count" id="sporeCount">0</span><div class="spore-mods" id="sporeMods"></div><div class="spore-bats" id="sporeBats"></div></div>
+</div>
+<div id="spawnPopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(10,8,30,0.92); border:1px solid rgba(167,139,250,0.4); border-radius:10px; padding:16px 22px; pointer-events:auto; z-index:1000; text-align:center; font-family:'Exo 2',sans-serif; min-width:200px; box-shadow:0 0 30px rgba(100,70,180,0.3);">
+        <div id="spawnPopupName" style="font-family:'Orbitron',sans-serif; font-size:14px; color:#E9D5FF; letter-spacing:1px; margin-bottom:8px;"></div>
+        <div id="spawnPopupPreview" style="margin:8px auto;"></div>
+        <div style="display:flex; gap:12px; justify-content:center; font-size:11px; color:rgba(200,200,220,0.7); margin:8px 0;">
+            <span>🌿 Flore: <strong id="spawnPopupFlore" style="color:#4ADE80;"></strong></span>
+            <span>🐾 Faune: <strong id="spawnPopupFaune" style="color:#FF6B6B;"></strong></span>
+        </div>
+        <div style="font-size:10px; color:rgba(200,200,220,0.5); margin-bottom:10px;">
+            Rayon: <span id="spawnPopupRadius"></span> · Max spores: <span id="spawnPopupMax"></span>
+        </div>
+        <button id="spawnPopupBtn" class="btn" style="font-size:13px; padding:8px 24px; background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.5); color:#4ADE80; letter-spacing:2px; cursor:pointer;">✦ APPARAÎTRE ✦</button>
+        <div style="margin-top:6px;">
+            <span id="spawnPopupClose" style="font-size:9px; color:rgba(200,200,220,0.4); cursor:pointer; letter-spacing:1px;">✕ FERMER</span>
+        </div>
+    </div>
+    <div id="gameTimer">00:00</div>
+</div>
+
+<!-- ═══ MES ASTRES (bas-gauche) ═══ -->
+<!-- ═══ COLONNE GAUCHE : evolution au-dessus de mes astres ═══ -->
+<div id="colonneGauche">
+<!-- La courbe de production de la zone choisie. Il n'apparait que lorsqu'une
+     zone est selectionnee : sans zone, il n'y a rien a tracer. -->
+<div id="naissancePanel">
+    <div id="naissanceTitre">NAISSANCE<span id="naissanceZone"></span></div>
+    <canvas id="naissanceCanvas" width="388" height="176"></canvas>
+    <div id="naissancePied">
+        <span id="naissancePlein">—</span>
+        <span id="naissanceRend">—</span>
+    </div>
+    <div id="naissanceQuand">—</div>
+</div>
+<div id="evoPanel">
+        <div class="evo-tabs">
+            <div class="evo-tab active" data-tab="tabEvo">✦ ÉVOLUTION</div>
+            <div class="evo-tab" data-tab="tabTech">🧬 MUTATIONS</div>
+        </div>
+        <div class="evo-tab-content active" id="tabEvo">
+        <div class="evo-stats">
+            <div class="stat-row" title="Multiplie la vitesse de production de spores sur vos planètes (+30% par point)"><span class="stat-icon">🌱</span><span class="stat-name">Growth</span><span class="stat-val" id="evoStatGrowth">3</span><span class="stat-bonus" id="evoStatGrowthBonus"></span><span class="stat-effect" id="evoStatGrowthFx"></span></div>
+            <div class="stat-row" title="Augmente la vitesse de déplacement des jets de spores (+6 par point)"><span class="stat-icon">⚡</span><span class="stat-name">Velocity</span><span class="stat-val" id="evoStatVelocity">4</span><span class="stat-bonus" id="evoStatVelocityBonus"></span><span class="stat-effect" id="evoStatVelocityFx"></span></div>
+            <div class="stat-row" title="Augmente les spores délivrées à l'impact (+5% par point)"><span class="stat-icon">💎</span><span class="stat-name">Density</span><span class="stat-val" id="evoStatDensity">3</span><span class="stat-bonus" id="evoStatDensityBonus"></span><span class="stat-effect" id="evoStatDensityFx"></span></div>
+            <div class="stat-row" title="Force des ondes solaires : un système entièrement conquis arrose ses astres toutes les 5 s (+5% de leur capacité par point)"><span class="stat-icon">☀</span><span class="stat-name">Sensitivity</span><span class="stat-val" id="evoStatSensitivity">1</span><span class="stat-bonus" id="evoStatSensitivityBonus"></span><span class="stat-effect" id="evoStatSensitivityFx"></span></div>
+        </div>
+        <div class="evo-sep"></div>
+        <div class="evo-multi-title" title="Sacrifiez une partie de votre production pour gagner des paliers d'évolution. Chaque palier donne +1 point de stat au choix.">✦ MULTIPLICITÉ ✦</div>
+        <div class="evo-tier" id="evoTierPips"></div>
+        <div class="evo-bar-bg"><div class="evo-bar" id="evoBar"></div></div>
+        <div class="evo-info" id="evoInfo">Palier 0/10 — 0 / 500 spores</div>
+        <div class="evo-sacrifice">
+            <label title="Pourcentage de production redirigé vers l'évolution (réduit la production de spores)">Sacrifice</label>
+            <input type="range" id="evoSacrifice" min="0" max="50" value="0" step="5">
+            <span class="sac-val" id="evoSacVal">0%</span>
+        </div>
+        <div class="evo-choose" id="evoChoose">
+            <div class="choose-title" id="evoChooseTitle">⬆ CHOISISSEZ UN BONUS ⬆</div>
+            <button id="evoGrowth">🌱 Growth <div class="stat-current" id="evoGrowthCur"></div></button>
+            <button id="evoVelocity">⚡ Velocity <div class="stat-current" id="evoVelocityCur"></div></button>
+            <button id="evoDensity">💎 Density <div class="stat-current" id="evoDensityCur"></div></button>
+            <button id="evoSensitivity">☀ Sensitivity <div class="stat-current" id="evoSensitivityCur"></div></button>
+        </div>
+        <div class="evo-sep"></div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(200,160,255,0.5);letter-spacing:2px;text-align:center;margin:4px 0 6px;">⚔ CONQUÊTE</div>
+        <div class="evo-sacrifice" style="margin-bottom:2px;">
+            <label title="Pourcentage de spores envoyées lors d'un jet">🚀 Envoi</label>
+            <input type="range" id="jetRatioSlider" min="0" max="100" value="50" step="5">
+            <span class="sac-val" id="jetRatioVal">50%</span>
+        </div>
+        </div><!-- /tabEvo -->
+        <div class="evo-tab-content" id="tabTech">
+            <div class="tech-branch" id="techHoming">
+                <div class="tech-branch-header"><span class="tech-branch-icon">🎯</span><span class="tech-branch-name">Tête chercheuse</span><span class="tech-branch-lvl" id="techHomingLvl">0/10</span></div>
+                <div class="tech-pips" id="techHomingPips"></div>
+                <div class="tech-lvl-name" id="techHomingName">—</div>
+                <button class="tech-buy" id="techHomingBuy">Débloquer</button>
+            </div>
+            <div class="tech-branch" id="techTenacity">
+                <div class="tech-branch-header"><span class="tech-branch-icon">💪</span><span class="tech-branch-name">Ténacité</span><span class="tech-branch-lvl" id="techTenacityLvl">0/10</span></div>
+                <div class="tech-pips" id="techTenacityPips"></div>
+                <div class="tech-lvl-name" id="techTenacityName">—</div>
+                <button class="tech-buy" id="techTenacityBuy">Débloquer</button>
+            </div>
+            <div class="tech-branch" id="techMimicry">
+                <div class="tech-branch-header"><span class="tech-branch-icon">🦎</span><span class="tech-branch-name">Mimétisme</span><span class="tech-branch-lvl" id="techMimicryLvl">0/10</span></div>
+                <div class="tech-pips" id="techMimicryPips"></div>
+                <div class="tech-lvl-name" id="techMimicryName">—</div>
+                <button class="tech-buy" id="techMimicryBuy">Débloquer</button>
+            </div>
+        <div class="evo-sep"></div>
+        </div><!-- /tabTech -->
+    </div>
+<div id="myPlanets">
+    <div class="mp-title">MES ASTRES <button id="mpTabMode" type="button" title="Touche Tab : de planète en planète">⇄ <span id="mpTabModeTxt">PLANÈTES</span></button></div>
+    <div id="myPlanetsList"></div>
+</div>
+</div>
+
+<div id="surfaceHud" style="display:none;">☍ TIR DE SURFACE — DÉZOOMEZ POUR SORTIR</div>
+
+<!-- ═══ JAUGE D'ENVOI (bas, centre) ═══ -->
+<div id="envoiHud" style="display:none;">
+    <div class="envoi-val" id="envoiPct">50<span>%</span></div>
+    <div class="envoi-jauge"><i id="envoiBar"></i></div>
+    <div class="envoi-nb" id="envoiNb"></div>
+    <div class="envoi-sub">ENVOI</div>
+</div>
+
+<!-- ═══ FICHE (bas, centre, sous la jauge) : l'astre choisi, ou le joueur ═══ -->
+<div id="ficheHud" style="display:none;">
+    <div class="fiche-tete" id="ficheTete"></div>
+    <div class="fiche-grille" id="ficheGrille"></div>
+</div>
+
+<!-- ═══ PANNEAU BAS-DROITE ═══ -->
+<div id="sidePanel">
+    <div id="sidePanelToggle">▲ PANNEAUX</div>
+    <div id="sidePanelStack">
+
+        <!-- Scores -->
+        <div class="sp-block" id="spScores">
+            <div class="sp-block-header">
+                <span class="sp-title">SCORES</span>
+                <span class="sp-collapse">▼</span>
+            </div>
+            <div class="sp-body">
+                <div id="scoreBoard"></div>
+            </div>
+        </div>
+
+        <!-- Carte -->
+        <div class="sp-block" id="spMap">
+            <div class="sp-block-header">
+                <span class="sp-title">CARTE</span>
+                <span class="sp-collapse">▼</span>
+            </div>
+            <div class="sp-body" style="padding:4px;">
+                <div id="minimap"><canvas id="minimapCanvas" width="160" height="160"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Événements -->
+        <div class="sp-block" id="spEvents">
+            <div class="sp-block-header">
+                <span class="sp-title">ÉVÉNEMENTS</span>
+                <span class="sp-collapse">▼</span>
+            </div>
+            <div class="sp-body" id="eventLog">
+                <div class="log-header">
+                    <span class="log-filter active" data-cat="all">Tous</span>
+                    <span class="log-filter" data-cat="neutral">Neutres</span>
+                    <span class="log-filter" data-cat="war">Guerres</span>
+                    <span class="log-filter" data-cat="mine">Mes astres</span>
+                    <span class="log-filter" data-cat="build">Constructions</span>
+                </div>
+                <div class="log-body" id="eventLogBody"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="uiZoomControl" style="display:none;"></div>
+
+<div id="codex">
+    <span class="close-btn" id="codexClose">✕</span>
+    <h3 id="codexName">—</h3>
+
+    <div class="codex-tabs">
+        <div class="codex-tab active" data-ctab="ctabInfos">📊 INFOS</div>
+        <div class="codex-tab" data-ctab="ctabBuild"><i class="ic-bat" data-g="alveole" data-px="13"></i><i class="ic-bat" data-g="nid" data-px="13"></i><i class="ic-bat" data-g="biome" data-px="13"></i> BÂTIMENTS</div>
+    </div>
+
+    <!-- Onglet INFOS -->
+    <div class="codex-tab-content active" id="ctabInfos">
+        <div id="codexPreview" style="text-align:center;margin:8px 0;"></div>
+        <div class="codex-row"><span>Type</span><span class="codex-val" id="codexType">—</span></div>
+        <div class="codex-row"><span>Radius</span><span class="codex-val" id="codexRadius">—</span></div>
+        <div class="codex-row" title="Détermine la vitesse de production de spores"><span>Flore</span><span class="codex-val" id="codexFlore">—</span></div>
+        <div class="codex-row" title="Défense naturelle contre les conquêtes"><span>Faune</span><span class="codex-val" id="codexFaune">—</span></div>
+        <div class="codex-row"><span>Propriétaire</span><span class="codex-val" id="codexOwner">—</span></div>
+        <div class="codex-row" title="Spores stockées sur cet astre"><span>Spores</span><span class="codex-val" id="codexSpores">—</span></div>
+        <div class="codex-row" title="Alvéoles, nids et biomes posés sur cet astre (tous camps confondus)"><span>Bâtiments</span><span class="codex-val" id="codexBat">—</span></div>
+        <div class="codex-symbiose" id="codexSymbiose" style="display:none;">
+            <div class="sym-label" title="+20% prod planètes, +10% lunes à 100%"><span>Symbiose</span><span class="sym-val" id="codexSymVal">0%</span></div>
+            <div class="sym-bar-bg"><div class="sym-bar" id="codexSymBar" style="width:0%"></div></div>
+            <div class="sym-bonus" id="codexSymBonus"></div>
+        </div>
+    </div>
+
+    <!-- Onglet BÂTIMENTS -->
+    <div class="codex-tab-content" id="ctabBuild">
+        <div class="codex-build" id="codexBuild">
+            <div class="bld-grid" id="codexBldGrid">
+                <!-- Rempli par updateCodexBuild() -->
+            </div>
+            <div class="build-count" id="codexBuildCount" style="margin-top:8px;"></div>
+            <div class="build-info" id="codexBuildInfo"></div>
+            <div class="build-progress-bg" style="margin-top:4px;"><div class="build-progress" id="codexBuildBar" style="width:0%"></div></div>
+        </div>
+        <div id="codexBuildLocked" style="display:none; text-align:center; padding:20px; font-family:'Exo 2',sans-serif; font-size:11px; color:rgba(180,190,220,0.4);">
+            Conquérir cet astre pour construire des bâtiments.
+        </div>
+    </div>
+</div>
+
+<!-- ═══ MENU RADIAL TYPE SPORE ═══ -->
+<style>
+<!--#inclure css/menu-radial.css-->
+</style>
+<div id="sporeTypeMenu">
+    <canvas id="stmCanvas" width="300" height="300"></canvas>
+</div>
+<div id="bodyInfoPanel"></div>
+
+<!-- ═══ PAUSE ═══ -->
+<div id="pauseOverlay">
+    <h2 id="pauseTitle">PAUSE</h2>
+    <!-- Le livre des regles vient se loger ici pendant la pause : on deplace
+         le noeud au lieu de le dupliquer, pour n'avoir qu'un seul texte a
+         tenir a jour. -->
+    <div id="pauseBook"></div>
+    <div id="pauseBoutons">
+        <button class="btn" id="btnResume">REPRENDRE</button>
+        <button class="btn" id="btnQuit">QUITTER</button>
+    </div>
+</div>
+
+<script>
+<!--#inclure js/noyau/etat.js-->
+<!--#inclure js/noyau/init.js-->
+<!--#inclure js/rendu/fond.js-->
+<!--#inclure js/rendu/caches.js-->
+<!--#inclure js/rendu/textures.js-->
+<!--#inclure js/donnees/cartes.js-->
+<!--#inclure js/moteur/univers.js-->
+<!--#inclure js/moteur/orbites.js-->
+<!--#inclure js/interface/commandes.js-->
+<!--#inclure js/interface/tirs.js-->
+<!--#inclure js/interface/technologies.js-->
+<!--#inclure js/interface/codex.js-->
+<!--#inclure js/interface/hud.js-->
+<!--#inclure js/moteur/depart.js-->
+<!--#inclure js/moteur/spawn.js-->
+<!--#inclure js/moteur/cosmos.js-->
+<!--#inclure js/moteur/production.js-->
+<!--#inclure js/moteur/jets.js-->
+<!--#inclure js/moteur/bataille.js-->
+<!--#inclure js/moteur/surface.js-->
+<!--#inclure js/moteur/zones.js-->
+<!--#inclure js/rendu/jets.js-->
+<!--#inclure js/interface/entrees.js-->
+<!--#inclure js/noyau/boucle.js-->
+<!--#inclure js/noyau/ordres.js-->
+<!--#inclure js/reseau/lockstep.js-->
+<!--#inclure js/reseau/maths-identiques.js-->
+<!--#inclure js/reseau/relais.js-->
+<!--#inclure js/reseau/photo.js-->
+<!--#inclure js/reseau/salon.js-->
+<!--#inclure js/noyau/diagnostic.js-->
+<!--#inclure js/moteur/update.js-->
+<!--#inclure js/reseau/empreinte.js-->
+<!--#inclure js/rendu/rendu.js-->
+<!--#inclure js/rendu/decor.js-->
+<!--#inclure js/rendu/trou-noir.js-->
+<!--#inclure js/rendu/soleils.js-->
+<!--#inclure js/rendu/planetes.js-->
+<!--#inclure js/rendu/territoires.js-->
+<!--#inclure js/moteur/vaisseaux.js-->
+<!--#inclure js/moteur/spheres.js-->
+<!--#inclure js/moteur/commerce.js-->
+<!--#inclure js/moteur/ia.js-->
+<!--#inclure js/rendu/effets.js-->
+<!--#inclure js/moteur/batiments.js-->
+<!--#inclure js/interface/alertes.js-->
+<!--#inclure js/rendu/batiments.js-->
+<!--#inclure js/moteur/ondes-solaires.js-->
+<!--#inclure js/moteur/victoire.js-->
+<!--#inclure js/interface/mes-astres.js-->
+<!--#inclure js/audio/audio.js-->
+<!--#inclure js/interface/minimap.js-->
+<!--#inclure js/interface/chrono.js-->
+<!--#inclure js/audio/musiques.js-->
+<!--#inclure js/interface/titre.js-->
+</script>
+
+<!-- ═══ VOLUME ═══ -->
+
+
+<!-- ═══ ÉCRAN DE FIN ═══ -->
+<div id="endScreen">
+    <h1 id="endTitle">—</h1>
+    <div class="end-subtitle" id="endSubtitle"></div>
+    <div class="end-stats" id="endStats"></div>
+    <div class="end-buttons">
+        <button class="btn" id="btnReplay">REJOUER</button>
+        <button class="btn" id="btnSpectate" style="display:none; background:rgba(99,102,241,0.2); border-color:rgba(99,102,241,0.5); color:#A5B4FC;">REGARDER</button>
+        <button class="btn" id="btnEndQuit">MENU</button>
+    </div>
+</div>
+
+
+<script>
+<!--#inclure js/interface/reglages.js-->
+<!--#inclure js/comptes/supabase.js-->
+<!--#inclure js/interface/histoire.js-->
+<!--#inclure js/interface/mission.js-->
+<!--#inclure js/interface/raccourcis.js-->
+</script>
+<script>window.addEventListener('load', init);</script>
+</body>
+</html>

@@ -1,8 +1,9 @@
 {
   "name": "nebula-conquest",
   "private": true,
-  "description": "Outils du jeu : copie brouillee pour la publication, banc lockstep, relais d'ordres",
+  "description": "Outils du jeu : fabrication de index.html depuis src/, copie brouillee pour la publication, banc lockstep, relais d'ordres",
   "scripts": {
+    "construire": "node outils/construire.mjs",
     "brouiller": "node outils/brouiller.mjs",
     "lockstep": "node outils/lockstep-test.mjs",
     "relais": "node outils/relais.mjs",
