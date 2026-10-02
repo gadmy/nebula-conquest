@@ -9,6 +9,7 @@ Projet en ligne : `hcjajtpbzusqgxkyzbgc` (région eu-west-1).
 | Fichier | Rôle |
 |---|---|
 | `migrations/20261002120000_etat_initial_nebula.sql` | La base telle qu'elle était le 2 octobre 2026. Rejoué sur une base vide, il la recrée à l'identique. |
+| `migrations/2026092…` (5 fichiers vides) | Les 5 changements faits avant ce dossier, déjà inclus dans l'état initial (voir « Historique »). |
 | `migrations/…` (suivants) | Chaque changement de la base, un fichier par changement, dans l'ordre. |
 | `signature.sql` | Une empreinte de la base (lecture seule). Lancée sur deux bases, elle doit donner les mêmes lignes. |
 | `config.toml` | Réglages de l'outil Supabase (CLI). |
@@ -46,18 +47,11 @@ supabase db push                               # applique en ligne les migration
 
 Sans l'outil, on peut aussi coller le fichier dans l'éditeur SQL du tableau de bord. Il faut alors penser à l'enregistrer dans git.
 
-## Mise en route, une seule fois
+## Historique : déjà synchronisé
 
-Avant ce dossier, 5 changements avaient été appliqués en ligne (23 et 29 septembre 2026 : règles d'accès des tables `long_*`, votes de bots, parties réseau classées, ELO par taille). Ils sont déjà inclus dans `etat_initial_nebula.sql`.
+Avant ce dossier, 5 changements avaient été appliqués en ligne (23 et 29 septembre 2026 : règles d'accès des tables `long_*`, votes de bots, parties réseau classées, ELO par taille). Leur effet est déjà inclus dans `etat_initial_nebula.sql`. Leurs fichiers dans `migrations/` sont volontairement vides (`select 1;`), pour que les noms correspondent à l'historique en ligne. Leur texte d'origine reste consultable dans la table `supabase_migrations.schema_migrations`.
 
-Pour que l'outil Supabase considère la base en ligne comme à jour, on le lui dit une seule fois :
-
-```bash
-supabase link --project-ref hcjajtpbzusqgxkyzbgc
-supabase migration repair --status reverted 20260923092316 20260923092417 20260929114142 20260929114345 20260929120923
-supabase migration repair --status applied 20261002120000
-supabase migration list                        # local et en ligne doivent maintenant correspondre
-```
+Le 2 octobre 2026, l'état initial a été marqué comme appliqué en ligne : la base en ligne et les fichiers listent les mêmes 6 entrées. `supabase migration list` doit donc montrer les deux colonnes identiques. Il n'y a rien à « réparer ».
 
 ## Vérifier que la base en ligne n'a pas dérivé
 
