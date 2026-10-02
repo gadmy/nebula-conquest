@@ -1585,7 +1585,8 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        serveur (le jeu ne l'appelait pas) ; 3) nc_membre* rangees dans le
        schema prive, hors API, les regles des tables long_* marchent toujours
        (essai : membre oui, intrus non). Base en ligne = fichiers (empreinte,
-       11 familles). Reste : protection des mots de passe fuites (reglage).
+       11 familles). Protection des mots de passe fuites activee (tableau de
+       bord) : le conseiller Supabase ne signale plus aucune alerte.
      - Reglages Claude (.claude/settings.json) : outils Supabase autorises
        sans confirmation, sauf actions sur le projet entier.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
