@@ -28,7 +28,9 @@ Les vues lisent les tables avec les droits de celui qui les consulte (`security_
 
 ### Ce qui n'est pas à Nebula
 
-Le même projet Supabase héberge les tables d'autres applications : `lfs_*` (recettes) ainsi que `comptes_rendus` et `dossiers`. Elles ne sont volontairement pas dans ces fichiers. L'idéal est de les déplacer dans leur propre projet Supabase.
+Le même projet Supabase héberge `comptes_rendus` et `dossiers` : le logiciel de comptes rendus (pisé), toujours utilisé. Ces tables ne sont volontairement pas dans ces fichiers, et aucune migration Nebula ne doit les toucher.
+
+L'ancienne application de recettes (`lfs_*`) a été retirée le 2 octobre 2026 ; une copie complète reste dans le schéma `archive`, qui n'est pas publié dans l'API.
 
 ## Règle d'or
 

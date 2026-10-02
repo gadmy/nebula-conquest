@@ -1591,9 +1591,10 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        sans confirmation, sauf actions sur le projet entier.
      - RANGEMENT SUPABASE : les 7 tables de l'appli de recettes (lfs_*) sont
        copiees dans le schema archive (non publie), copie verifiee identique
-       (migration 20261002140000_archiver_recettes). Leur retrait de public
-       attend le feu vert de l'utilisateur. Comptes rendus et dossiers (appli
-       toujours utilisee) : non touches, empreinte identique avant/apres.
+       (migration 20261002140000_archiver_recettes), puis retirees de public
+       (20261002140100, lance par l'utilisateur dans l'editeur SQL). Comptes
+       rendus et dossiers (appli pise, toujours utilisee) : non touches,
+       donnees, regles, droits et colonnes identiques avant/apres.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
