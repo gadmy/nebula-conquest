@@ -132,7 +132,7 @@ function debitAstre(body) {
     const nid = 1 + bonusBatiment(body.nids || 0, 'nid');
     const soleil = body.type === 'planet' ? body.parent : (body.parent ? body.parent.parent : null);
     const sys = (soleil && isSystemComplete(soleil, body.owner)) ? 1.03 : 1;
-    const part = 1 - Math.min((joueur.multiSacrifice || 0) / 100, 0.5);
+    const part = 1 - partSacrifice(joueur);
     return Math.max(1, body.maxSpores) * TAUX_PROD
            * (0.4 + (body.flore / 100) * 0.6) * (1 + joueur.stats.growth * 0.3)
            * sym * nid * sys * part

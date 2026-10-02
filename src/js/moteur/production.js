@@ -81,8 +81,7 @@ function updateSporeGeneration(dt) {
             }
         } else {
             // Répartir la production entre : jeu et multiplicité
-            const multiPct = (player.multiSacrifice || 0) / 100;
-            const totalSac = Math.min(multiPct, 0.5);
+            const totalSac = partSacrifice(player);
             const multiSac = totalSac;
             const prodPct = 1 - totalSac;
 

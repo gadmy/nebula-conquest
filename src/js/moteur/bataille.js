@@ -171,10 +171,11 @@ function debitPour(body, slot) {
     const nid = 1 + bonusBatiment(nbBatimentCamp(body, 'nid', campDe(body, slot)), 'nid');
     const soleil = body.type === 'planet' ? body.parent : (body.parent ? body.parent.parent : null);
     const sys = (soleil && isSystemComplete(soleil, slot)) ? 1.03 : 1;
-    const part = 1 - Math.min((joueur.multiSacrifice || 0) / 100, 0.5);
+    /* Pas de sacrifice dans une lutte : la production des zones ne nourrit
+       pas la multiplicite, elle aurait ete perdue pour rien. */
     return Math.max(1, body.maxSpores) * TAUX_PROD
            * (0.4 + (body.flore / 100) * 0.6) * (1 + joueur.stats.growth * 0.3)
-           * sym * nid * sys * part;
+           * sym * nid * sys;
 }
 
 /* Des spores touchent un astre ennemi ou neutre : elles debarquent. */

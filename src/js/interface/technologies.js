@@ -50,7 +50,7 @@ function buyTech(player, branch) {
     if (player.totalSpores < cost || player.tech[branch] >= 10) return false;
     let toDeduct = cost;
     const bodies = player.bodies.slice().sort((a,b) => b.spores - a.spores);
-    for (const body of bodies) { const take = Math.min(body.spores, toDeduct); body.spores -= take; toDeduct -= take; if (toDeduct <= 0) break; }
+    for (const body of bodies) { const take = retirerSpores(body, Math.min(body.spores, toDeduct)); toDeduct -= take; if (toDeduct <= 0) break; }
     if (toDeduct > 0) return false;
     if (player.tech[branch] === 0 && !player.tech._branchOrder.includes(branch)) player.tech._branchOrder.push(branch);
     player.tech[branch]++;

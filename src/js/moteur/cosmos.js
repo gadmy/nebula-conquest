@@ -85,7 +85,7 @@ function updateComets(dt) {
             const dx = body.x - c.x;
             const dy = body.y - c.y;
             if (Math.sqrt(dx*dx + dy*dy) < body.radius + c.size) {
-                body.spores = 0;   /* plus d'astre invincible depuis le retrait de la planete mere */
+                viderSpores(body);   /* plus d'astre invincible depuis le retrait de la planete mere */
                 spawnImpact(c.x, c.y, c.color);
                 gameState.comets.splice(i, 1);
                 break;

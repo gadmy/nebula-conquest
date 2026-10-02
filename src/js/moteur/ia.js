@@ -507,7 +507,72 @@ function aiArmes(player, dt) {
 }
 
 // ── Lancement IA avec anticipation d'orbite ──
+/* Ou sera un astre dans t secondes : les orbites sont des cercles, le soleil
+   autour du trou noir (au centre), la planete autour du soleil, la lune
+   autour de la planete. */
+function _iaPosFuture(b, t) {
+    if (!b.parent) {
+        if (!b.orbitRadius) return { x: b.x, y: b.y };
+        const a = b.angle + b.orbitSpeed * t;
+        return { x: Math.cos(a) * b.orbitRadius, y: Math.sin(a) * b.orbitRadius };
+    }
+    const p = _iaPosFuture(b.parent, t);
+    const a = b.angle + b.orbitSpeed * t;
+    return { x: p.x + Math.cos(a) * b.orbitRadius, y: p.y + Math.sin(a) * b.orbitRadius };
+}
+
+/* LA VISEE DE L'IA. Elle visait tout droit, la ou la cible serait apres un
+   temps de vol mal estime (cinq fois trop long), sans la courbe que la
+   gravite du trou noir donne au tir : un tir sur cinq seulement touchait sa
+   cible (mesure sur des parties entieres). Elle essaie maintenant des
+   angles autour de la cible, calcule pour chacun la vraie trajectoire (la
+   meme que celle du jet) et garde celui qui passe au plus pres de la cible
+   au moment ou le tir y arrive. Un trajet qui croise un soleil est ecarte. */
+function _iaScoreVisee(source, target, ang, speed, pas, maxI) {
+    const traj = computeTrajectory(source.x, source.y, Math.cos(ang), Math.sin(ang), speed, pas);
+    const parPoint = 1 / (speed * 0.70);       /* secondes par point (jets.js : posIndex) */
+    let best = 1e9;
+    const n = Math.min(traj.length, maxI);
+    for (let i = 2; i < n; i += 2) {
+        const pt = traj[i];
+        for (const s of gameState.suns) {
+            const ds = Math.hypot(pt.x - s.x, pt.y - s.y);
+            if (ds < s.radius + 12) return best < 1e9 ? best : 1e9;
+        }
+        const f = _iaPosFuture(target, i * parPoint);
+        const d = Math.hypot(pt.x - f.x, pt.y - f.y) - target.radius;
+        if (d < best) best = d;
+        if (best <= 0) return 0;
+    }
+    return best;
+}
+function _iaVisee(source, target, speed, pas) {
+    const base = Math.atan2(target.y - source.y, target.x - source.x);
+    let meilleur = base, score = _iaScoreVisee(source, target, base, speed, pas, pas);
+    for (let k = -14; k <= 14 && score > 0; k++) {
+        if (!k) continue;
+        const a = base + k * 0.06;
+        const sc = _iaScoreVisee(source, target, a, speed, pas, pas);
+        if (sc < score) { score = sc; meilleur = a; }
+    }
+    /* Affinage autour du meilleur angle. */
+    const centre = meilleur;
+    for (let k = -5; k <= 5 && score > 0; k++) {
+        if (!k) continue;
+        const a = centre + k * 0.012;
+        const sc = _iaScoreVisee(source, target, a, speed, pas, pas);
+        if (sc < score) { score = sc; meilleur = a; }
+    }
+    return { dx: Math.cos(meilleur), dy: Math.sin(meilleur) };
+}
+
 function aiLaunchAt(source, target, player, sporeType, opts) {
+    if (gameState.config.difficulty !== 'easy') {
+        const speed = (20 + player.stats.velocity * 6) * (opts && opts.vitesse > 0 ? opts.vitesse : 1);
+        const v = _iaVisee(source, target, speed, (opts && opts.pas) || 200);
+        launchJet(source, v.dx, v.dy, sporeType || 'normal', player.id, opts);
+        return;
+    }
     // Prédire la position future de la cible
     const dx = target.x - source.x;
     const dy = target.y - source.y;

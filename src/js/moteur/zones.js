@@ -83,7 +83,11 @@ function zonesRecalculer(body, L) {
         let sp = 0, el = 0;
         for (const a in comp.anciens) {
             const z = anciennes[a];
-            if (!z) continue;
+            /* Seulement les zones du meme camp : des cases peintes par un
+               debarquement (ou fondues vers un voisin) gardaient l'ancienne
+               zone ennemie, et le prorata versait ses spores au nouveau
+               venu. Le terrain pris a l'ennemi ne rapporte pas ses spores. */
+            if (!z || z.v !== comp.v) continue;
             /* Le prorata se prend sur les cases que la zone avait AU DEBUT
                du tour : la poussee a deja bouge les compteurs, s'en servir
                ferait payer deux fois le terrain perdu. */
@@ -953,6 +957,8 @@ function conquerir(body, nouveauProprio, sporesArrivees) {
 
     body.owner = jet.owner;
     body.spores = attacking;
+    /* Le maitre du parasite prend l'astre : le parasite n'a plus personne a vider. */
+    if (body.parasite && body.parasite.ownerSlot === nouveauProprio) { body.parasite = null; body.droneCount = 0; }
     body.faune = 0; // Faune détruite après conquête
     // Invalider cache isSystemComplete du soleil concerné
     const _conquSun = body.type === 'planet' ? body.parent : (body.parent?.parent || null);
@@ -1062,7 +1068,7 @@ function applyConquest(body, jet) {
     }
 
     // Jets normaux sur planète infectée → comptent comme drones anti-parasite
-    if (body.parasite && body.owner === jet.owner && jet.sporeType === 'normal') {
+    if (body.parasite && body.owner === jet.owner && jet.sporeType !== 'parasite' && jet.sporeType !== 'parasite_drain') {
         body.droneCount = (body.droneCount || 0) + jet.spores;
         if (body.droneCount >= 500) {
             body.parasite = null;

@@ -440,8 +440,9 @@ function mitraillerCapital(C, dt) {
     C.tirT = CAP_CFG.mitraille.cadence;
     const p = CAP_CFG.mitraille.paquet;
     const avant = cible.spores || 0;
-    if (C.type === 'green') cible.spores = Math.min(Math.max(avant, cible.maxSpores || 0), avant + p);
-    else cible.spores = Math.max(0, avant - p);
+    /* Assiege ou non : les helpers passent par les zones d'un astre en lutte. */
+    if (C.type === 'green') ajouterSpores(cible, p);
+    else retirerSpores(cible, p);
     /* La balle (dessin seulement) : elle file vers la face de l'astre
        tournee vers la sphere et s'y ecrase, en faisant sauter le gain ou
        la perte. */
@@ -533,7 +534,7 @@ function collisionCapital(C) {
         if (touche(s)) {
             const touches = [];
             for (const p of (s.planets || [])) { touches.push(p); for (const m of (p.moons || [])) touches.push(m); }
-            for (const b of touches) { b.spores = 0; b.panne = gameState.time + CAP_CFG.panne; }
+            for (const b of touches) { viderSpores(b); b.panne = gameState.time + CAP_CFG.panne; }
             /* L'etoile encaisse le choc, puis chaque monde du systeme s'embrase a son tour. */
             const ax = s.x + (C.x - s.x) * s.radius / (s.radius + C.rayon), ay = s.y + (C.y - s.y) * s.radius / (s.radius + C.rayon);
             lancerApocalypse(ax, ay, Math.max(260, s.radius * 2.6), CAP_TEINTES[C.type].accent, 0);
@@ -552,7 +553,7 @@ function collisionCapital(C) {
             b.edifices = [];
             b.nids = 0; b.alveoles = 0; b.biomes = 0;
             b.buildMode = 'off';
-            b.spores = 0;
+            viderSpores(b);
             b.panne = gameState.time + CAP_CFG.panne;
             const ax = b.x + (C.x - b.x) * b.radius / (b.radius + C.rayon), ay = b.y + (C.y - b.y) * b.radius / (b.radius + C.rayon);
             lancerApocalypse(ax, ay, Math.max(180, b.radius * 2.4), CAP_TEINTES[C.type].accent, 0);
@@ -574,7 +575,7 @@ function detruireCapital(C, abattue) {
         for (const b of gameState.allBodies) {
             if (b.type === 'sun') continue;
             if (Math.hypot(b.x - C.x, b.y - C.y) - b.radius > CAP_CFG.explosion.rayon) continue;
-            b.spores = 0;
+            viderSpores(b);
             b.panne = gameState.time + CAP_CFG.explosion.duree;
         }
         addEvent('war', '💥', 'La sphère ' + CAP_TEINTES[C.type].nom + ' explose : les astres voisins sont paralysés 1 min', null, '#FF7A1A');

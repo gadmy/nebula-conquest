@@ -530,10 +530,20 @@ function checkJetCollision(jet) {
                 }
                 continue;
             }
-            if (body.owner === jet.owner) {
+            if (body.owner === jet.owner && body.parasite && jet.sporeType !== 'parasite' && jet.sporeType !== 'parasite_drain' && !jet._parasiteDrain) {
+                /* Un astre infecte : ses propres spores normales servent de
+                   drones contre le parasite (500 l'eliminent, voir les regles).
+                   Cette branche n'etait jamais atteinte : le renfort ci-dessous
+                   passait avant. */
+                applyConquest(body, jet);
+            } else if (body.owner === jet.owner) {
                 // Density bonus : +5% spores livrées par point
                 const densityBonus = 1 + (gameState.players[jet.owner]?.stats.density || 0) * 0.05;
-                ajouterSpores(body, jet.spores * densityBonus);
+                const zd = _zoneDefense(body);
+                const g = ajouterSpores(body, jet.spores * densityBonus);
+                /* Renforcer un astre assiege, c'est contre-attaquer : les
+                   spores arrivees poussent aussitot contre l'envahisseur. */
+                if (zd && g > 0) { zd.elan = (zd.elan || 0) + g; body.lutte.dormante = false; }
                 playFusionSound();
             } else {
                 const _ml = gameState.players[jet.owner]?.tech?.mimicry || 0;

@@ -208,7 +208,8 @@ function majCommerce(dt) {
         const pas = (o.v || COMMERCE_CFG.vitesseBoule) * dt;
         if (d <= V.radius + pas) {
             /* Le don passe meme au-dela du maximum : le trop-plein s'evaporera. */
-            V.spores = (V.spores || 0) + o.n;
+            if (V.lutte) ajouterSpores(V, o.n);      /* assiege : dans ses zones */
+            else V.spores = (V.spores || 0) + o.n;
             const g = o.n;
             O.splice(i, 1);
             /* Dessin : le gain qui saute, en couleur de commerce. */

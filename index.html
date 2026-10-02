@@ -7553,8 +7553,54 @@ const SURCHARGE_FUITE_MIN = 5;
    un astre deja en surcharge : il garde son trop-plein, qui s'evapore. */
 function ajouterSpores(body, gain) {
     const avant = body.spores || 0;
+    const z = _zoneDefense(body);
+    if (z) {
+        /* Astre assiege : ses spores vivent dans ses zones, body.spores n'en
+           est que la somme (refaite a chaque pas de lutte). Un gain pose sur
+           body.spores etait efface au pas suivant : il va dans sa plus
+           grande zone. */
+        const g = Math.max(0, Math.min(gain, Math.max(avant, body.maxSpores) - avant));
+        z.spores += g;
+        zonesAgreger(body, body.lutte);
+        return g;
+    }
     body.spores = Math.max(avant, Math.min(body.maxSpores, avant + gain));
     return body.spores - avant;
+}
+
+/* La plus grande zone du proprietaire sur un astre assiege, sinon null. */
+function _zoneDefense(body) {
+    if (!body.lutte || !body.lutte.zones || body.owner === null || body.owner === undefined || body.owner < 0) return null;
+    const m = zonesDe(body, body.owner);
+    return m.length ? m[0].z : null;
+}
+
+/* Retirer des spores (sphere noire, achat d'une technologie...), assiege ou
+   non. Rend ce qui a vraiment ete retire. */
+function retirerSpores(body, perte) {
+    if (_zoneDefense(body)) {
+        let reste = perte;
+        for (const m of zonesDe(body, body.owner)) {
+            const t = Math.min(m.z.spores, reste);
+            m.z.spores -= t;
+            reste -= t;
+            if (reste <= 0) break;
+        }
+        zonesAgreger(body, body.lutte);
+        return perte - Math.max(0, reste);
+    }
+    const t = Math.min(body.spores || 0, perte);
+    body.spores = (body.spores || 0) - t;
+    return t;
+}
+
+/* Vider un astre (comete, sphere capitale ecrasee...), assiege ou non. */
+function viderSpores(body) {
+    if (_zoneDefense(body)) {
+        for (const m of zonesDe(body, body.owner)) m.z.spores = 0;
+        zonesAgreger(body, body.lutte);
+    }
+    body.spores = 0;
 }
 
 /* Un astre qu'un joueur est en train de charger pour un tir. */
@@ -8959,6 +9005,16 @@ function aiChooseMultiStat(player) {
    un deuxieme palier atteint avant qu'on ait choisi etait PERDU. C'est
    desormais un compteur, les points s'empilent et on les place quand on
    veut. */
+/* La part de production sacrifiee pour la multiplicite (0 a 0,5). Plus rien
+   une fois les 10 paliers atteints : le reglage restait, et l'astre perdait
+   jusqu'a la moitie de sa production pour rien (les IA, 15 a 34 %, toute la
+   partie). */
+function partSacrifice(player) {
+    if (!player || !(player.multiSacrifice > 0)) return 0;
+    if ((player.multiTier || 0) + multiEnAttente(player) >= 10) return 0;
+    return Math.min(player.multiSacrifice / 100, 0.5);
+}
+
 function multiEnAttente(player) {
     return player._multiPending === true ? 1 : (player._multiPending | 0);
 }
@@ -9104,7 +9160,7 @@ function buyTech(player, branch) {
     if (player.totalSpores < cost || player.tech[branch] >= 10) return false;
     let toDeduct = cost;
     const bodies = player.bodies.slice().sort((a,b) => b.spores - a.spores);
-    for (const body of bodies) { const take = Math.min(body.spores, toDeduct); body.spores -= take; toDeduct -= take; if (toDeduct <= 0) break; }
+    for (const body of bodies) { const take = retirerSpores(body, Math.min(body.spores, toDeduct)); toDeduct -= take; if (toDeduct <= 0) break; }
     if (toDeduct > 0) return false;
     if (player.tech[branch] === 0 && !player.tech._branchOrder.includes(branch)) player.tech._branchOrder.push(branch);
     player.tech[branch]++;
@@ -10226,7 +10282,7 @@ function updateComets(dt) {
             const dx = body.x - c.x;
             const dy = body.y - c.y;
             if (Math.sqrt(dx*dx + dy*dy) < body.radius + c.size) {
-                body.spores = 0;   /* plus d'astre invincible depuis le retrait de la planete mere */
+                viderSpores(body);   /* plus d'astre invincible depuis le retrait de la planete mere */
                 spawnImpact(c.x, c.y, c.color);
                 gameState.comets.splice(i, 1);
                 break;
@@ -10466,8 +10522,7 @@ function updateSporeGeneration(dt) {
             }
         } else {
             // Répartir la production entre : jeu et multiplicité
-            const multiPct = (player.multiSacrifice || 0) / 100;
-            const totalSac = Math.min(multiPct, 0.5);
+            const totalSac = partSacrifice(player);
             const multiSac = totalSac;
             const prodPct = 1 - totalSac;
 
@@ -11104,10 +11159,20 @@ function checkJetCollision(jet) {
                 }
                 continue;
             }
-            if (body.owner === jet.owner) {
+            if (body.owner === jet.owner && body.parasite && jet.sporeType !== 'parasite' && jet.sporeType !== 'parasite_drain' && !jet._parasiteDrain) {
+                /* Un astre infecte : ses propres spores normales servent de
+                   drones contre le parasite (500 l'eliminent, voir les regles).
+                   Cette branche n'etait jamais atteinte : le renfort ci-dessous
+                   passait avant. */
+                applyConquest(body, jet);
+            } else if (body.owner === jet.owner) {
                 // Density bonus : +5% spores livrées par point
                 const densityBonus = 1 + (gameState.players[jet.owner]?.stats.density || 0) * 0.05;
-                ajouterSpores(body, jet.spores * densityBonus);
+                const zd = _zoneDefense(body);
+                const g = ajouterSpores(body, jet.spores * densityBonus);
+                /* Renforcer un astre assiege, c'est contre-attaquer : les
+                   spores arrivees poussent aussitot contre l'envahisseur. */
+                if (zd && g > 0) { zd.elan = (zd.elan || 0) + g; body.lutte.dormante = false; }
                 playFusionSound();
             } else {
                 const _ml = gameState.players[jet.owner]?.tech?.mimicry || 0;
@@ -11314,10 +11379,11 @@ function debitPour(body, slot) {
     const nid = 1 + bonusBatiment(nbBatimentCamp(body, 'nid', campDe(body, slot)), 'nid');
     const soleil = body.type === 'planet' ? body.parent : (body.parent ? body.parent.parent : null);
     const sys = (soleil && isSystemComplete(soleil, slot)) ? 1.03 : 1;
-    const part = 1 - Math.min((joueur.multiSacrifice || 0) / 100, 0.5);
+    /* Pas de sacrifice dans une lutte : la production des zones ne nourrit
+       pas la multiplicite, elle aurait ete perdue pour rien. */
     return Math.max(1, body.maxSpores) * TAUX_PROD
            * (0.4 + (body.flore / 100) * 0.6) * (1 + joueur.stats.growth * 0.3)
-           * sym * nid * sys * part;
+           * sym * nid * sys;
 }
 
 /* Des spores touchent un astre ennemi ou neutre : elles debarquent. */
@@ -11998,7 +12064,11 @@ function zonesRecalculer(body, L) {
         let sp = 0, el = 0;
         for (const a in comp.anciens) {
             const z = anciennes[a];
-            if (!z) continue;
+            /* Seulement les zones du meme camp : des cases peintes par un
+               debarquement (ou fondues vers un voisin) gardaient l'ancienne
+               zone ennemie, et le prorata versait ses spores au nouveau
+               venu. Le terrain pris a l'ennemi ne rapporte pas ses spores. */
+            if (!z || z.v !== comp.v) continue;
             /* Le prorata se prend sur les cases que la zone avait AU DEBUT
                du tour : la poussee a deja bouge les compteurs, s'en servir
                ferait payer deux fois le terrain perdu. */
@@ -12868,6 +12938,8 @@ function conquerir(body, nouveauProprio, sporesArrivees) {
 
     body.owner = jet.owner;
     body.spores = attacking;
+    /* Le maitre du parasite prend l'astre : le parasite n'a plus personne a vider. */
+    if (body.parasite && body.parasite.ownerSlot === nouveauProprio) { body.parasite = null; body.droneCount = 0; }
     body.faune = 0; // Faune détruite après conquête
     // Invalider cache isSystemComplete du soleil concerné
     const _conquSun = body.type === 'planet' ? body.parent : (body.parent?.parent || null);
@@ -12977,7 +13049,7 @@ function applyConquest(body, jet) {
     }
 
     // Jets normaux sur planète infectée → comptent comme drones anti-parasite
-    if (body.parasite && body.owner === jet.owner && jet.sporeType === 'normal') {
+    if (body.parasite && body.owner === jet.owner && jet.sporeType !== 'parasite' && jet.sporeType !== 'parasite_drain') {
         body.droneCount = (body.droneCount || 0) + jet.spores;
         if (body.droneCount >= 500) {
             body.parasite = null;
@@ -18726,8 +18798,9 @@ function mitraillerCapital(C, dt) {
     C.tirT = CAP_CFG.mitraille.cadence;
     const p = CAP_CFG.mitraille.paquet;
     const avant = cible.spores || 0;
-    if (C.type === 'green') cible.spores = Math.min(Math.max(avant, cible.maxSpores || 0), avant + p);
-    else cible.spores = Math.max(0, avant - p);
+    /* Assiege ou non : les helpers passent par les zones d'un astre en lutte. */
+    if (C.type === 'green') ajouterSpores(cible, p);
+    else retirerSpores(cible, p);
     /* La balle (dessin seulement) : elle file vers la face de l'astre
        tournee vers la sphere et s'y ecrase, en faisant sauter le gain ou
        la perte. */
@@ -18819,7 +18892,7 @@ function collisionCapital(C) {
         if (touche(s)) {
             const touches = [];
             for (const p of (s.planets || [])) { touches.push(p); for (const m of (p.moons || [])) touches.push(m); }
-            for (const b of touches) { b.spores = 0; b.panne = gameState.time + CAP_CFG.panne; }
+            for (const b of touches) { viderSpores(b); b.panne = gameState.time + CAP_CFG.panne; }
             /* L'etoile encaisse le choc, puis chaque monde du systeme s'embrase a son tour. */
             const ax = s.x + (C.x - s.x) * s.radius / (s.radius + C.rayon), ay = s.y + (C.y - s.y) * s.radius / (s.radius + C.rayon);
             lancerApocalypse(ax, ay, Math.max(260, s.radius * 2.6), CAP_TEINTES[C.type].accent, 0);
@@ -18838,7 +18911,7 @@ function collisionCapital(C) {
             b.edifices = [];
             b.nids = 0; b.alveoles = 0; b.biomes = 0;
             b.buildMode = 'off';
-            b.spores = 0;
+            viderSpores(b);
             b.panne = gameState.time + CAP_CFG.panne;
             const ax = b.x + (C.x - b.x) * b.radius / (b.radius + C.rayon), ay = b.y + (C.y - b.y) * b.radius / (b.radius + C.rayon);
             lancerApocalypse(ax, ay, Math.max(180, b.radius * 2.4), CAP_TEINTES[C.type].accent, 0);
@@ -18860,7 +18933,7 @@ function detruireCapital(C, abattue) {
         for (const b of gameState.allBodies) {
             if (b.type === 'sun') continue;
             if (Math.hypot(b.x - C.x, b.y - C.y) - b.radius > CAP_CFG.explosion.rayon) continue;
-            b.spores = 0;
+            viderSpores(b);
             b.panne = gameState.time + CAP_CFG.explosion.duree;
         }
         addEvent('war', '💥', 'La sphère ' + CAP_TEINTES[C.type].nom + ' explose : les astres voisins sont paralysés 1 min', null, '#FF7A1A');
@@ -19575,7 +19648,8 @@ function majCommerce(dt) {
         const pas = (o.v || COMMERCE_CFG.vitesseBoule) * dt;
         if (d <= V.radius + pas) {
             /* Le don passe meme au-dela du maximum : le trop-plein s'evaporera. */
-            V.spores = (V.spores || 0) + o.n;
+            if (V.lutte) ajouterSpores(V, o.n);      /* assiege : dans ses zones */
+            else V.spores = (V.spores || 0) + o.n;
             const g = o.n;
             O.splice(i, 1);
             /* Dessin : le gain qui saute, en couleur de commerce. */
@@ -20280,7 +20354,72 @@ function aiArmes(player, dt) {
 }
 
 // ── Lancement IA avec anticipation d'orbite ──
+/* Ou sera un astre dans t secondes : les orbites sont des cercles, le soleil
+   autour du trou noir (au centre), la planete autour du soleil, la lune
+   autour de la planete. */
+function _iaPosFuture(b, t) {
+    if (!b.parent) {
+        if (!b.orbitRadius) return { x: b.x, y: b.y };
+        const a = b.angle + b.orbitSpeed * t;
+        return { x: Math.cos(a) * b.orbitRadius, y: Math.sin(a) * b.orbitRadius };
+    }
+    const p = _iaPosFuture(b.parent, t);
+    const a = b.angle + b.orbitSpeed * t;
+    return { x: p.x + Math.cos(a) * b.orbitRadius, y: p.y + Math.sin(a) * b.orbitRadius };
+}
+
+/* LA VISEE DE L'IA. Elle visait tout droit, la ou la cible serait apres un
+   temps de vol mal estime (cinq fois trop long), sans la courbe que la
+   gravite du trou noir donne au tir : un tir sur cinq seulement touchait sa
+   cible (mesure sur des parties entieres). Elle essaie maintenant des
+   angles autour de la cible, calcule pour chacun la vraie trajectoire (la
+   meme que celle du jet) et garde celui qui passe au plus pres de la cible
+   au moment ou le tir y arrive. Un trajet qui croise un soleil est ecarte. */
+function _iaScoreVisee(source, target, ang, speed, pas, maxI) {
+    const traj = computeTrajectory(source.x, source.y, Math.cos(ang), Math.sin(ang), speed, pas);
+    const parPoint = 1 / (speed * 0.70);       /* secondes par point (jets.js : posIndex) */
+    let best = 1e9;
+    const n = Math.min(traj.length, maxI);
+    for (let i = 2; i < n; i += 2) {
+        const pt = traj[i];
+        for (const s of gameState.suns) {
+            const ds = Math.hypot(pt.x - s.x, pt.y - s.y);
+            if (ds < s.radius + 12) return best < 1e9 ? best : 1e9;
+        }
+        const f = _iaPosFuture(target, i * parPoint);
+        const d = Math.hypot(pt.x - f.x, pt.y - f.y) - target.radius;
+        if (d < best) best = d;
+        if (best <= 0) return 0;
+    }
+    return best;
+}
+function _iaVisee(source, target, speed, pas) {
+    const base = Math.atan2(target.y - source.y, target.x - source.x);
+    let meilleur = base, score = _iaScoreVisee(source, target, base, speed, pas, pas);
+    for (let k = -14; k <= 14 && score > 0; k++) {
+        if (!k) continue;
+        const a = base + k * 0.06;
+        const sc = _iaScoreVisee(source, target, a, speed, pas, pas);
+        if (sc < score) { score = sc; meilleur = a; }
+    }
+    /* Affinage autour du meilleur angle. */
+    const centre = meilleur;
+    for (let k = -5; k <= 5 && score > 0; k++) {
+        if (!k) continue;
+        const a = centre + k * 0.012;
+        const sc = _iaScoreVisee(source, target, a, speed, pas, pas);
+        if (sc < score) { score = sc; meilleur = a; }
+    }
+    return { dx: Math.cos(meilleur), dy: Math.sin(meilleur) };
+}
+
 function aiLaunchAt(source, target, player, sporeType, opts) {
+    if (gameState.config.difficulty !== 'easy') {
+        const speed = (20 + player.stats.velocity * 6) * (opts && opts.vitesse > 0 ? opts.vitesse : 1);
+        const v = _iaVisee(source, target, speed, (opts && opts.pas) || 200);
+        launchJet(source, v.dx, v.dy, sporeType || 'normal', player.id, opts);
+        return;
+    }
     // Prédire la position future de la cible
     const dx = target.x - source.x;
     const dy = target.y - source.y;
@@ -20865,7 +21004,7 @@ function debitAstre(body) {
     const nid = 1 + bonusBatiment(body.nids || 0, 'nid');
     const soleil = body.type === 'planet' ? body.parent : (body.parent ? body.parent.parent : null);
     const sys = (soleil && isSystemComplete(soleil, body.owner)) ? 1.03 : 1;
-    const part = 1 - Math.min((joueur.multiSacrifice || 0) / 100, 0.5);
+    const part = 1 - partSacrifice(joueur);
     return Math.max(1, body.maxSpores) * TAUX_PROD
            * (0.4 + (body.flore / 100) * 0.6) * (1 + joueur.stats.growth * 0.3)
            * sym * nid * sys * part

@@ -25,8 +25,54 @@ const SURCHARGE_FUITE_MIN = 5;
    un astre deja en surcharge : il garde son trop-plein, qui s'evapore. */
 function ajouterSpores(body, gain) {
     const avant = body.spores || 0;
+    const z = _zoneDefense(body);
+    if (z) {
+        /* Astre assiege : ses spores vivent dans ses zones, body.spores n'en
+           est que la somme (refaite a chaque pas de lutte). Un gain pose sur
+           body.spores etait efface au pas suivant : il va dans sa plus
+           grande zone. */
+        const g = Math.max(0, Math.min(gain, Math.max(avant, body.maxSpores) - avant));
+        z.spores += g;
+        zonesAgreger(body, body.lutte);
+        return g;
+    }
     body.spores = Math.max(avant, Math.min(body.maxSpores, avant + gain));
     return body.spores - avant;
+}
+
+/* La plus grande zone du proprietaire sur un astre assiege, sinon null. */
+function _zoneDefense(body) {
+    if (!body.lutte || !body.lutte.zones || body.owner === null || body.owner === undefined || body.owner < 0) return null;
+    const m = zonesDe(body, body.owner);
+    return m.length ? m[0].z : null;
+}
+
+/* Retirer des spores (sphere noire, achat d'une technologie...), assiege ou
+   non. Rend ce qui a vraiment ete retire. */
+function retirerSpores(body, perte) {
+    if (_zoneDefense(body)) {
+        let reste = perte;
+        for (const m of zonesDe(body, body.owner)) {
+            const t = Math.min(m.z.spores, reste);
+            m.z.spores -= t;
+            reste -= t;
+            if (reste <= 0) break;
+        }
+        zonesAgreger(body, body.lutte);
+        return perte - Math.max(0, reste);
+    }
+    const t = Math.min(body.spores || 0, perte);
+    body.spores = (body.spores || 0) - t;
+    return t;
+}
+
+/* Vider un astre (comete, sphere capitale ecrasee...), assiege ou non. */
+function viderSpores(body) {
+    if (_zoneDefense(body)) {
+        for (const m of zonesDe(body, body.owner)) m.z.spores = 0;
+        zonesAgreger(body, body.lutte);
+    }
+    body.spores = 0;
 }
 
 /* Un astre qu'un joueur est en train de charger pour un tir. */
@@ -1431,6 +1477,16 @@ function aiChooseMultiStat(player) {
    un deuxieme palier atteint avant qu'on ait choisi etait PERDU. C'est
    desormais un compteur, les points s'empilent et on les place quand on
    veut. */
+/* La part de production sacrifiee pour la multiplicite (0 a 0,5). Plus rien
+   une fois les 10 paliers atteints : le reglage restait, et l'astre perdait
+   jusqu'a la moitie de sa production pour rien (les IA, 15 a 34 %, toute la
+   partie). */
+function partSacrifice(player) {
+    if (!player || !(player.multiSacrifice > 0)) return 0;
+    if ((player.multiTier || 0) + multiEnAttente(player) >= 10) return 0;
+    return Math.min(player.multiSacrifice / 100, 0.5);
+}
+
 function multiEnAttente(player) {
     return player._multiPending === true ? 1 : (player._multiPending | 0);
 }

@@ -1609,6 +1609,44 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        suit la longueur du texte ; la scene 1 tient sur 3 lignes.
        Puis scenes 7 a 12 aussi (confins de l'univers, militants coute que
        coute, nouvelles especes, « L'humanite spore est a son commencement »).
+     - AUDIT ATTAQUE / DEFENSE : carte complete du systeme + 3 parties de
+       40 min entre IA en accelere, chaque combat releve (avant/apres).
+       Corrige :
+       1) RENFORTS PERDUS : des spores envoyees a son propre astre assiege
+          disparaissaient (body.spores ecrase par la somme des zones au pas
+          de lutte suivant) - essai a l'identique : +300 = rien. Maintenant
+          elles vont dans la plus grande zone du proprietaire et poussent
+          contre l'envahisseur. Meme correction (ajouterSpores /
+          retirerSpores / viderSpores) pour ondes solaires, commerce,
+          spheres verte/noire, comete, sphere ecrasee, achat de techno
+          (gratuit sur un astre assiege). Renforts perdus : 77 % -> ~12 %
+          (le reste = combats simultanes).
+       2) PARASITE INCURABLE : la regle « 500 spores normales l'eliminent »
+          ne marchait jamais (branche jamais atteinte). Essai : 300 puis
+          600 -> parasite elimine. Et le maitre du parasite qui prend l'astre
+          n'y garde plus son propre parasite.
+       3) SACRIFICE INUTILE : apres les 10 paliers de multiplicite, le
+          reglage continuait de couper la production (IA : 15 a 34 % toute
+          la partie). Plus de sacrifice une fois les 10 paliers atteints, ni
+          dans les zones de lutte (ou il ne rapportait rien).
+       4) VOL DE SPORES : un debarquement (tir de surface) ou une zone qui
+          fond versait au nouveau venu les spores de la zone ennemie (prorata
+          sans verifier le camp). Le prorata ne suit plus que son camp.
+       5) VISEE DES IA : temps de vol estime 5x trop long et gravite ignoree
+          -> 24 % des tirs touchaient leur cible, 56 % finissaient dans le
+          vide. Visee par la vraie trajectoire (angles essayes autour de la
+          cible, trajet croisant un soleil ecarte) : 72 % touchent, 9 % dans
+          le vide (sauf difficulte facile, inchangee). Les IA normales et
+          difficiles sont donc nettement plus fortes.
+       Constate, pas change (a decider) : fin de partie souvent bloquee a
+       3-4 joueurs sans atteindre 80 % des astres (parties de 40 min sans
+       vainqueur) ; IA faibles qui ne tirent presque plus une fois assiegees
+       ; la tenacite (ceinture verte) et le mimetisme creent des spores (x5
+       au niveau 10) ; les stats peuvent depasser 8 par la multiplicite ;
+       la defense d'un astre ne vient que de la faune, des biomes, des
+       alveoles et des contre-poussees (le stock du defenseur ne freine pas
+       l'attaque, chaque case a un prix fixe). Tests : banc lockstep
+       identique (4c0f74cc), solo et reseau ok.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
