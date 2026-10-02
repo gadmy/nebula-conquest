@@ -9,12 +9,14 @@ const { chromium } = await chargerPlaywright();
 const relais = await demarrerRelais();
 const navigateur = await chromium.launch();
 const erreurs = [];
+const consoleJ2 = [];
+const P = [];
 try {
-    const P = [];
     for (let i = 0; i < 2; i++) {
         const ctx = await navigateur.newContext({ viewport: { width: 1100, height: 750 } });
         const p = await ctx.newPage();
         p.on('pageerror', e => erreurs.push((i + 1) + ': ' + e.message));
+        if (i === 1) p.on('console', m => consoleJ2.push(m.type() + ' ' + m.text()));
         await p.goto(relais.url + '/?relais=ws://localhost:' + relais.port + '&salle=essai&joueurs=2&ia=2', { waitUntil: 'domcontentloaded' });
         P.push(p);
     }
@@ -43,6 +45,15 @@ try {
 } catch (e) {
     process.exitCode = 1;
     if (!String(e.message).startsWith('ECHEC')) console.error(e);
+    /* Ce que voit le joueur 2 (message a l'ecran, etat du lien au relais). */
+    try {
+        console.error('--- joueur 2 ---\n' + await P[1].evaluate(() => {
+            const L = gameState.lockstep, el = document.getElementById('bandeauLockstep');
+            return JSON.stringify({ phase: gameState.phase, tour: gameState.tour, message: el && el.textContent,
+                lien: L && { ws: L.ws && L.ws.readyState, enJeu: L.enJeu, tourPermis: L.tourPermis, paquets: L.paquets, essais: L.essais } });
+        }));
+    } catch (x) {}
+    console.error('--- console du joueur 2 ---\n' + consoleJ2.slice(-15).join('\n'));
     console.error('--- journal du relais ---\n' + relais.journal().split('\n').slice(-15).join('\n'));
 } finally {
     await navigateur.close();
