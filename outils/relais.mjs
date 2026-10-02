@@ -490,6 +490,23 @@ wss.on('connection', (ws) => {
     });
 });
 
+/* ARRET DU RELAIS (Railway l'arrete a chaque mise a jour) : les parties ne
+   vivent qu'en memoire et vont disparaitre. On le dit aux joueurs au lieu de
+   les laisser chercher une partie qui n'existe plus. */
+function arreter() {
+    let nb = 0;
+    for (const salle of salles.values()) {
+        for (const k of salle.clients) {
+            if (k.ws.readyState !== 1) continue;
+            try { k.ws.send(JSON.stringify({ t: 'arret', raison: 'le serveur a redemarre (mise a jour) : la partie est perdue' })); nb++; } catch (e) {}
+        }
+    }
+    console.log('Arret du relais : ' + salles.size + ' salle(s), ' + nb + ' joueur(s) prevenu(s)');
+    setTimeout(() => process.exit(0), 500);
+}
+process.on('SIGTERM', arreter);
+process.on('SIGINT', arreter);
+
 serveur.listen(PORT, () => {
     console.log('Relais d\'ordres sur le port ' + PORT +
                 (LATENCE || GIGUE ? ' (latence simulee ' + LATENCE + ' ms + gigue ' + GIGUE + ' ms)' : ''));

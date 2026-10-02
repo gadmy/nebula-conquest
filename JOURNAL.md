@@ -1595,6 +1595,13 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        (20261002140100, lance par l'utilisateur dans l'editeur SQL). Comptes
        rendus et dossiers (appli pise, toujours utilisee) : non touches,
        donnees, regles, droits et colonnes identiques avant/apres.
+     - PARTIES COUPEES PAR LES MISES A JOUR : Railway relancait le relais a
+       CHAQUE envoi sur main (meme pour le site ou le journal) ; les parties
+       ne vivant qu'en memoire, elles disparaissaient (« Reprise impossible :
+       partie introuvable »). railway.json : le relais ne se relance plus que
+       si relais.mjs, package*.json ou railway.json changent. Et a l'arret,
+       le relais previent les joueurs (« Partie interrompue : le serveur a
+       redemarre ») au lieu de les laisser chercher la partie.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

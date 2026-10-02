@@ -110,6 +110,14 @@ function ouvrirRelais(L, premier) {
                 if (bt) bt.style.display = 'none';
             }
         }
+        else if (m.t === 'arret') {
+            /* Le relais s'arrete (mise a jour) : la partie est perdue, inutile
+               de chercher a la reprendre. */
+            oublierPartieReseau();
+            L.fini = true;
+            try { ws.onclose = null; ws.close(); } catch (e) {}
+            afficherLockstep('Partie interrompue : ' + m.raison, true);
+        }
         else if (m.t === 'refus') {
             afficherLockstep('Refuse : ' + m.raison, true);
             salonStatut('Impossible : ' + m.raison);
