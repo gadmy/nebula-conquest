@@ -1799,3 +1799,11 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
       border:1px solid rgba(196,181,253,0.5); border-bottom-width:2px; background:rgba(139,92,246,0.18);
       color:#F5F3FF; font-family:Orbitron, sans-serif; font-size:0.82em; line-height:1.55; text-align:center; }
 #evoPanel .evo-tab img, #evoPanel .evo-tab i, #evoPanel .evo-tab svg { width:1.1em; height:1.1em; flex:0 0 auto; display:inline-block; vertical-align:middle; }
+
+/* Etoiles de commerce dans le tableau des scores (bronze, argent, or). */
+/* Le nom garde sa place, les etoiles le suivent, la barre reste a droite. */
+.score-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.score-row .score-bar-bg { margin-left: auto; width: 48px; }
+.score-row .score-name { margin-right: 8px; }
+.score-etoiles small { font-size: 8px; margin-right: 2px; }
+.score-etoiles { flex-shrink: 0; margin: 0 6px 0 -4px; font-size: 9px; letter-spacing: 0; white-space: nowrap; text-shadow: 0 0 3px rgba(0,0,0,0.7); }

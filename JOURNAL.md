@@ -1681,6 +1681,17 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
      - Panneau EVOLUTION : les onglets Evolution et Mutations sur la meme
        ligne (icone a cote du texte, plus de retour a la ligne).
        Banc lockstep identique (72eefb0c), solo et reseau ok.
+     - VERIFIE : aucun bonus ne passe d'un systeme a l'autre (onde solaire,
+       +3 % systeme complet, symbiose, nids, charge groupee). Essai : une
+       planete d'un autre systeme gagne exactement pareil (441,19 en 12 s)
+       qu'on tienne ou non un systeme complet a cote.
+     - COMMERCE : plusieurs commerces du meme niveau entre deux memes
+       joueurs, autant qu'ils ont d'astres libres (l'ancien refus « deja en
+       cours » est retire ; un astre ne sert toujours qu'a un commerce). Une
+       attaque qui rompt plusieurs commerces n'ouvre qu'une fenetre.
+     - TABLEAU DES SCORES : etoiles de commerce apres le nom (bronze planete,
+       argent systeme planetaire, or systeme solaire), une par niveau avec le
+       nombre s'il y en a plusieurs ; le survol dit avec qui. Regles a jour.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

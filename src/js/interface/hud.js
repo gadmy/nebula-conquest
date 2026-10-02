@@ -266,6 +266,28 @@ function updateHUD() {
 }
 
 let _lastScoreHash = '';
+/* LES ETOILES DE COMMERCE : une petite etoile par commerce en cours du
+   joueur - bronze planete contre planete, argent systeme planetaire, or
+   systeme solaire. Le survol dit avec qui. */
+const ETOILES_COMMERCE = { 1: ['#CD7F32', 'bronze'], 2: ['#C8D0DA', 'argent'], 3: ['#FFD700', 'or'] };
+function _etoilesCommerce(player) {
+    const cs = (gameState.commerces || []).filter(function (c) { return c.a === player.id || c.b === player.id; });
+    if (!cs.length) return { html: '', cle: '' };
+    /* Une etoile par niveau, suivie du nombre de commerces s'il y en a
+       plusieurs : la colonne reste etroite. */
+    let html = '<span class="score-etoiles">', cle = '';
+    for (const niv of [3, 2, 1]) {
+        const ici = cs.filter(function (c) { return c.niveau === niv; });
+        if (!ici.length) continue;
+        const e = ETOILES_COMMERCE[niv];
+        const nom = (COMMERCE_CFG.niveaux[niv] || {}).nom || '';
+        const avec = ici.map(function (c) { const a = gameState.players[c.a === player.id ? c.b : c.a]; return a ? a.name : '?'; }).join(', ');
+        const titre = esc(ici.length + ' commerce' + (ici.length > 1 ? 's ' : ' ') + e[1] + ' (' + nom.toLowerCase() + ') avec ' + avec).replace(/"/g, '&quot;');
+        html += '<span style="color:' + e[0] + '" title="' + titre + '">★' + (ici.length > 1 ? '<small>' + ici.length + '</small>' : '') + '</span>';
+        cle += niv + 'x' + ici.length + '.';
+    }
+    return { html: html + '</span>', cle: cle };
+}
 function updateScoreBoard() {
     const board = DOM.scoreBoard;
     if (!board) return;
@@ -277,10 +299,11 @@ function updateScoreBoard() {
     for (const player of gameState.players) {
         const owned = player.bodies ? player.bodies.length : 0;
         const pct = totalBodies > 0 ? Math.round((owned / totalBodies) * 100) : 0;
-        hash += player.id + ':' + pct + ',';
+        const _et = _etoilesCommerce(player);
+        hash += player.id + ':' + pct + ':' + _et.cle + ',';
         html += `<div class="score-row" data-slot="${player.id}" title="Clic droit : info / commerce">
             <div class="score-color" style="background:${player.color}"></div>
-            <span class="score-name">${player.name}${player.guildTag ? ' <span style="color:rgba(251,146,60,0.6);font-size:10px;">['+player.guildTag+']</span>' : ''}</span>
+            <span class="score-name">${player.name}${player.guildTag ? ' <span style="color:rgba(251,146,60,0.6);font-size:10px;">['+player.guildTag+']</span>' : ''}</span>${_et.html}
             <div class="score-bar-bg"><div class="score-bar" style="width:${pct}%;background:${player.color}"></div></div>
             <span class="score-pct">${pct}%</span>
         </div>`;

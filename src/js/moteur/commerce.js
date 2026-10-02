@@ -10,7 +10,9 @@
      toutes ses lunes) : 100 spores / 30 s.
    - Niveau 3, systeme solaire contre systeme solaire (tout ce qui tourne
      autour d'un soleil) : 1 000 spores / 40 s.
-   Un astre ne sert qu'a un commerce a la fois. Le commerce dure tant
+   Un astre ne sert qu'a un commerce a la fois ; deux joueurs peuvent donc
+   en ouvrir plusieurs du meme niveau, autant qu'ils ont d'astres libres
+   (deux planetes chacun : deux commerces planete contre planete). Le commerce dure tant
    qu'aucun des deux n'attaque l'autre : seule une attaque le rompt (un
    astre perdu est remplace par un autre, s'il en reste). Une IA juge : elle refuse
    si on l'a attaquee dans la derniere minute, ou si le demandeur est
@@ -86,7 +88,6 @@ function raisonPasCommerce(a, b, niveau) {
     const ja = gameState.players[a], jb = gameState.players[b];
     if (!ja || !jb || a === b) return 'impossible';
     if (!jb.alive || !jb.bodies || !jb.bodies.length) return 'joueur éliminé';
-    if ((gameState.commerces || []).some(function (c) { return c.niveau === niveau && ((c.a === a && c.b === b) || (c.a === b && c.b === a)); })) return 'déjà en cours';
     if ((gameState.propositions || []).some(function (p) { return p.de === a && p.a === b; })) return 'proposition en attente';
     if (!_astresCommerce(a, niveau).length) return niveau === 1 ? "vous n'avez pas d'astre libre" : niveau === 2 ? 'il vous faut une planète et toutes ses lunes' : 'il vous faut tout un système solaire';
     if (!_astresCommerce(b, niveau).length) return niveau === 1 ? "il n'a pas d'astre libre" : niveau === 2 ? "il n'a pas de planète avec toutes ses lunes" : "il n'a pas de système solaire complet";
@@ -100,8 +101,10 @@ function noterAttaque(a, b) {
     if (!jb) return;
     if (!jb.attaquesRecues) jb.attaquesRecues = {};
     jb.attaquesRecues[a] = gameState.time;
+    /* Tous leurs commerces tombent ; une seule fenetre pour le dire. */
+    let dit = false;
     for (const c of (gameState.commerces || []).slice()) {
-        if ((c.a === a && c.b === b) || (c.a === b && c.b === a)) finCommerce(c, 'attaque', a);
+        if ((c.a === a && c.b === b) || (c.a === b && c.b === a)) { finCommerce(c, 'attaque', a, dit); dit = true; }
     }
 }
 
@@ -158,14 +161,14 @@ function ouvrirCommerce(a, b, niveau) {
     addEvent('neutral', '🤝', gameState.players[a].name + ' et ' + gameState.players[b].name + ' commercent (' + N.nom.toLowerCase() + ')', paire[0], gameState.players[a].color);
 }
 
-function finCommerce(c, raison, fautif) {
+function finCommerce(c, raison, fautif, sansFenetre) {
     const k = gameState.commerces.indexOf(c);
     if (k < 0) return;
     gameState.commerces.splice(k, 1);
     /* Rompu : les boules en route s'eteignent. */
     gameState.orbesCommerce = gameState.orbesCommerce.filter(function (o) { return o.commerce !== c.id; });
     const moi = localSlot();
-    if (c.a === moi || c.b === moi) {
+    if ((c.a === moi || c.b === moi) && !sansFenetre) {
         const autre = gameState.players[c.a === moi ? c.b : c.a];
         const pourquoi = raison === 'attaque' ? (fautif === moi ? 'vous l\'avez attaqué' : 'il vous a attaqué')
                        : 'plus aucun astre à mettre en commerce';

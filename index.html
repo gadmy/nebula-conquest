@@ -1822,6 +1822,14 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
       border:1px solid rgba(196,181,253,0.5); border-bottom-width:2px; background:rgba(139,92,246,0.18);
       color:#F5F3FF; font-family:Orbitron, sans-serif; font-size:0.82em; line-height:1.55; text-align:center; }
 #evoPanel .evo-tab img, #evoPanel .evo-tab i, #evoPanel .evo-tab svg { width:1.1em; height:1.1em; flex:0 0 auto; display:inline-block; vertical-align:middle; }
+
+/* Etoiles de commerce dans le tableau des scores (bronze, argent, or). */
+/* Le nom garde sa place, les etoiles le suivent, la barre reste a droite. */
+.score-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.score-row .score-bar-bg { margin-left: auto; width: 48px; }
+.score-row .score-name { margin-right: 8px; }
+.score-etoiles small { font-size: 8px; margin-right: 2px; }
+.score-etoiles { flex-shrink: 0; margin: 0 6px 0 -4px; font-size: 9px; letter-spacing: 0; white-space: nowrap; text-shadow: 0 0 3px rgba(0,0,0,0.7); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -2306,7 +2314,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 
 <!-- COMMERCE -->
 <p id="h-commerce" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🤝 COMMERCE &amp; ALLIANCES</p>
-<p style="margin-bottom:16px;">Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
+<p style="margin-bottom:16px;">Clic droit sur un nom de la liste des joueurs : <b>Info</b> (astres, bâtiments, spores, production) ou <b>Commerce</b>. Planète contre planète : 10 spores / 20 s ; système planétaire (une planète et toutes ses lunes) : 100 spores / 30 s ; système solaire complet : 1 000 spores / 40 s. Chacun envoie à l'autre une petite boule dorée : les deux y gagnent. Un astre ne sert qu'à un commerce à la fois, mais vous pouvez en ouvrir <b>plusieurs du même type</b> avec le même joueur : deux planètes libres chacun, deux commerces planète contre planète. Dans le tableau des scores, une <span style="color:#CD7F32;">★ bronze</span> (planète), <span style="color:#C8D0DA;">★ argent</span> (système planétaire) ou <span style="color:#FFD700;">★ or</span> (système solaire) suit le nom de chaque joueur en commerce, avec leur nombre s'il y en a plusieurs. L'alliance dure tant que personne n'attaque : seule une attaque entre vous l'arrête. Une IA refuse si vous venez de l'attaquer ou si vous êtes bien plus fort qu'elle.</p>
 
 <!-- MULTIJOUEUR -->
 <p id="h-multi" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🌐 MULTIJOUEUR</p>
@@ -9806,6 +9814,28 @@ function updateHUD() {
 }
 
 let _lastScoreHash = '';
+/* LES ETOILES DE COMMERCE : une petite etoile par commerce en cours du
+   joueur - bronze planete contre planete, argent systeme planetaire, or
+   systeme solaire. Le survol dit avec qui. */
+const ETOILES_COMMERCE = { 1: ['#CD7F32', 'bronze'], 2: ['#C8D0DA', 'argent'], 3: ['#FFD700', 'or'] };
+function _etoilesCommerce(player) {
+    const cs = (gameState.commerces || []).filter(function (c) { return c.a === player.id || c.b === player.id; });
+    if (!cs.length) return { html: '', cle: '' };
+    /* Une etoile par niveau, suivie du nombre de commerces s'il y en a
+       plusieurs : la colonne reste etroite. */
+    let html = '<span class="score-etoiles">', cle = '';
+    for (const niv of [3, 2, 1]) {
+        const ici = cs.filter(function (c) { return c.niveau === niv; });
+        if (!ici.length) continue;
+        const e = ETOILES_COMMERCE[niv];
+        const nom = (COMMERCE_CFG.niveaux[niv] || {}).nom || '';
+        const avec = ici.map(function (c) { const a = gameState.players[c.a === player.id ? c.b : c.a]; return a ? a.name : '?'; }).join(', ');
+        const titre = esc(ici.length + ' commerce' + (ici.length > 1 ? 's ' : ' ') + e[1] + ' (' + nom.toLowerCase() + ') avec ' + avec).replace(/"/g, '&quot;');
+        html += '<span style="color:' + e[0] + '" title="' + titre + '">★' + (ici.length > 1 ? '<small>' + ici.length + '</small>' : '') + '</span>';
+        cle += niv + 'x' + ici.length + '.';
+    }
+    return { html: html + '</span>', cle: cle };
+}
 function updateScoreBoard() {
     const board = DOM.scoreBoard;
     if (!board) return;
@@ -9817,10 +9847,11 @@ function updateScoreBoard() {
     for (const player of gameState.players) {
         const owned = player.bodies ? player.bodies.length : 0;
         const pct = totalBodies > 0 ? Math.round((owned / totalBodies) * 100) : 0;
-        hash += player.id + ':' + pct + ',';
+        const _et = _etoilesCommerce(player);
+        hash += player.id + ':' + pct + ':' + _et.cle + ',';
         html += `<div class="score-row" data-slot="${player.id}" title="Clic droit : info / commerce">
             <div class="score-color" style="background:${player.color}"></div>
-            <span class="score-name">${player.name}${player.guildTag ? ' <span style="color:rgba(251,146,60,0.6);font-size:10px;">['+player.guildTag+']</span>' : ''}</span>
+            <span class="score-name">${player.name}${player.guildTag ? ' <span style="color:rgba(251,146,60,0.6);font-size:10px;">['+player.guildTag+']</span>' : ''}</span>${_et.html}
             <div class="score-bar-bg"><div class="score-bar" style="width:${pct}%;background:${player.color}"></div></div>
             <span class="score-pct">${pct}%</span>
         </div>`;
@@ -19558,7 +19589,9 @@ function drawCapitaux(ctx) {
      toutes ses lunes) : 100 spores / 30 s.
    - Niveau 3, systeme solaire contre systeme solaire (tout ce qui tourne
      autour d'un soleil) : 1 000 spores / 40 s.
-   Un astre ne sert qu'a un commerce a la fois. Le commerce dure tant
+   Un astre ne sert qu'a un commerce a la fois ; deux joueurs peuvent donc
+   en ouvrir plusieurs du meme niveau, autant qu'ils ont d'astres libres
+   (deux planetes chacun : deux commerces planete contre planete). Le commerce dure tant
    qu'aucun des deux n'attaque l'autre : seule une attaque le rompt (un
    astre perdu est remplace par un autre, s'il en reste). Une IA juge : elle refuse
    si on l'a attaquee dans la derniere minute, ou si le demandeur est
@@ -19634,7 +19667,6 @@ function raisonPasCommerce(a, b, niveau) {
     const ja = gameState.players[a], jb = gameState.players[b];
     if (!ja || !jb || a === b) return 'impossible';
     if (!jb.alive || !jb.bodies || !jb.bodies.length) return 'joueur éliminé';
-    if ((gameState.commerces || []).some(function (c) { return c.niveau === niveau && ((c.a === a && c.b === b) || (c.a === b && c.b === a)); })) return 'déjà en cours';
     if ((gameState.propositions || []).some(function (p) { return p.de === a && p.a === b; })) return 'proposition en attente';
     if (!_astresCommerce(a, niveau).length) return niveau === 1 ? "vous n'avez pas d'astre libre" : niveau === 2 ? 'il vous faut une planète et toutes ses lunes' : 'il vous faut tout un système solaire';
     if (!_astresCommerce(b, niveau).length) return niveau === 1 ? "il n'a pas d'astre libre" : niveau === 2 ? "il n'a pas de planète avec toutes ses lunes" : "il n'a pas de système solaire complet";
@@ -19648,8 +19680,10 @@ function noterAttaque(a, b) {
     if (!jb) return;
     if (!jb.attaquesRecues) jb.attaquesRecues = {};
     jb.attaquesRecues[a] = gameState.time;
+    /* Tous leurs commerces tombent ; une seule fenetre pour le dire. */
+    let dit = false;
     for (const c of (gameState.commerces || []).slice()) {
-        if ((c.a === a && c.b === b) || (c.a === b && c.b === a)) finCommerce(c, 'attaque', a);
+        if ((c.a === a && c.b === b) || (c.a === b && c.b === a)) { finCommerce(c, 'attaque', a, dit); dit = true; }
     }
 }
 
@@ -19706,14 +19740,14 @@ function ouvrirCommerce(a, b, niveau) {
     addEvent('neutral', '🤝', gameState.players[a].name + ' et ' + gameState.players[b].name + ' commercent (' + N.nom.toLowerCase() + ')', paire[0], gameState.players[a].color);
 }
 
-function finCommerce(c, raison, fautif) {
+function finCommerce(c, raison, fautif, sansFenetre) {
     const k = gameState.commerces.indexOf(c);
     if (k < 0) return;
     gameState.commerces.splice(k, 1);
     /* Rompu : les boules en route s'eteignent. */
     gameState.orbesCommerce = gameState.orbesCommerce.filter(function (o) { return o.commerce !== c.id; });
     const moi = localSlot();
-    if (c.a === moi || c.b === moi) {
+    if ((c.a === moi || c.b === moi) && !sansFenetre) {
         const autre = gameState.players[c.a === moi ? c.b : c.a];
         const pourquoi = raison === 'attaque' ? (fautif === moi ? 'vous l\'avez attaqué' : 'il vous a attaqué')
                        : 'plus aucun astre à mettre en commerce';
