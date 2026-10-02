@@ -1692,6 +1692,16 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
      - TABLEAU DES SCORES : etoiles de commerce apres le nom (bronze planete,
        argent systeme planetaire, or systeme solaire), une par niveau avec le
        nombre s'il y en a plusieurs ; le survol dit avec qui. Regles a jour.
+     - FUSION DES COMMERCES : quand le dernier astre libre d'un systeme
+       planetaire entre en commerce (planete + toutes ses lunes en commerce
+       planete contre planete), ces commerces fusionnent en un commerce de
+       systeme planetaire avec le joueur du dernier commerce, s'il a lui aussi
+       un systeme planetaire entier de libre ; sinon rien ne change. Pareil un
+       cran plus haut : tout un systeme solaire en commerce devient un commerce
+       de systeme solaire. Un astre couvert par le commerce de son systeme
+       n'est plus libre pour un autre. Essai : 15 propositions planete contre
+       planete sur un systeme solaire entier -> fusions en systemes
+       planetaires, puis un seul commerce de systeme solaire.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

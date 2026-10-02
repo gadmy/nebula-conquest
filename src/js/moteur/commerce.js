@@ -38,7 +38,21 @@ function initCommerce() {
 }
 
 function _enCommerce(body) {
-    return (gameState.commerces || []).some(function (c) { return c.srcA === body.name || c.srcB === body.name; });
+    const C = gameState.commerces || [];
+    if (C.some(function (c) { return c.srcA === body.name || c.srcB === body.name; })) return true;
+    /* Couvert par le commerce de son systeme : une lune dont la planete
+       commerce en systeme planetaire, tout astre d'un soleil qui commerce en
+       systeme solaire. Il n'est plus libre pour un autre commerce. */
+    const o = body.owner;
+    const planete = body.type === 'planet' ? body : body.parent;
+    const soleil = planete && planete.parent;
+    return C.some(function (c) {
+        const nom = c.a === o ? c.srcA : (c.b === o ? c.srcB : null);
+        if (!nom) return false;
+        if (c.niveau === 2 && planete && body !== planete && nom === planete.name) return true;
+        if (c.niveau === 3 && soleil && soleil.planets && soleil.planets.some(function (p) { return p.name === nom; })) return true;
+        return false;
+    });
 }
 
 /* Une planete et toutes ses lunes a ce joueur (au moins une lune). */
@@ -159,6 +173,89 @@ function ouvrirCommerce(a, b, niveau) {
         toastCommerce('Alliance commerciale avec ' + autre.name + ' : ' + N.nom.toLowerCase() + ' (' + paire[a === moi ? 0 : 1].name + ' ↔ ' + paire[a === moi ? 1 : 0].name + ')', '#86EFAC');
     }
     addEvent('neutral', '🤝', gameState.players[a].name + ' et ' + gameState.players[b].name + ' commercent (' + N.nom.toLowerCase() + ')', paire[0], gameState.players[a].color);
+    _fusionner(c);
+}
+
+/* LA FUSION. Quand le dernier astre libre d'un systeme planetaire entre en
+   commerce (planete et toutes ses lunes, chacune deja dans un commerce
+   planete contre planete), ses commerces fusionnent en UN commerce de
+   systeme planetaire avec le joueur du dernier commerce - si celui-ci a
+   lui aussi un systeme planetaire entier de libre (en comptant ce que la
+   fusion libere). Sinon rien ne change. Meme principe un cran plus haut :
+   tout un systeme solaire en commerce devient un commerce de systeme
+   solaire. Tant qu'il manque un astre, les commerces continuent tels quels. */
+function _commerceDe(body, slot) {
+    return (gameState.commerces || []).find(function (c) {
+        return (c.a === slot && c.srcA === body.name) || (c.b === slot && c.srcB === body.name);
+    }) || null;
+}
+function _fusionner(c) {
+    for (const [moi, autre, nom] of [[c.a, c.b, c.srcA], [c.b, c.a, c.srcB]]) {
+        const astre = astreNomme(nom);
+        if (!astre) continue;
+        const planete = astre.type === 'planet' ? astre : astre.parent;
+        if (c.niveau === 1 && planete && _systemePlanetaire(planete, moi)) {
+            const membres = [planete].concat(planete.moons);
+            const cs = membres.map(function (m) { return _commerceDe(m, moi); });
+            if (cs.every(function (x) { return x && x.niveau === 1; })) {
+                const n = _fusionVers(moi, autre, cs, 2, planete);
+                if (n) { _fusionner(n); return; }
+            }
+        }
+        const soleil = planete && planete.parent;
+        if (c.niveau <= 2 && soleil && soleil.type === 'sun' && _systemeSolaire(soleil, moi)) {
+            /* Chaque planete : en commerce de systeme planetaire (il couvre
+               ses lunes), ou bien elle et chacune de ses lunes en commerce. */
+            const cs = [];
+            let complet = true;
+            for (const p of soleil.planets) {
+                const cp = _commerceDe(p, moi);
+                if (cp && cp.niveau === 2) { cs.push(cp); continue; }
+                for (const m of [p].concat(p.moons || [])) {
+                    const cm = _commerceDe(m, moi);
+                    if (!cm || cm.niveau > 2) { complet = false; break; }
+                    cs.push(cm);
+                }
+                if (!complet) break;
+            }
+            if (complet && cs.length) {
+                const grande = soleil.planets.slice().sort(function (x, y) { return y.radius - x.radius || (x.name < y.name ? -1 : 1); })[0];
+                const n = _fusionVers(moi, autre, cs, 3, grande);
+                if (n) return;
+            }
+        }
+    }
+}
+/* Retire les commerces cs, et ouvre a leur place un commerce du niveau
+   donne entre l'astre 'ancre' (a moi) et l'astre libre le plus proche de
+   l'autre. Si l'autre n'en a pas, tout est remis comme avant. */
+function _fusionVers(moi, autre, cs, niveau, ancre) {
+    const C = gameState.commerces;
+    const avant = C.slice();
+    for (const x of cs) { const k = C.indexOf(x); if (k >= 0) C.splice(k, 1); }
+    let best = null, bd = Infinity;
+    for (const y of _astresCommerce(autre, niveau)) {
+        const d = Math.hypot(ancre.x - y.x, ancre.y - y.y);
+        if (d < bd) { bd = d; best = y; }
+    }
+    if (!best || _enCommerce(ancre)) {
+        C.length = 0;
+        for (const x of avant) C.push(x);
+        return null;
+    }
+    gameState.orbesCommerce = gameState.orbesCommerce.filter(function (o) { return !cs.some(function (x) { return x.id === o.commerce; }); });
+    const N = COMMERCE_CFG.niveaux[niveau];
+    const t = gameState.time;
+    const n = { id: ++gameState._commerceId, a: moi, b: autre, niveau: niveau, srcA: ancre.name, srcB: best.name,
+                debut: t, prochain: t, periode: N.periode, quantite: N.quantite };
+    C.push(n);
+    const loc = localSlot();
+    if (moi === loc || autre === loc) {
+        const lui = gameState.players[moi === loc ? autre : moi];
+        toastCommerce('Commerces fusionnés avec ' + lui.name + ' : ' + N.nom.toLowerCase() + ' (' + (moi === loc ? ancre.name + ' ↔ ' + best.name : best.name + ' ↔ ' + ancre.name) + ')', '#FDE68A');
+    }
+    addEvent('neutral', '🤝', gameState.players[moi].name + ' et ' + gameState.players[autre].name + ' passent au commerce : ' + N.nom.toLowerCase(), ancre, gameState.players[moi].color);
+    return n;
 }
 
 function finCommerce(c, raison, fautif, sansFenetre) {
