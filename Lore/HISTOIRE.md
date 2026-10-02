@@ -37,7 +37,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : une ville du futur magnifique, tours de verre, véhicules volants, lumières partout… mais le ciel est rouge et le sol craquelé.
 
-**Texte à l'écran** : « En 2387, la France avait tout inventé : les villes volantes, les robots serviables, le croissant éternel. Elle avait juste oublié une chose : la planète. »
+**Texte à l'écran** : « Dans un futur lointain, la France a tout inventé : les villes flottantes, le croissant éternel et le vin bon pour la santé. Hélas, empreinte d'une politique déplorable, la planète fut oubliée. »
 
 **Prompt IA** : `a breathtaking futuristic city with glass towers and flying vehicles, glowing lights everywhere, but the sky is blood red, the ground is cracked and dry, dust storms on the horizon, beauty and ruin together`
 
@@ -47,7 +47,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : la Terre vue de l'espace, brunâtre, océans asséchés, nuages de cendre.
 
-**Texte à l'écran** : « La Terre était fichue. Et aucun vaisseau n'était assez léger pour emporter tout le monde. »
+**Texte à l'écran** : « Les partis politiques, se succédant et empirant les choses, décidèrent de s'unir dans leur médiocrité. Malheureusement, la Terre était morte. »
 
 **Prompt IA** : `planet Earth seen from orbit, dying, brown and rust colored, dried up oceans, ash clouds, a few abandoned space stations around it, melancholic`
 
@@ -57,7 +57,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : un laboratoire high-tech ; au centre, une capsule de verre où un humain se dissout doucement en milliers de grains lumineux.
 
-**Texte à l'écran** : « Puis un savant découvrit qu'un humain pouvait devenir spore. Légère, résistante, capable de traverser l'espace. Le seul moyen de partir. »
+**Texte à l'écran** : « Au même moment, une équipe de savants découvrit comment transformer des êtres humains en nuées de spores. »
 
 **Prompt IA** : `a high-tech laboratory, in the center a tall glass capsule where a human silhouette gently dissolves into thousands of tiny glowing spores, scientists watching in awe, blue and violet light`
 
@@ -67,7 +67,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : un hémicycle futuriste en pleine pagaille : des groupes aux couleurs différentes se lèvent, gesticulent, brandissent des tablettes lumineuses.
 
-**Texte à l'écran** : « Les partis politiques comprirent tout de suite : l'univers était à prendre. Pour une fois, ils furent tous d'accord. Sur le départ. Pas sur le reste. »
+**Texte à l'écran** : « Les partis politiques s'emparèrent de l'idée pour conquérir l'univers, vider la planète de ses occupants et peut-être conquérir de nouveaux espaces. »
 
 **Prompt IA** : `a futuristic parliament hemicycle in total chaos, groups of politicians in different colored outfits standing, arguing and gesturing, holographic screens floating, dramatic and slightly comical`
 
@@ -77,7 +77,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : d'immenses files d'attente de citoyens devant des machines géantes, chacune baignée d'une couleur différente, d'où s'élèvent des colonnes de spores.
 
-**Texte à l'écran** : « Chaque parti construisit ses machines. Les adhérents firent la queue. Certains avaient même pris leur carte. »
+**Texte à l'écran** : « Chaque parti politique construisit les machines pour envoyer les spores de ses adhérents à travers l'espace. Ceux qui n'étaient pas encartés prirent leur carte. »
 
 **Prompt IA** : `huge queues of citizens waiting in front of giant futuristic machines, each machine bathed in a different color light (violet, red, green, blue, orange), columns of glowing spores rising from them into the red sky`
 
@@ -87,7 +87,7 @@ Conseils pour que toutes les images se ressemblent :
 
 **Image** : vue au ras du sol, sous un ciel rouge. Au premier plan, une mère se dépêche de rejoindre la queue, rayonnante de bonheur, son enfant dans les bras qui pleure à chaudes larmes. Derrière, les files d'attente, les machines, et des nuées de spores colorées qui montent vers le ciel comme des aurores.
 
-**Texte à l'écran** : « Et des milliards de spores quittèrent la Terre, chacune aux couleurs de son camp. Tout le monde n'était pas aussi enthousiaste. »
+**Texte à l'écran** : « Et des milliards de spores quittèrent la Terre, chacune aux couleurs de son camp. Grâce à la publicité, tout le monde était très enthousiaste. »
 
 **Prompt IA** : voir `PROMPTS_IMAGES.md`, scene06 (prompt complet).
 

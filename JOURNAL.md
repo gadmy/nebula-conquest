@@ -1602,6 +1602,11 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        si relais.mjs, package*.json ou railway.json changent. Et a l'arret,
        le relais previent les joueurs (« Partie interrompue : le serveur a
        redemarre ») au lieu de les laisser chercher la partie.
+     - HISTOIRE : les textes des scenes 1 a 6 remplaces par ceux de
+       l'utilisateur (villes flottantes, vin bon pour la sante, partis unis
+       dans leur mediocrite, savants, machines, publicite), orthographe
+       corrigee. Jeu (histoire.js) et Lore/HISTOIRE.md. Le temps d'affichage
+       suit la longueur du texte ; la scene 1 tient sur 3 lignes.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
