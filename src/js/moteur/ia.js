@@ -230,7 +230,7 @@ function iaPiloteCapital(C) {
 
 /* L'IA (normale et brutale) vise le pic de SA courbe : un astre sous sa
    bande de bon rendement pousse en paix, elle tire de ceux qui l'ont
-   atteinte - ou qui se battent. */
+   atteinte (jamais d'un astre envahi : il garde ses spores). */
 /* CE QUE COUTE UN ASTRE ENTIER : faune, sol (15 % du prix s'il est vierge)
    et, s'il a un proprietaire, ses defenseurs, le tout divise par ses biomes. */
 function _iaCoutPrise(t) {
@@ -248,9 +248,15 @@ function _iaAbordable(t, player, sources) {
     return envoi >= _iaCoutPrise(t);
 }
 
+/* Un astre envahi (l'ennemi tient des cases) garde ses spores pour se
+   defendre : l'IA ne tire pas depuis lui, elle se videait sous l'assaut. */
+function iaAssiegee(b) {
+    return !!b.lutte && partEtrangere(b) > 0;
+}
+
 function iaSourcePrete(b, min) {
     if (!(b.spores > min)) return false;
-    if (b.lutte) return true;
+    if (iaAssiegee(b)) return false;
     return b.spores >= Math.max(1, b.maxSpores) * zoneBonRendement()[0];
 }
 
@@ -265,7 +271,7 @@ function iaSurplus(player) {
 // ── IA Facile : cible aléatoire, pas d'anticipation ──
 function aiActionEasy(player) {
     // Choisir un astre source avec des spores
-    const sources = player.bodies.filter(b => b.spores > 20);
+    const sources = player.bodies.filter(b => b.spores > 20 && !iaAssiegee(b));
     if (sources.length === 0) return;
     const source = sources[Math.floor(gameRandom() * sources.length)];
 
@@ -493,7 +499,7 @@ function aiTirer(src, target, player) {
 function aiArmes(player, dt) {
     const R = player._aiRafale;
     if (R) {
-        if (R.src.owner !== player.id && !(R.src.lutte && zonesDe(R.src, player.id).length)) player._aiRafale = null;
+        if (R.src.owner !== player.id || iaAssiegee(R.src)) player._aiRafale = null;
         else {
             R.acc += dt;
             while (R.acc >= 1 / RAFALE_CADENCE && R.reste > 0) {

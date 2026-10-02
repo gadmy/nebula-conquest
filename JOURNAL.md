@@ -1730,6 +1730,15 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
          par tour) ; reseau 2 humains + 47 IA identiques, reprise ok.
          Editeur de carte (F2) verifie. Les plus grandes cartes ont 49
          planetes : 50 joueurs demanderont une carte plus grande.
+       - CARTE ZETAPHA-ERIAXDIS (faite par l'utilisateur) : 22 soleils,
+         132 planetes, 507 lunes ; les noms en double sont renommes tout
+         seuls. Essai a 50 joueurs : tous ont une planete, 50 couleurs,
+         5 a 8 ms par tour, aucune erreur.
+     - IA : ELLE NE TIRE PLUS DEPUIS UN ASTRE ENVAHI. Un astre ou l'ennemi
+       tient des cases garde ses spores pour se defendre (tir normal,
+       facile comprise, rafale arretee si sa source est envahie). Essai :
+       planete de 4900 attaquee par 3000 ; avant, elle envoyait 1066
+       spores ailleurs en 5 s et tombait ; maintenant elle tient.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas
