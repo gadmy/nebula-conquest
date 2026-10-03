@@ -182,7 +182,28 @@ function dessinerBouleEnVol(ctx, jet) {
     }
 }
 
+/* Vue lointaine : un point par tir (2 pixels), un seul trace par couleur. */
+const _jetsLoin = new Map();
+function drawJetsSimples(ctx) {
+    const z = gameState.camera.zoom, r = 2 / z;
+    for (const l of _jetsLoin.values()) l.length = 0;
+    for (const jet of gameState.jets) {
+        if (!jet.alive) continue;
+        let l = _jetsLoin.get(jet.color);
+        if (!l) { l = []; _jetsLoin.set(jet.color, l); }
+        l.push(jet);
+    }
+    for (const [c, l] of _jetsLoin) {
+        if (!l.length) continue;
+        ctx.fillStyle = c || '#FFFFFF';
+        ctx.beginPath();
+        for (const jet of l) { ctx.moveTo(jet.x + r, jet.y); ctx.arc(jet.x, jet.y, r, 0, Math.PI * 2); }
+        ctx.fill();
+    }
+}
+
 function drawJets(ctx) {
+    if (vueLointaine()) { drawJetsSimples(ctx); return; }
     const t = gameState.time;
     const jLod = gameState.lod;
 

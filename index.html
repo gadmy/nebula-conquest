@@ -2354,7 +2354,8 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;">Une tête de pont chez l'ennemi produit, construit et tire. Dix cases bien placées valent mieux qu'une attaque ratée.</p>
 <p style="margin-bottom:6px;">Les panneaux <span style="color:#E9D5FF;">Scores / Carte / Événements</span> se replient via ▲ PANNEAUX en bas à droite ; le curseur <span style="color:#E9D5FF;">taille UI</span> en haut à droite les redimensionne.</p>
 <p style="margin-bottom:6px;"><span style="color:#E9D5FF;">F3</span> affiche les images par seconde, puis <span style="color:#E9D5FF;">D</span> détaille ce qui coûte cher à dessiner — utile si le jeu rame.</p>
-<p style="margin-bottom:16px;"><span style="color:#FFD700;">Si ça rame</span>, le réglage <span style="color:#E9D5FF;">GRAPH</span> en haut à droite fait peindre le jeu plus petit avant de l'agrandir : la carte y perd un peu de netteté, jamais les panneaux ni le texte. La finesse baisse déjà toute seule quand vous dézoomez — mesuré, une image complète passe de 9,1 à 5,6 ms — et ce réglage décale toute l'échelle vers le bas. En <span style="color:#E9D5FF;">Bas</span>, les scintillements et la brume des jets sont coupés en prime.</p>
+<p style="margin-bottom:16px;"><span style="color:#FFD700;">Si ça rame</span>, le réglage <span style="color:#E9D5FF;">GRAPH</span> en haut à droite fait peindre le jeu plus petit avant de l'agrandir : la carte y perd un peu de netteté, jamais les panneaux ni le texte. La finesse baisse déjà toute seule quand vous dézoomez — mesuré, une image complète passe de 9,1 à 5,6 ms — et ce réglage décale toute l'échelle vers le bas. En <span style="color:#E9D5FF;">Bas</span>, les scintillements et la brume des jets sont coupés en prime. En <span style="color:#E9D5FF;">Minimal</span>, tout est réduit au plus simple.</p>
+<p style="margin-bottom:16px;"><span style="color:#FFD700;">Vue lointaine.</span> Quand vous dézoomez beaucoup (toute la carte à l'écran), les astres deviennent de simples disques de la couleur de leur propriétaire (gris : neutre) et les tirs des points : c'est bien plus léger. Plus GRAPH est bas, plus tôt cette vue s'active.</p>
 
 <p style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(100,180,255,0.3);text-align:right;margin-top:8px;letter-spacing:1px;">NEBULA CONQUEST — LIVRE DES RÈGLES v9.7.9</p>
     </div>
@@ -2457,6 +2458,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
             <option value="haute">Élevé</option>
             <option value="moyenne">Moyen</option>
             <option value="basse">Bas</option>
+            <option value="minimale">Minimal</option>
         </select>
         <span class="tr-val" id="qualiteVal">100%</span>
     </div>
@@ -2976,7 +2978,18 @@ const PALIERS_RESO = [
     { zoom: 1.20, r: 0.88 },
     { zoom: Infinity, r: 1.00 }
 ];
-const QUALITES = { haute: 1, moyenne: 0.8, basse: 0.62 };
+const QUALITES = { haute: 1, moyenne: 0.8, basse: 0.62, minimale: 0.5 };
+
+/* LA VUE LOINTAINE. Sous ce zoom, toute une grande carte tient a l'ecran :
+   les astres ne font plus que quelques pixels, leurs textures, halos,
+   anneaux et batailles de surface ne se voient plus mais coutent cher (15 ms
+   pour toute Zetapha a 50 joueurs). Ils deviennent de simples disques de la
+   couleur de leur proprietaire, et les tirs des points. Plus le reglage
+   GRAPH est bas, plus tot on y passe. */
+const SEUIL_LOINTAIN = { haute: 0.07, moyenne: 0.09, basse: 0.12, minimale: 0.25 };
+function vueLointaine() {
+    return gameState.camera.zoom < (SEUIL_LOINTAIN[gameState.qualite] || 0.07);
+}
 
 function echelleRendu() {
     return (window.devicePixelRatio || 1) * (gameState.reso || 1);
@@ -7064,7 +7077,7 @@ function updateLOD(dt) {
     /* Le reglage de finesse plafonne aussi le niveau de detail : en "Bas" on
        coupe en plus les scintillements, la brume des jets et les cercles de
        detection, qui coutent sans rien dire d'utile. */
-    const capQualite = gameState.qualite === 'basse' ? 1 : 2;
+    const capQualite = gameState.qualite === 'minimale' ? 0 : gameState.qualite === 'basse' ? 1 : 2;
     gameState.lod = Math.min(zoomLod, fpsLod, capQualite);
 }
 
@@ -9382,6 +9395,7 @@ function dessinerDemolisseur(ctx, jet) {
 /* Les boules en charge : la notre en solo, celles de tous (serveur) en
    multijoueur. Une lueur qui grossit avec son contenu, et son nombre. */
 function drawBoules(ctx) {
+    if (vueLointaine()) return;
     const liste = [];
     if (!gameState.isMulti && gameState._boule) {
         const B = gameState._boule;
@@ -13917,6 +13931,7 @@ function jetsDuNid(ctx, cx, cy, cote, graine, couleur) {
 }
 
 function drawLuttes(ctx) {
+    if (vueLointaine()) return;   /* quelques pixels : la bataille ne se lit pas */
     const bodies = gameState.allBodies;
     for (let bi = 0; bi < bodies.length; bi++) {
         const body = bodies[bi];
@@ -14681,7 +14696,28 @@ function dessinerBouleEnVol(ctx, jet) {
     }
 }
 
+/* Vue lointaine : un point par tir (2 pixels), un seul trace par couleur. */
+const _jetsLoin = new Map();
+function drawJetsSimples(ctx) {
+    const z = gameState.camera.zoom, r = 2 / z;
+    for (const l of _jetsLoin.values()) l.length = 0;
+    for (const jet of gameState.jets) {
+        if (!jet.alive) continue;
+        let l = _jetsLoin.get(jet.color);
+        if (!l) { l = []; _jetsLoin.set(jet.color, l); }
+        l.push(jet);
+    }
+    for (const [c, l] of _jetsLoin) {
+        if (!l.length) continue;
+        ctx.fillStyle = c || '#FFFFFF';
+        ctx.beginPath();
+        for (const jet of l) { ctx.moveTo(jet.x + r, jet.y); ctx.arc(jet.x, jet.y, r, 0, Math.PI * 2); }
+        ctx.fill();
+    }
+}
+
 function drawJets(ctx) {
+    if (vueLointaine()) { drawJetsSimples(ctx); return; }
     const t = gameState.time;
     const jLod = gameState.lod;
 
@@ -18243,6 +18279,7 @@ function spriteRoche(type, k) {
 }
 
 function drawAsteroidBelts(ctx) {
+    if (vueLointaine()) return;
     const t = gameState.time;
     const cam = gameState.camera;
     const halfW = gameState.width / 2 / cam.zoom;
@@ -18463,11 +18500,60 @@ function eruptionsSolaires(ctx, sun, t) {
 // ─────────────────────────────────────────────
 // DESSIN — Planètes & Lunes
 // ─────────────────────────────────────────────
+/* LA VUE LOINTAINE (voir vueLointaine) : un disque plein par astre, de la
+   couleur de son proprietaire, un seul trace par couleur. Au moins 1,6 pixel
+   de rayon (2,4 pour un astre tenu) : un astre reste visible. */
+const _groupesLoin = new Map();
+function drawAstresSimples(ctx) {
+    const cam = gameState.camera, z = cam.zoom;
+    const halfW = gameState.width / 2 / z + 60, halfH = gameState.height / 2 / z + 60;
+    const minNeutre = 1.6 / z, minTenu = 2.4 / z;
+    for (const l of _groupesLoin.values()) l.length = 0;
+    const ranger = function (b, neutre) {
+        if (b.x < cam.x - halfW || b.x > cam.x + halfW || b.y < cam.y - halfH || b.y > cam.y + halfH) return;
+        const tenu = b.owner !== null && b.owner !== undefined && b.owner >= 0;
+        const j = tenu ? gameState.players[b.owner] : null;
+        const c = (j && j.color) || neutre;
+        let l = _groupesLoin.get(c);
+        if (!l) { l = []; _groupesLoin.set(c, l); }
+        l.push(b, Math.max(b.radius, tenu ? minTenu : minNeutre));
+    };
+    for (const p of gameState.planets) {
+        ranger(p, '#8C8CA8');
+        for (const m of p.moons) ranger(m, '#5E5E72');
+    }
+    for (const [c, l] of _groupesLoin) {
+        if (!l.length) continue;
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        for (let i = 0; i < l.length; i += 2) {
+            const b = l[i], r = l[i + 1];
+            ctx.moveTo(b.x + r, b.y);
+            ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+        }
+        ctx.fill();
+    }
+    const sel = gameState.selectedBody;
+    if (sel && sel.type !== 'sun') {
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+        ctx.lineWidth = 1.5 / z;
+        ctx.beginPath();
+        ctx.arc(sel.x, sel.y, Math.max(sel.radius, minTenu) + 4 / z, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+}
+
 function drawPlanets(ctx) {
+    if (vueLointaine()) { drawAstresSimples(ctx); return; }
     const cam = gameState.camera;
     const pxParUnite = cam.zoom * echelleRendu();   // pixels reels du canevas
     const halfW = gameState.width / 2 / cam.zoom;
     const halfH = gameState.height / 2 / cam.zoom;
+
+    /* Les astres parasites, une fois par image : chaque planete tenue
+       balayait deux fois tous les astres pour trouver ses fleches. */
+    const _parasites = [];
+    for (const b of gameState.allBodies) if (b.parasite) _parasites.push(b);
 
     for (let i = 0; i < gameState.planets.length; i++) {
         const p = gameState.planets[i];
@@ -18601,7 +18687,7 @@ function drawPlanets(ctx) {
                 }
             }
             // Flèches vertes → planètes que cette planète parasite
-            const _myParasited = [...gameState.planets, ...gameState.moons]
+            const _myParasited = _parasites
                 .filter(b => b.parasite && b.parasite.sourceName === p.name && b.parasite.ownerSlot === localSlot());
             for (const _pb of _myParasited) {
                 const _dx = _pb.x - p.x, _dy = _pb.y - p.y;
@@ -18641,7 +18727,7 @@ function drawPlanets(ctx) {
                     if (_psrc) _drawArrow(_psrc.x, _psrc.y, p.x, p.y, '#F87171', 0);
                 }
                 // Flèches vertes : cette planète parasite d'autres → une flèche par cible, décalées
-                const _targets = [...gameState.planets, ...gameState.moons]
+                const _targets = _parasites
                     .filter(b => b.parasite && b.parasite.sourceName === p.name && b.parasite.ownerSlot === localSlot());
                 _targets.forEach((tb, idx) => {
                     const offset = (_targets.length > 1) ? (idx - (_targets.length-1)/2) * 0.25 : 0;
@@ -21683,6 +21769,38 @@ function aiTirer(src, target, player) {
     if (ennemi && parasitePret && gameRandom() < 0.7) {
         aiLaunchAt(src, target, player, 'parasite'); return;
     }
+    /* IA BRUTALE ET TYPES DE PLANETES : sur une planete neutre, elle prend
+       le tir que le type favorise (facteurTypeAstre) - mitrailleuse sur une
+       gazeuse ou un ocean, boule sur une glacee, tir normal sur une
+       rocheuse ou un desert - et jamais un autre tir special (-20 %). */
+    let tirNormalSeul = false;
+    const neutre = target.owner === null || target.owner === undefined || target.owner < 0;
+    if ((d === 'brutal' || d === 'hard') && chezElle && target.type === 'planet' && neutre) {
+        const fav = (TIR_FAVORI[typePlanete(target)] || [])[0];
+        tirNormalSeul = true;
+        /* Arme deja en cours : on attend qu'elle ait fini plutot que de
+           tirer un jet normal a -20 %. */
+        if ((fav === 'rafale' || fav === 'boule') && (player._aiRafale || player._aiBoule)) return;
+        if (fav === 'rafale') {
+            /* Depuis la planete d'un systeme : ses lunes ne gachent pas la rafale. */
+            const lanceur = (src.type === 'moon' && src.parent && src.parent.owner === player.id && !src.parent.lutte) ? src.parent : src;
+            const dispo = lanceur.lutte ? 0 : (lanceur.spores || 0);
+            if (dispo >= 150) {
+                player._aiRafale = { src: lanceur, cible: target, acc: 0,
+                                     reste: Math.min(16, Math.floor(dispo * 0.4 / RAFALE_PAQUET)) };
+                return;
+            }
+        } else if (fav === 'boule') {
+            const dispo = src.lutte ? 0 : (src.spores || 0);
+            if (dispo >= 400) {
+                player._aiBoule = { src: src, cible: target, n: 0,
+                                    but: Math.min(BOULE_MAX, dispo * 0.4 / BOULE_COUT),
+                                    angle: Math.atan2(target.y - src.y, target.x - src.x) };
+                return;
+            }
+        }
+        /* Tir favori impossible (pas assez de spores) : tir normal. */
+    }
     /* Astre d'un systeme complet : on charge le centre, le tir partira de
        lui a la fin de la charge (voir updateAI). */
     if (chezElle && _groupeTir(src).length >= 2) {
@@ -21692,7 +21810,7 @@ function aiTirer(src, target, player) {
         }
         return;
     }
-    if (gameRandom() < gout && !player._aiRafale && !player._aiBoule) {
+    if (!tirNormalSeul && gameRandom() < gout && !player._aiRafale && !player._aiBoule) {
         const bats = ennemi ? _aiBatimentsAdverses(target, player.id) : null;
         const dispo = src.lutte ? 0 : (src.spores || 0);
         /* Demolisseur : vise le genre le plus present chez l'autre. */

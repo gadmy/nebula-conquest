@@ -485,6 +485,38 @@ function aiTirer(src, target, player) {
     if (ennemi && parasitePret && gameRandom() < 0.7) {
         aiLaunchAt(src, target, player, 'parasite'); return;
     }
+    /* IA BRUTALE ET TYPES DE PLANETES : sur une planete neutre, elle prend
+       le tir que le type favorise (facteurTypeAstre) - mitrailleuse sur une
+       gazeuse ou un ocean, boule sur une glacee, tir normal sur une
+       rocheuse ou un desert - et jamais un autre tir special (-20 %). */
+    let tirNormalSeul = false;
+    const neutre = target.owner === null || target.owner === undefined || target.owner < 0;
+    if ((d === 'brutal' || d === 'hard') && chezElle && target.type === 'planet' && neutre) {
+        const fav = (TIR_FAVORI[typePlanete(target)] || [])[0];
+        tirNormalSeul = true;
+        /* Arme deja en cours : on attend qu'elle ait fini plutot que de
+           tirer un jet normal a -20 %. */
+        if ((fav === 'rafale' || fav === 'boule') && (player._aiRafale || player._aiBoule)) return;
+        if (fav === 'rafale') {
+            /* Depuis la planete d'un systeme : ses lunes ne gachent pas la rafale. */
+            const lanceur = (src.type === 'moon' && src.parent && src.parent.owner === player.id && !src.parent.lutte) ? src.parent : src;
+            const dispo = lanceur.lutte ? 0 : (lanceur.spores || 0);
+            if (dispo >= 150) {
+                player._aiRafale = { src: lanceur, cible: target, acc: 0,
+                                     reste: Math.min(16, Math.floor(dispo * 0.4 / RAFALE_PAQUET)) };
+                return;
+            }
+        } else if (fav === 'boule') {
+            const dispo = src.lutte ? 0 : (src.spores || 0);
+            if (dispo >= 400) {
+                player._aiBoule = { src: src, cible: target, n: 0,
+                                    but: Math.min(BOULE_MAX, dispo * 0.4 / BOULE_COUT),
+                                    angle: Math.atan2(target.y - src.y, target.x - src.x) };
+                return;
+            }
+        }
+        /* Tir favori impossible (pas assez de spores) : tir normal. */
+    }
     /* Astre d'un systeme complet : on charge le centre, le tir partira de
        lui a la fin de la charge (voir updateAI). */
     if (chezElle && _groupeTir(src).length >= 2) {
@@ -494,7 +526,7 @@ function aiTirer(src, target, player) {
         }
         return;
     }
-    if (gameRandom() < gout && !player._aiRafale && !player._aiBoule) {
+    if (!tirNormalSeul && gameRandom() < gout && !player._aiRafale && !player._aiBoule) {
         const bats = ennemi ? _aiBatimentsAdverses(target, player.id) : null;
         const dispo = src.lutte ? 0 : (src.spores || 0);
         /* Demolisseur : vise le genre le plus present chez l'autre. */

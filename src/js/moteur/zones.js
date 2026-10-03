@@ -619,6 +619,7 @@ function jetsDuNid(ctx, cx, cy, cote, graine, couleur) {
 }
 
 function drawLuttes(ctx) {
+    if (vueLointaine()) return;   /* quelques pixels : la bataille ne se lit pas */
     const bodies = gameState.allBodies;
     for (let bi = 0; bi < bodies.length; bi++) {
         const body = bodies[bi];

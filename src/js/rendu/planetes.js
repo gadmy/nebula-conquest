@@ -1,11 +1,60 @@
 // ─────────────────────────────────────────────
 // DESSIN — Planètes & Lunes
 // ─────────────────────────────────────────────
+/* LA VUE LOINTAINE (voir vueLointaine) : un disque plein par astre, de la
+   couleur de son proprietaire, un seul trace par couleur. Au moins 1,6 pixel
+   de rayon (2,4 pour un astre tenu) : un astre reste visible. */
+const _groupesLoin = new Map();
+function drawAstresSimples(ctx) {
+    const cam = gameState.camera, z = cam.zoom;
+    const halfW = gameState.width / 2 / z + 60, halfH = gameState.height / 2 / z + 60;
+    const minNeutre = 1.6 / z, minTenu = 2.4 / z;
+    for (const l of _groupesLoin.values()) l.length = 0;
+    const ranger = function (b, neutre) {
+        if (b.x < cam.x - halfW || b.x > cam.x + halfW || b.y < cam.y - halfH || b.y > cam.y + halfH) return;
+        const tenu = b.owner !== null && b.owner !== undefined && b.owner >= 0;
+        const j = tenu ? gameState.players[b.owner] : null;
+        const c = (j && j.color) || neutre;
+        let l = _groupesLoin.get(c);
+        if (!l) { l = []; _groupesLoin.set(c, l); }
+        l.push(b, Math.max(b.radius, tenu ? minTenu : minNeutre));
+    };
+    for (const p of gameState.planets) {
+        ranger(p, '#8C8CA8');
+        for (const m of p.moons) ranger(m, '#5E5E72');
+    }
+    for (const [c, l] of _groupesLoin) {
+        if (!l.length) continue;
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        for (let i = 0; i < l.length; i += 2) {
+            const b = l[i], r = l[i + 1];
+            ctx.moveTo(b.x + r, b.y);
+            ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+        }
+        ctx.fill();
+    }
+    const sel = gameState.selectedBody;
+    if (sel && sel.type !== 'sun') {
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+        ctx.lineWidth = 1.5 / z;
+        ctx.beginPath();
+        ctx.arc(sel.x, sel.y, Math.max(sel.radius, minTenu) + 4 / z, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+}
+
 function drawPlanets(ctx) {
+    if (vueLointaine()) { drawAstresSimples(ctx); return; }
     const cam = gameState.camera;
     const pxParUnite = cam.zoom * echelleRendu();   // pixels reels du canevas
     const halfW = gameState.width / 2 / cam.zoom;
     const halfH = gameState.height / 2 / cam.zoom;
+
+    /* Les astres parasites, une fois par image : chaque planete tenue
+       balayait deux fois tous les astres pour trouver ses fleches. */
+    const _parasites = [];
+    for (const b of gameState.allBodies) if (b.parasite) _parasites.push(b);
 
     for (let i = 0; i < gameState.planets.length; i++) {
         const p = gameState.planets[i];
@@ -139,7 +188,7 @@ function drawPlanets(ctx) {
                 }
             }
             // Flèches vertes → planètes que cette planète parasite
-            const _myParasited = [...gameState.planets, ...gameState.moons]
+            const _myParasited = _parasites
                 .filter(b => b.parasite && b.parasite.sourceName === p.name && b.parasite.ownerSlot === localSlot());
             for (const _pb of _myParasited) {
                 const _dx = _pb.x - p.x, _dy = _pb.y - p.y;
@@ -179,7 +228,7 @@ function drawPlanets(ctx) {
                     if (_psrc) _drawArrow(_psrc.x, _psrc.y, p.x, p.y, '#F87171', 0);
                 }
                 // Flèches vertes : cette planète parasite d'autres → une flèche par cible, décalées
-                const _targets = [...gameState.planets, ...gameState.moons]
+                const _targets = _parasites
                     .filter(b => b.parasite && b.parasite.sourceName === p.name && b.parasite.ownerSlot === localSlot());
                 _targets.forEach((tb, idx) => {
                     const offset = (_targets.length > 1) ? (idx - (_targets.length-1)/2) * 0.25 : 0;

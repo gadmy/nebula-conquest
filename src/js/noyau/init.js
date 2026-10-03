@@ -76,7 +76,18 @@ const PALIERS_RESO = [
     { zoom: 1.20, r: 0.88 },
     { zoom: Infinity, r: 1.00 }
 ];
-const QUALITES = { haute: 1, moyenne: 0.8, basse: 0.62 };
+const QUALITES = { haute: 1, moyenne: 0.8, basse: 0.62, minimale: 0.5 };
+
+/* LA VUE LOINTAINE. Sous ce zoom, toute une grande carte tient a l'ecran :
+   les astres ne font plus que quelques pixels, leurs textures, halos,
+   anneaux et batailles de surface ne se voient plus mais coutent cher (15 ms
+   pour toute Zetapha a 50 joueurs). Ils deviennent de simples disques de la
+   couleur de leur proprietaire, et les tirs des points. Plus le reglage
+   GRAPH est bas, plus tot on y passe. */
+const SEUIL_LOINTAIN = { haute: 0.07, moyenne: 0.09, basse: 0.12, minimale: 0.25 };
+function vueLointaine() {
+    return gameState.camera.zoom < (SEUIL_LOINTAIN[gameState.qualite] || 0.07);
+}
 
 function echelleRendu() {
     return (window.devicePixelRatio || 1) * (gameState.reso || 1);

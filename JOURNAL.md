@@ -1814,6 +1814,18 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        (memes tirages qu'avant : soleil 150-250, planete 70-130, lune 20-60,
        comme toutes les cartes de la bibliotheque).
      - PDF des astres : Lore/ASTRES.pdf.
+     - IA BRUTALE ET TYPES DE PLANETES : sur une planete neutre, elle prend
+       le tir favori (mitrailleuse sur gazeuse/ocean, boule sur glacee, tir
+       normal sur rocheuse/desert), jamais un autre tir special ; si son arme
+       est deja en cours, elle attend au lieu de tirer a -20 %. Essai 4 min :
+       334 impacts au tir favori contre 158 autres (avant : environ moitie).
+     - VUE LOINTAINE ET REGLAGE "MINIMAL" : sous un certain dezoom (0,07 en
+       Eleve, 0,09 Moyen, 0,12 Bas, 0,25 Minimal), astres = disques de la
+       couleur du proprietaire (gris : neutre), tirs = points, batailles de
+       surface, boules et ceintures non dessinees. Toute Zetapha a 50
+       joueurs : 15 ms -> 1,5 ms par image. Nouveau reglage GRAPH "Minimal"
+       (resolution 50 %, details coupes). Aussi : les fleches de parasite ne
+       balaient plus tous les astres pour chaque planete tenue.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

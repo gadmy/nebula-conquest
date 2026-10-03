@@ -801,6 +801,7 @@ function dessinerDemolisseur(ctx, jet) {
 /* Les boules en charge : la notre en solo, celles de tous (serveur) en
    multijoueur. Une lueur qui grossit avec son contenu, et son nombre. */
 function drawBoules(ctx) {
+    if (vueLointaine()) return;
     const liste = [];
     if (!gameState.isMulti && gameState._boule) {
         const B = gameState._boule;

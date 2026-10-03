@@ -51,6 +51,7 @@ function spriteRoche(type, k) {
 }
 
 function drawAsteroidBelts(ctx) {
+    if (vueLointaine()) return;
     const t = gameState.time;
     const cam = gameState.camera;
     const halfW = gameState.width / 2 / cam.zoom;

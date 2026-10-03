@@ -32,7 +32,7 @@ function updateLOD(dt) {
     /* Le reglage de finesse plafonne aussi le niveau de detail : en "Bas" on
        coupe en plus les scintillements, la brume des jets et les cercles de
        detection, qui coutent sans rien dire d'utile. */
-    const capQualite = gameState.qualite === 'basse' ? 1 : 2;
+    const capQualite = gameState.qualite === 'minimale' ? 0 : gameState.qualite === 'basse' ? 1 : 2;
     gameState.lod = Math.min(zoomLod, fpsLod, capQualite);
 }
 
