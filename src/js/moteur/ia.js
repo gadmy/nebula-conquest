@@ -40,6 +40,20 @@ function updateAI(dt) {
             else iaExamenCapitaux(player);
         }
 
+        /* SYSTEME COMPLET : l'IA charge comme un joueur (ordre de visee, la
+           charge se fait dans majVisees), puis tire du centre - la planete,
+           ou le soleil. Pas d'autre tir pendant la charge. */
+        if (player._iaCharge) {
+            const C = player._iaCharge, V = player.ordreVisee;
+            if (!V || gameState.time >= C.fin) {
+                player._iaCharge = null;
+                const lanceur = V && V.lanceur;
+                player.ordreVisee = null;
+                if (lanceur && C.cible && C.cible.owner !== player.id) aiLaunchAt(lanceur, C.cible, player);
+            }
+            continue;
+        }
+
         player.aiTimer -= dt;
         if (player.aiTimer > 0) continue;
 
@@ -443,6 +457,9 @@ function _aiBatimentsAdverses(target, slot) {
     return total ? n : null;
 }
 
+/* Secondes de charge d'un systeme complet avant de tirer. */
+const IA_CHARGE = { easy: 1.5, normal: 2.5, hard: 3, brutal: 3.5 };
+
 function aiTirer(src, target, player) {
     /* Elle economise pour capturer une sphere : pas de tir depuis ces astres. */
     if (iaGardeReserve(player, src)) return;
@@ -467,6 +484,15 @@ function aiTirer(src, target, player) {
     /* Une spore parasitaire prete part sur un astre ennemi. */
     if (ennemi && parasitePret && gameRandom() < 0.7) {
         aiLaunchAt(src, target, player, 'parasite'); return;
+    }
+    /* Astre d'un systeme complet : on charge le centre, le tir partira de
+       lui a la fin de la charge (voir updateAI). */
+    if (chezElle && _groupeTir(src).length >= 2) {
+        if (!player._iaCharge) {
+            player.ordreVisee = { src: src, tx: target.x, ty: target.y, lanceur: null, acc: 0 };
+            player._iaCharge = { cible: target, fin: gameState.time + (IA_CHARGE[gameState.config.difficulty] || 2.5) };
+        }
+        return;
     }
     if (gameRandom() < gout && !player._aiRafale && !player._aiBoule) {
         const bats = ennemi ? _aiBatimentsAdverses(target, player.id) : null;
@@ -559,13 +585,17 @@ function _iaPosFuture(b, t) {
    meme que celle du jet) et garde celui qui passe au plus pres de la cible
    au moment ou le tir y arrive. Un trajet qui croise un soleil est ecarte. */
 function _iaScoreVisee(source, target, ang, speed, pas, maxI) {
-    const traj = computeTrajectory(source.x, source.y, Math.cos(ang), Math.sin(ang), speed, pas);
+    /* Un soleil tire du bord de son anneau, sans sa gravite ni son feu. */
+    const sauf = source.type === 'sun' ? source : null;
+    const dep = departTir(source, Math.cos(ang), Math.sin(ang));
+    const traj = computeTrajectory(dep.x, dep.y, Math.cos(ang), Math.sin(ang), speed, pas, undefined, sauf);
     const parPoint = 1 / (speed * 0.70);       /* secondes par point (jets.js : posIndex) */
     let best = 1e9;
     const n = Math.min(traj.length, maxI);
     for (let i = 2; i < n; i += 2) {
         const pt = traj[i];
         for (const s of gameState.suns) {
+            if (s === sauf) continue;
             const ds = Math.hypot(pt.x - s.x, pt.y - s.y);
             if (ds < s.radius + 12) return best < 1e9 ? best : 1e9;
         }

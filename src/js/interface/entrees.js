@@ -211,6 +211,8 @@ function setupInput() {
                        est muet - on verifie donc aussi de ce cote. */
                     const _zt = src.lutte ? zoneDeTir(src, localSlot()) : null;
                     if (src.lutte && (!_zt || _zt.z.n < ZONE_MIN)) { secouerEcran(8); return; }
+                    /* Soleil dont l'anneau est vide : rien a tirer. */
+                    if (src.type === 'sun' && reserveTir(src, localSlot()) * partEnvoi(localSlot()) < 5) { secouerEcran(8); }
                     if (gameState.isMulti) {
                         /* On annonce le POINT de la zone choisie : le serveur
                            n'a pas la meme numerotation, mais il retrouve la

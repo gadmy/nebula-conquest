@@ -256,7 +256,7 @@ function setupUI() {
             && !['range', 'checkbox', 'radio', 'button', 'submit', 'color'].includes(cible.type)));
         /* ZQSD marche aussi pendant le choix de la planete de depart : c'est
            le moment ou l'on a le plus besoin de parcourir la carte. */
-        if (gameState.phase === 'spawn' && !enSaisie && !e.ctrlKey && !e.altKey && !e.metaKey
+        if ((gameState.phase === 'spawn' || gameState.phase === 'editor') && !enSaisie && !e.ctrlKey && !e.altKey && !e.metaKey
             && _camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
         if (gameState.phase === 'game' && !enSaisie && !e.ctrlKey && !e.altKey && !e.metaKey) {
             /* Rangee du haut, quel que soit le clavier : en azerty ces touches
@@ -397,7 +397,6 @@ function setupUI() {
                 let mode = 'sun'; // sun, planet, moon, asteroid_dark, asteroid_red, asteroid_green, delete
                 let selectedSun = null;
                 let selectedPlanet = null;
-                let brushRadius = 40;
                 let placedSuns = [];
                 let placedAsteroids = []; // {sun, angle, radiusOff, beltRadius, type, subRocks}
                 const panel = document.createElement('div');
@@ -411,7 +410,7 @@ function setupUI() {
                 const info = document.createElement('div');
                 info.id = 'editorInfo';
                 info.style.cssText = 'font-size:10px;color:#888;margin-bottom:4px;line-height:1.4;';
-                info.textContent = 'Clic gauche = placer · Clic droit = supprimer';
+                info.textContent = 'Clic gauche = placer (sur un astre du même genre : le changer) · Clic droit = supprimer · ZQSD = se déplacer · Molette = zoom · Deux astres d\'une même orbite doivent rester écartés';
                 panel.appendChild(info);
                 // Mode buttons
                 const modes = [
@@ -442,21 +441,6 @@ function setupUI() {
                 modeBtns['sun'].style.background = 'rgba(255,136,0,0.35)';
                 modeBtns['sun'].style.borderColor = '#f80';
                 panel.appendChild(modeContainer);
-                // Slider rayon
-                const sizeRow = document.createElement('div');
-                sizeRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;';
-                const sizeLbl = document.createElement('span');
-                sizeLbl.textContent = 'Rayon:';
-                sizeLbl.style.cssText = 'font-size:11px;';
-                const sizeSl = document.createElement('input');
-                sizeSl.type = 'range'; sizeSl.min = 5; sizeSl.max = 120; sizeSl.value = 40; sizeSl.step = 1;
-                sizeSl.style.cssText = 'width:120px;accent-color:#f80;';
-                const sizeVal = document.createElement('span');
-                sizeVal.textContent = '40';
-                sizeVal.style.cssText = 'width:28px;text-align:right;color:#fff;font-size:11px;';
-                sizeSl.addEventListener('input', () => { brushRadius = parseInt(sizeSl.value); sizeVal.textContent = sizeSl.value; });
-                sizeRow.appendChild(sizeLbl); sizeRow.appendChild(sizeSl); sizeRow.appendChild(sizeVal);
-                panel.appendChild(sizeRow);
                 // Selection info
                 const selInfo = document.createElement('div');
                 selInfo.id = 'editorSelInfo';
@@ -519,6 +503,12 @@ function setupUI() {
                     const title = document.createElement('div');
                     title.style.cssText = 'height:1px;background:rgba(255,136,0,0.2);margin:4px 0;';
                     sunPowerPanel.appendChild(title);
+                    /* Ce que font + et - : la flore (fertilite) de tout le
+                       systeme, donc la vitesse a laquelle ses astres produisent. */
+                    const aide = document.createElement('div');
+                    aide.style.cssText = 'font-size:10px;color:#aaa;line-height:1.35;';
+                    aide.textContent = 'Richesse de chaque système : le chiffre vert est la flore totale de ses astres. − / + baisse ou monte la flore de tous ses astres de 5 % : plus de flore = les astres produisent plus vite.';
+                    sunPowerPanel.appendChild(aide);
                     for (const sun of gameState.suns) {
                         const flore = getSunFlore(sun);
                         const row = document.createElement('div');
@@ -526,12 +516,12 @@ function setupUI() {
                         row.innerHTML = `<span style="color:#f80;flex:1;">☀ ${sun.name}</span><span style="color:#4f8;min-width:28px;text-align:right;">${flore}</span>`;
                         const btnMinus = document.createElement('button');
                         btnMinus.textContent = '−';
-                        btnMinus.title = '-5% flore';
+                        btnMinus.title = 'Flore -5 % sur tous les astres de ce système (ils produisent moins vite)';
                         btnMinus.style.cssText = 'padding:1px 6px;background:rgba(255,0,0,0.2);border:1px solid #f44;color:#f88;border-radius:3px;cursor:pointer;font:11px monospace;';
                         btnMinus.addEventListener('click', () => { adjustSunFlore(sun, -5); updateSunPowerPanel(); });
                         const btnPlus = document.createElement('button');
                         btnPlus.textContent = '+';
-                        btnPlus.title = '+5% flore';
+                        btnPlus.title = 'Flore +5 % sur tous les astres de ce système (ils produisent plus vite)';
                         btnPlus.style.cssText = 'padding:1px 6px;background:rgba(0,255,100,0.15);border:1px solid #4f8;color:#4f8;border-radius:3px;cursor:pointer;font:11px monospace;';
                         btnPlus.addEventListener('click', () => { adjustSunFlore(sun, +5); updateSunPowerPanel(); });
                         row.appendChild(btnMinus);
@@ -569,6 +559,76 @@ function setupUI() {
                     return best;
                 }
 
+                /* LA PLACE SUR UNE ORBITE. Deux astres d'un meme parent gardent
+                   un ecart : sur la meme orbite, le long de l'orbite ; sur deux
+                   orbites voisines, entre les orbites (sinon ils finiraient par
+                   se croiser). Une lune tourne hors de sa planete, une planete
+                   hors de son soleil. Rend la raison du refus, ou null. */
+                const MARGE_ORBITE = 30;
+                function placeLibre(freres, parent, orbitR, angle, r, sauf) {
+                    const x = parent.x + Math.cos(angle) * orbitR, y = parent.y + Math.sin(angle) * orbitR;
+                    const nomP = parent.name || 'trou noir';
+                    if (orbitR < (parent.radius || 0) + r + MARGE_ORBITE) return 'trop près de ' + nomP;
+                    for (const f of freres) {
+                        if (f === sauf) continue;
+                        const dr = Math.abs(f.orbitRadius - orbitR);
+                        if (dr < 1) {
+                            if (Math.hypot(f.x - x, f.y - y) < f.radius + r + MARGE_ORBITE) return 'trop près de ' + f.name + ' sur la même orbite';
+                        } else if (dr < f.radius + r + MARGE_ORBITE) return 'son orbite croiserait celle de ' + f.name;
+                    }
+                    return null;
+                }
+                function refus(msg) {
+                    selInfo.textContent = '⛔ Impossible : ' + msg + '. Écartez-le un peu.';
+                    selInfo.style.color = '#f66';
+                    clearTimeout(refus._t);
+                    refus._t = setTimeout(function () { selInfo.style.color = '#f80'; updateInfo(); }, 2200);
+                }
+
+                /* CLIQUER SUR UN ASTRE DU GENRE CHOISI le change au lieu d'en
+                   poser un second dessus : nouvelle taille, nouvelle apparence
+                   (l'apparence d'une planete ou d'une lune decoule de sa taille ;
+                   un soleil change de couleur). Il reste a sa place. */
+                const COULEURS_SOLEIL = ['#FFE44D','#FFB830','#FF8C42','#FF6B6B','#7CB9FF'];
+                function changerAstre(b) {
+                    const sun = b.type === 'sun', planete = b.type === 'planet';
+                    const parent = sun ? gameState.blackHole : b.parent;
+                    const freres = sun ? gameState.suns : planete ? parent.planets : parent.moons;
+                    const ang = Math.atan2(b.y - parent.y, b.x - parent.x);
+                    const avant = sun ? b.color : (planete ? b.planetType : b.moonType);
+                    const r0 = b.radius;
+                    for (let essai = 0; essai < 40; essai++) {
+                        const r = sun ? 150 + Math.floor(Math.random() * 101)
+                                : planete ? 70 + Math.floor(Math.random() * 61)
+                                : 20 + Math.floor(Math.random() * 41);
+                        if (placeLibre(freres, parent, b.orbitRadius, ang, r, b)) continue;
+                        /* Les lunes doivent rester hors de la planete agrandie. */
+                        if (planete && (b.moons || []).some(m => m.orbitRadius < r + m.radius + MARGE_ORBITE)) continue;
+                        b.radius = r;
+                        if (sun) {
+                            const autres = COULEURS_SOLEIL.filter(c => c !== avant);
+                            b.color = autres[Math.floor(Math.random() * autres.length)];
+                            createSunTexture(b);
+                            buildSunHaloCache();
+                            updateInfo();
+                            return;
+                        }
+                        b.maxSpores = Math.floor(r * 50);
+                        b.baseMaxSpores = b.maxSpores;
+                        if (planete) createPlanetTexture(b); else createMoonTexture(b);
+                        /* Meme apparence qu'avant : on retente une autre taille. */
+                        if ((planete ? b.planetType : b.moonType) === avant && essai < 39) continue;
+                        updateInfo();
+                        return;
+                    }
+                    /* Aucune taille ne tient la place : on garde l'astre tel quel. */
+                    if (b.radius !== r0) {
+                        b.radius = r0; b.maxSpores = Math.floor(r0 * 50); b.baseMaxSpores = b.maxSpores;
+                        if (planete) createPlanetTexture(b); else if (!sun) createMoonTexture(b);
+                    }
+                    refus('pas de place pour le changer');
+                }
+
                 const SNAP_THRESHOLD = 80;
                 function snapSunOrbit(rawR) {
                     for (const s of gameState.suns) {
@@ -597,6 +657,8 @@ function setupUI() {
                     const orbitR = snap ? snap.radius : rawR;
                     const speed = snap ? snap.speed : (0.02 + Math.random() * 0.015) / (1 + orbitR * 0.0005);
                     const r = 150 + Math.floor(Math.random() * 101);
+                    const _non = placeLibre(gameState.suns, bh, orbitR, angle, r, null);
+                    if (_non) { refus(_non); return; }
                     const sun = {
                         type: 'sun', name: generateName(), radius: r,
                         orbitRadius: orbitR, orbitSpeed: speed,
@@ -619,6 +681,8 @@ function setupUI() {
                     const orbitR = snap ? snap.radius : rawR;
                     const speed = snap ? snap.speed : (0.08 + Math.random() * 0.06) / (1 + orbitR * 0.002);
                     const r = 70 + Math.floor(Math.random() * 61);
+                    const _non = placeLibre(selectedSun.planets, selectedSun, orbitR, angle, r, null);
+                    if (_non) { refus(_non); return; }
                     const planet = {
                         type: 'planet', name: generateName(), radius: r,
                         flore: Math.floor(Math.random() * 101),
@@ -647,6 +711,8 @@ function setupUI() {
                     const orbitR = snap ? snap.radius : rawR;
                     const speed = snap ? snap.speed : 0.15 + Math.random() * 0.2;
                     const r = 20 + Math.floor(Math.random() * 41);
+                    const _non = placeLibre(selectedPlanet.moons, selectedPlanet, orbitR, angle, r, null);
+                    if (_non) { refus(_non); return; }
                     const moon = {
                         type: 'moon', name: generateName(), radius: r,
                         flore: Math.floor(Math.random() * 51),
@@ -767,18 +833,18 @@ function setupUI() {
                     if (e.button !== 0) return;
 
                     if (mode === 'sun') {
-                        // Clic sur soleil existant = sélectionner, sinon placer
+                        // Clic sur un soleil existant = le sélectionner et le changer, sinon placer
                         const cs = findClosestSun(wx, wy);
                         if (cs && Math.hypot(cs.x-wx, cs.y-wy) < cs.radius + 30) {
-                            selectedSun = cs; updateInfo(); e.stopPropagation(); return;
+                            selectedSun = cs; e.stopPropagation(); changerAstre(cs); return;
                         }
                         e.stopPropagation();
                         placeSun(wx, wy);
                     } else if (mode === 'planet') {
-                        // Clic sur planète existante = sélectionner pour lunes
+                        // Clic sur une planète existante = la sélectionner et la changer
                         const cp = findClosestPlanet(wx, wy);
                         if (cp && Math.hypot(cp.x-wx, cp.y-wy) < cp.radius + 20) {
-                            selectedPlanet = cp; selectedSun = cp.parent; updateInfo(); e.stopPropagation(); return;
+                            selectedPlanet = cp; selectedSun = cp.parent; e.stopPropagation(); changerAstre(cp); return;
                         }
                         // Clic sur soleil = sélectionner
                         const cs = findClosestSun(wx, wy);
@@ -787,6 +853,11 @@ function setupUI() {
                         }
                         if (selectedSun) { e.stopPropagation(); placePlanet(wx, wy); }
                     } else if (mode === 'moon') {
+                        // Clic sur une lune existante = la changer
+                        const cl = findClosestBody(wx, wy);
+                        if (cl && cl.type === 'moon') {
+                            selectedPlanet = cl.parent; selectedSun = cl.parent.parent; e.stopPropagation(); changerAstre(cl); return;
+                        }
                         // Clic sur planète = sélectionner
                         const cp = findClosestPlanet(wx, wy);
                         if (cp && Math.hypot(cp.x-wx, cp.y-wy) < cp.radius + 20) {
@@ -816,6 +887,9 @@ function setupUI() {
                         if (active) {
                             gameState._prevPhase = gameState.phase;
                             gameState.phase = 'editor';
+                            /* L'editeur peut s'etendre loin : on dezoome autant qu'on veut. */
+                            gameState._prevMinZoom = gameState.camera.minZoom;
+                            gameState.camera.minZoom = 0.02;
                             // Cacher les éléments de jeu
                             const sp = document.getElementById('spawnBanner'); if (sp) sp.style.display = 'none';
                             const spop = document.getElementById('spawnPopup'); if (spop) spop.style.display = 'none';
@@ -829,6 +903,7 @@ function setupUI() {
                             updateInfo();
                         } else {
                             gameState.phase = gameState._prevPhase || 'spawn';
+                            if (gameState._prevMinZoom) gameState.camera.minZoom = gameState._prevMinZoom;
                             const evo = document.getElementById('evoPanel'); if (evo) evo.style.display = '';
                             const sb = document.getElementById('scoreBoard'); if (sb) sb.style.display = '';
                         }
@@ -1327,9 +1402,10 @@ function finishStartGame() {
     }
     gameState.universeRadius = maxR + 200;
     rebuildAllBodies();
-    // Ajuster le dézoom min pour voir tout l'univers
+    /* Le dezoom va jusqu'a voir tout l'univers d'un coup : le plancher de
+       0,35 empechait de voir une grande carte (Zetapha) en entier. */
     const screenMin = Math.min(gameState.width, gameState.height);
-    gameState.camera.minZoom = Math.max(0.35, screenMin / (gameState.universeRadius * 2.2));
+    gameState.camera.minZoom = Math.max(0.02, Math.min(0.35, screenMin / (gameState.universeRadius * 2.2)));
 
     // Centrer la caméra et zoom adapté
     gameState.camera.x = 0;

@@ -172,13 +172,17 @@ function render() {
                courberait le trait - comme le fait launchJet. */
             const player = gameState.players[localSlot()];
             const speed = 20 + (player ? player.stats.velocity * 6 : 0);
+            /* Un soleil tire du bord de son anneau, sans sa propre gravite. */
+            const dep = departTir(src, dx/len, dy/len);
+            const sauf = src.type === 'sun' ? src : null;
             gameState.launchPreview = gameState._demol
-                ? computeTrajectory(src.x, src.y, dx/len, dy/len, speed * DEMOL_VITESSE, DEMOL_PAS)
-                : computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 200);
+                ? computeTrajectory(dep.x, dep.y, dx/len, dy/len, speed * DEMOL_VITESSE, DEMOL_PAS, undefined, sauf)
+                : computeTrajectory(dep.x, dep.y, dx/len, dy/len, speed, 200, undefined, sauf);
         }
     }
     drawOndesSolaires(ctx);
     drawFiletsCharge(ctx);
+    drawAnneaux(ctx);
     drawOndes(ctx);
     /* Pendant la charge d'une boule, le trait montre SON depart a elle :
        du bord de l'astre, dans l'axe centre -> boule, sa physique a elle. */

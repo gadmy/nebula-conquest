@@ -67,6 +67,7 @@ if (gameState.isMulti) {
     majRafale(dt);
     majBoule(dt);
     majVisees(dt);
+    majAnneaux(dt);
     majRafales(dt);
     majBoules(dt);
     majFiletsCharge(dt);

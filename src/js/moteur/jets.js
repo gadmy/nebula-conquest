@@ -3,7 +3,9 @@
 // ─────────────────────────────────────────────
 /* gravite, facultatif : part de la gravite subie (1 par defaut). La boule
    chargee au Shift n'en subit qu'un quart. */
-function computeTrajectory(startX, startY, dirX, dirY, speed, steps, gravite) {
+/* sauf, facultatif : un soleil dont la gravite ne compte pas (celui qui
+   tire, depuis son anneau). */
+function computeTrajectory(startX, startY, dirX, dirY, speed, steps, gravite, sauf) {
     const bh = gameState.blackHole;
     const gFacteur = (gravite === undefined) ? 1 : gravite;
     const points = [];
@@ -34,6 +36,7 @@ function computeTrajectory(startX, startY, dirX, dirY, speed, steps, gravite) {
 
         // Gravité des soleils (légère déviation)
         for (const sun of gameState.suns) {
+            if (sun === sauf) continue;
             const sdx = sun.x - x;
             const sdy = sun.y - y;
             const sdist = Math.sqrt(sdx*sdx + sdy*sdy);
@@ -72,17 +75,36 @@ function partEnvoi(slot) {
 /* opts, facultatif : { nombre } pour tirer un nombre FIXE de spores au lieu
    du pourcentage d'envoi (la rafale tire par paquets de 10), { muet } pour
    ne pas jouer le son de lancer (la rafale ne le joue qu'un coup sur trois). */
+/* D'ou part un tir : le centre de l'astre, ou le bord de l'anneau pour un
+   soleil (il ne peut pas partir de l'interieur de l'etoile). */
+const ANNEAU_ECART = 45;
+function departTir(source, dirX, dirY) {
+    if (!source || source.type !== 'sun') return { x: source.x, y: source.y };
+    const r = source.radius + ANNEAU_ECART;
+    return { x: source.x + dirX * r, y: source.y + dirY * r };
+}
+
 function launchJet(source, dirX, dirY, sporeType, slot, opts) {
     const _nb = opts && opts.nombre > 0 ? Math.floor(opts.nombre) : 0;
     const tireur = (slot === undefined || slot === null) ? source.owner : slot;
     const player = gameState.players[tireur];
     if (!player) return;
-    const chezSoi = (source.owner === tireur);
+    /* Un soleil tire depuis son anneau (systeme solaire complet, voir
+       _groupeSolaire) : il faut que l'anneau soit au tireur. */
+    const soleil = source.type === 'sun';
+    const anneau = soleil ? anneauDe(source, tireur) : null;
+    if (soleil && !anneau) return;
+    const chezSoi = soleil || (source.owner === tireur);
     if (!chezSoi && !(source.lutte && zonesDe(source, tireur).length)) return;
 
     sporeType = sporeType || 'normal';
     let sporeCount;
-    if (sporeType === 'parasite') {
+    if (soleil) {
+        if (sporeType === 'parasite') return;
+        sporeCount = _nb ? (anneau.spores >= _nb ? _nb : 0) : Math.floor(anneau.spores * partEnvoi(tireur));
+        if (sporeCount < 5) return;
+        anneau.spores -= sporeCount;
+    } else if (sporeType === 'parasite') {
         if (!chezSoi) return;
         if ((source.parasiteSpore || 0) < 1) return;
         source.parasiteSpore = 0;
@@ -107,7 +129,15 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
     /* opts.vitesse ralentit (ou accelere) le jet ; opts.pas allonge sa
        trajectoire d'autant, pour garder la meme portee. */
     const speed = (20 + player.stats.velocity * 6) * (opts && opts.vitesse > 0 ? opts.vitesse : 1);
-    const traj = computeTrajectory(source.x, source.y, dirX, dirY, speed, (opts && opts.pas) || 200);
+    const dep = departTir(source, dirX, dirY);
+    const traj = computeTrajectory(dep.x, dep.y, dirX, dirY, speed, (opts && opts.pas) || 200, undefined, soleil ? source : null);
+    /* Systeme complet : le jet traverse les astres du groupe (les lunes de
+       sa planete, ou tout le systeme solaire). */
+    let traverse = null;
+    if (chezSoi) {
+        const g = _groupeTir(source);
+        if (g.length >= 2 && g[0] === source) traverse = g.filter(b => b.type !== 'sun').map(b => b.name);
+    }
 
     // Générer des particules scintillantes autour du jet
     const sparkles = [];
@@ -131,8 +161,8 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
         sporeType: sporeType,
         trajectory: traj,
         posIndex: 0,
-        x: source.x,
-        y: source.y,
+        x: dep.x,
+        y: dep.y,
         speed: speed,
         alive: true,
         trail: [],
@@ -142,6 +172,8 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
         source: source,
         sourceName: source.name,
         demolisseur: (opts && opts.demol) || false,
+        _traverse: traverse,
+        _soleilNom: soleil ? source.name : null,
         /* LA PART D'ATTAQUE : le pourcentage d'envoi au moment du tir. A
            l'arrivee, cette part pousse ; le reste tient le terrain pris
            (garnison). 30 % envoyes = 30 % attaquent, 70 % gardent. Rafale,
@@ -187,6 +219,7 @@ const BRULURE_LENTE = 1, BRULURE_FORTE = 5;
 function brulureEtoile(jet, suns) {
     let taux = 0;
     for (const s of suns) {
+        if (jet._soleilNom && s.name === jet._soleilNom) continue;   /* son propre soleil ne le brule pas */
         const dx = jet.x - s.x, dy = jet.y - s.y;
         const d2 = dx * dx + dy * dy;
         const r = s.radius;
@@ -455,6 +488,7 @@ function checkJetCollision(jet) {
 
     // Destruction par les soleils
     for (const sun of gameState.suns) {
+        if (jet._soleilNom && sun.name === jet._soleilNom) continue;   /* tire par ce soleil */
         const dx = sun.x - jet.x;
         const dy = sun.y - jet.y;
         const _sr = sun.radius + 5;
@@ -485,6 +519,8 @@ function checkJetCollision(jet) {
            premiere seconde, elle traverse sa planete et les lunes de celle-ci
            au lieu de s'ecraser dans l'une d'elles. */
         if (jet.boule && jet.age < 1 && jet._groupe && jet._groupe.indexOf(body.name) >= 0) continue;
+        /* Tir d'un systeme complet : ses propres astres ne l'arretent pas. */
+        if (jet._traverse && body.owner === jet.owner && jet._traverse.indexOf(body.name) >= 0) continue;
         const dx = body.x - jet.x;
         const dy = body.y - jet.y;
         const _br = body.radius + 8;

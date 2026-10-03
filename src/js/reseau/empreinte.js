@@ -89,11 +89,14 @@ function empreinteEtat(detail) {
         commerces: simples,
         orbes: simples,
         propositions: simples,
+        /* Les anneaux des soleils (systeme solaire complet) : leur charge. */
+        anneaux: function (s) { if (s.anneau) { melanger(s.name); simples(s.anneau); } },
     };
     const listes = {
         astres: gameState.allBodies, jets: gameState.jets, joueurs: gameState.players,
         vaisseaux: gameState.cleaners, cometes: gameState.comets, capitaux: gameState.capitaux,
         commerces: gameState.commerces, orbes: gameState.orbesCommerce, propositions: gameState.propositions,
+        anneaux: gameState.suns,
     };
     const parts = {};
     let total = 0x811c9dc5;

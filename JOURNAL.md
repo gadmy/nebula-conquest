@@ -1739,6 +1739,37 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        facile comprise, rafale arretee si sa source est envahie). Essai :
        planete de 4900 attaquee par 3000 ; avant, elle envoyait 1066
        spores ailleurs en 5 s et tombait ; maintenant elle tient.
+     - NOUVELLE REGLE DE TIR DES SYSTEMES COMPLETS :
+       - Systeme planetaire complet : le tir part toujours de la planete
+         centrale (avant : l'astre le plus proche de la cible), ses lunes la
+         chargent pendant la visee, le jet traverse ses propres lunes.
+       - Systeme solaire complet : tous ses astres chargent un ANNEAU autour
+         du soleil (couleur du joueur, charge affichee). Le tir part du bord
+         de l'anneau ; le soleil ne le detruit ni ne le brule ni ne le devie ;
+         il traverse tous les astres du systeme. Le reste de l'anneau (part
+         non tiree, visee annulee) revient vers les planetes par convois.
+         Rafale et demolisseur marchent aussi depuis l'anneau.
+       - IA : meme regle. Un astre d'un systeme complet lance une charge
+         (1,5 s en facile a 3,5 s en brutal), puis le tir part du centre.
+         Essai : en 3 min, 27 tirs depuis un soleil et 7 depuis une planete.
+       - Reseau : charge et anneau passent par les ordres ; l'anneau entre
+         dans l'empreinte (famille "anneaux"). Partie identique (banc
+         lockstep), reprise ok.
+     - DEZOOM : on peut maintenant voir toute la carte d'un coup (le
+       plancher de 0,35 empechait de voir Zetapha entiere) ; les chiffres
+       flottants se cachent quand on voit toute la carte. Dessin de toute
+       Zetapha a 50 joueurs : ~15 ms.
+     - EDITEUR DE CARTE (F2) :
+       - ZQSD deplace la camera, dezoom jusqu'a toute la carte.
+       - Deux astres d'un meme parent doivent rester ecartes : sur la meme
+         orbite (le long de l'orbite) ou sur deux orbites voisines ; une
+         lune hors de sa planete, une planete hors de son soleil. Refus
+         explique en rouge.
+       - Clic sur un astre du genre choisi : il change (nouvelle taille et
+         apparence, nouvelle couleur pour un soleil) au lieu d'en poser un
+         second dessus.
+       - Les boutons - / + des soleils sont expliques (flore de tout le
+         systeme, +/- 5 %).
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

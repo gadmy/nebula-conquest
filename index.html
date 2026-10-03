@@ -2262,7 +2262,8 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:16px;">Une <span style="color:#E9D5FF;">tête de pont ennemie ne casse pas un groupement</span> : un astre envahi à moins de la moitié compte toujours comme tenu. Au-delà de la moitié, il en sort.</p>
 <p style="margin-bottom:6px;"><span style="color:#FFD700;">ONDES SOLAIRES.</span> Un système entièrement tenu se met à vivre : son étoile s'embrase <span style="color:#E9D5FF;">toutes les 5 secondes</span> et envoie une onde qui balaie ses astres. Chacun la reçoit au passage du front, pas au départ — le système s'allume de l'intérieur vers l'extérieur.</p>
 <p style="margin-bottom:16px;">Ce que l'onde apporte dépend de votre stat <span style="color:#FBBF24;">Sensitivity</span> : <span style="color:#4ADE80;">+5 % de la capacité de l'astre par point</span>. À un point, une lune de 400 reçoit 20 spores.</p>
-<p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Pendant la visée, c'est l'astre du groupe le plus proche de la cible <span style="color:#E9D5FF;">qui voit la cible</span> qui tirera ; les autres lui envoient leurs spores par paquets de 100, le long d'arcs lumineux. Changer de cible remet le chargement à zéro. Il peut dépasser son maximum <b>sans limite</b> (chiffre doré ⚡) ; après le tir, le trop-plein s'évapore peu à peu.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">TIR GROUPÉ.</span> Système planétaire complet (la planète et toutes ses lunes) : le tir part <b>toujours de la planète centrale</b>. Pendant la visée, ses lunes lui envoient leurs spores par paquets de 100, le long d'arcs lumineux ; elle peut dépasser son maximum <b>sans limite</b> (chiffre doré ⚡), et après le tir le trop-plein s'évapore peu à peu. Le jet <span style="color:#E9D5FF;">traverse ses propres lunes</span>.</p>
+<p style="margin-bottom:6px;"><span style="color:#FFD700;">ANNEAU SOLAIRE.</span> Système solaire complet (toutes les planètes et toutes les lunes d'un soleil) : pendant la visée, <b>tous ses astres chargent un anneau</b> autour du soleil, de votre couleur. Le tir part <b>du soleil</b>, qui ne le brûle pas, et traverse tous vos astres du système. Ce qui reste dans l'anneau (part non tirée, ou visée annulée) <span style="color:#E9D5FF;">revient vers les planètes</span>.</p>
 <p style="margin-bottom:16px;">On ne tire pas à travers une étoile ni un trou noir : ils détruisent les jets. Quand aucun de vos astres n'a la vue sur la cible, le trait de visée passe au <span style="color:#EF4444;">rouge</span>.</p>
 
 <!-- ÉVOLUTION -->
@@ -7310,7 +7311,7 @@ function setupUI() {
             && !['range', 'checkbox', 'radio', 'button', 'submit', 'color'].includes(cible.type)));
         /* ZQSD marche aussi pendant le choix de la planete de depart : c'est
            le moment ou l'on a le plus besoin de parcourir la carte. */
-        if (gameState.phase === 'spawn' && !enSaisie && !e.ctrlKey && !e.altKey && !e.metaKey
+        if ((gameState.phase === 'spawn' || gameState.phase === 'editor') && !enSaisie && !e.ctrlKey && !e.altKey && !e.metaKey
             && _camTouches[e.code] !== undefined) { e.preventDefault(); _camTouches[e.code] = 1; return; }
         if (gameState.phase === 'game' && !enSaisie && !e.ctrlKey && !e.altKey && !e.metaKey) {
             /* Rangee du haut, quel que soit le clavier : en azerty ces touches
@@ -7451,7 +7452,6 @@ function setupUI() {
                 let mode = 'sun'; // sun, planet, moon, asteroid_dark, asteroid_red, asteroid_green, delete
                 let selectedSun = null;
                 let selectedPlanet = null;
-                let brushRadius = 40;
                 let placedSuns = [];
                 let placedAsteroids = []; // {sun, angle, radiusOff, beltRadius, type, subRocks}
                 const panel = document.createElement('div');
@@ -7465,7 +7465,7 @@ function setupUI() {
                 const info = document.createElement('div');
                 info.id = 'editorInfo';
                 info.style.cssText = 'font-size:10px;color:#888;margin-bottom:4px;line-height:1.4;';
-                info.textContent = 'Clic gauche = placer · Clic droit = supprimer';
+                info.textContent = 'Clic gauche = placer (sur un astre du même genre : le changer) · Clic droit = supprimer · ZQSD = se déplacer · Molette = zoom · Deux astres d\'une même orbite doivent rester écartés';
                 panel.appendChild(info);
                 // Mode buttons
                 const modes = [
@@ -7496,21 +7496,6 @@ function setupUI() {
                 modeBtns['sun'].style.background = 'rgba(255,136,0,0.35)';
                 modeBtns['sun'].style.borderColor = '#f80';
                 panel.appendChild(modeContainer);
-                // Slider rayon
-                const sizeRow = document.createElement('div');
-                sizeRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;';
-                const sizeLbl = document.createElement('span');
-                sizeLbl.textContent = 'Rayon:';
-                sizeLbl.style.cssText = 'font-size:11px;';
-                const sizeSl = document.createElement('input');
-                sizeSl.type = 'range'; sizeSl.min = 5; sizeSl.max = 120; sizeSl.value = 40; sizeSl.step = 1;
-                sizeSl.style.cssText = 'width:120px;accent-color:#f80;';
-                const sizeVal = document.createElement('span');
-                sizeVal.textContent = '40';
-                sizeVal.style.cssText = 'width:28px;text-align:right;color:#fff;font-size:11px;';
-                sizeSl.addEventListener('input', () => { brushRadius = parseInt(sizeSl.value); sizeVal.textContent = sizeSl.value; });
-                sizeRow.appendChild(sizeLbl); sizeRow.appendChild(sizeSl); sizeRow.appendChild(sizeVal);
-                panel.appendChild(sizeRow);
                 // Selection info
                 const selInfo = document.createElement('div');
                 selInfo.id = 'editorSelInfo';
@@ -7573,6 +7558,12 @@ function setupUI() {
                     const title = document.createElement('div');
                     title.style.cssText = 'height:1px;background:rgba(255,136,0,0.2);margin:4px 0;';
                     sunPowerPanel.appendChild(title);
+                    /* Ce que font + et - : la flore (fertilite) de tout le
+                       systeme, donc la vitesse a laquelle ses astres produisent. */
+                    const aide = document.createElement('div');
+                    aide.style.cssText = 'font-size:10px;color:#aaa;line-height:1.35;';
+                    aide.textContent = 'Richesse de chaque système : le chiffre vert est la flore totale de ses astres. − / + baisse ou monte la flore de tous ses astres de 5 % : plus de flore = les astres produisent plus vite.';
+                    sunPowerPanel.appendChild(aide);
                     for (const sun of gameState.suns) {
                         const flore = getSunFlore(sun);
                         const row = document.createElement('div');
@@ -7580,12 +7571,12 @@ function setupUI() {
                         row.innerHTML = `<span style="color:#f80;flex:1;">☀ ${sun.name}</span><span style="color:#4f8;min-width:28px;text-align:right;">${flore}</span>`;
                         const btnMinus = document.createElement('button');
                         btnMinus.textContent = '−';
-                        btnMinus.title = '-5% flore';
+                        btnMinus.title = 'Flore -5 % sur tous les astres de ce système (ils produisent moins vite)';
                         btnMinus.style.cssText = 'padding:1px 6px;background:rgba(255,0,0,0.2);border:1px solid #f44;color:#f88;border-radius:3px;cursor:pointer;font:11px monospace;';
                         btnMinus.addEventListener('click', () => { adjustSunFlore(sun, -5); updateSunPowerPanel(); });
                         const btnPlus = document.createElement('button');
                         btnPlus.textContent = '+';
-                        btnPlus.title = '+5% flore';
+                        btnPlus.title = 'Flore +5 % sur tous les astres de ce système (ils produisent plus vite)';
                         btnPlus.style.cssText = 'padding:1px 6px;background:rgba(0,255,100,0.15);border:1px solid #4f8;color:#4f8;border-radius:3px;cursor:pointer;font:11px monospace;';
                         btnPlus.addEventListener('click', () => { adjustSunFlore(sun, +5); updateSunPowerPanel(); });
                         row.appendChild(btnMinus);
@@ -7623,6 +7614,76 @@ function setupUI() {
                     return best;
                 }
 
+                /* LA PLACE SUR UNE ORBITE. Deux astres d'un meme parent gardent
+                   un ecart : sur la meme orbite, le long de l'orbite ; sur deux
+                   orbites voisines, entre les orbites (sinon ils finiraient par
+                   se croiser). Une lune tourne hors de sa planete, une planete
+                   hors de son soleil. Rend la raison du refus, ou null. */
+                const MARGE_ORBITE = 30;
+                function placeLibre(freres, parent, orbitR, angle, r, sauf) {
+                    const x = parent.x + Math.cos(angle) * orbitR, y = parent.y + Math.sin(angle) * orbitR;
+                    const nomP = parent.name || 'trou noir';
+                    if (orbitR < (parent.radius || 0) + r + MARGE_ORBITE) return 'trop près de ' + nomP;
+                    for (const f of freres) {
+                        if (f === sauf) continue;
+                        const dr = Math.abs(f.orbitRadius - orbitR);
+                        if (dr < 1) {
+                            if (Math.hypot(f.x - x, f.y - y) < f.radius + r + MARGE_ORBITE) return 'trop près de ' + f.name + ' sur la même orbite';
+                        } else if (dr < f.radius + r + MARGE_ORBITE) return 'son orbite croiserait celle de ' + f.name;
+                    }
+                    return null;
+                }
+                function refus(msg) {
+                    selInfo.textContent = '⛔ Impossible : ' + msg + '. Écartez-le un peu.';
+                    selInfo.style.color = '#f66';
+                    clearTimeout(refus._t);
+                    refus._t = setTimeout(function () { selInfo.style.color = '#f80'; updateInfo(); }, 2200);
+                }
+
+                /* CLIQUER SUR UN ASTRE DU GENRE CHOISI le change au lieu d'en
+                   poser un second dessus : nouvelle taille, nouvelle apparence
+                   (l'apparence d'une planete ou d'une lune decoule de sa taille ;
+                   un soleil change de couleur). Il reste a sa place. */
+                const COULEURS_SOLEIL = ['#FFE44D','#FFB830','#FF8C42','#FF6B6B','#7CB9FF'];
+                function changerAstre(b) {
+                    const sun = b.type === 'sun', planete = b.type === 'planet';
+                    const parent = sun ? gameState.blackHole : b.parent;
+                    const freres = sun ? gameState.suns : planete ? parent.planets : parent.moons;
+                    const ang = Math.atan2(b.y - parent.y, b.x - parent.x);
+                    const avant = sun ? b.color : (planete ? b.planetType : b.moonType);
+                    const r0 = b.radius;
+                    for (let essai = 0; essai < 40; essai++) {
+                        const r = sun ? 150 + Math.floor(Math.random() * 101)
+                                : planete ? 70 + Math.floor(Math.random() * 61)
+                                : 20 + Math.floor(Math.random() * 41);
+                        if (placeLibre(freres, parent, b.orbitRadius, ang, r, b)) continue;
+                        /* Les lunes doivent rester hors de la planete agrandie. */
+                        if (planete && (b.moons || []).some(m => m.orbitRadius < r + m.radius + MARGE_ORBITE)) continue;
+                        b.radius = r;
+                        if (sun) {
+                            const autres = COULEURS_SOLEIL.filter(c => c !== avant);
+                            b.color = autres[Math.floor(Math.random() * autres.length)];
+                            createSunTexture(b);
+                            buildSunHaloCache();
+                            updateInfo();
+                            return;
+                        }
+                        b.maxSpores = Math.floor(r * 50);
+                        b.baseMaxSpores = b.maxSpores;
+                        if (planete) createPlanetTexture(b); else createMoonTexture(b);
+                        /* Meme apparence qu'avant : on retente une autre taille. */
+                        if ((planete ? b.planetType : b.moonType) === avant && essai < 39) continue;
+                        updateInfo();
+                        return;
+                    }
+                    /* Aucune taille ne tient la place : on garde l'astre tel quel. */
+                    if (b.radius !== r0) {
+                        b.radius = r0; b.maxSpores = Math.floor(r0 * 50); b.baseMaxSpores = b.maxSpores;
+                        if (planete) createPlanetTexture(b); else if (!sun) createMoonTexture(b);
+                    }
+                    refus('pas de place pour le changer');
+                }
+
                 const SNAP_THRESHOLD = 80;
                 function snapSunOrbit(rawR) {
                     for (const s of gameState.suns) {
@@ -7651,6 +7712,8 @@ function setupUI() {
                     const orbitR = snap ? snap.radius : rawR;
                     const speed = snap ? snap.speed : (0.02 + Math.random() * 0.015) / (1 + orbitR * 0.0005);
                     const r = 150 + Math.floor(Math.random() * 101);
+                    const _non = placeLibre(gameState.suns, bh, orbitR, angle, r, null);
+                    if (_non) { refus(_non); return; }
                     const sun = {
                         type: 'sun', name: generateName(), radius: r,
                         orbitRadius: orbitR, orbitSpeed: speed,
@@ -7673,6 +7736,8 @@ function setupUI() {
                     const orbitR = snap ? snap.radius : rawR;
                     const speed = snap ? snap.speed : (0.08 + Math.random() * 0.06) / (1 + orbitR * 0.002);
                     const r = 70 + Math.floor(Math.random() * 61);
+                    const _non = placeLibre(selectedSun.planets, selectedSun, orbitR, angle, r, null);
+                    if (_non) { refus(_non); return; }
                     const planet = {
                         type: 'planet', name: generateName(), radius: r,
                         flore: Math.floor(Math.random() * 101),
@@ -7701,6 +7766,8 @@ function setupUI() {
                     const orbitR = snap ? snap.radius : rawR;
                     const speed = snap ? snap.speed : 0.15 + Math.random() * 0.2;
                     const r = 20 + Math.floor(Math.random() * 41);
+                    const _non = placeLibre(selectedPlanet.moons, selectedPlanet, orbitR, angle, r, null);
+                    if (_non) { refus(_non); return; }
                     const moon = {
                         type: 'moon', name: generateName(), radius: r,
                         flore: Math.floor(Math.random() * 51),
@@ -7821,18 +7888,18 @@ function setupUI() {
                     if (e.button !== 0) return;
 
                     if (mode === 'sun') {
-                        // Clic sur soleil existant = sélectionner, sinon placer
+                        // Clic sur un soleil existant = le sélectionner et le changer, sinon placer
                         const cs = findClosestSun(wx, wy);
                         if (cs && Math.hypot(cs.x-wx, cs.y-wy) < cs.radius + 30) {
-                            selectedSun = cs; updateInfo(); e.stopPropagation(); return;
+                            selectedSun = cs; e.stopPropagation(); changerAstre(cs); return;
                         }
                         e.stopPropagation();
                         placeSun(wx, wy);
                     } else if (mode === 'planet') {
-                        // Clic sur planète existante = sélectionner pour lunes
+                        // Clic sur une planète existante = la sélectionner et la changer
                         const cp = findClosestPlanet(wx, wy);
                         if (cp && Math.hypot(cp.x-wx, cp.y-wy) < cp.radius + 20) {
-                            selectedPlanet = cp; selectedSun = cp.parent; updateInfo(); e.stopPropagation(); return;
+                            selectedPlanet = cp; selectedSun = cp.parent; e.stopPropagation(); changerAstre(cp); return;
                         }
                         // Clic sur soleil = sélectionner
                         const cs = findClosestSun(wx, wy);
@@ -7841,6 +7908,11 @@ function setupUI() {
                         }
                         if (selectedSun) { e.stopPropagation(); placePlanet(wx, wy); }
                     } else if (mode === 'moon') {
+                        // Clic sur une lune existante = la changer
+                        const cl = findClosestBody(wx, wy);
+                        if (cl && cl.type === 'moon') {
+                            selectedPlanet = cl.parent; selectedSun = cl.parent.parent; e.stopPropagation(); changerAstre(cl); return;
+                        }
                         // Clic sur planète = sélectionner
                         const cp = findClosestPlanet(wx, wy);
                         if (cp && Math.hypot(cp.x-wx, cp.y-wy) < cp.radius + 20) {
@@ -7870,6 +7942,9 @@ function setupUI() {
                         if (active) {
                             gameState._prevPhase = gameState.phase;
                             gameState.phase = 'editor';
+                            /* L'editeur peut s'etendre loin : on dezoome autant qu'on veut. */
+                            gameState._prevMinZoom = gameState.camera.minZoom;
+                            gameState.camera.minZoom = 0.02;
                             // Cacher les éléments de jeu
                             const sp = document.getElementById('spawnBanner'); if (sp) sp.style.display = 'none';
                             const spop = document.getElementById('spawnPopup'); if (spop) spop.style.display = 'none';
@@ -7883,6 +7958,7 @@ function setupUI() {
                             updateInfo();
                         } else {
                             gameState.phase = gameState._prevPhase || 'spawn';
+                            if (gameState._prevMinZoom) gameState.camera.minZoom = gameState._prevMinZoom;
                             const evo = document.getElementById('evoPanel'); if (evo) evo.style.display = '';
                             const sb = document.getElementById('scoreBoard'); if (sb) sb.style.display = '';
                         }
@@ -8381,9 +8457,10 @@ function finishStartGame() {
     }
     gameState.universeRadius = maxR + 200;
     rebuildAllBodies();
-    // Ajuster le dézoom min pour voir tout l'univers
+    /* Le dezoom va jusqu'a voir tout l'univers d'un coup : le plancher de
+       0,35 empechait de voir une grande carte (Zetapha) en entier. */
     const screenMin = Math.min(gameState.width, gameState.height);
-    gameState.camera.minZoom = Math.max(0.35, screenMin / (gameState.universeRadius * 2.2));
+    gameState.camera.minZoom = Math.max(0.02, Math.min(0.35, screenMin / (gameState.universeRadius * 2.2)));
 
     // Centrer la caméra et zoom adapté
     gameState.camera.x = 0;
@@ -8414,17 +8491,15 @@ function finishStartGame() {
 }
 
 /* ─────────────────────────────────────────────
-   TIR DEPUIS L'ASTRE LE PLUS PROCHE, ET CHARGEMENT
+   TIR DEPUIS LE CENTRE DU SYSTEME, ET CHARGEMENT
    Quand une planete et toutes ses lunes sont tenues, elles ne tirent plus
    chacune de leur cote. Pendant la visee :
-   - c'est l'astre du groupe LE PLUS PROCHE DE LA CIBLE qui tirera ;
-   - les autres lui envoient leurs spores par paquets de 100, donc plus on
-     attend, plus le tir est gros - et ils se vident vraiment ;
-   - si la cible bouge et qu'un autre astre devient le plus proche, le
-     chargement repart de zero sur celui-la. Rien n'est transfere en arriere :
-     ce qui a deja ete envoye reste ou il est.
-   Le chargement se fait au niveau d'un systeme planetaire - une planete et
-   SES lunes - jamais a l'echelle d'un systeme solaire entier.
+   - c'est la PLANETE CENTRALE qui tirera (avant la v9.7.9 : l'astre le plus
+     proche de la cible), et le jet traverse ses lunes ;
+   - les lunes lui envoient leurs spores par paquets de 100, donc plus on
+     attend, plus le tir est gros - et elles se vident vraiment.
+   Un systeme SOLAIRE complet charge l'anneau de son soleil (voir
+   _groupeSolaire plus bas).
    ───────────────────────────────────────────── */
 const CHARGE_PAQUET = 100;
 const CHARGE_PERIODE = 0.35;   /* secondes entre deux paquets */
@@ -8496,8 +8571,68 @@ function astreEnCharge(body) {
     return false;
 }
 
+/* ─────────────────────────────────────────────
+   LE TIR D'UN SYSTEME COMPLET (regle de la v9.7.9).
+   - Systeme PLANETAIRE complet (la planete et toutes ses lunes au meme
+     joueur) : le tir part TOUJOURS de la planete centrale, ses lunes la
+     chargent pendant la visee, et le jet traverse ses propres lunes.
+   - Systeme SOLAIRE complet (toutes les planetes et toutes les lunes d'un
+     soleil) : tous les astres chargent un ANNEAU autour du soleil, le tir
+     part du soleil (du bord de l'anneau), le soleil ne le detruit pas et le
+     jet traverse tous les astres du systeme. Ce qui reste dans l'anneau
+     (visee annulee, ou part non tiree) revient vers les planetes.
+   Le groupe : [lanceur, autres astres...] - le lanceur toujours en tete.
+   ───────────────────────────────────────────── */
+function _groupeSolaire(soleil, proprio) {
+    if (!soleil || soleil.type !== 'sun' || proprio === null || proprio === undefined || proprio < 0) return null;
+    if (!isSystemComplete(soleil, proprio)) return null;
+    const g = [soleil];
+    for (const p of soleil.planets) {
+        g.push(p);
+        for (const m of (p.moons || [])) g.push(m);
+    }
+    return g;
+}
+
+/* Le soleil d'un astre (planete ou lune), ou null. */
+function soleilDe(b) {
+    if (!b) return null;
+    if (b.type === 'sun') return b;
+    if (b.type === 'planet') return b.parent || null;
+    return (b.parent && b.parent.parent) || null;
+}
+
+/* L'anneau d'un soleil s'il est a ce joueur (systeme complet), sinon null.
+   Lecture seule : l'ecran s'en sert, il ne doit rien creer dans la partie. */
+function anneauDe(soleil, slot) {
+    if (!soleil || soleil.type !== 'sun' || !soleil.anneau || soleil.anneau.owner !== slot) return null;
+    return _groupeSolaire(soleil, slot) ? soleil.anneau : null;
+}
+/* Le meme, cree au besoin : seulement depuis le calcul (la charge). */
+function _anneauPour(soleil, slot) {
+    if (!_groupeSolaire(soleil, slot)) return null;
+    if (!soleil.anneau || soleil.anneau.owner !== slot) soleil.anneau = { owner: slot, spores: 0 };
+    return soleil.anneau;
+}
+
+/* Ce qu'un lanceur a a tirer : l'anneau pour un soleil, sinon ses spores. */
+function reserveTir(src, slot) {
+    if (!src) return 0;
+    if (src.type === 'sun') { const A = anneauDe(src, slot); return A ? A.spores : 0; }
+    return src.spores || 0;
+}
+
+/* Un astre OU un soleil, par son nom : les ordres de tir peuvent partir
+   d'un soleil (systeme solaire complet). */
+function lanceurNomme(nom) {
+    return astreNomme(nom) || (gameState.suns || []).find(s => s.name === nom) || null;
+}
+
 function _groupeTir(src) {
     if (!src) return [];
+    if (src.type === 'sun') return _groupeSolaire(src, src.anneau ? src.anneau.owner : null) || [src];
+    const _sys = _groupeSolaire(soleilDe(src), src.owner);
+    if (_sys) return _sys;
     const planete = (src.type === 'planet') ? src : (src.parent || null);
     if (!planete || planete.type !== 'planet') return [src];
     const proprio = src.owner;
@@ -8535,10 +8670,11 @@ function _segmentCoupeDisque(ax, ay, bx, by, cx, cy, r) {
    Les rayons sont ceux qui tuent le jet dans checkJetCollision et updateJets,
    avec un peu de marge : on ecarte le tir qui frole autant que celui qui
    traverse. */
-function tirBloque(ax, ay, bx, by) {
+function tirBloque(ax, ay, bx, by, sauf) {
     const suns = gameState.suns || [];
     for (let i = 0; i < suns.length; i++) {
         const s = suns[i];
+        if (s === sauf) continue;          /* le soleil qui tire ne bloque pas son tir */
         if (_segmentCoupeDisque(ax, ay, bx, by, s.x, s.y, s.radius + 14)) return true;
     }
     const bh = gameState.blackHole;
@@ -8975,13 +9111,13 @@ function genreDemolisseurSuivant(sens) {
 function tirDemolisseur() {
     const moi = localSlot();
     const src = gameState._fireLanceur || gameState._fireSource;
-    if (!src || !peutTirerSurface(src, moi)) { secouerEcran(8); return false; }
+    if (!src || !peutTirerDe(src, moi)) { secouerEcran(8); return false; }
     const dx = gameState.mouseWorldX - src.x, dy = gameState.mouseWorldY - src.y;
     const len = Math.sqrt(dx * dx + dy * dy);
     if (len < 10) return false;
     const zt = src.lutte ? zoneDeTir(src, moi) : null;
     if (src.lutte && (!zt || zt.z.n < ZONE_MIN)) { secouerEcran(8); return false; }
-    const dispo = zt ? zt.z.spores : (src.spores || 0);
+    const dispo = zt ? zt.z.spores : reserveTir(src, moi);
     if (dispo < DEMOL_SPORES) { secouerEcran(8); return false; }
     const genre = gameState._demolGenre || 'nid';
     if (gameState.isMulti) {
@@ -9271,6 +9407,9 @@ window.addEventListener('blur', function () { arreterRafale(); });
    ressort, la bascule reprend. Sert a l'ecran (le trait de visee) comme au
    calcul (la charge, ordre 'visee') : la meme regle des deux cotes. */
 function choisirLanceur(groupe, source, precedent, tx, ty) {
+    /* v9.7.9 : un systeme complet tire TOUJOURS de son centre - la planete,
+       ou le soleil (son anneau). Le groupe le met en tete. */
+    if (groupe.length >= 2) return groupe[0];
     if (_viseeInterne(groupe, tx, ty) && precedent && groupe.indexOf(precedent) >= 0) return precedent;
     /* Le plus proche QUI VOIT LA CIBLE. Une etoile avale le jet : le plus
        proche n'est pas le meilleur s'il tire a travers un soleil. On ne
@@ -9314,7 +9453,8 @@ function majChargementTir(dt) {
        sans cela le joueur tire dans une etoile sans comprendre pourquoi rien
        n'arrive. */
     gameState._tirBloque = tirBloque(lanceur.x, lanceur.y,
-                                     gameState.mouseWorldX, gameState.mouseWorldY);
+                                     gameState.mouseWorldX, gameState.mouseWorldY,
+                                     lanceur.type === 'sun' ? lanceur : null);
     if (lanceur !== gameState._fireLanceur) {
         gameState._fireLanceur = lanceur;
         gameState._chargeAcc = 0;
@@ -9371,19 +9511,52 @@ function majVisees(dt) {
             /* Pas de plafond : la charge s'accumule tant que le groupe donne. */
             let place = Infinity;
             let envoye = 0;
+            /* Un soleil : la charge va dans son anneau. */
+            const anneau = lanceur.type === 'sun' ? _anneauPour(lanceur, slot) : null;
+            if (lanceur.type === 'sun' && !anneau) break;
             for (let i = 0; i < groupe.length && place > 1; i++) {
                 const b = groupe[i];
                 if (b === lanceur) continue;
                 const envoi = Math.min(CHARGE_PAQUET, Math.floor(b.spores), Math.floor(place));
                 if (envoi <= 0) continue;
                 b.spores -= envoi;
-                lanceur.spores += envoi;
+                if (anneau) anneau.spores += envoi;
+                else lanceur.spores += envoi;
                 place -= envoi;
                 envoye += envoi;
                 if (slot === localSlot()) gameState._filetsCharge.push({ de: b, vers: lanceur, age: 0, maxAge: 0.45 });
             }
             if (envoye === 0) break;
         }
+    }
+}
+
+/* CE QUI RESTE DANS L'ANNEAU d'un soleil revient vers les planetes du
+   systeme, par convois, des que plus personne ne vise depuis ce soleil
+   (visee annulee, ou part non tiree). Systeme perdu entre-temps : vers les
+   planetes qui restent au joueur ; s'il n'en a plus, c'est perdu. */
+const ANNEAU_RETOUR = 300;     /* spores par planete et par convoi */
+function majAnneaux(dt) {
+    const suns = gameState.suns || [];
+    for (let k = 0; k < suns.length; k++) {
+        const s = suns[k], A = s.anneau;
+        if (!A || !(A.spores > 0)) continue;
+        let enCharge = false;
+        for (const j of gameState.players) if (j.ordreVisee && j.ordreVisee.lanceur === s) { enCharge = true; break; }
+        if (enCharge) { A.acc = 0; continue; }
+        A.acc = (A.acc || 0) + dt;
+        if (A.acc < CHARGE_PERIODE) continue;
+        A.acc -= CHARGE_PERIODE;
+        const planetes = s.planets.filter(p => p.owner === A.owner);
+        if (!planetes.length) { A.spores = 0; continue; }
+        for (const p of planetes) {
+            const n = Math.min(ANNEAU_RETOUR, A.spores);
+            if (n <= 0) break;
+            A.spores -= n;
+            if (p.lutte) ajouterSpores(p, n); else p.spores = (p.spores || 0) + n;
+            if (A.owner === localSlot()) gameState._filetsCharge.push({ de: s, vers: p, age: 0, maxAge: 0.45 });
+        }
+        if (A.spores < 1) A.spores = 0;
     }
 }
 
@@ -9410,6 +9583,35 @@ function majFiletsCharge(dt) {
     if (o) for (let i = o.length - 1; i >= 0; i--) {
         o[i].age += dt;
         if (o[i].age >= o[i].maxAge) o.splice(i, 1);
+    }
+}
+
+/* L'ANNEAU D'UN SOLEIL : un cercle de la couleur du joueur, plus epais a
+   mesure qu'il se charge, et sa charge en chiffres au-dessus. */
+function drawAnneaux(ctx) {
+    const suns = gameState.suns || [];
+    const z = gameState.camera.zoom;
+    const t = gameState.time || 0;
+    for (let k = 0; k < suns.length; k++) {
+        const s = suns[k], A = s.anneau;
+        if (!A || !(A.spores >= 1)) continue;
+        const r = s.radius + ANNEAU_ECART * 0.6;
+        if (!aLEcran(s.x, s.y, r + 60)) continue;
+        const j = gameState.players[A.owner];
+        const rgb = _rgbDe((j && j.color) || '#FFFFFF');
+        const ep = (3 + Math.min(16, Math.sqrt(A.spores) / 4)) / z;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(' + rgb + ',0.25)';
+        ctx.lineWidth = ep * 2.2;
+        ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(' + rgb + ',' + (0.65 + 0.25 * Math.sin(t * 4)).toFixed(3) + ')';
+        ctx.lineWidth = ep;
+        ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.stroke();
+        const px = Math.max(11, Math.min(18, 14 * Math.sqrt(z))) / z;
+        ctx.font = 'bold ' + px + 'px Orbitron';
+        ctx.textAlign = 'center';
+        _texteLisible(ctx, Math.floor(A.spores) + ' ◎', s.x, s.y - r - ep - px * 0.6, (j && j.color) || '#FFFFFF', Math.max(2, px * 0.2));
+        ctx.restore();
     }
 }
 
@@ -10550,8 +10752,10 @@ function majJaugeEnvoi(pulse) {
         /* Pendant la rafale, le pourcentage ne compte plus : on tire par paquets. */
         nb.innerHTML = 'RAFALE<em>' + RAFALE_PAQUET + ' × ' + RAFALE_CADENCE + '/s</em>';
     } else if (nb) {
-        nb.innerHTML = (src && src.owner === localSlot() && src.spores !== undefined)
-            ? Math.floor(src.spores * gameState.jetRatio) + '<em>SPORES</em>'
+        /* Un soleil : ce que contient son anneau. */
+        const _soleil = src && src.type === 'sun';
+        nb.innerHTML = (src && (_soleil || (src.owner === localSlot() && src.spores !== undefined)))
+            ? Math.floor(reserveTir(src, localSlot()) * gameState.jetRatio) + '<em>SPORES' + (_soleil ? ' · ANNEAU' : '') + '</em>'
             : '';
     }
     if (pulse) {
@@ -11589,7 +11793,9 @@ function updateSporeGeneration(dt) {
 // ─────────────────────────────────────────────
 /* gravite, facultatif : part de la gravite subie (1 par defaut). La boule
    chargee au Shift n'en subit qu'un quart. */
-function computeTrajectory(startX, startY, dirX, dirY, speed, steps, gravite) {
+/* sauf, facultatif : un soleil dont la gravite ne compte pas (celui qui
+   tire, depuis son anneau). */
+function computeTrajectory(startX, startY, dirX, dirY, speed, steps, gravite, sauf) {
     const bh = gameState.blackHole;
     const gFacteur = (gravite === undefined) ? 1 : gravite;
     const points = [];
@@ -11620,6 +11826,7 @@ function computeTrajectory(startX, startY, dirX, dirY, speed, steps, gravite) {
 
         // Gravité des soleils (légère déviation)
         for (const sun of gameState.suns) {
+            if (sun === sauf) continue;
             const sdx = sun.x - x;
             const sdy = sun.y - y;
             const sdist = Math.sqrt(sdx*sdx + sdy*sdy);
@@ -11658,17 +11865,36 @@ function partEnvoi(slot) {
 /* opts, facultatif : { nombre } pour tirer un nombre FIXE de spores au lieu
    du pourcentage d'envoi (la rafale tire par paquets de 10), { muet } pour
    ne pas jouer le son de lancer (la rafale ne le joue qu'un coup sur trois). */
+/* D'ou part un tir : le centre de l'astre, ou le bord de l'anneau pour un
+   soleil (il ne peut pas partir de l'interieur de l'etoile). */
+const ANNEAU_ECART = 45;
+function departTir(source, dirX, dirY) {
+    if (!source || source.type !== 'sun') return { x: source.x, y: source.y };
+    const r = source.radius + ANNEAU_ECART;
+    return { x: source.x + dirX * r, y: source.y + dirY * r };
+}
+
 function launchJet(source, dirX, dirY, sporeType, slot, opts) {
     const _nb = opts && opts.nombre > 0 ? Math.floor(opts.nombre) : 0;
     const tireur = (slot === undefined || slot === null) ? source.owner : slot;
     const player = gameState.players[tireur];
     if (!player) return;
-    const chezSoi = (source.owner === tireur);
+    /* Un soleil tire depuis son anneau (systeme solaire complet, voir
+       _groupeSolaire) : il faut que l'anneau soit au tireur. */
+    const soleil = source.type === 'sun';
+    const anneau = soleil ? anneauDe(source, tireur) : null;
+    if (soleil && !anneau) return;
+    const chezSoi = soleil || (source.owner === tireur);
     if (!chezSoi && !(source.lutte && zonesDe(source, tireur).length)) return;
 
     sporeType = sporeType || 'normal';
     let sporeCount;
-    if (sporeType === 'parasite') {
+    if (soleil) {
+        if (sporeType === 'parasite') return;
+        sporeCount = _nb ? (anneau.spores >= _nb ? _nb : 0) : Math.floor(anneau.spores * partEnvoi(tireur));
+        if (sporeCount < 5) return;
+        anneau.spores -= sporeCount;
+    } else if (sporeType === 'parasite') {
         if (!chezSoi) return;
         if ((source.parasiteSpore || 0) < 1) return;
         source.parasiteSpore = 0;
@@ -11693,7 +11919,15 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
     /* opts.vitesse ralentit (ou accelere) le jet ; opts.pas allonge sa
        trajectoire d'autant, pour garder la meme portee. */
     const speed = (20 + player.stats.velocity * 6) * (opts && opts.vitesse > 0 ? opts.vitesse : 1);
-    const traj = computeTrajectory(source.x, source.y, dirX, dirY, speed, (opts && opts.pas) || 200);
+    const dep = departTir(source, dirX, dirY);
+    const traj = computeTrajectory(dep.x, dep.y, dirX, dirY, speed, (opts && opts.pas) || 200, undefined, soleil ? source : null);
+    /* Systeme complet : le jet traverse les astres du groupe (les lunes de
+       sa planete, ou tout le systeme solaire). */
+    let traverse = null;
+    if (chezSoi) {
+        const g = _groupeTir(source);
+        if (g.length >= 2 && g[0] === source) traverse = g.filter(b => b.type !== 'sun').map(b => b.name);
+    }
 
     // Générer des particules scintillantes autour du jet
     const sparkles = [];
@@ -11717,8 +11951,8 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
         sporeType: sporeType,
         trajectory: traj,
         posIndex: 0,
-        x: source.x,
-        y: source.y,
+        x: dep.x,
+        y: dep.y,
         speed: speed,
         alive: true,
         trail: [],
@@ -11728,6 +11962,8 @@ function launchJet(source, dirX, dirY, sporeType, slot, opts) {
         source: source,
         sourceName: source.name,
         demolisseur: (opts && opts.demol) || false,
+        _traverse: traverse,
+        _soleilNom: soleil ? source.name : null,
         /* LA PART D'ATTAQUE : le pourcentage d'envoi au moment du tir. A
            l'arrivee, cette part pousse ; le reste tient le terrain pris
            (garnison). 30 % envoyes = 30 % attaquent, 70 % gardent. Rafale,
@@ -11773,6 +12009,7 @@ const BRULURE_LENTE = 1, BRULURE_FORTE = 5;
 function brulureEtoile(jet, suns) {
     let taux = 0;
     for (const s of suns) {
+        if (jet._soleilNom && s.name === jet._soleilNom) continue;   /* son propre soleil ne le brule pas */
         const dx = jet.x - s.x, dy = jet.y - s.y;
         const d2 = dx * dx + dy * dy;
         const r = s.radius;
@@ -12041,6 +12278,7 @@ function checkJetCollision(jet) {
 
     // Destruction par les soleils
     for (const sun of gameState.suns) {
+        if (jet._soleilNom && sun.name === jet._soleilNom) continue;   /* tire par ce soleil */
         const dx = sun.x - jet.x;
         const dy = sun.y - jet.y;
         const _sr = sun.radius + 5;
@@ -12071,6 +12309,8 @@ function checkJetCollision(jet) {
            premiere seconde, elle traverse sa planete et les lunes de celle-ci
            au lieu de s'ecraser dans l'une d'elles. */
         if (jet.boule && jet.age < 1 && jet._groupe && jet._groupe.indexOf(body.name) >= 0) continue;
+        /* Tir d'un systeme complet : ses propres astres ne l'arretent pas. */
+        if (jet._traverse && body.owner === jet.owner && jet._traverse.indexOf(body.name) >= 0) continue;
         const dx = body.x - jet.x;
         const dy = body.y - jet.y;
         const _br = body.radius + 8;
@@ -14865,6 +15105,8 @@ function setupInput() {
                        est muet - on verifie donc aussi de ce cote. */
                     const _zt = src.lutte ? zoneDeTir(src, localSlot()) : null;
                     if (src.lutte && (!_zt || _zt.z.n < ZONE_MIN)) { secouerEcran(8); return; }
+                    /* Soleil dont l'anneau est vide : rien a tirer. */
+                    if (src.type === 'sun' && reserveTir(src, localSlot()) * partEnvoi(localSlot()) < 5) { secouerEcran(8); }
                     if (gameState.isMulti) {
                         /* On annonce le POINT de la zone choisie : le serveur
                            n'a pas la meme numerotation, mais il retrouve la
@@ -15397,7 +15639,7 @@ const EXECUTER_ORDRE = {
     },
     /* Un tir depuis un astre, dans une direction (vecteur unitaire). */
     tir: function (slot, d) {
-        const src = astreNomme(d.src);
+        const src = lanceurNomme(d.src);
         const dx = Number(d.dx), dy = Number(d.dy);
         if (!src || !isFinite(dx) || !isFinite(dy)) return;
         const t = ['normal', 'attaque', 'defense', 'parasite'].includes(d.t) ? d.t : 'normal';
@@ -15456,10 +15698,10 @@ const EXECUTER_ORDRE = {
     /* Le demolisseur : un tir lent de DEMOL_SPORES qui casse un batiment
        du genre choisi la ou il tombe. */
     demol: function (slot, d) {
-        const src = astreNomme(d.src);
+        const src = lanceurNomme(d.src);
         const dx = Number(d.dx), dy = Number(d.dy);
         if (!src || !isFinite(dx) || !isFinite(dy) || !DEMOL_GENRES.includes(d.genre)) return;
-        if (!peutTirerSurface(src, slot)) return;
+        if (!peutTirerDe(src, slot)) return;
         launchJet(src, dx, dy, 'normal', slot,
                   { nombre: DEMOL_SPORES, vitesse: DEMOL_VITESSE, pas: DEMOL_PAS, demol: d.genre });
     },
@@ -15479,7 +15721,7 @@ const EXECUTER_ORDRE = {
         gameState.players[slot].ordreVisee = null;
     },
     rafale_debut: function (slot, d) {
-        const src = astreNomme(d.src), j = gameState.players[slot];
+        const src = lanceurNomme(d.src), j = gameState.players[slot];
         const tx = Number(d.tx), ty = Number(d.ty);
         if (!src || !isFinite(tx) || !isFinite(ty) || !peutTirerDe(src, slot) || j.ordreBoule) return;
         /* Premier paquet sans attendre : le doigt appuie, ca part. */
@@ -15492,7 +15734,7 @@ const EXECUTER_ORDRE = {
         R.tx = tx; R.ty = ty;
         /* Le lanceur peut changer en cours de rafale (la cible passe plus
            pres d'une autre lune du groupe). */
-        const src = astreNomme(d.src);
+        const src = lanceurNomme(d.src);
         if (src && peutTirerDe(src, slot)) R.src = src;
     },
     rafale_fin: function (slot) {
@@ -15529,6 +15771,7 @@ const EXECUTER_ORDRE = {
 /* Un joueur peut-il tirer de cet astre : le sien, ou une tete de pont qu'il
    y tient ? */
 function peutTirerDe(src, slot) {
+    if (src.type === 'sun') return !!anneauDe(src, slot);   /* l'anneau d'un systeme complet */
     return src.owner === slot || !!(src.lutte && zonesDe(src, slot).length);
 }
 
@@ -16965,6 +17208,7 @@ if (gameState.isMulti) {
     majRafale(dt);
     majBoule(dt);
     majVisees(dt);
+    majAnneaux(dt);
     majRafales(dt);
     majBoules(dt);
     majFiletsCharge(dt);
@@ -17082,11 +17326,14 @@ function empreinteEtat(detail) {
         commerces: simples,
         orbes: simples,
         propositions: simples,
+        /* Les anneaux des soleils (systeme solaire complet) : leur charge. */
+        anneaux: function (s) { if (s.anneau) { melanger(s.name); simples(s.anneau); } },
     };
     const listes = {
         astres: gameState.allBodies, jets: gameState.jets, joueurs: gameState.players,
         vaisseaux: gameState.cleaners, cometes: gameState.comets, capitaux: gameState.capitaux,
         commerces: gameState.commerces, orbes: gameState.orbesCommerce, propositions: gameState.propositions,
+        anneaux: gameState.suns,
     };
     const parts = {};
     let total = 0x811c9dc5;
@@ -17276,13 +17523,17 @@ function render() {
                courberait le trait - comme le fait launchJet. */
             const player = gameState.players[localSlot()];
             const speed = 20 + (player ? player.stats.velocity * 6 : 0);
+            /* Un soleil tire du bord de son anneau, sans sa propre gravite. */
+            const dep = departTir(src, dx/len, dy/len);
+            const sauf = src.type === 'sun' ? src : null;
             gameState.launchPreview = gameState._demol
-                ? computeTrajectory(src.x, src.y, dx/len, dy/len, speed * DEMOL_VITESSE, DEMOL_PAS)
-                : computeTrajectory(src.x, src.y, dx/len, dy/len, speed, 200);
+                ? computeTrajectory(dep.x, dep.y, dx/len, dy/len, speed * DEMOL_VITESSE, DEMOL_PAS, undefined, sauf)
+                : computeTrajectory(dep.x, dep.y, dx/len, dy/len, speed, 200, undefined, sauf);
         }
     }
     drawOndesSolaires(ctx);
     drawFiletsCharge(ctx);
+    drawAnneaux(ctx);
     drawOndes(ctx);
     /* Pendant la charge d'une boule, le trait montre SON depart a elle :
        du bord de l'astre, dans l'axe centre -> boule, sa physique a elle. */
@@ -20864,6 +21115,20 @@ function updateAI(dt) {
             else iaExamenCapitaux(player);
         }
 
+        /* SYSTEME COMPLET : l'IA charge comme un joueur (ordre de visee, la
+           charge se fait dans majVisees), puis tire du centre - la planete,
+           ou le soleil. Pas d'autre tir pendant la charge. */
+        if (player._iaCharge) {
+            const C = player._iaCharge, V = player.ordreVisee;
+            if (!V || gameState.time >= C.fin) {
+                player._iaCharge = null;
+                const lanceur = V && V.lanceur;
+                player.ordreVisee = null;
+                if (lanceur && C.cible && C.cible.owner !== player.id) aiLaunchAt(lanceur, C.cible, player);
+            }
+            continue;
+        }
+
         player.aiTimer -= dt;
         if (player.aiTimer > 0) continue;
 
@@ -21267,6 +21532,9 @@ function _aiBatimentsAdverses(target, slot) {
     return total ? n : null;
 }
 
+/* Secondes de charge d'un systeme complet avant de tirer. */
+const IA_CHARGE = { easy: 1.5, normal: 2.5, hard: 3, brutal: 3.5 };
+
 function aiTirer(src, target, player) {
     /* Elle economise pour capturer une sphere : pas de tir depuis ces astres. */
     if (iaGardeReserve(player, src)) return;
@@ -21291,6 +21559,15 @@ function aiTirer(src, target, player) {
     /* Une spore parasitaire prete part sur un astre ennemi. */
     if (ennemi && parasitePret && gameRandom() < 0.7) {
         aiLaunchAt(src, target, player, 'parasite'); return;
+    }
+    /* Astre d'un systeme complet : on charge le centre, le tir partira de
+       lui a la fin de la charge (voir updateAI). */
+    if (chezElle && _groupeTir(src).length >= 2) {
+        if (!player._iaCharge) {
+            player.ordreVisee = { src: src, tx: target.x, ty: target.y, lanceur: null, acc: 0 };
+            player._iaCharge = { cible: target, fin: gameState.time + (IA_CHARGE[gameState.config.difficulty] || 2.5) };
+        }
+        return;
     }
     if (gameRandom() < gout && !player._aiRafale && !player._aiBoule) {
         const bats = ennemi ? _aiBatimentsAdverses(target, player.id) : null;
@@ -21383,13 +21660,17 @@ function _iaPosFuture(b, t) {
    meme que celle du jet) et garde celui qui passe au plus pres de la cible
    au moment ou le tir y arrive. Un trajet qui croise un soleil est ecarte. */
 function _iaScoreVisee(source, target, ang, speed, pas, maxI) {
-    const traj = computeTrajectory(source.x, source.y, Math.cos(ang), Math.sin(ang), speed, pas);
+    /* Un soleil tire du bord de son anneau, sans sa gravite ni son feu. */
+    const sauf = source.type === 'sun' ? source : null;
+    const dep = departTir(source, Math.cos(ang), Math.sin(ang));
+    const traj = computeTrajectory(dep.x, dep.y, Math.cos(ang), Math.sin(ang), speed, pas, undefined, sauf);
     const parPoint = 1 / (speed * 0.70);       /* secondes par point (jets.js : posIndex) */
     let best = 1e9;
     const n = Math.min(traj.length, maxI);
     for (let i = 2; i < n; i += 2) {
         const pt = traj[i];
         for (const s of gameState.suns) {
+            if (s === sauf) continue;
             const ds = Math.hypot(pt.x - s.x, pt.y - s.y);
             if (ds < s.radius + 12) return best < 1e9 ? best : 1e9;
         }
@@ -22474,6 +22755,9 @@ function drawConquestEffects(ctx) {
 
     // Textes flottants
     ctx.textAlign = 'center';
+    /* Toute la carte a l'ecran : les chiffres flottants (-12 Faune...) ne
+       font plus que couvrir les astres. */
+    if (z < 0.12) return;
     for (const e of gameState.conquestEffects) {
         const prog = e.age / e.maxAge;
         const alpha = 1 - prog;

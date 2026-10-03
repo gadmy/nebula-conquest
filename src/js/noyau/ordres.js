@@ -134,7 +134,7 @@ const EXECUTER_ORDRE = {
     },
     /* Un tir depuis un astre, dans une direction (vecteur unitaire). */
     tir: function (slot, d) {
-        const src = astreNomme(d.src);
+        const src = lanceurNomme(d.src);
         const dx = Number(d.dx), dy = Number(d.dy);
         if (!src || !isFinite(dx) || !isFinite(dy)) return;
         const t = ['normal', 'attaque', 'defense', 'parasite'].includes(d.t) ? d.t : 'normal';
@@ -193,10 +193,10 @@ const EXECUTER_ORDRE = {
     /* Le demolisseur : un tir lent de DEMOL_SPORES qui casse un batiment
        du genre choisi la ou il tombe. */
     demol: function (slot, d) {
-        const src = astreNomme(d.src);
+        const src = lanceurNomme(d.src);
         const dx = Number(d.dx), dy = Number(d.dy);
         if (!src || !isFinite(dx) || !isFinite(dy) || !DEMOL_GENRES.includes(d.genre)) return;
-        if (!peutTirerSurface(src, slot)) return;
+        if (!peutTirerDe(src, slot)) return;
         launchJet(src, dx, dy, 'normal', slot,
                   { nombre: DEMOL_SPORES, vitesse: DEMOL_VITESSE, pas: DEMOL_PAS, demol: d.genre });
     },
@@ -216,7 +216,7 @@ const EXECUTER_ORDRE = {
         gameState.players[slot].ordreVisee = null;
     },
     rafale_debut: function (slot, d) {
-        const src = astreNomme(d.src), j = gameState.players[slot];
+        const src = lanceurNomme(d.src), j = gameState.players[slot];
         const tx = Number(d.tx), ty = Number(d.ty);
         if (!src || !isFinite(tx) || !isFinite(ty) || !peutTirerDe(src, slot) || j.ordreBoule) return;
         /* Premier paquet sans attendre : le doigt appuie, ca part. */
@@ -229,7 +229,7 @@ const EXECUTER_ORDRE = {
         R.tx = tx; R.ty = ty;
         /* Le lanceur peut changer en cours de rafale (la cible passe plus
            pres d'une autre lune du groupe). */
-        const src = astreNomme(d.src);
+        const src = lanceurNomme(d.src);
         if (src && peutTirerDe(src, slot)) R.src = src;
     },
     rafale_fin: function (slot) {
@@ -266,6 +266,7 @@ const EXECUTER_ORDRE = {
 /* Un joueur peut-il tirer de cet astre : le sien, ou une tete de pont qu'il
    y tient ? */
 function peutTirerDe(src, slot) {
+    if (src.type === 'sun') return !!anneauDe(src, slot);   /* l'anneau d'un systeme complet */
     return src.owner === slot || !!(src.lutte && zonesDe(src, slot).length);
 }
 

@@ -154,8 +154,10 @@ function majJaugeEnvoi(pulse) {
         /* Pendant la rafale, le pourcentage ne compte plus : on tire par paquets. */
         nb.innerHTML = 'RAFALE<em>' + RAFALE_PAQUET + ' × ' + RAFALE_CADENCE + '/s</em>';
     } else if (nb) {
-        nb.innerHTML = (src && src.owner === localSlot() && src.spores !== undefined)
-            ? Math.floor(src.spores * gameState.jetRatio) + '<em>SPORES</em>'
+        /* Un soleil : ce que contient son anneau. */
+        const _soleil = src && src.type === 'sun';
+        nb.innerHTML = (src && (_soleil || (src.owner === localSlot() && src.spores !== undefined)))
+            ? Math.floor(reserveTir(src, localSlot()) * gameState.jetRatio) + '<em>SPORES' + (_soleil ? ' · ANNEAU' : '') + '</em>'
             : '';
     }
     if (pulse) {

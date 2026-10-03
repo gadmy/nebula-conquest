@@ -454,6 +454,9 @@ function drawConquestEffects(ctx) {
 
     // Textes flottants
     ctx.textAlign = 'center';
+    /* Toute la carte a l'ecran : les chiffres flottants (-12 Faune...) ne
+       font plus que couvrir les astres. */
+    if (z < 0.12) return;
     for (const e of gameState.conquestEffects) {
         const prog = e.age / e.maxAge;
         const alpha = 1 - prog;
