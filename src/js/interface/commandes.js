@@ -495,9 +495,9 @@ function editeurCarte() {
                 function adjustSunFlore(sun, pct) {
                     const factor = 1 + pct / 100;
                     for (const p of sun.planets) {
-                        p.flore = Math.round(Math.min(100, Math.max(0, (p.flore || 0) * factor)));
+                        p.flore = Math.round(Math.min(FLORE_MAX, Math.max(0, (p.flore || 0) * factor)));
                         for (const m of p.moons) {
-                            m.flore = Math.round(Math.min(100, Math.max(0, (m.flore || 0) * factor)));
+                            m.flore = Math.round(Math.min(FLORE_MAX, Math.max(0, (m.flore || 0) * factor)));
                         }
                     }
                     updateInfo();
@@ -519,13 +519,33 @@ function editeurCarte() {
                        systeme, donc la vitesse a laquelle ses astres produisent. */
                     const aide = document.createElement('div');
                     aide.style.cssText = 'font-size:10px;color:#aaa;line-height:1.35;';
-                    aide.textContent = 'Richesse de chaque système : le chiffre vert est la flore totale de ses astres. − / + baisse ou monte la flore de tous ses astres de 5 % : plus de flore = les astres produisent plus vite.';
+                    aide.textContent = 'Richesse de chaque système : en vert sa production (taille × flore de ses astres), en rouge sa faune totale. − / + baisse ou monte la flore de tous ses astres de 5 % : plus de flore = les astres produisent plus vite.';
                     sunPowerPanel.appendChild(aide);
+                    /* L'EQUILIBRE (equilibre.js) : l'ecart entre le meilleur et le
+                       moins bon systeme, en rouge au-dela de 20 %, et le bouton
+                       qui ramene tout le monde a +/- 8 %. */
+                    const ec = ecartSystemes(gameState.suns);
+                    const pc = function (r) { return isFinite(r) ? Math.round((r - 1) * 100) + ' %' : '∞'; };
+                    const ligneEc = document.createElement('div');
+                    ligneEc.style.cssText = 'font-size:10px;line-height:1.35;';
+                    ligneEc.innerHTML = 'Écart entre systèmes : production <b style="color:' + (ec.production > 1.2 ? '#f66' : '#4f8') + '">' + pc(ec.production) +
+                        '</b> · faune <b style="color:' + (ec.faune > 1.2 ? '#f66' : '#4f8') + '">' + pc(ec.faune) + '</b> (20 % au plus)';
+                    sunPowerPanel.appendChild(ligneEc);
+                    const btnEq = document.createElement('button');
+                    btnEq.textContent = '⚖ Équilibrer les systèmes';
+                    btnEq.title = 'Ajuste la flore et la faune des astres pour que chaque système vaille à peu près les autres (±8 %). Les astres ne bougent pas.';
+                    btnEq.style.cssText = 'padding:4px;background:#1a2a1a;color:#4f8;border:1px solid #4f8;border-radius:4px;cursor:pointer;font:11px monospace;';
+                    btnEq.addEventListener('click', () => {
+                        equilibrerSystemes(gameState.suns);
+                        for (const b of gameState.planets.concat(gameState.moons)) b._baseFaune = b.faune;
+                        updateSunPowerPanel();
+                    });
+                    sunPowerPanel.appendChild(btnEq);
                     for (const sun of gameState.suns) {
-                        const flore = getSunFlore(sun);
+                        const prod = productionSysteme(sun), fa = fauneSysteme(sun);
                         const row = document.createElement('div');
                         row.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:10px;';
-                        row.innerHTML = `<span style="color:#f80;flex:1;">☀ ${sun.name}</span><span style="color:#4f8;min-width:28px;text-align:right;">${flore}</span>`;
+                        row.innerHTML = `<span style="color:#f80;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">☀ ${sun.name}</span><span style="color:#4f8;min-width:34px;text-align:right;" title="Production">${(prod / 1000).toFixed(1)}k</span><span style="color:#f88;min-width:26px;text-align:right;" title="Faune">${Math.round(fa)}</span>`;
                         const btnMinus = document.createElement('button');
                         btnMinus.textContent = '−';
                         btnMinus.title = 'Flore -5 % sur tous les astres de ce système (ils produisent moins vite)';

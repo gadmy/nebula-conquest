@@ -349,7 +349,7 @@
 
 <!-- DEPART -->
 <p id="h-depart" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🏛 DÉPART &amp; RÉGIMES</p>
-<p style="margin-bottom:6px;">Chaque partie (solo et réseau ; pas le tutoriel) commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Centre collaborateur, Gauche non solidaire, Dictature éclairée, Royauté à plusieurs, Fascisme sympa, Anarchie très organisée, Écolo mais pas trop, Communisme néolibéral, Droite prolétaire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun s'installe ; sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
+<p style="margin-bottom:6px;">Chaque partie (solo et réseau ; pas le tutoriel) commence par le choix d'un <b>régime politique</b> : 3 points d'évolution offerts, répartis selon le régime (Centre collaborateur, Gauche non solidaire, Dictature éclairée, Royauté à plusieurs, Fascisme sympa, Anarchie très organisée, Écolo mais pas trop, Communisme néolibéral, Droite prolétaire). En réseau, 15 s pour choisir, sinon un régime au hasard. Ensuite, <b>15 s pour choisir sa planète</b> : on réserve un astre libre, on peut changer d'avis jusqu'au bout, et l'on voit les réservations des autres (anneau à leur couleur et leur nom). Un astre déjà réservé ne peut pas être pris. À zéro, chacun <b>débarque sur son astre avec 3000 spores</b>, posées sur une seule case : elles paient d'abord sa faune, puis conquièrent la surface toute seules, avec leurs spores puis avec ce qu'elles produisent. Une lune tombe presque aussitôt, une grande planète demande une trentaine de secondes ; l'astre est à vous quand toute sa surface l'est. Sans choix, on part d'un astre au hasard. En solo, le bouton <b>LANCER LA PARTIE</b> évite d'attendre.</p>
 
 <!-- CONTRÔLES -->
 <p id="h-controles" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🕹 CONTRÔLES</p>
@@ -401,6 +401,7 @@
   <tr><td style="padding:3px 0;color:#E9D5FF;">Plein à ras bord</td><td style="padding:3px 0;">Extinction : un astre saturé ne produit plus rien</td></tr>
 </table>
 <p style="margin-bottom:6px;">Le rendement du moment s'affiche au-dessus de l'astre sélectionné, en vert, jaune ou rouge. Tout le reste <span style="color:#E9D5FF;">multiplie</span> cette courbe : la <span style="color:#4ADE80;">Flore</span> de l'astre, la <span style="color:#22C55E;">Symbiose</span> qui monte avec le temps (jusqu'à +20 % sur une planète, +10 % sur une lune), vos <span style="color:#E9D5FF;">nids</span> et votre stat <span style="color:#4ADE80;">Growth</span>.</p>
+<p style="margin-bottom:6px;"><span style="color:#4ADE80;">Flore</span> (richesse) : à 0 l'astre ne produit rien, à 1 il produit 40 % de son plein, à 100 son plein ; au-delà de 100 (certains petits systèmes, jusqu'à 500), il produit davantage. <span style="color:#F87171;">Faune</span> (défense d'un astre neutre) : chaque spore qui arrive tue d'abord un point de faune ; elle repousse de 2 par seconde tant que l'astre est neutre, et disparaît à la conquête. Sur chaque carte, les systèmes solaires sont équilibrés : production et faune à 20 % près entre le meilleur et le moins bon.</p>
 <p style="margin-bottom:16px;">Une <span style="color:#EAB308;">alvéole</span> augmente la capacité, donc aussi la production : un plus grand silo nourrit plus de monde. Attention, elle décale aussi le pic.</p>
 <p style="margin-bottom:16px;">Deux types de jets : <span style="color:#E9D5FF;">⚪ Spores</span> (Espace, puis clic), qui colonisent et attaquent, et <span style="color:#E9D5FF;"><i class="ic-bat" data-g="parasite"></i> Parasite</span>, qui infecte une planète ennemie et la vide peu à peu (une seule à la fois, deux minutes de charge ; 500 spores normales l'éliminent). Raccourcis : <b>4</b> ou <b>Shift + G</b> construit le foyer putride qui la prépare, <b>G</b> l'arme, et <b>G</b> en visée la lance vers le curseur.</p>
 <!-- BATAILLE -->
@@ -891,6 +892,7 @@
 <!--#inclure js/rendu/caches.js-->
 <!--#inclure js/rendu/textures.js-->
 <!--#inclure js/donnees/cartes.js-->
+<!--#inclure js/donnees/equilibre.js-->
 <!--#inclure js/moteur/univers.js-->
 <!--#inclure js/moteur/orbites.js-->
 <!--#inclure js/interface/commandes.js-->

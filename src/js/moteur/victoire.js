@@ -27,7 +27,10 @@ function checkVictoryAndElimination() {
         if (!player.alive) continue;
 
         // Compter les astres
-        const ownedCount = player.bodies.length;
+        /* Tenir du terrain sur un astre (debarquement de depart, tete de
+           pont) suffit a rester en vie. */
+        let ownedCount = player.bodies.length;
+        if (!ownedCount) for (const b of gameState.allBodies) if (b.lutte && zonesDe(b, player.id).length) { ownedCount = 1; break; }
 
         // Vérifier élimination / sursis
         if (ownedCount === 0) {

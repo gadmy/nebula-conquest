@@ -100,7 +100,7 @@ function _meilleurAstreLibre(slot) {
     const pris = [];
     for (const s in D.reserv) if (+s !== slot) { const b = astreNomme(D.reserv[s]); if (b) pris.push(b); }
     for (const b of gameState.planets.concat(gameState.moons)) {
-        if (b.owner !== null || reservePar(b.name) >= 0) continue;
+        if (b.owner !== null || b.lutte || reservePar(b.name) >= 0) continue;
         let minDist = Infinity;
         for (const o of pris) minDist = Math.min(minDist, Math.hypot(b.x - o.x, b.y - o.y));
         const score = (pris.length ? minDist : 0) + (b.flore || 0) * 2;
@@ -128,27 +128,46 @@ function reserverAstre(slot, nom) {
     if (slot === localSlot()) playClickSound();
 }
 
+/* LE DEBARQUEMENT DE DEPART. On ne recoit plus tout l'astre choisi : on y
+   pose SPORES_DEPART spores sur une seule case, qui paient d'abord sa faune
+   puis attaquent l'astre comme un tir (bataille de surface). La tache
+   s'etend toute seule (voir majLutte, L.colons) : avec ses spores, puis
+   avec ce qu'elle produit. Une lune tombe presque aussitot, une grande
+   planete demande un peu de temps. L'astre est a nous quand toute sa
+   surface l'est. */
+const SPORES_DEPART = 3000;
+function debarquerDepart(p, b) {
+    p.bodies = [];
+    p.spawnPlanet = b;
+    const fa = Math.min(b.faune || 0, SPORES_DEPART);
+    b.faune = (b.faune || 0) - fa;
+    const soleil = soleilDe(b);
+    const angle = soleil ? Math.atan2(soleil.y - b.y, soleil.x - b.x) : 0;
+    engagerLutte(b, p.id, SPORES_DEPART - fa, angle, 1);
+    if (b.lutte) {
+        if (!b.lutte.colons) b.lutte.colons = {};
+        b.lutte.colons[p.id] = 1;
+    }
+}
+
 /* Le decompte est fini : chacun s'installe. */
 function finirDepart() {
     const D = gameState.depart;
     for (const p of gameState.players) {
         let b = D.reserv[p.id] !== undefined ? astreNomme(D.reserv[p.id]) : null;
-        if (!b || b.owner !== null) {
+        if (!b || b.owner !== null || b.lutte) {
             if (p.isHuman) {
-                const libres = gameState.planets.concat(gameState.moons).filter(function (x) { return x.owner === null; });
+                const libres = gameState.planets.concat(gameState.moons).filter(function (x) { return x.owner === null && !x.lutte; });
                 b = libres.length ? libres[Math.floor(gameRandom() * libres.length)] : null;
             } else b = _meilleurAstreLibre(p.id);
         }
         if (!b) continue;
-        b.owner = p.id;
-        b.spores = b.maxSpores * 0.5;
-        p.bodies = [b];
-        p.spawnPlanet = b;
+        debarquerDepart(p, b);
         p._spawnAnnounced = true;
         if (!gameState._spawnFlashes) gameState._spawnFlashes = [];
         gameState._spawnFlashes.push({ body: b, age: 0, maxAge: 2.5, color: p.color });
-        if (p.id === localSlot()) addEvent('mine', '🌍', 'Vous colonisez ' + b.name + ' !', b, p.color);
-        else addEvent('war', '🌍', p.name + ' colonise ' + b.name + ' !', b, p.color);
+        if (p.id === localSlot()) addEvent('mine', '🌍', 'Vous débarquez sur ' + b.name + ' avec ' + SPORES_DEPART + ' spores : à vous de la conquérir !', b, p.color);
+        else addEvent('war', '🌍', p.name + ' débarque sur ' + b.name + ' !', b, p.color);
     }
     marquerTerritoiresSales();
     gameState.depart = null;

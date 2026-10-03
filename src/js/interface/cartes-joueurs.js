@@ -52,14 +52,14 @@ function nettoyerCarte(d) {
             const pl = { name: _nomPropre(p.name, 'Planete ' + nPl), radius: _borne(p.radius, 10, 200, 90),
                          orbitRadius: _borne(p.orbitRadius, 50, 20000, 600), orbitSpeed: _borne(p.orbitSpeed, -2, 2, 0.05),
                          angle: _borne(p.angle, -1000, 1000, 0),
-                         flore: Math.round(_borne(p.flore, 0, 100, 50)), faune: Math.round(_borne(p.faune, 0, 100, 50)), moons: [] };
+                         flore: Math.round(_borne(p.flore, 0, 500, 50)), faune: Math.round(_borne(p.faune, 0, 1000, 50)), moons: [] };
             for (const m of (Array.isArray(p.moons) ? p.moons : [])) {
                 if (!m || typeof m !== 'object' || nLu >= CARTES_LIMITES.lunes) continue;
                 nLu++;
                 pl.moons.push({ name: _nomPropre(m.name, 'Lune ' + nLu), radius: _borne(m.radius, 5, 100, 30),
                                 orbitRadius: _borne(m.orbitRadius, 10, 3000, 150), orbitSpeed: _borne(m.orbitSpeed, -3, 3, 0.2),
                                 angle: _borne(m.angle, -1000, 1000, 0),
-                                flore: Math.round(_borne(m.flore, 0, 100, 30)), faune: Math.round(_borne(m.faune, 0, 100, 30)) });
+                                flore: Math.round(_borne(m.flore, 0, 500, 30)), faune: Math.round(_borne(m.faune, 0, 1000, 30)) });
             }
             sun.planets.push(pl);
         }

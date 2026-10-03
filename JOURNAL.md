@@ -1826,6 +1826,21 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
        joueurs : 15 ms -> 1,5 ms par image. Nouveau reglage GRAPH "Minimal"
        (resolution 50 %, details coupes). Aussi : les fleches de parasite ne
        balaient plus tous les astres pour chaque planete tenue.
+     - DEPART EN TETE DE PONT : on ne recoit plus l'astre choisi entier. On y
+       debarque 3000 spores sur une seule case (elles paient d'abord la
+       faune) ; la tache conquiert la surface toute seule (L.colons dans
+       majLutte : elle pousse avec ce qui depasse 20 % de son plafond, spores
+       de depart puis production). Essai : la plus grande planete (6500)
+       prise en 31 s. Tenir du terrain suffit a rester en vie (avant : 0
+       astre = elimine). IA : meme depart.
+     - EQUILIBRE DES SYSTEMES (equilibre.js) : sur chaque carte, production
+       (taille x facteur de flore) et faune totale de chaque systeme solaire
+       ramenees a +/- 8 % de la mediane, en ne changeant que flore et faune
+       des astres. Les 16 cartes passees : ecart meilleur/moins bon de 1,14 a
+       9,1 avant, 1,11 a 1,21 apres (production) ; faune 1,04 a 28 avant,
+       1,18 au plus apres. La flore peut depasser 100 (jusqu'a 500, petits
+       systemes), la faune aller jusqu'a 1000. Editeur : ecart affiche (rouge
+       au-dela de 20 %), production et faune par systeme, bouton EQUILIBRER.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

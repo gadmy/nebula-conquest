@@ -28,7 +28,9 @@ try {
     await p.waitForFunction(() => gameState.depart && gameState.depart.etape === 'planete', null, { timeout: 10000 });
     verifier(true, 'regime choisi, etape planete');
     await p.evaluate(() => { while (gameState.phase !== 'game') tourSimulation(); });
-    verifier(await p.evaluate(() => gameState.players[0].bodies.length > 0 && gameState.players[0].regime === 'ecolo_pas_trop'), 'partie lancee, une planete de depart');
+    /* Depart en tete de pont : du terrain sur l'astre choisi (ou deja l'astre entier). */
+    verifier(await p.evaluate(() => { const j = gameState.players[0], b = j.spawnPlanet;
+        return !!b && (b.owner === 0 || zonesDe(b, 0).length > 0) && j.regime === 'ecolo_pas_trop'; }), 'partie lancee, debarquement sur l\'astre de depart');
     /* 3 minutes de jeu, avec une image dessinee de temps en temps */
     await p.evaluate(() => { for (let s = 0; s < 180; s++) { for (let i = 0; i < 60; i++) tourSimulation(); render(); } });
     const etat = await p.evaluate(() => ({ tour: gameState.tour, astres: gameState.allBodies.filter(b => b.owner !== null).length, jets: gameState.jets.length }));

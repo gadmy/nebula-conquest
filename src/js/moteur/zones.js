@@ -325,6 +325,21 @@ function majLutte(body, pas) {
         }
     }
 
+    /* LE DEBARQUEMENT DE DEPART (debarquerDepart) : sur l'astre neutre ou il
+       a pose ses spores, un joueur pousse tout seul, avec ce qui depasse 20 %
+       du plafond de sa tache - ses spores de depart, puis sa production. */
+    if (neutre && L.colons) {
+        for (const s in L.colons) {
+            const miennes = zonesDe(body, +s);
+            for (let k = 0; k < miennes.length; k++) {
+                const z = miennes[k].z;
+                if (z.elan >= cout) continue;
+                const surplus = z.spores - z.plafond * 0.2;
+                if (surplus >= cout) z.elan = surplus;
+            }
+        }
+    }
+
     /* LA POUSSEE, zone par zone. Une zone n'avance que si elle a de l'elan -
        des spores engagees - et chaque case lui coute le prix du sol. */
     for (const id in L.zones) {
