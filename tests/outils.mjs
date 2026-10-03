@@ -14,9 +14,10 @@ export async function chargerPlaywright() {
 }
 
 /* Le relais local, qui sert aussi la page du jeu. */
-export async function demarrerRelais() {
+/* options : arguments de plus pour le relais (ex. ['--carte-essai', fichier]). */
+export async function demarrerRelais(options) {
     const port = 9000 + Math.floor(Math.random() * 900);
-    const p = spawn(process.execPath, ['outils/relais.mjs', '--port', String(port)], { cwd: RACINE });
+    const p = spawn(process.execPath, ['outils/relais.mjs', '--port', String(port)].concat(options || []), { cwd: RACINE });
     let journal = '';
     p.stdout.on('data', d => { journal += d; });
     p.stderr.on('data', d => { journal += d; });

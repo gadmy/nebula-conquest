@@ -142,6 +142,8 @@ function ouvrirRelais(L, premier) {
             }
         }
         else if (m.t === 'resultat') afficherResultatReseau(m);
+        /* Partie jouee jusqu'au bout sur une carte de joueur : on peut voter. */
+        else if (m.t === 'carte_jouee') proposerVoteCarte(m);
         else if (m.t === 'revenu') {
             const j = gameState.players[m.slot];
             if (j) addEvent('neutral', '↩', j.name + ' est de retour', null, '#888888');

@@ -27,9 +27,11 @@ function setupUI() {
             cfgPlayers.max = Math.min(49, maxAll - 1);
             return;
         }
+        /* Carte de joueur ('j:...') ou de l'editeur ('e') : son nombre de planetes. */
+        const npJ = planetesCarteChoisie(val);
         const mapIdx = parseInt(val) || 0;
         const m = MAP_LIBRARY[mapIdx];
-        const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
+        const np = npJ !== null ? npJ : m.suns.reduce((a,s)=>a+s.planets.length,0);
         const maxP = Math.min(49, Math.max(1, np - 1));
         cfgPlayers.max = maxP;
         if (parseInt(cfgPlayers.value) > maxP) {
@@ -53,7 +55,8 @@ function setupUI() {
     // ── Boutons navigation ──
     document.getElementById('btnNewGame').addEventListener('click', () => { ensureAudio(); playClickSound(); if (!_checkSporeReady()) return; _applyActiveSpore(); fadeTransition(() => setPhase('config')); });
     document.getElementById('btnBack').addEventListener('click', () => { playClickSound(); fadeTransition(() => setPhase('title')); });
-    document.getElementById('btnStart').addEventListener('click', () => { playClickSound(); fadeTransition(() => startGame()); });
+    /* Une carte de joueur se charge d'abord (cartes-joueurs.js). */
+    document.getElementById('btnStart').addEventListener('click', () => { playClickSound(); preparerCarteChoisie(() => fadeTransition(() => startGame())); });
     document.getElementById('btnResume').addEventListener('click', () => {
         playClickSound();
         if (gameState.isMulti) {
@@ -391,7 +394,16 @@ function setupUI() {
         // ═══ F2 — ÉDITEUR DE MAP ═══
         if (e.key === 'F2') {
             e.preventDefault();
-            if (window._mapEditor) { window._mapEditor.toggle(); return; }
+            editeurCarte().toggle();
+        }
+    });
+}
+
+
+/* L'EDITEUR DE CARTE : cree une fois, a la premiere ouverture (F2 en
+   partie, ou bouton EDITEUR DE CARTE du menu, voir cartes-joueurs.js). */
+function editeurCarte() {
+    if (window._mapEditor) return window._mapEditor;
             window._mapEditor = (function() {
                 let active = false;
                 let mode = 'sun'; // sun, planet, moon, asteroid_dark, asteroid_red, asteroid_green, delete
@@ -784,10 +796,10 @@ function setupUI() {
                     updateInfo();
                 }
 
-                function exportMap() {
-                    const mapName = generateName() + '-' + generateName();
-                    const mapData = {
-                        name: mapName,
+                /* La carte telle qu'elle se garde : le format de MAP_LIBRARY. */
+                function donneesCarte(nom) {
+                    return {
+                        name: nom || (generateName() + '-' + generateName()),
                         blackHole: { x: gameState.blackHole.x, y: gameState.blackHole.y, radius: gameState.blackHole.radius },
                         suns: gameState.suns.map(s => ({
                             name: s.name, radius: Math.round(s.radius), orbitRadius: Math.round(s.orbitRadius),
@@ -809,6 +821,10 @@ function setupUI() {
                             rocks: b.rocks.map(r => ({ angle: +r.angle.toFixed(3), radiusOff: Math.round(r.radiusOff), type: r.type }))
                         }))
                     };
+                }
+                function exportMap() {
+                    const mapData = donneesCarte();
+                    const mapName = mapData.name;
                     const json = JSON.stringify(mapData, null, 2);
                     navigator.clipboard.writeText(json).then(() => {
                         btnExport.textContent = '✅ Copié ! Map: ' + mapName;
@@ -881,7 +897,14 @@ function setupUI() {
                 canvas.addEventListener('contextmenu', function(e) { if (active) e.preventDefault(); });
 
                 return {
-                    toggle() {
+                    /* Pour le menu (cartes-joueurs.js) : la carte, le panneau ou
+                       ajouter des boutons, l'etat. */
+                    donnees: donneesCarte,
+                    panneau: panel,
+                    rangee: btnRow,
+                    majInfo: function () { updateInfo(); },
+                    actif: function () { return active; },
+                    toggle(sansQuestion) {
                         active = !active;
                         panel.style.display = active ? 'flex' : 'none';
                         if (active) {
@@ -895,7 +918,7 @@ function setupUI() {
                             const spop = document.getElementById('spawnPopup'); if (spop) spop.style.display = 'none';
                             const evo = document.getElementById('evoPanel'); if (evo) evo.style.display = 'none';
                             const sb = document.getElementById('scoreBoard'); if (sb) sb.style.display = 'none';
-                            if (gameState.suns.length > 0 && !confirm('Garder la map actuelle ? (Annuler = repartir de zéro)')) {
+                            if (!sansQuestion && gameState.suns.length > 0 && !confirm('Garder la map actuelle ? (Annuler = repartir de zéro)')) {
                                 gameState.suns = []; gameState.planets = []; gameState.moons = [];
                                 gameState.asteroidBelts = [];
                                 rebuildAllBodies(); buildSunHaloCache();
@@ -910,11 +933,8 @@ function setupUI() {
                     }
                 };
             })();
-            window._mapEditor.toggle();
-        }
-    });
+    return window._mapEditor;
 }
-
 
 let spawnCountdownInterval = null;
 
@@ -967,6 +987,7 @@ function setPhase(phase) {
     switch (phase) {
 case 'title':
             document.getElementById('titleScreen').classList.remove('hidden');
+            if (typeof installerCartesJoueurs === 'function') installerCartesJoueurs();
             setTimeout(() => { ensureAudio(); playTitleMusic(); }, 500);
             connectSocket();
             setTimeout(() => { if (_socket && currentProfile) _socket.emit('register_pseudo', { pseudo: currentProfile.pseudo }); }, 1000);
@@ -1115,7 +1136,11 @@ function startGame() {
                 if (ok.length) break;
             }
             gameState.config.mapIndex = ok.length ? ok[Math.floor(Math.random() * ok.length)] : nPl.indexOf(Math.max.apply(null, nPl));
-        } else gameState.config.mapIndex = parseInt(mapSel);
+            gameState.config.carteDonnees = null;
+        } else if (mapSel === 'e' || mapSel.indexOf('j:') === 0) {
+            /* Carte de joueur : deja chargee par preparerCarteChoisie. */
+            gameState.config.mapIndex = null;
+        } else { gameState.config.mapIndex = parseInt(mapSel); gameState.config.carteDonnees = null; }
     }
 
     // Générer l'univers avec progression
@@ -1167,7 +1192,8 @@ if (gameState.isMulti && gameState._serverUniverse) {
             } else {
                 // Solo / hôte multi : carte locale
                 const mapIdx = gameState.config.mapIndex != null ? gameState.config.mapIndex : Math.floor(Math.random() * MAP_LIBRARY.length);
-                _mapData = MAP_LIBRARY[mapIdx];
+                /* Une carte de joueur (solo, ou envoyee par le relais) passe avant. */
+                _mapData = (!gameState.isTutorial && gameState.config.carteDonnees) || MAP_LIBRARY[mapIdx];
                 loadMapFromJSON(_mapData);
                 // Hôte multi : envoyer l'univers aux autres joueurs
                 console.log('[startGame] isMulti=', gameState.isMulti, '_pendingRoomId=', gameState._pendingRoomId);

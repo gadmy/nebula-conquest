@@ -45,6 +45,9 @@ const opt = (nom, def) => {
 const PORT = opt('port', Number(process.env.PORT) || 8080);
 const LATENCE = opt('latence', 0);
 const GIGUE = opt('gigue', 0);
+/* --carte-essai fichier.json : pour les essais en local (sans Supabase), la
+   carte de joueur "essai" est lue dans ce fichier. */
+const CARTE_ESSAI = (() => { const i = args.indexOf('--carte-essai'); return i >= 0 ? args[i + 1] : null; })();
 const VERSION_DIFFERENTE = "un joueur n'a pas la meme version du jeu : rechargez tous la page (Ctrl+Maj+R)";
 const PERIODE = 50;                    /* ms entre deux paquets : 3 tours de 1/60 s */
 
@@ -64,7 +67,8 @@ async function supabase(chemin, cle, options = {}) {
     const r = await fetch(SUPABASE_URL + chemin, { ...options, headers: { ...entetes, ...(options.headers || {}) },
                                                   signal: AbortSignal.timeout(5000) });
     if (!r.ok) throw new Error('Supabase ' + r.status + ' ' + chemin.split('?')[0]);
-    return r.json();
+    const txt = await r.text();
+    return txt ? JSON.parse(txt) : null;
 }
 
 /* LE COMPTE D'UN JOUEUR. Le jeu envoie son jeton de session ; Supabase dit
@@ -142,13 +146,92 @@ try {
 } catch (e) { console.log('Cartes : liste par defaut (' + e.message + ')'); }
 /* Une carte assez grande : au moins deux planetes par joueur ; a defaut
    (grandes parties), au moins une ; sinon la plus grande. */
+/* Rend { carte: numero } (carte du jeu) ou { joueur: carte officielle }. */
 function carteAuHasard(total) {
+    const toutes = PLANETES_CARTE.map((p, i) => ({ p, carte: i })).concat(OFFICIELLES.map(o => ({ p: o.planetes, joueur: o })));
     for (const parJoueur of [2, 1]) {
-        const ok = PLANETES_CARTE.map((p, i) => [p, i]).filter(([p]) => p >= total * parJoueur).map(([, i]) => i);
+        const ok = toutes.filter(x => x.p >= total * parJoueur);
         if (ok.length) return ok[Math.floor(Math.random() * ok.length)];
     }
-    return PLANETES_CARTE.indexOf(Math.max(...PLANETES_CARTE));
+    return { carte: PLANETES_CARTE.indexOf(Math.max(...PLANETES_CARTE)) };
 }
+
+/* ── LES CARTES DES JOUEURS ──
+   Une partie privee peut se jouer sur une carte de joueur : le relais la lit
+   dans la base avec le jeton du createur (il n'obtient que les siennes et
+   les officielles), la nettoie et l'envoie a tous avec le depart. Les cartes
+   officielles (1000 votes positifs) entrent aussi dans le tirage des
+   parties rapides. Memes limites que la base et le jeu. */
+const CARTES_LIMITES = { soleils: 40, planetes: 250, lunes: 1000 };
+const NOM_INTERDIT = /[^A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF0-9 '\-]/g;
+const nomPropre = (n, def) => { n = String(n == null ? '' : n).replace(NOM_INTERDIT, '').trim().slice(0, 24); return n.length >= 2 ? n : def; };
+const borne = (v, min, max, def) => { v = Number(v); return Number.isFinite(v) ? Math.max(min, Math.min(max, v)) : def; };
+/* Le meme nettoyage que le jeu (nettoyerCarte, cartes-joueurs.js). */
+function nettoyerCarte(d) {
+    if (!d || typeof d !== 'object' || !Array.isArray(d.suns)) return null;
+    const bh = d.blackHole || {};
+    const out = { name: nomPropre(d.name, 'Carte'),
+                  blackHole: { x: borne(bh.x, -1e5, 1e5, 0), y: borne(bh.y, -1e5, 1e5, 0), radius: borne(bh.radius, 20, 400, 80) },
+                  suns: [], asteroidBelts: [] };
+    let nPl = 0, nLu = 0, k = 0;
+    for (const s of d.suns.slice(0, CARTES_LIMITES.soleils)) {
+        if (!s || typeof s !== 'object') continue;
+        const sun = { name: nomPropre(s.name, 'Soleil ' + (++k)), radius: borne(s.radius, 50, 400, 180),
+                      orbitRadius: borne(s.orbitRadius, 0, 60000, 2000), orbitSpeed: borne(s.orbitSpeed, -1, 1, 0.01),
+                      angle: borne(s.angle, -1000, 1000, 0), color: /^#[0-9A-Fa-f]{6}$/.test(s.color) ? s.color : '#FFE44D', planets: [] };
+        for (const p of (Array.isArray(s.planets) ? s.planets : [])) {
+            if (!p || typeof p !== 'object' || nPl >= CARTES_LIMITES.planetes) continue;
+            nPl++;
+            const pl = { name: nomPropre(p.name, 'Planete ' + nPl), radius: borne(p.radius, 10, 200, 90),
+                         orbitRadius: borne(p.orbitRadius, 50, 20000, 600), orbitSpeed: borne(p.orbitSpeed, -2, 2, 0.05),
+                         angle: borne(p.angle, -1000, 1000, 0),
+                         flore: Math.round(borne(p.flore, 0, 100, 50)), faune: Math.round(borne(p.faune, 0, 100, 50)), moons: [] };
+            for (const m of (Array.isArray(p.moons) ? p.moons : [])) {
+                if (!m || typeof m !== 'object' || nLu >= CARTES_LIMITES.lunes) continue;
+                nLu++;
+                pl.moons.push({ name: nomPropre(m.name, 'Lune ' + nLu), radius: borne(m.radius, 5, 100, 30),
+                                orbitRadius: borne(m.orbitRadius, 10, 3000, 150), orbitSpeed: borne(m.orbitSpeed, -3, 3, 0.2),
+                                angle: borne(m.angle, -1000, 1000, 0),
+                                flore: Math.round(borne(m.flore, 0, 100, 30)), faune: Math.round(borne(m.faune, 0, 100, 30)) });
+            }
+            sun.planets.push(pl);
+        }
+        out.suns.push(sun);
+    }
+    return nPl >= 2 ? out : null;
+}
+const planetesDe = (d) => d.suns.reduce((a, s) => a + s.planets.length, 0);
+
+/* Une carte de joueur par son numero, lue avec le jeton du createur. */
+async function chargerCarteJoueur(id, jeton) {
+    if (CARTE_ESSAI && id === 'essai') {
+        const d = nettoyerCarte(JSON.parse(readFileSync(CARTE_ESSAI, 'utf8')));
+        return d ? { id: null, nom: d.name, donnees: d } : null;
+    }
+    if (!/^[0-9a-f-]{36}$/i.test(String(id)) || !jeton) return null;
+    try {
+        const r = await supabase('/rest/v1/cartes_joueurs?select=id,nom,donnees&id=eq.' + id, SUPABASE_ANON,
+                                 { headers: { Authorization: 'Bearer ' + jeton } });
+        const d = r && r[0] ? nettoyerCarte(r[0].donnees) : null;
+        return d ? { id: r[0].id, nom: nomPropre(r[0].nom, 'Carte'), donnees: d } : null;
+    } catch (e) {
+        console.log('Carte ' + id + ' illisible : ' + e.message);
+        return null;
+    }
+}
+
+/* Les cartes officielles des joueurs, relues toutes les 10 minutes. */
+let OFFICIELLES = [];
+async function chargerOfficielles() {
+    try {
+        const r = await supabase('/rest/v1/cartes_joueurs?select=id,nom,donnees&officielle=eq.true', SUPABASE_ANON);
+        OFFICIELLES = (Array.isArray(r) ? r : []).map(x => {
+            const d = nettoyerCarte(x.donnees);
+            return d ? { id: x.id, nom: nomPropre(x.nom, 'Carte'), donnees: d, planetes: planetesDe(d) } : null;
+        }).filter(Boolean);
+    } catch (e) { /* pas de base : les cartes du jeu suffisent */ }
+}
+if (!CARTE_ESSAI) { chargerOfficielles(); setInterval(chargerOfficielles, 600000).unref(); }
 
 /* Code de partie privee : 4 lettres, sans celles qu'on confond (I, O). */
 function nouveauCode() {
@@ -160,16 +243,24 @@ function nouveauCode() {
 }
 let compteurPublic = 0;
 
+/* options.carteJoueur : { id, nom, donnees } (partie privee sur une carte
+   de joueur, deja lue). */
 function nouvelleSalle(nom, m, options) {
     const joueurs = entier(m.joueurs, 1, JOUEURS_MAX, 2);
     const ia = entier(m.ia, 0, JOUEURS_MAX - joueurs, 0);
+    let choix = options.carteJoueur ? { joueur: options.carteJoueur }
+              : (m.carte !== undefined && m.carte !== null && m.carte !== '') ? { carte: entier(m.carte, 0, PLANETES_CARTE.length - 1, 6) }
+              : carteAuHasard(joueurs + ia);
     const salle = {
         nom, clients: [], lancee: false, n: 0, ordres: [], empreintes: new Map(), minuteur: null,
         historique: [], valides: new Map(), abandon: null,
         public: !!options.public,
+        carteJoueur: choix.joueur || null,
         reglages: {
             joueurs, ia,
-            carte: m.carte !== undefined && m.carte !== null && m.carte !== '' ? entier(m.carte, 0, PLANETES_CARTE.length - 1, 6) : carteAuHasard(joueurs + ia),
+            carte: choix.joueur ? null : choix.carte,
+            carteJoueur: choix.joueur ? choix.joueur.id : null,
+            carteNom: choix.joueur ? choix.joueur.nom : null,
             difficulte: ['easy', 'normal', 'hard', 'brutal'].includes(m.difficulte) ? m.difficulte : 'normal',
         },
     };
@@ -181,7 +272,7 @@ function nouvelleSalle(nom, m, options) {
    sinon on se classerait contre soi-meme). */
 const dejaLa = (salle, compte) => !!compte && salle.clients.some(k => k.compte && k.compte.id === compte.id);
 
-function rejoindre(ws, m, compte) {
+function rejoindre(ws, m, compte, carteJoueur) {
     const version = String(m.version || '').slice(0, 16);
     let salle;
     if (m.public) {
@@ -196,7 +287,16 @@ function rejoindre(ws, m, compte) {
         if (!salle) salle = nouvelleSalle('public-' + n + '-' + (++compteurPublic), { joueurs: n }, { public: true });
     } else if (m.creer) {
         /* PARTIE PRIVEE : un code a transmettre. */
-        salle = nouvelleSalle(nouveauCode(), m, {});
+        /* Une carte de joueur a assez de planetes pour tout le monde ? */
+        if (carteJoueur) {
+            const total = entier(m.joueurs, 1, JOUEURS_MAX, 2) + entier(m.ia, 0, JOUEURS_MAX, 0);
+            const np = planetesDe(carteJoueur.donnees);
+            if (np < total) {
+                ws.send(JSON.stringify({ t: 'refus', raison: 'la carte « ' + carteJoueur.nom + ' » n\'a que ' + np + ' planètes pour ' + total + ' joueurs' }));
+                return null;
+            }
+        }
+        salle = nouvelleSalle(nouveauCode(), m, { carteJoueur });
         ws.send(JSON.stringify({ t: 'salle', code: salle.nom }));
     } else if (m.code) {
         salle = salles.get(String(m.code).toUpperCase().slice(0, 4));
@@ -245,6 +345,8 @@ function rejoindre(ws, m, compte) {
         /* Les reglages d'abord : leur "joueurs" (un nombre) ne doit pas
            ecraser la liste des joueurs. Garde pour les reprises. */
         salle.depart = { ...salle.reglages, graine, joueurs, classee, salle: nom };
+        /* La carte d'un joueur voyage avec le depart (et les reprises). */
+        if (salle.carteJoueur) salle.depart.carteDonnees = salle.carteJoueur.donnees;
         for (const k of salle.clients) {
             /* Le jeton, secret et propre a chaque joueur, lui permettra de
                reprendre sa place s'il perd la connexion - et a lui seul. */
@@ -402,6 +504,26 @@ function noterFin(c, m) {
     else if (!salle.minuteurFin) salle.minuteurFin = setTimeout(() => conclure(salle), 10000);
 }
 
+/* CARTE DE JOUEUR JOUEE JUSQU'AU BOUT : chaque humain connecte, avec un
+   compte, qui a envoye la fin (donc vu la partie jusqu'au bout) est note dans
+   la base ; il peut alors voter pour la carte (voter_carte). Pas pour une
+   partie de moins d'une minute. */
+async function noterCarteJouee(salle, duree) {
+    const carte = salle.carteJoueur;
+    if (!carte || !carte.id || !SUPABASE_SERVICE || duree < 60) return;
+    const qui = salle.clients.filter(k => k.compte && !k.desync && salle.fins && salle.fins.has(k.slot));
+    if (!qui.length) return;
+    try {
+        await supabase('/rest/v1/cartes_jouees', SUPABASE_SERVICE, {
+            method: 'POST',
+            headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+            body: JSON.stringify(qui.map(k => ({ carte: carte.id, joueur: k.compte.id }))),
+        });
+        for (const k of qui) envoyer(k, { t: 'carte_jouee', id: carte.id, nom: carte.nom });
+        console.log('[' + salle.nom + '] carte « ' + carte.nom + ' » jouee jusqu\'au bout par ' + qui.length + ' joueur(s)');
+    } catch (e) { console.log('[' + salle.nom + '] carte jouee non notee : ' + e.message); }
+}
+
 async function conclure(salle) {
     if (salle.conclue) return;
     salle.conclue = true;
@@ -414,6 +536,7 @@ async function conclure(salle) {
     if (voix * 2 <= salle.fins.size) return refus('les joueurs ne sont pas d\'accord sur le resultat');
     if (salle.desync) return refus('partie desynchronisee');
     const [rangs, astres, duree] = JSON.parse(cle);
+    noterCarteJouee(salle, duree);
     log('fin : ' + rangs.map((s, i) => (i + 1) + '. ' + salle.clients[s].nom + ' (' + astres[i] + ' astres)').join(', ') +
         ', ' + duree + ' s, ' + voix + ' voix sur ' + salle.fins.size);
     if (!salle.depart.classee) return refus('partie non classee');
@@ -453,8 +576,18 @@ wss.on('connection', (ws) => {
         if (m.t === 'rejoindre' && !c && !verification) {
             /* Le compte d'abord (quelques dizaines de ms), la place ensuite. */
             verification = true;
-            verifierJeton(m.jeton).then((compte) => {
-                if (ws.readyState === 1) c = rejoindre(ws, m, compte);
+            verifierJeton(m.jeton).then(async (compte) => {
+                /* Partie privee sur une carte de joueur : on la lit d'abord. */
+                let carte = null;
+                if (m.creer && m.carteJoueur) {
+                    carte = await chargerCarteJoueur(m.carteJoueur, m.jeton);
+                    if (!carte) {
+                        if (ws.readyState === 1) ws.send(JSON.stringify({ t: 'refus', raison: 'carte introuvable (connectez-vous, ou choisissez une autre carte)' }));
+                        verification = false;
+                        return;
+                    }
+                }
+                if (ws.readyState === 1) c = rejoindre(ws, m, compte, carte);
             });
             return;
         }

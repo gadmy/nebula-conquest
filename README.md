@@ -7,7 +7,7 @@ Jeu de conquête spatiale en temps réel, dans le navigateur.
 - `JOURNAL.md` : le journal des versions et la liste « À FAIRE ».
 - `outils/relais.mjs` : le relais du multijoueur en réseau (hébergé sur Railway). Railway ne le relance que si `outils/relais.mjs`, `package*.json`, `railway.json` ou `src/js/donnees/cartes.js` changent (`railway.json`) : chaque relance coupe les parties en cours, à envoyer quand personne ne joue.
 - `outils/lockstep-test.mjs` : le test « tout le monde voit la même partie » (`npm run lockstep`).
-- `supabase/` : la base de données (comptes, classements), décrite en fichiers. Voir [supabase/README.md](supabase/README.md).
+- `supabase/` : la base de données (comptes, classements, cartes des joueurs), décrite en fichiers. Voir [supabase/README.md](supabase/README.md).
 - `assets/`, `Audio/`, `Lore/` : images, sons et histoire du jeu.
 
 ## Travailler sur le jeu

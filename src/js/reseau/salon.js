@@ -21,6 +21,15 @@ function installerSalon() {
     };
     nb.addEventListener('change', majIa);
     majIa();
+    /* Le choix de carte du createur : celles du jeu, plus (cartes-joueurs.js)
+       les officielles des joueurs et les siennes. */
+    const carte = document.getElementById('salonCarte');
+    if (carte && carte.options.length < 2) {
+        MAP_LIBRARY.forEach(function (m, i) {
+            const np = m.suns.reduce(function (a, s) { return a + s.planets.length; }, 0);
+            carte.add(new Option(m.name + ' · ' + np + ' planètes', String(i)));
+        });
+    }
     document.getElementById('btnSalon').addEventListener('click', function () {
         if (typeof ensureAudio === 'function') ensureAudio();
         if (typeof playClickSound === 'function') playClickSound();
@@ -51,7 +60,12 @@ function installerSalon() {
         });
     });
     document.getElementById('salonCreer').addEventListener('click', function () {
-        salonRejoindre({ creer: true, joueurs: +nb.value, ia: +ia.value }, 'Création de la partie...');
+        const r = { creer: true, joueurs: +nb.value, ia: +ia.value };
+        const c = document.getElementById('salonCarte');
+        const v = c ? c.value : 'random';
+        if (v.indexOf('j:') === 0) r.carteJoueur = v.slice(2);
+        else if (v !== 'random') r.carte = +v;
+        salonRejoindre(r, 'Création de la partie...');
     });
     document.getElementById('salonRejoindre').addEventListener('click', function () {
         const code = document.getElementById('salonCode').value.trim().toUpperCase();

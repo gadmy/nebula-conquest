@@ -1770,6 +1770,36 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
          second dessus.
        - Les boutons - / + des soleils sont expliques (flore de tout le
          systeme, +/- 5 %).
+     - CARTES DES JOUEURS :
+       - Bouton EDITEUR DE CARTE au menu (editeur ouvert sur un espace vide,
+         sans partie). On nomme la carte, on l'ENREGISTRE dans son compte
+         (30 au plus), on rouvre ou efface ses cartes, on la JOUE EN SOLO.
+         Limites : 40 soleils, 250 planetes, 1000 lunes, 2 planetes au moins.
+       - Choix de carte : solo et partie privee en reseau proposent les
+         cartes officielles des joueurs et les siennes. Le createur de la
+         partie choisit ; le relais lit la carte dans la base AVEC LE JETON
+         DU CREATEUR (il n'obtient que ses cartes et les officielles), la
+         nettoie (noms en lettres seulement, nombres bornes) et l'envoie a
+         tous avec le depart. Refus si trop peu de planetes pour tous.
+       - Vote : a la fin d'une partie en reseau sur une carte de joueur
+         (1 min au moins), le relais note dans la base ceux qui l'ont jouee
+         jusqu'au bout ; eux seuls peuvent voter 👍 / 👎, une fois, pas sur
+         leur propre carte (fonction voter_carte, verifiee par la base). Les
+         parties solo ne comptent pas (la base ne peut pas les verifier).
+       - A 1000 votes positifs la carte devient OFFICIELLE : visible de tous,
+         et le relais l'ajoute au tirage des parties au hasard (liste relue
+         toutes les 10 min).
+       - Base : migration 20261003120000_cartes_des_joueurs (tables
+         cartes_joueurs, cartes_jouees, votes_cartes), appliquee en ligne et
+         verifiee (droits : le jeu n'ecrit que nom et contenu ; ni votes ni
+         statut officiel). Les tables des comptes rendus ne sont pas touchees.
+       - Une nouvelle carte n'a plus besoin de relancer le relais : elle vit
+         dans la base. (Ce changement-ci relance le relais : relais.mjs.)
+       - Essais : editeur depuis le menu -> jouer en solo ; partie privee a
+         deux sur une carte de joueur (relais --carte-essai) : meme carte chez
+         les deux, parties identiques ; regles de la base rejouees en local
+         (vote refuse sans partie jouee, sur sa carte, en double ; officielle
+         au 1000e vote ; carte officielle non modifiable).
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

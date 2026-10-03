@@ -67,6 +67,7 @@
         <button class="btn" id="btnMission" style="background:rgba(74,222,128,0.10); border:1px solid rgba(74,222,128,0.4); color:#86EFAC;">🎓 TUTORIEL</button>
         <button class="btn" id="btnHistoire" style="background:rgba(253,230,138,0.08); border:1px solid rgba(253,230,138,0.4); color:#FDE68A;">📜 HISTOIRE</button>
         <button class="btn" id="btnHelp" style="background:rgba(100,180,255,0.10); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">📖 RÈGLES</button>
+        <button class="btn" id="btnEditeur" style="background:rgba(255,136,0,0.10); border:1px solid rgba(255,136,0,0.45); color:#FDBA74;">🗺️ ÉDITEUR DE CARTE</button>
     </div>
     <div style="display:none;">
         <button class="btn" id="btnMulti">MULTI (ancien)</button>
@@ -101,6 +102,7 @@
                 <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:10px; font-size:12px; flex-wrap:wrap;">
                     <label>Joueurs <select id="salonNb" style="margin-left:4px;"></select></label>
                     <label>+ IA <select id="salonIa" style="margin-left:4px;"></select></label>
+                    <label>Carte <select id="salonCarte" style="margin-left:4px; max-width:180px;"><option value="random">Au hasard</option></select></label>
                     <button class="btn" id="salonCreer" style="margin:0; padding:7px 14px; font-size:12px;">CRÉER</button>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center; justify-content:center;">
@@ -519,6 +521,11 @@
 <p style="margin-bottom:6px;">Tout le monde voit exactement la même partie. Il faut la <b>même version du jeu</b> : si un joueur a une ancienne version, il est prévenu et doit recharger la page. Si vous perdez la connexion ou rechargez la page, le bouton <span style="color:#E9D5FF;">REPRENDRE</span> du menu vous ramène dans la partie en cours, en quelques secondes : votre navigateur garde une photo de la partie toutes les 30 secondes de jeu.</p>
 <p style="margin-bottom:16px;">Les joueurs IA portent des noms générés (ex. [IA] Zyrex, [IA] Vorath…). En réseau, une partie se termine aussi à 80 % des astres ou quand il ne reste qu'un joueur en vie.</p>
 
+<p id="h-cartes" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🗺️ CARTES DES JOUEURS</p>
+<p style="margin-bottom:6px;">Le bouton <span style="color:#FDBA74;">ÉDITEUR DE CARTE</span> du menu ouvre l'éditeur : clic gauche pour poser un soleil, une planète (après avoir cliqué son soleil) ou une lune (après avoir cliqué sa planète) ; clic sur un astre du même genre pour le changer ; clic droit pour effacer ; ZQSD et la molette pour se déplacer. Deux astres d'une même orbite doivent rester écartés. Au plus <b>40 soleils, 250 planètes et 1000 lunes</b>.</p>
+<p style="margin-bottom:6px;">Connecté, vous donnez un nom à la carte et l'<b>enregistrez</b> dans votre compte (30 cartes au plus), vous la rouvrez plus tard, et vous pouvez la <b>jouer en solo</b>. Vos cartes apparaissent dans le choix de carte, en solo comme dans une partie <span style="color:#FCD34D;">ENTRE AMIS</span> : c'est celui qui crée la partie qui choisit, ses amis reçoivent la carte automatiquement.</p>
+<p style="margin-bottom:16px;">À la fin d'une partie en réseau sur la carte d'un joueur, ceux qui l'ont jouée jusqu'au bout peuvent <b>voter</b> 👍 ou 👎 (une fois, pas sur sa propre carte). À <b>1000 votes positifs</b>, la carte devient <span style="color:#FFD700;">officielle</span> : tout le monde la voit, et les parties au hasard peuvent la tirer.</p>
+
 <!-- ASTUCES -->
 <p style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">💡 ASTUCES</p>
 <p style="margin-bottom:6px;">Ne laissez pas un astre <span style="color:#EF4444;">plein à ras bord</span> : il ne produit plus. Tirez pour le redescendre vers 40 %, là où il rapporte le plus.</p>
@@ -918,6 +925,7 @@
 <!--#inclure js/moteur/ondes-solaires.js-->
 <!--#inclure js/moteur/victoire.js-->
 <!--#inclure js/interface/mes-astres.js-->
+<!--#inclure js/interface/cartes-joueurs.js-->
 <!--#inclure js/audio/audio.js-->
 <!--#inclure js/interface/minimap.js-->
 <!--#inclure js/interface/chrono.js-->

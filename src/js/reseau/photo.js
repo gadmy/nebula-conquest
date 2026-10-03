@@ -222,6 +222,8 @@ function lancerPartieLockstep(m) {
     cfg.cleanerCount = 3;
     cfg.useComets = true;
     cfg.mapIndex = m.carte;
+    /* Carte d'un joueur : le relais l'envoie avec le depart. */
+    cfg.carteDonnees = m.carteDonnees ? nettoyerCarte(m.carteDonnees) : null;
     afficherLockstep('Partie lancee : vous etes le joueur ' + (m.slot + 1) + ' sur ' + m.joueurs.length +
                      (m.classee ? ' — partie classee (ELO)' : ''));
     /* Attendre que l'ecran d'accueil ait fini de s'installer, pour qu'il ne

@@ -23,6 +23,9 @@ Projet en ligne : `hcjajtpbzusqgxkyzbgc` (région eu-west-1).
 - `guilds`, `guild_members` et la vue `guild_leaderboard` : les guildes, cachées dans le menu actuel.
 - `long_*` : le mode « partie longue », en sommeil. Ses règles d'accès utilisent les fonctions `prive.nc_membre*`, rangées dans le schéma `prive`, qui n'est pas publié dans l'API.
 - La vue `leaderboard` : l'ancien classement 1 contre 1.
+- `cartes_joueurs` : les cartes faites dans l'éditeur du jeu (30 par compte ; 40 soleils, 250 planètes, 1000 lunes au plus). Le jeu n'écrit que le nom et le contenu ; votes et statut officiel ne bougent que par `voter_carte`. Une carte officielle ne se modifie plus.
+- `cartes_jouees` : qui a joué quelle carte jusqu'au bout en réseau. Écrite seulement par le relais (clé de service) ; aucun accès pour le jeu (l'alerte « RLS sans règle » est voulue).
+- `votes_cartes` et la fonction `voter_carte` : un vote par compte et par carte, seulement après avoir joué la carte jusqu'au bout, jamais sur la sienne. À 1000 votes positifs la carte devient officielle (le seuil est dans la fonction).
 
 Les vues lisent les tables avec les droits de celui qui les consulte (`security_invoker`), jamais avec ceux de leur créateur.
 

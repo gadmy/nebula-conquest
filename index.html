@@ -1879,6 +1879,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
         <button class="btn" id="btnMission" style="background:rgba(74,222,128,0.10); border:1px solid rgba(74,222,128,0.4); color:#86EFAC;">🎓 TUTORIEL</button>
         <button class="btn" id="btnHistoire" style="background:rgba(253,230,138,0.08); border:1px solid rgba(253,230,138,0.4); color:#FDE68A;">📜 HISTOIRE</button>
         <button class="btn" id="btnHelp" style="background:rgba(100,180,255,0.10); border:1px solid rgba(100,180,255,0.4); color:#7DD3FC;">📖 RÈGLES</button>
+        <button class="btn" id="btnEditeur" style="background:rgba(255,136,0,0.10); border:1px solid rgba(255,136,0,0.45); color:#FDBA74;">🗺️ ÉDITEUR DE CARTE</button>
     </div>
     <div style="display:none;">
         <button class="btn" id="btnMulti">MULTI (ancien)</button>
@@ -1913,6 +1914,7 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
                 <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:10px; font-size:12px; flex-wrap:wrap;">
                     <label>Joueurs <select id="salonNb" style="margin-left:4px;"></select></label>
                     <label>+ IA <select id="salonIa" style="margin-left:4px;"></select></label>
+                    <label>Carte <select id="salonCarte" style="margin-left:4px; max-width:180px;"><option value="random">Au hasard</option></select></label>
                     <button class="btn" id="salonCreer" style="margin:0; padding:7px 14px; font-size:12px;">CRÉER</button>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center; justify-content:center;">
@@ -2330,6 +2332,11 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:6px;"><span style="color:#FCD34D;">✉️ ENTRE AMIS</span> : choisissez le nombre de joueurs et d'IA, puis CRÉER. La partie affiche un <b>code</b> de 4 lettres et un bouton <b>COPIER LE LIEN D'INVITATION</b> : l'ami qui ouvre le lien arrive directement dans la partie ; il peut aussi taper le code puis REJOINDRE. Les places vides peuvent être prises par des IA.</p>
 <p style="margin-bottom:6px;">Tout le monde voit exactement la même partie. Il faut la <b>même version du jeu</b> : si un joueur a une ancienne version, il est prévenu et doit recharger la page. Si vous perdez la connexion ou rechargez la page, le bouton <span style="color:#E9D5FF;">REPRENDRE</span> du menu vous ramène dans la partie en cours, en quelques secondes : votre navigateur garde une photo de la partie toutes les 30 secondes de jeu.</p>
 <p style="margin-bottom:16px;">Les joueurs IA portent des noms générés (ex. [IA] Zyrex, [IA] Vorath…). En réseau, une partie se termine aussi à 80 % des astres ou quand il ne reste qu'un joueur en vie.</p>
+
+<p id="h-cartes" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🗺️ CARTES DES JOUEURS</p>
+<p style="margin-bottom:6px;">Le bouton <span style="color:#FDBA74;">ÉDITEUR DE CARTE</span> du menu ouvre l'éditeur : clic gauche pour poser un soleil, une planète (après avoir cliqué son soleil) ou une lune (après avoir cliqué sa planète) ; clic sur un astre du même genre pour le changer ; clic droit pour effacer ; ZQSD et la molette pour se déplacer. Deux astres d'une même orbite doivent rester écartés. Au plus <b>40 soleils, 250 planètes et 1000 lunes</b>.</p>
+<p style="margin-bottom:6px;">Connecté, vous donnez un nom à la carte et l'<b>enregistrez</b> dans votre compte (30 cartes au plus), vous la rouvrez plus tard, et vous pouvez la <b>jouer en solo</b>. Vos cartes apparaissent dans le choix de carte, en solo comme dans une partie <span style="color:#FCD34D;">ENTRE AMIS</span> : c'est celui qui crée la partie qui choisit, ses amis reçoivent la carte automatiquement.</p>
+<p style="margin-bottom:16px;">À la fin d'une partie en réseau sur la carte d'un joueur, ceux qui l'ont jouée jusqu'au bout peuvent <b>voter</b> 👍 ou 👎 (une fois, pas sur sa propre carte). À <b>1000 votes positifs</b>, la carte devient <span style="color:#FFD700;">officielle</span> : tout le monde la voit, et les parties au hasard peuvent la tirer.</p>
 
 <!-- ASTUCES -->
 <p style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">💡 ASTUCES</p>
@@ -7082,9 +7089,11 @@ function setupUI() {
             cfgPlayers.max = Math.min(49, maxAll - 1);
             return;
         }
+        /* Carte de joueur ('j:...') ou de l'editeur ('e') : son nombre de planetes. */
+        const npJ = planetesCarteChoisie(val);
         const mapIdx = parseInt(val) || 0;
         const m = MAP_LIBRARY[mapIdx];
-        const np = m.suns.reduce((a,s)=>a+s.planets.length,0);
+        const np = npJ !== null ? npJ : m.suns.reduce((a,s)=>a+s.planets.length,0);
         const maxP = Math.min(49, Math.max(1, np - 1));
         cfgPlayers.max = maxP;
         if (parseInt(cfgPlayers.value) > maxP) {
@@ -7108,7 +7117,8 @@ function setupUI() {
     // ── Boutons navigation ──
     document.getElementById('btnNewGame').addEventListener('click', () => { ensureAudio(); playClickSound(); if (!_checkSporeReady()) return; _applyActiveSpore(); fadeTransition(() => setPhase('config')); });
     document.getElementById('btnBack').addEventListener('click', () => { playClickSound(); fadeTransition(() => setPhase('title')); });
-    document.getElementById('btnStart').addEventListener('click', () => { playClickSound(); fadeTransition(() => startGame()); });
+    /* Une carte de joueur se charge d'abord (cartes-joueurs.js). */
+    document.getElementById('btnStart').addEventListener('click', () => { playClickSound(); preparerCarteChoisie(() => fadeTransition(() => startGame())); });
     document.getElementById('btnResume').addEventListener('click', () => {
         playClickSound();
         if (gameState.isMulti) {
@@ -7446,7 +7456,16 @@ function setupUI() {
         // ═══ F2 — ÉDITEUR DE MAP ═══
         if (e.key === 'F2') {
             e.preventDefault();
-            if (window._mapEditor) { window._mapEditor.toggle(); return; }
+            editeurCarte().toggle();
+        }
+    });
+}
+
+
+/* L'EDITEUR DE CARTE : cree une fois, a la premiere ouverture (F2 en
+   partie, ou bouton EDITEUR DE CARTE du menu, voir cartes-joueurs.js). */
+function editeurCarte() {
+    if (window._mapEditor) return window._mapEditor;
             window._mapEditor = (function() {
                 let active = false;
                 let mode = 'sun'; // sun, planet, moon, asteroid_dark, asteroid_red, asteroid_green, delete
@@ -7839,10 +7858,10 @@ function setupUI() {
                     updateInfo();
                 }
 
-                function exportMap() {
-                    const mapName = generateName() + '-' + generateName();
-                    const mapData = {
-                        name: mapName,
+                /* La carte telle qu'elle se garde : le format de MAP_LIBRARY. */
+                function donneesCarte(nom) {
+                    return {
+                        name: nom || (generateName() + '-' + generateName()),
                         blackHole: { x: gameState.blackHole.x, y: gameState.blackHole.y, radius: gameState.blackHole.radius },
                         suns: gameState.suns.map(s => ({
                             name: s.name, radius: Math.round(s.radius), orbitRadius: Math.round(s.orbitRadius),
@@ -7864,6 +7883,10 @@ function setupUI() {
                             rocks: b.rocks.map(r => ({ angle: +r.angle.toFixed(3), radiusOff: Math.round(r.radiusOff), type: r.type }))
                         }))
                     };
+                }
+                function exportMap() {
+                    const mapData = donneesCarte();
+                    const mapName = mapData.name;
                     const json = JSON.stringify(mapData, null, 2);
                     navigator.clipboard.writeText(json).then(() => {
                         btnExport.textContent = '✅ Copié ! Map: ' + mapName;
@@ -7936,7 +7959,14 @@ function setupUI() {
                 canvas.addEventListener('contextmenu', function(e) { if (active) e.preventDefault(); });
 
                 return {
-                    toggle() {
+                    /* Pour le menu (cartes-joueurs.js) : la carte, le panneau ou
+                       ajouter des boutons, l'etat. */
+                    donnees: donneesCarte,
+                    panneau: panel,
+                    rangee: btnRow,
+                    majInfo: function () { updateInfo(); },
+                    actif: function () { return active; },
+                    toggle(sansQuestion) {
                         active = !active;
                         panel.style.display = active ? 'flex' : 'none';
                         if (active) {
@@ -7950,7 +7980,7 @@ function setupUI() {
                             const spop = document.getElementById('spawnPopup'); if (spop) spop.style.display = 'none';
                             const evo = document.getElementById('evoPanel'); if (evo) evo.style.display = 'none';
                             const sb = document.getElementById('scoreBoard'); if (sb) sb.style.display = 'none';
-                            if (gameState.suns.length > 0 && !confirm('Garder la map actuelle ? (Annuler = repartir de zéro)')) {
+                            if (!sansQuestion && gameState.suns.length > 0 && !confirm('Garder la map actuelle ? (Annuler = repartir de zéro)')) {
                                 gameState.suns = []; gameState.planets = []; gameState.moons = [];
                                 gameState.asteroidBelts = [];
                                 rebuildAllBodies(); buildSunHaloCache();
@@ -7965,11 +7995,8 @@ function setupUI() {
                     }
                 };
             })();
-            window._mapEditor.toggle();
-        }
-    });
+    return window._mapEditor;
 }
-
 
 let spawnCountdownInterval = null;
 
@@ -8022,6 +8049,7 @@ function setPhase(phase) {
     switch (phase) {
 case 'title':
             document.getElementById('titleScreen').classList.remove('hidden');
+            if (typeof installerCartesJoueurs === 'function') installerCartesJoueurs();
             setTimeout(() => { ensureAudio(); playTitleMusic(); }, 500);
             connectSocket();
             setTimeout(() => { if (_socket && currentProfile) _socket.emit('register_pseudo', { pseudo: currentProfile.pseudo }); }, 1000);
@@ -8170,7 +8198,11 @@ function startGame() {
                 if (ok.length) break;
             }
             gameState.config.mapIndex = ok.length ? ok[Math.floor(Math.random() * ok.length)] : nPl.indexOf(Math.max.apply(null, nPl));
-        } else gameState.config.mapIndex = parseInt(mapSel);
+            gameState.config.carteDonnees = null;
+        } else if (mapSel === 'e' || mapSel.indexOf('j:') === 0) {
+            /* Carte de joueur : deja chargee par preparerCarteChoisie. */
+            gameState.config.mapIndex = null;
+        } else { gameState.config.mapIndex = parseInt(mapSel); gameState.config.carteDonnees = null; }
     }
 
     // Générer l'univers avec progression
@@ -8222,7 +8254,8 @@ if (gameState.isMulti && gameState._serverUniverse) {
             } else {
                 // Solo / hôte multi : carte locale
                 const mapIdx = gameState.config.mapIndex != null ? gameState.config.mapIndex : Math.floor(Math.random() * MAP_LIBRARY.length);
-                _mapData = MAP_LIBRARY[mapIdx];
+                /* Une carte de joueur (solo, ou envoyee par le relais) passe avant. */
+                _mapData = (!gameState.isTutorial && gameState.config.carteDonnees) || MAP_LIBRARY[mapIdx];
                 loadMapFromJSON(_mapData);
                 // Hôte multi : envoyer l'univers aux autres joueurs
                 console.log('[startGame] isMulti=', gameState.isMulti, '_pendingRoomId=', gameState._pendingRoomId);
@@ -16102,6 +16135,8 @@ function ouvrirRelais(L, premier) {
             }
         }
         else if (m.t === 'resultat') afficherResultatReseau(m);
+        /* Partie jouee jusqu'au bout sur une carte de joueur : on peut voter. */
+        else if (m.t === 'carte_jouee') proposerVoteCarte(m);
         else if (m.t === 'revenu') {
             const j = gameState.players[m.slot];
             if (j) addEvent('neutral', '↩', j.name + ' est de retour', null, '#888888');
@@ -16412,6 +16447,8 @@ function lancerPartieLockstep(m) {
     cfg.cleanerCount = 3;
     cfg.useComets = true;
     cfg.mapIndex = m.carte;
+    /* Carte d'un joueur : le relais l'envoie avec le depart. */
+    cfg.carteDonnees = m.carteDonnees ? nettoyerCarte(m.carteDonnees) : null;
     afficherLockstep('Partie lancee : vous etes le joueur ' + (m.slot + 1) + ' sur ' + m.joueurs.length +
                      (m.classee ? ' — partie classee (ELO)' : ''));
     /* Attendre que l'ecran d'accueil ait fini de s'installer, pour qu'il ne
@@ -16533,6 +16570,15 @@ function installerSalon() {
     };
     nb.addEventListener('change', majIa);
     majIa();
+    /* Le choix de carte du createur : celles du jeu, plus (cartes-joueurs.js)
+       les officielles des joueurs et les siennes. */
+    const carte = document.getElementById('salonCarte');
+    if (carte && carte.options.length < 2) {
+        MAP_LIBRARY.forEach(function (m, i) {
+            const np = m.suns.reduce(function (a, s) { return a + s.planets.length; }, 0);
+            carte.add(new Option(m.name + ' · ' + np + ' planètes', String(i)));
+        });
+    }
     document.getElementById('btnSalon').addEventListener('click', function () {
         if (typeof ensureAudio === 'function') ensureAudio();
         if (typeof playClickSound === 'function') playClickSound();
@@ -16563,7 +16609,12 @@ function installerSalon() {
         });
     });
     document.getElementById('salonCreer').addEventListener('click', function () {
-        salonRejoindre({ creer: true, joueurs: +nb.value, ia: +ia.value }, 'Création de la partie...');
+        const r = { creer: true, joueurs: +nb.value, ia: +ia.value };
+        const c = document.getElementById('salonCarte');
+        const v = c ? c.value : 'random';
+        if (v.indexOf('j:') === 0) r.carteJoueur = v.slice(2);
+        else if (v !== 'random') r.carte = +v;
+        salonRejoindre(r, 'Création de la partie...');
     });
     document.getElementById('salonRejoindre').addEventListener('click', function () {
         const code = document.getElementById('salonCode').value.trim().toUpperCase();
@@ -23482,6 +23533,423 @@ function updateCameraFollow() {
     const lerp = 0.15;
     cam.x += (followingBody.x - cam.x) * lerp;
     cam.y += (followingBody.y - cam.y) * lerp;
+}
+/* ─────────────────────────────────────────────
+   LES CARTES DES JOUEURS
+   - Bouton EDITEUR DE CARTE du menu : l'editeur s'ouvre sur un espace vide
+     (ou sur une de ses cartes). On y nomme la carte, on l'enregistre dans
+     son compte (30 au plus), on la rouvre, on la joue en solo.
+   - Les cartes OFFICIELLES (1000 votes positifs) et les siennes s'ajoutent
+     au choix de carte : partie solo, et partie privee en reseau - c'est le
+     createur qui choisit, le relais envoie la carte aux autres.
+   - Fin d'une partie en reseau sur une carte de joueur : chaque humain qui
+     l'a jouee jusqu'au bout peut voter (bien / pas bien), une fois. C'est la
+     base qui verifie (voter_carte) : partie jouee, pas sa propre carte.
+   Limites (les memes que la base) : 40 soleils, 250 planetes, 1000 lunes.
+   ───────────────────────────────────────────── */
+const CARTES_LIMITES = { soleils: 40, planetes: 250, lunes: 1000 };
+let _cartesOfficielles = [];   /* { id, nom, planetes, soleils, lunes, auteur, pseudo } */
+let _mesCartes = [];
+const _cacheCartes = {};       /* id -> donnees nettoyees */
+let _carteEditeur = null;      /* donnees de la carte de l'editeur, pour la jouer en solo */
+let _editeurMenu = null;       /* { id, nom } : l'editeur ouvert depuis le menu */
+
+/* UNE CARTE PROPRE. Une carte vient d'un autre joueur : on n'en garde que
+   les champs attendus, des nombres dans des bornes, des noms faits de
+   lettres (un nom s'affiche dans la page : pas de balise possible). Les
+   ceintures d'asteroides sont refaites par le jeu, on ne les garde pas. */
+const _NOM_INTERDIT = /[^A-Za-zÀ-ÖØ-öø-ÿ0-9 '\-]/g;
+function _nomPropre(n, def) {
+    n = String(n == null ? '' : n).replace(_NOM_INTERDIT, '').trim().slice(0, 24);
+    return n.length >= 2 ? n : def;
+}
+function _borne(v, min, max, def) {
+    v = Number(v);
+    return isFinite(v) ? Math.max(min, Math.min(max, v)) : def;
+}
+function nettoyerCarte(d) {
+    if (!d || typeof d !== 'object' || !Array.isArray(d.suns)) return null;
+    const bh = d.blackHole || {};
+    const out = {
+        name: _nomPropre(d.name, 'Carte'),
+        blackHole: { x: _borne(bh.x, -1e5, 1e5, 0), y: _borne(bh.y, -1e5, 1e5, 0), radius: _borne(bh.radius, 20, 400, 80) },
+        suns: [], asteroidBelts: []
+    };
+    let nPl = 0, nLu = 0, k = 0;
+    for (const s of d.suns.slice(0, CARTES_LIMITES.soleils)) {
+        if (!s || typeof s !== 'object') continue;
+        const sun = { name: _nomPropre(s.name, 'Soleil ' + (++k)), radius: _borne(s.radius, 50, 400, 180),
+                      orbitRadius: _borne(s.orbitRadius, 0, 60000, 2000), orbitSpeed: _borne(s.orbitSpeed, -1, 1, 0.01),
+                      angle: _borne(s.angle, -1000, 1000, 0),
+                      color: /^#[0-9A-Fa-f]{6}$/.test(s.color) ? s.color : '#FFE44D', planets: [] };
+        for (const p of (Array.isArray(s.planets) ? s.planets : [])) {
+            if (!p || typeof p !== 'object' || nPl >= CARTES_LIMITES.planetes) continue;
+            nPl++;
+            const pl = { name: _nomPropre(p.name, 'Planete ' + nPl), radius: _borne(p.radius, 10, 200, 90),
+                         orbitRadius: _borne(p.orbitRadius, 50, 20000, 600), orbitSpeed: _borne(p.orbitSpeed, -2, 2, 0.05),
+                         angle: _borne(p.angle, -1000, 1000, 0),
+                         flore: Math.round(_borne(p.flore, 0, 100, 50)), faune: Math.round(_borne(p.faune, 0, 100, 50)), moons: [] };
+            for (const m of (Array.isArray(p.moons) ? p.moons : [])) {
+                if (!m || typeof m !== 'object' || nLu >= CARTES_LIMITES.lunes) continue;
+                nLu++;
+                pl.moons.push({ name: _nomPropre(m.name, 'Lune ' + nLu), radius: _borne(m.radius, 5, 100, 30),
+                                orbitRadius: _borne(m.orbitRadius, 10, 3000, 150), orbitSpeed: _borne(m.orbitSpeed, -3, 3, 0.2),
+                                angle: _borne(m.angle, -1000, 1000, 0),
+                                flore: Math.round(_borne(m.flore, 0, 100, 30)), faune: Math.round(_borne(m.faune, 0, 100, 30)) });
+            }
+            sun.planets.push(pl);
+        }
+        out.suns.push(sun);
+    }
+    return out;
+}
+
+function compterCarte(d) {
+    let p = 0, l = 0;
+    for (const s of (d && d.suns) || []) for (const pl of s.planets || []) { p++; l += (pl.moons || []).length; }
+    return { soleils: ((d && d.suns) || []).length, planetes: p, lunes: l };
+}
+
+/* LES LISTES : cartes officielles (tout le monde) et les siennes. */
+function chargerListesCartes() {
+    if (typeof SERVICES_HORS_LIGNE !== 'undefined' && SERVICES_HORS_LIGNE) return Promise.resolve();
+    return Promise.resolve(_supa.from('cartes_joueurs')
+        .select('id, nom, soleils, planetes, lunes, votes_pour, officielle, auteur, profiles(pseudo)')
+        .order('nom'))
+        .then(function (r) {
+            if (!r || r.error || !Array.isArray(r.data)) return;
+            const moi = currentUser ? currentUser.id : null;
+            const ligne = function (x) {
+                return { id: x.id, nom: _nomPropre(x.nom, 'Carte'), planetes: x.planetes, soleils: x.soleils, lunes: x.lunes,
+                         votes: x.votes_pour, auteur: x.auteur, pseudo: x.profiles ? _nomPropre(x.profiles.pseudo, '?') : '?' };
+            };
+            _cartesOfficielles = r.data.filter(function (x) { return x.officielle; }).map(ligne);
+            _mesCartes = r.data.filter(function (x) { return moi && x.auteur === moi; }).map(ligne);
+            remplirChoixCartes();
+        })
+        .catch(function () {});
+}
+
+/* Ajoute les cartes de joueurs aux listes de choix (solo, partie privee). */
+function remplirChoixCartes() {
+    ['cfgMap', 'salonCarte'].forEach(function (idSel) {
+        const sel = document.getElementById(idSel);
+        if (!sel) return;
+        const garde = sel.value;
+        sel.querySelectorAll('optgroup[data-joueurs]').forEach(function (g) { g.remove(); });
+        const groupe = function (titre, liste) {
+            if (!liste.length) return;
+            const g = document.createElement('optgroup');
+            g.label = titre;
+            g.dataset.joueurs = '1';
+            for (const c of liste) {
+                const o = document.createElement('option');
+                o.value = 'j:' + c.id;
+                o.textContent = c.nom + ' · ' + c.planetes + ' planètes' + (c.pseudo && c.auteur !== (currentUser && currentUser.id) ? ' · par ' + c.pseudo : '');
+                g.appendChild(o);
+            }
+            sel.appendChild(g);
+        };
+        groupe('Cartes officielles des joueurs', _cartesOfficielles);
+        groupe('Mes cartes', _mesCartes.filter(function (c) { return !_cartesOfficielles.some(function (o) { return o.id === c.id; }); }));
+        /* La carte de l'editeur, pour la jouer tout de suite en solo. */
+        if (idSel === 'cfgMap' && _carteEditeur) {
+            const o = document.createElement('option');
+            o.value = 'e';
+            o.textContent = '✏ Carte de l\'éditeur · ' + compterCarte(_carteEditeur).planetes + ' planètes';
+            const g = document.createElement('optgroup');
+            g.label = 'Éditeur';
+            g.dataset.joueurs = '1';
+            g.appendChild(o);
+            sel.appendChild(g);
+        }
+        if ([...sel.options].some(function (o) { return o.value === garde; })) sel.value = garde;
+    });
+}
+
+/* Le nombre de planetes d'un choix de carte de joueur ('j:...' ou 'e'). */
+function planetesCarteChoisie(val) {
+    if (val === 'e') return _carteEditeur ? compterCarte(_carteEditeur).planetes : null;
+    if (typeof val !== 'string' || val.indexOf('j:') !== 0) return null;
+    const id = val.slice(2);
+    const c = _cartesOfficielles.concat(_mesCartes).find(function (x) { return x.id === id; });
+    return c ? c.planetes : null;
+}
+
+/* Le contenu d'une carte de joueur (une fois charge, garde). */
+function donneesCarteJoueur(id) {
+    if (_cacheCartes[id]) return Promise.resolve(_cacheCartes[id]);
+    return Promise.resolve(_supa.from('cartes_joueurs').select('donnees').eq('id', id).single())
+        .then(function (r) {
+            const d = r && !r.error && r.data ? nettoyerCarte(r.data.donnees) : null;
+            if (d) _cacheCartes[id] = d;
+            return d;
+        });
+}
+
+/* Avant LANCER (solo) : la carte de joueur choisie, chargee et posee dans
+   la config. Puis suite(). */
+function preparerCarteChoisie(suite) {
+    const val = document.getElementById('cfgMap').value;
+    gameState.config.carteDonnees = null;
+    if (val === 'e' && _carteEditeur) { gameState.config.carteDonnees = _carteEditeur; suite(); return; }
+    if (val.indexOf('j:') !== 0) { suite(); return; }
+    donneesCarteJoueur(val.slice(2)).then(function (d) {
+        if (!d) { alert('Cette carte n\'a pas pu être chargée.'); return; }
+        gameState.config.carteDonnees = d;
+        suite();
+    }).catch(function () { alert('Cette carte n\'a pas pu être chargée.'); });
+}
+
+/* ─────────────────────────────────────────────
+   L'EDITEUR DEPUIS LE MENU
+   ───────────────────────────────────────────── */
+function ouvrirEditeurMenu(id, nom) {
+    if (id) {
+        donneesCarteJoueur(id).then(function (d) {
+            if (d) _lancerEditeur(d, { id: id, nom: nom || d.name });
+        });
+        return;
+    }
+    _lancerEditeur(null, null);
+}
+
+function _lancerEditeur(donnees, meta) {
+    _editeurMenu = { id: meta ? meta.id : null, nom: meta ? meta.nom : '' };
+    if (typeof stopTitleMusic === 'function') stopTitleMusic();
+    document.getElementById('titleScreen').classList.add('hidden');
+    document.getElementById('configScreen').classList.add('hidden');
+    document.getElementById('gameCanvas').style.display = 'block';
+    if (typeof montrerFondCss === 'function') montrerFondCss(true);
+    /* Un espace sans joueurs ni vaisseaux : rien ne bouge que les orbites. */
+    gameState.isMulti = false;
+    gameState.isTutorial = false;
+    gameState.players = [];
+    gameState.jets = [];
+    gameState.comets = [];
+    /* Les effets que le dessin parcourt : vides (rien n'a encore eu lieu). */
+    gameState.particles = []; gameState.bloomEffects = []; gameState.conquestEffects = [];
+    gameState.impactEffects = []; gameState._etincelles = []; gameState._ondes = []; gameState._ondesSolaires = [];
+    gameState._filetsCharge = []; gameState.alliances = [];
+    gameState.capitaux = [];
+    gameState.commerces = [];
+    if (!gameState.multiSeed) gameState.multiSeed = 1 + Math.floor(Math.random() * 2147483646);
+    const avant = gameState.config.cleanerCount;
+    gameState.config.cleanerCount = 0;
+    if (donnees) loadMapFromJSON(donnees);
+    else {
+        gameState.suns = []; gameState.planets = []; gameState.moons = []; gameState.asteroidBelts = [];
+        gameState.blackHole = { x: 0, y: 0, radius: 80, dangerZone: 300, angle: 0 };
+    }
+    gameState.config.cleanerCount = avant;
+    gameState.cleaners = [];
+    gameState.capitaux = [];
+    gameState.suns.forEach(function (s) { createSunTexture(s); });
+    gameState.planets.forEach(function (p) { createPlanetTexture(p); });
+    gameState.moons.forEach(function (m) { createMoonTexture(m); });
+    rebuildAllBodies();
+    buildSunHaloCache();
+    if (typeof generateBackground === 'function') generateBackground();
+    if (typeof preparerTrouNoir === 'function') preparerTrouNoir();
+    gameState.universeRadius = 6000;
+    const cam = gameState.camera;
+    cam.x = 0; cam.y = 0; cam.zoom = donnees ? 0.08 : 0.25;
+    gameState.phase = 'title';
+    if (!gameState.running) {
+        gameState.running = true;
+        gameState.lastTime = performance.now();
+        gameState.fpsLastCheck = performance.now();
+        requestAnimationFrame(gameLoop);
+    }
+    const ed = editeurCarte();
+    _boutonsEditeurMenu(ed);
+    if (!ed.actif()) ed.toggle(true);
+    ed.majInfo();
+    _majPanneauMenu();
+}
+
+/* Les boutons propres a l'editeur ouvert depuis le menu : nom, enregistrer,
+   mes cartes, jouer en solo, quitter. Crees une fois. */
+function _boutonsEditeurMenu(ed) {
+    let bloc = document.getElementById('editeurMenu');
+    if (bloc) { bloc.style.display = 'flex'; return; }
+    bloc = document.createElement('div');
+    bloc.id = 'editeurMenu';
+    bloc.style.cssText = 'display:flex;flex-direction:column;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,136,0,0.25);';
+    const style = 'padding:6px;border-radius:4px;cursor:pointer;font:12px monospace;';
+    bloc.innerHTML =
+        '<label style="font-size:10px;color:#aaa;">Nom de la carte</label>' +
+        '<input id="edNom" maxlength="40" style="padding:5px;background:#0a1428;color:#fff;border:1px solid #f80;border-radius:4px;font:12px monospace;">' +
+        '<button id="edEnregistrer" style="' + style + 'background:#0a2a1a;color:#4f8;border:1px solid #4f8;">💾 Enregistrer dans mon compte</button>' +
+        '<button id="edJouer" style="' + style + 'background:#1a1a3a;color:#c9f;border:1px solid #c9f;">▶ Jouer cette carte en solo</button>' +
+        '<button id="edQuitter" style="' + style + 'background:#2a0a0a;color:#f88;border:1px solid #f88;">✖ Quitter l\'éditeur</button>' +
+        '<div id="edMessage" style="font-size:10px;color:#aaa;min-height:14px;line-height:1.35;"></div>' +
+        '<div style="font-size:11px;color:#f80;margin-top:4px;">📂 Mes cartes</div>' +
+        '<div id="edListe" style="display:flex;flex-direction:column;gap:3px;font-size:10px;"></div>';
+    ed.panneau.appendChild(bloc);
+    document.getElementById('edEnregistrer').addEventListener('click', enregistrerCarteEditeur);
+    document.getElementById('edJouer').addEventListener('click', jouerCarteEditeur);
+    document.getElementById('edQuitter').addEventListener('click', quitterEditeurMenu);
+}
+
+function _messageEditeur(txt, couleur) {
+    const m = document.getElementById('edMessage');
+    if (m) { m.textContent = txt; m.style.color = couleur || '#aaa'; }
+}
+
+function _majPanneauMenu() {
+    const nom = document.getElementById('edNom');
+    if (nom && _editeurMenu) nom.value = _editeurMenu.nom || '';
+    const liste = document.getElementById('edListe');
+    if (!liste) return;
+    liste.innerHTML = '';
+    if (!currentUser) { liste.textContent = 'Connectez-vous pour garder vos cartes.'; return; }
+    if (!_mesCartes.length) { liste.textContent = 'Aucune carte enregistrée.'; return; }
+    for (const c of _mesCartes) {
+        const ligne = document.createElement('div');
+        ligne.style.cssText = 'display:flex;gap:4px;align-items:center;';
+        const t = document.createElement('span');
+        t.style.cssText = 'flex:1;color:#eda;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        t.textContent = c.nom + ' (' + c.planetes + ' pl.)' + (_cartesOfficielles.some(function (o) { return o.id === c.id; }) ? ' ★' : '');
+        t.title = c.nom + ' : ' + c.soleils + ' soleils, ' + c.planetes + ' planètes, ' + c.lunes + ' lunes, ' + (c.votes || 0) + ' votes positifs';
+        const ouvrir = document.createElement('button');
+        ouvrir.textContent = 'Ouvrir';
+        ouvrir.style.cssText = 'padding:1px 5px;font:10px monospace;cursor:pointer;background:#1a2a3a;color:#9cf;border:1px solid #9cf;border-radius:3px;';
+        ouvrir.addEventListener('click', function () { ouvrirEditeurMenu(c.id, c.nom); });
+        const effacer = document.createElement('button');
+        effacer.textContent = '✖';
+        effacer.title = 'Effacer cette carte';
+        effacer.style.cssText = 'padding:1px 5px;font:10px monospace;cursor:pointer;background:#3a1a1a;color:#f88;border:1px solid #f88;border-radius:3px;';
+        effacer.addEventListener('click', function () { effacerCarte(c.id, c.nom); });
+        ligne.appendChild(t); ligne.appendChild(ouvrir); ligne.appendChild(effacer);
+        liste.appendChild(ligne);
+    }
+}
+
+/* La carte de l'editeur, controlee avant de partir : assez de planetes,
+   pas trop d'astres. Rend un message d'erreur, ou null. */
+function _defautCarte(d) {
+    const n = compterCarte(d);
+    if (n.soleils < 1) return 'Il faut au moins un soleil.';
+    if (n.planetes < 2) return 'Il faut au moins 2 planètes (une par joueur).';
+    if (n.soleils > CARTES_LIMITES.soleils) return 'Au plus ' + CARTES_LIMITES.soleils + ' soleils.';
+    if (n.planetes > CARTES_LIMITES.planetes) return 'Au plus ' + CARTES_LIMITES.planetes + ' planètes.';
+    if (n.lunes > CARTES_LIMITES.lunes) return 'Au plus ' + CARTES_LIMITES.lunes + ' lunes.';
+    return null;
+}
+
+function enregistrerCarteEditeur() {
+    if (!currentUser) { _messageEditeur('Connectez-vous pour enregistrer vos cartes.', '#f88'); return; }
+    const nom = _nomPropre(document.getElementById('edNom').value, '');
+    if (nom.length < 2) { _messageEditeur('Donnez un nom à la carte (2 lettres au moins).', '#f88'); return; }
+    const d = nettoyerCarte(editeurCarte().donnees(nom));
+    const defaut = _defautCarte(d);
+    if (defaut) { _messageEditeur(defaut, '#f88'); return; }
+    _messageEditeur('Enregistrement...', '#aaa');
+    const requete = _editeurMenu && _editeurMenu.id
+        ? _supa.from('cartes_joueurs').update({ nom: nom, donnees: d }).eq('id', _editeurMenu.id).select('id').single()
+        : _supa.from('cartes_joueurs').insert({ nom: nom, donnees: d }).select('id').single();
+    Promise.resolve(requete).then(function (r) {
+        if (!r || r.error || !r.data) {
+            _messageEditeur('Pas enregistrée : ' + ((r && r.error && r.error.message) || 'erreur'), '#f88');
+            return;
+        }
+        _editeurMenu = { id: r.data.id, nom: nom };
+        _cacheCartes[r.data.id] = d;
+        _messageEditeur('✅ Carte « ' + nom + ' » enregistrée.', '#4f8');
+        chargerListesCartes().then(_majPanneauMenu);
+    }).catch(function (e) { _messageEditeur('Pas enregistrée : ' + (e && e.message ? e.message : 'réseau'), '#f88'); });
+}
+
+function effacerCarte(id, nom) {
+    if (!confirm('Effacer la carte « ' + nom + ' » ?')) return;
+    Promise.resolve(_supa.from('cartes_joueurs').delete().eq('id', id)).then(function (r) {
+        if (r && r.error) { _messageEditeur('Pas effacée : ' + r.error.message, '#f88'); return; }
+        delete _cacheCartes[id];
+        if (_editeurMenu && _editeurMenu.id === id) _editeurMenu.id = null;
+        _messageEditeur('Carte effacée.', '#aaa');
+        chargerListesCartes().then(_majPanneauMenu);
+    });
+}
+
+/* Jouer la carte de l'editeur en solo : on passe a l'ecran de config, la
+   carte y est deja choisie. */
+function jouerCarteEditeur() {
+    const nom = _nomPropre(document.getElementById('edNom').value, 'Ma carte');
+    const d = nettoyerCarte(editeurCarte().donnees(nom));
+    const defaut = _defautCarte(d);
+    if (defaut) { _messageEditeur(defaut, '#f88'); return; }
+    _carteEditeur = d;
+    _fermerEditeurMenu();
+    remplirChoixCartes();
+    setPhase('config');
+    const sel = document.getElementById('cfgMap');
+    sel.value = 'e';
+    sel.dispatchEvent(new Event('change'));
+}
+
+function _fermerEditeurMenu() {
+    const ed = editeurCarte();
+    if (ed.actif()) ed.toggle();
+    const bloc = document.getElementById('editeurMenu');
+    if (bloc) bloc.style.display = 'none';
+    _editeurMenu = null;
+}
+
+function quitterEditeurMenu() {
+    _fermerEditeurMenu();
+    setPhase('title');
+}
+
+/* ─────────────────────────────────────────────
+   LE VOTE, en fin de partie en reseau sur une carte de joueur (message
+   'carte_jouee' du relais : il a note que nous l'avons jouee jusqu'au bout).
+   ───────────────────────────────────────────── */
+function proposerVoteCarte(m) {
+    if (!m || !m.id || !currentUser) return;
+    const bilan = document.getElementById('endStats');
+    if (!bilan || document.getElementById('voteCarte')) return;
+    const bloc = document.createElement('div');
+    bloc.id = 'voteCarte';
+    bloc.className = 'end-stat-row';
+    bloc.style.cssText = 'flex-wrap:wrap;gap:6px;align-items:center;';
+    const t = document.createElement('span');
+    t.textContent = 'La carte « ' + _nomPropre(m.nom, 'Carte') + ' » vous a plu ?';
+    const oui = document.createElement('button');
+    oui.className = 'btn';
+    oui.style.cssText = 'padding:4px 10px;font-size:12px;';
+    oui.textContent = '👍 Bien';
+    const non = oui.cloneNode(true);
+    non.textContent = '👎 Pas bien';
+    const res = document.createElement('span');
+    res.className = 'end-stat-val';
+    const voter = function (positif) {
+        oui.disabled = non.disabled = true;
+        if (typeof _supa.rpc !== 'function') { res.textContent = 'Vote impossible hors ligne'; return; }
+        Promise.resolve(_supa.rpc('voter_carte', { p_carte: m.id, p_positif: positif })).then(function (r) {
+            const v = r && r.data;
+            if (!v || !v.ok) { res.textContent = 'Vote refusé' + (v && v.raison ? ' : ' + v.raison : ''); return; }
+            res.textContent = 'Merci ! ' + v.pour + ' 👍 · ' + v.contre + ' 👎' + (v.officielle ? ' — carte officielle !' : ' (officielle à 1000 👍)');
+        }).catch(function () { res.textContent = 'Vote impossible (réseau)'; });
+    };
+    oui.addEventListener('click', function () { voter(true); });
+    non.addEventListener('click', function () { voter(false); });
+    bloc.appendChild(t); bloc.appendChild(oui); bloc.appendChild(non); bloc.appendChild(res);
+    bilan.appendChild(bloc);
+}
+
+function installerCartesJoueurs() {
+    const b = document.getElementById('btnEditeur');
+    if (b && !b.dataset.pret) {
+        b.dataset.pret = '1';
+        b.addEventListener('click', function () {
+            if (typeof ensureAudio === 'function') ensureAudio();
+            if (typeof playClickSound === 'function') playClickSound();
+            chargerListesCartes().then(_majPanneauMenu);
+            ouvrirEditeurMenu(null);
+        });
+    }
+    chargerListesCartes();
 }
 // ─────────────────────────────────────────────
 // AUDIO GÉNÉRATIF — Web Audio API
