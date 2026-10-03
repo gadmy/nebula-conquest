@@ -1104,6 +1104,13 @@ function applyConquest(body, jet) {
     // Density bonus : +5% puissance d'impact par point
     const densityBonus = 1 + (gameState.players[jet.owner]?.stats.density || 0) * 0.05;
     let attacking = jet.spores * densityBonus;
+    /* Planete neutre : son type favorise un genre de tir (facteurTypeAstre). */
+    const _fType = (body.owner === jet.owner) ? 1 : facteurTypeAstre(body, genreTir(jet));
+    if (_fType !== 1) {
+        attacking *= _fType;
+        if (jet.owner === localSlot()) gameState.conquestEffects.push({ x: body.x, y: body.y - body.radius - 40, baseX: body.x,
+            text: (_fType > 1 ? '+' : '') + Math.round((_fType - 1) * 100) + ' %', color: _fType > 1 ? '#4ADE80' : '#F87171', age: 0, maxAge: 1.8, petit: true });
+    }
     // Spores sur planète alliée : renforcement
     if (body.owner === jet.owner) {
         let _gain = 0;

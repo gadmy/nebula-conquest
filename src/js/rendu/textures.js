@@ -478,8 +478,9 @@ function createPlanetTexture(planet) {
     // Type de planète basé sur le nom (seed déterministe)
     const _pn = planet.name || '';
     const seed = (_pn.charCodeAt(0)||17) + (_pn.charCodeAt(1)||31) * 7 + Math.round((planet.orbitRadius||100) * 3 + (planet.radius||15) * 11);
-    const types = ['rocky','ocean','desert','gas','ice'];
-    planet.planetType = types[seed % types.length];
+    /* Le type compte en jeu (conquete d'une planete neutre) : meme calcul
+       que typePlanete, ecrit une seule fois. */
+    planet.planetType = typePlanete(planet);
     const rng = mulberry32(seed);
     const N = _bruitPerlin(seed);
     const N2 = _bruitPerlin(seed + 7919);

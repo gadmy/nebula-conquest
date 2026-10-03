@@ -224,6 +224,8 @@ function debarquerSurface(body, slot, spores, wx, wy) {
         return;
     }
     if (slot >= 0 && body.owner !== null && body.owner !== undefined && body.owner >= 0 && body.owner !== slot) noterAttaque(slot, body.owner);
+    /* Planete neutre : le tir de surface n'est le tir favori d'aucun type. */
+    spores *= facteurTypeAstre(body, 'surface');
     naitreLutte(body);
     const L = body.lutte;
     L.dormante = false;

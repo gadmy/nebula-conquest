@@ -503,3 +503,41 @@ function generateUniverse() {
 }
 
 
+
+/* ─────────────────────────────────────────────
+   LE TYPE D'UNE PLANETE (rocheuse, ocean, desert, gazeuse, glacee). Il
+   decoule de son nom, de son orbite et de sa taille - le meme calcul
+   partout (textures comprises), donc le meme chez tous les joueurs.
+   ───────────────────────────────────────────── */
+const TYPES_PLANETE = ['rocky', 'ocean', 'desert', 'gas', 'ice'];
+const NOMS_TYPE_PLANETE = { rocky: 'Rocheuse', ocean: 'Océan', desert: 'Désert', gas: 'Gazeuse', ice: 'Glacée' };
+function typePlanete(p) {
+    const n = p.name || '';
+    const seed = (n.charCodeAt(0) || 17) + (n.charCodeAt(1) || 31) * 7 + Math.round((p.orbitRadius || 100) * 3 + (p.radius || 15) * 11);
+    return TYPES_PLANETE[seed % TYPES_PLANETE.length];
+}
+
+/* LA CONQUETE D'UNE PLANETE NEUTRE depend de son type et du genre de tir :
+   - gazeuse et ocean : mitrailleuse (rafale) +10 %, autres tirs -20 % ;
+   - rocheuse et desert : tir normal +10 %, autres tirs -20 % ;
+   - glacee : boule (Shift) +30 %, autres tirs -20 %.
+   Seulement tant que la planete est neutre : une planete conquise se prend
+   comme avant. Les lunes ne sont pas concernees. */
+const TIR_FAVORI = { gas: ['rafale', 1.1], ocean: ['rafale', 1.1], rocky: ['normal', 1.1], desert: ['normal', 1.1], ice: ['boule', 1.3] };
+const MALUS_AUTRE_TIR = 0.8;
+const NOMS_TIR = { rafale: 'Mitrailleuse', normal: 'Tir normal', boule: 'Boule' };
+function genreTir(jet) {
+    if (!jet) return 'normal';
+    if (jet._surface) return 'surface';
+    if (jet.rafale) return 'rafale';
+    if (jet.boule) return 'boule';
+    if (jet.demolisseur) return 'demolisseur';
+    return 'normal';
+}
+function facteurTypeAstre(body, genre) {
+    if (!body || body.type !== 'planet') return 1;
+    if (body.owner !== null && body.owner !== undefined && body.owner >= 0) return 1;
+    const f = TIR_FAVORI[typePlanete(body)];
+    if (!f) return 1;
+    return genre === f[0] ? f[1] : MALUS_AUTRE_TIR;
+}

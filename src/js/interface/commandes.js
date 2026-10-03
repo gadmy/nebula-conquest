@@ -602,6 +602,13 @@ function editeurCarte() {
                    (l'apparence d'une planete ou d'une lune decoule de sa taille ;
                    un soleil change de couleur). Il reste a sa place. */
                 const COULEURS_SOLEIL = ['#FFE44D','#FFB830','#FF8C42','#FF6B6B','#7CB9FF'];
+                /* LA TAILLE D'UN SOLEIL SUIT SA COULEUR : les rouges sont 40 %
+                   plus petits que les jaunes, les bleus un peu plus grands
+                   (+20 %). Base : 150 a 250. */
+                const TAILLE_COULEUR = { '#FF6B6B': 0.6, '#7CB9FF': 1.2 };
+                function rayonSoleil(couleur) {
+                    return Math.round((150 + Math.floor(Math.random() * 101)) * (TAILLE_COULEUR[couleur] || 1));
+                }
                 function changerAstre(b) {
                     const sun = b.type === 'sun', planete = b.type === 'planet';
                     const parent = sun ? gameState.blackHole : b.parent;
@@ -609,8 +616,10 @@ function editeurCarte() {
                     const ang = Math.atan2(b.y - parent.y, b.x - parent.x);
                     const avant = sun ? b.color : (planete ? b.planetType : b.moonType);
                     const r0 = b.radius;
+                    /* Un soleil change de couleur d'abord : sa taille en depend. */
+                    const couleurNeuve = sun ? (function () { const autres = COULEURS_SOLEIL.filter(c => c !== avant); return autres[Math.floor(Math.random() * autres.length)]; })() : null;
                     for (let essai = 0; essai < 40; essai++) {
-                        const r = sun ? 150 + Math.floor(Math.random() * 101)
+                        const r = sun ? rayonSoleil(couleurNeuve)
                                 : planete ? 70 + Math.floor(Math.random() * 61)
                                 : 20 + Math.floor(Math.random() * 41);
                         if (placeLibre(freres, parent, b.orbitRadius, ang, r, b)) continue;
@@ -618,8 +627,7 @@ function editeurCarte() {
                         if (planete && (b.moons || []).some(m => m.orbitRadius < r + m.radius + MARGE_ORBITE)) continue;
                         b.radius = r;
                         if (sun) {
-                            const autres = COULEURS_SOLEIL.filter(c => c !== avant);
-                            b.color = autres[Math.floor(Math.random() * autres.length)];
+                            b.color = couleurNeuve;
                             createSunTexture(b);
                             buildSunHaloCache();
                             updateInfo();
@@ -668,14 +676,15 @@ function editeurCarte() {
                     const snap = snapSunOrbit(rawR);
                     const orbitR = snap ? snap.radius : rawR;
                     const speed = snap ? snap.speed : (0.02 + Math.random() * 0.015) / (1 + orbitR * 0.0005);
-                    const r = 150 + Math.floor(Math.random() * 101);
+                    const couleur = COULEURS_SOLEIL[Math.floor(Math.random() * COULEURS_SOLEIL.length)];
+                    const r = rayonSoleil(couleur);
                     const _non = placeLibre(gameState.suns, bh, orbitR, angle, r, null);
                     if (_non) { refus(_non); return; }
                     const sun = {
                         type: 'sun', name: generateName(), radius: r,
                         orbitRadius: orbitR, orbitSpeed: speed,
                         angle: angle, x: Math.cos(angle) * orbitR + bh.x, y: Math.sin(angle) * orbitR + bh.y,
-                        color: ['#FFE44D','#FFB830','#FF8C42','#FF6B6B','#7CB9FF'][Math.floor(Math.random()*5)],
+                        color: couleur,
                         planets: []
                     };
                     createSunTexture(sun);

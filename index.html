@@ -2259,6 +2259,14 @@ kbd { display:inline-block; min-width:1.5em; padding:0 5px; margin:0 1px; border
 <p style="margin-bottom:16px;"><span style="color:#FFD700;">Système solaire entier conquis</span> → +3 % de production sur tous ses astres, et les ondes solaires se déclenchent (voir Territoires).</p>
 
 <!-- TERRITOIRES -->
+<p id="h-types" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🪐 TYPES DE PLANÈTES</p>
+<p style="margin-bottom:6px;">Pour prendre une planète <b>neutre</b>, son type compte (affiché dans la fiche de l'astre, avec son point faible) :</p>
+<table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
+  <tr><td style="padding:3px 0;color:#FCD34D;width:42%;">Gazeuse, Océan</td><td style="padding:3px 0;"><span style="color:#4ADE80;">Mitrailleuse (Ctrl + clic) +10 %</span>, autres tirs <span style="color:#F87171;">−20 %</span></td></tr>
+  <tr><td style="padding:3px 0;color:#FCD34D;">Rocheuse, Désert</td><td style="padding:3px 0;"><span style="color:#4ADE80;">Tir normal +10 %</span>, autres tirs <span style="color:#F87171;">−20 %</span></td></tr>
+  <tr><td style="padding:3px 0;color:#FCD34D;">Glacée</td><td style="padding:3px 0;"><span style="color:#4ADE80;">Boule (Shift) +30 %</span>, autres tirs <span style="color:#F87171;">−20 %</span></td></tr>
+</table>
+<p style="margin-bottom:16px;">Une fois la planète conquise, tout redevient normal. Les lunes n'ont pas de type qui compte.</p>
 <p id="h-territoires" style="font-family:'Orbitron',sans-serif;font-size:11px;color:#7DD3FC;letter-spacing:2px;margin-bottom:10px;">🛰 TERRITOIRES &amp; ONDES SOLAIRES</p>
 <p style="margin-bottom:6px;">Une planète dont vous tenez toutes les lunes forme un <span style="color:#FFD700;">territoire</span>, entouré d'une frontière en courbes. Un soleil entièrement tenu en forme un plus grand, qui absorbe les précédents et inclut l'étoile. Deux frontières à vous qui se croisent n'en font plus qu'une.</p>
 <p style="margin-bottom:16px;">Une <span style="color:#E9D5FF;">tête de pont ennemie ne casse pas un groupement</span> : un astre envahi à moins de la moitié compte toujours comme tenu. Au-delà de la moitié, il en sort.</p>
@@ -3753,8 +3761,9 @@ function createPlanetTexture(planet) {
     // Type de planète basé sur le nom (seed déterministe)
     const _pn = planet.name || '';
     const seed = (_pn.charCodeAt(0)||17) + (_pn.charCodeAt(1)||31) * 7 + Math.round((planet.orbitRadius||100) * 3 + (planet.radius||15) * 11);
-    const types = ['rocky','ocean','desert','gas','ice'];
-    planet.planetType = types[seed % types.length];
+    /* Le type compte en jeu (conquete d'une planete neutre) : meme calcul
+       que typePlanete, ecrit une seule fois. */
+    planet.planetType = typePlanete(planet);
     const rng = mulberry32(seed);
     const N = _bruitPerlin(seed);
     const N2 = _bruitPerlin(seed + 7919);
@@ -6983,6 +6992,44 @@ function generateUniverse() {
 }
 
 
+
+/* ─────────────────────────────────────────────
+   LE TYPE D'UNE PLANETE (rocheuse, ocean, desert, gazeuse, glacee). Il
+   decoule de son nom, de son orbite et de sa taille - le meme calcul
+   partout (textures comprises), donc le meme chez tous les joueurs.
+   ───────────────────────────────────────────── */
+const TYPES_PLANETE = ['rocky', 'ocean', 'desert', 'gas', 'ice'];
+const NOMS_TYPE_PLANETE = { rocky: 'Rocheuse', ocean: 'Océan', desert: 'Désert', gas: 'Gazeuse', ice: 'Glacée' };
+function typePlanete(p) {
+    const n = p.name || '';
+    const seed = (n.charCodeAt(0) || 17) + (n.charCodeAt(1) || 31) * 7 + Math.round((p.orbitRadius || 100) * 3 + (p.radius || 15) * 11);
+    return TYPES_PLANETE[seed % TYPES_PLANETE.length];
+}
+
+/* LA CONQUETE D'UNE PLANETE NEUTRE depend de son type et du genre de tir :
+   - gazeuse et ocean : mitrailleuse (rafale) +10 %, autres tirs -20 % ;
+   - rocheuse et desert : tir normal +10 %, autres tirs -20 % ;
+   - glacee : boule (Shift) +30 %, autres tirs -20 %.
+   Seulement tant que la planete est neutre : une planete conquise se prend
+   comme avant. Les lunes ne sont pas concernees. */
+const TIR_FAVORI = { gas: ['rafale', 1.1], ocean: ['rafale', 1.1], rocky: ['normal', 1.1], desert: ['normal', 1.1], ice: ['boule', 1.3] };
+const MALUS_AUTRE_TIR = 0.8;
+const NOMS_TIR = { rafale: 'Mitrailleuse', normal: 'Tir normal', boule: 'Boule' };
+function genreTir(jet) {
+    if (!jet) return 'normal';
+    if (jet._surface) return 'surface';
+    if (jet.rafale) return 'rafale';
+    if (jet.boule) return 'boule';
+    if (jet.demolisseur) return 'demolisseur';
+    return 'normal';
+}
+function facteurTypeAstre(body, genre) {
+    if (!body || body.type !== 'planet') return 1;
+    if (body.owner !== null && body.owner !== undefined && body.owner >= 0) return 1;
+    const f = TIR_FAVORI[typePlanete(body)];
+    if (!f) return 1;
+    return genre === f[0] ? f[1] : MALUS_AUTRE_TIR;
+}
 // ─────────────────────────────────────────────
 // PERFORMANCE — allBodies cache
 // ─────────────────────────────────────────────
@@ -7664,6 +7711,13 @@ function editeurCarte() {
                    (l'apparence d'une planete ou d'une lune decoule de sa taille ;
                    un soleil change de couleur). Il reste a sa place. */
                 const COULEURS_SOLEIL = ['#FFE44D','#FFB830','#FF8C42','#FF6B6B','#7CB9FF'];
+                /* LA TAILLE D'UN SOLEIL SUIT SA COULEUR : les rouges sont 40 %
+                   plus petits que les jaunes, les bleus un peu plus grands
+                   (+20 %). Base : 150 a 250. */
+                const TAILLE_COULEUR = { '#FF6B6B': 0.6, '#7CB9FF': 1.2 };
+                function rayonSoleil(couleur) {
+                    return Math.round((150 + Math.floor(Math.random() * 101)) * (TAILLE_COULEUR[couleur] || 1));
+                }
                 function changerAstre(b) {
                     const sun = b.type === 'sun', planete = b.type === 'planet';
                     const parent = sun ? gameState.blackHole : b.parent;
@@ -7671,8 +7725,10 @@ function editeurCarte() {
                     const ang = Math.atan2(b.y - parent.y, b.x - parent.x);
                     const avant = sun ? b.color : (planete ? b.planetType : b.moonType);
                     const r0 = b.radius;
+                    /* Un soleil change de couleur d'abord : sa taille en depend. */
+                    const couleurNeuve = sun ? (function () { const autres = COULEURS_SOLEIL.filter(c => c !== avant); return autres[Math.floor(Math.random() * autres.length)]; })() : null;
                     for (let essai = 0; essai < 40; essai++) {
-                        const r = sun ? 150 + Math.floor(Math.random() * 101)
+                        const r = sun ? rayonSoleil(couleurNeuve)
                                 : planete ? 70 + Math.floor(Math.random() * 61)
                                 : 20 + Math.floor(Math.random() * 41);
                         if (placeLibre(freres, parent, b.orbitRadius, ang, r, b)) continue;
@@ -7680,8 +7736,7 @@ function editeurCarte() {
                         if (planete && (b.moons || []).some(m => m.orbitRadius < r + m.radius + MARGE_ORBITE)) continue;
                         b.radius = r;
                         if (sun) {
-                            const autres = COULEURS_SOLEIL.filter(c => c !== avant);
-                            b.color = autres[Math.floor(Math.random() * autres.length)];
+                            b.color = couleurNeuve;
                             createSunTexture(b);
                             buildSunHaloCache();
                             updateInfo();
@@ -7730,14 +7785,15 @@ function editeurCarte() {
                     const snap = snapSunOrbit(rawR);
                     const orbitR = snap ? snap.radius : rawR;
                     const speed = snap ? snap.speed : (0.02 + Math.random() * 0.015) / (1 + orbitR * 0.0005);
-                    const r = 150 + Math.floor(Math.random() * 101);
+                    const couleur = COULEURS_SOLEIL[Math.floor(Math.random() * COULEURS_SOLEIL.length)];
+                    const r = rayonSoleil(couleur);
                     const _non = placeLibre(gameState.suns, bh, orbitR, angle, r, null);
                     if (_non) { refus(_non); return; }
                     const sun = {
                         type: 'sun', name: generateName(), radius: r,
                         orbitRadius: orbitR, orbitSpeed: speed,
                         angle: angle, x: Math.cos(angle) * orbitR + bh.x, y: Math.sin(angle) * orbitR + bh.y,
-                        color: ['#FFE44D','#FFB830','#FF8C42','#FF6B6B','#7CB9FF'][Math.floor(Math.random()*5)],
+                        color: couleur,
                         planets: []
                     };
                     createSunTexture(sun);
@@ -10697,6 +10753,13 @@ function majFiche() {
             g += _fCase('Parasite', 'actif', 'neg');
         } else if (b.type === 'planet') {
             g += _fCase('Lunes', (b.moons || []).length);
+        }
+        /* Le type d'une planete, et tant qu'elle est neutre le tir qui la
+           prend le mieux. */
+        if (b.type === 'planet') {
+            const ty = typePlanete(b), fav = TIR_FAVORI[ty];
+            g += _fCase('Type', NOMS_TYPE_PLANETE[ty] || ty);
+            if (!j && fav) g += _fCase('Point faible', NOMS_TIR[fav[0]] + ' +' + Math.round((fav[1] - 1) * 100) + ' %', 'pos');
         } else {
             g += _fCase('Planète', _fEsc(b.parent ? b.parent.name : '—'));
         }
@@ -12924,6 +12987,8 @@ function debarquerSurface(body, slot, spores, wx, wy) {
         return;
     }
     if (slot >= 0 && body.owner !== null && body.owner !== undefined && body.owner >= 0 && body.owner !== slot) noterAttaque(slot, body.owner);
+    /* Planete neutre : le tir de surface n'est le tir favori d'aucun type. */
+    spores *= facteurTypeAstre(body, 'surface');
     naitreLutte(body);
     const L = body.lutte;
     L.dormante = false;
@@ -14337,6 +14402,13 @@ function applyConquest(body, jet) {
     // Density bonus : +5% puissance d'impact par point
     const densityBonus = 1 + (gameState.players[jet.owner]?.stats.density || 0) * 0.05;
     let attacking = jet.spores * densityBonus;
+    /* Planete neutre : son type favorise un genre de tir (facteurTypeAstre). */
+    const _fType = (body.owner === jet.owner) ? 1 : facteurTypeAstre(body, genreTir(jet));
+    if (_fType !== 1) {
+        attacking *= _fType;
+        if (jet.owner === localSlot()) gameState.conquestEffects.push({ x: body.x, y: body.y - body.radius - 40, baseX: body.x,
+            text: (_fType > 1 ? '+' : '') + Math.round((_fType - 1) * 100) + ' %', color: _fType > 1 ? '#4ADE80' : '#F87171', age: 0, maxAge: 1.8, petit: true });
+    }
     // Spores sur planète alliée : renforcement
     if (body.owner === jet.owner) {
         let _gain = 0;

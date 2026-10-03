@@ -1800,6 +1800,20 @@ v9.7.9 | 2026-09-29 | (en cours) Reseau : identite des joueurs et classement
          les deux, parties identiques ; regles de la base rejouees en local
          (vote refuse sans partie jouee, sur sa carte, en double ; officielle
          au 1000e vote ; carte officielle non modifiable).
+     - TYPES DE PLANETES ET CONQUETE : sur une planete NEUTRE, le type
+       favorise un tir (gazeuse et ocean : mitrailleuse +10 % ; rocheuse et
+       desert : tir normal +10 % ; glacee : boule +30 %) et les autres tirs
+       font -20 % (demolisseur et tir de surface compris). Planete conquise :
+       normal. Lunes : pas concernees. Le type (typePlanete) est maintenant un
+       calcul de jeu, le meme que pour l'apparence. Fiche de l'astre : type
+       et point faible ; a l'impact, +10 % / -20 % s'affiche. Essai : facteurs
+       mesures exacts sur les 5 types et 4 tirs.
+     - EDITEUR : la taille d'un soleil suit sa couleur (rouge -40 %, bleu
+       +20 %, les autres normaux). Les cartes deja faites ne changent pas.
+     - TAILLES VERIFIEES : retirer le reglage de taille n'a rien change
+       (memes tirages qu'avant : soleil 150-250, planete 70-130, lune 20-60,
+       comme toutes les cartes de la bibliotheque).
+     - PDF des astres : Lore/ASTRES.pdf.
      - HISTOIRE AU PREMIER LANCEMENT : la cinematique se lance toute seule
        des que le menu principal est a l'ecran (apres connexion ou choix
        hors ligne), une seule fois par navigateur (nc_histoireVue). Pas

@@ -66,6 +66,13 @@ function majFiche() {
             g += _fCase('Parasite', 'actif', 'neg');
         } else if (b.type === 'planet') {
             g += _fCase('Lunes', (b.moons || []).length);
+        }
+        /* Le type d'une planete, et tant qu'elle est neutre le tir qui la
+           prend le mieux. */
+        if (b.type === 'planet') {
+            const ty = typePlanete(b), fav = TIR_FAVORI[ty];
+            g += _fCase('Type', NOMS_TYPE_PLANETE[ty] || ty);
+            if (!j && fav) g += _fCase('Point faible', NOMS_TIR[fav[0]] + ' +' + Math.round((fav[1] - 1) * 100) + ' %', 'pos');
         } else {
             g += _fCase('Planète', _fEsc(b.parent ? b.parent.name : '—'));
         }
